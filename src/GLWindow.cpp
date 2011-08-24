@@ -20,6 +20,9 @@ TextureFactory & GLWindow::getTextureFactory()
 
 void GLWindow::initializeGL()
 {
+    // enable depth testing; disable lighting
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_LIGHTING);
 }
 
 void GLWindow::paintGL()
@@ -105,31 +108,6 @@ void GLWindow::setView(int width, int height)
     glClearColor(0,0,0,0);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    // enable depth testing; disable lighting
-    glEnable(GL_DEPTH_TEST);
-    glDisable(GL_LIGHTING);
-}
-
-void GLWindow::push2DMode()
-{
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    gluOrtho2D(0, width(), 0, height());
-
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-}
-
-void GLWindow::pop2DMode()
-{
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
 }
 
 void GLWindow::drawRectangle(double x, double y, double w, double h)

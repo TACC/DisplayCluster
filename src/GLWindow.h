@@ -18,8 +18,6 @@ class GLWindow : public QGLWidget
         void paintGL();
         void resizeGL(int width, int height);
         void setView(int width, int height);
-        void push2DMode();
-        void pop2DMode();
 
         static void drawRectangle(double x, double y, double w, double h);
 
