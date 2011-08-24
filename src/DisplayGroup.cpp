@@ -13,22 +13,12 @@
     #include <mpi/mpi.h>
 #endif
 
-DisplayGroup::DisplayGroup()
-{
-    // defaults
-    graphicsView_ = NULL;
-}
-
-DisplayGroup::~DisplayGroup()
-{
-    delete graphicsView_;
-}
-
-DisplayGroupGraphicsView * DisplayGroup::getGraphicsView()
+boost::shared_ptr<DisplayGroupGraphicsView> DisplayGroup::getGraphicsView()
 {
     if(graphicsView_ == NULL)
     {
-        graphicsView_ = new DisplayGroupGraphicsView();
+        boost::shared_ptr<DisplayGroupGraphicsView> dggv(new DisplayGroupGraphicsView());
+        graphicsView_ = dggv;
     }
 
     return graphicsView_;
