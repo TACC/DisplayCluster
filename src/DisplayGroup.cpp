@@ -68,7 +68,7 @@ void DisplayGroup::synchronizeContents()
         // we have a message
 
         // read it
-        char * buf = (char *)malloc(count);
+        char * buf = new char[count];
 
         if(buf == NULL)
         {
@@ -96,7 +96,7 @@ void DisplayGroup::synchronizeContents()
         contents_ = newContents;
 
         // free mpi buffer
-        free(buf);
+        delete [] buf;
     }
     
     MPI_Barrier(MPI_COMM_WORLD);
