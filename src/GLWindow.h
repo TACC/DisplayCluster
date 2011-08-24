@@ -12,6 +12,8 @@ class GLWindow : public QGLWidget
         GLWindow();
         ~GLWindow();
 
+        TextureFactory & getTextureFactory();
+
         void initializeGL();
         void paintGL();
         void resizeGL(int width, int height);

@@ -1,6 +1,7 @@
 #include "Content.h"
 #include "ContentGraphicsItem.h"
 #include "main.h"
+#include "TextureFactory.h"
 
 Content::Content(std::string uri)
 {
@@ -40,4 +41,22 @@ boost::shared_ptr<ContentGraphicsItem> Content::getGraphicsItem()
     }
 
     return graphicsItem_;
+}
+
+void Content::render()
+{
+    double border = 0.0025;
+
+    QRectF rect(x_,y_,w_,h_);
+
+    glPushAttrib(GL_ENABLE_BIT);
+
+    glEnable(GL_TEXTURE_2D);
+    g_mainWindow->getGLWindow()->drawTexture(rect, g_mainWindow->getGLWindow()->getTextureFactory().getTexture(getURI()));
+
+    glDisable(GL_TEXTURE_2D);
+    glColor4f(1,1,1,1);
+    g_mainWindow->getGLWindow()->drawRectangle(x_-border,y_-border,w_+2.*border,h_+2.*border);
+
+    glPopAttrib();
 }

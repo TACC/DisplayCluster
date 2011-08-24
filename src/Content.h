@@ -23,6 +23,8 @@ class Content : public boost::enable_shared_from_this<Content> {
 
         boost::shared_ptr<ContentGraphicsItem> getGraphicsItem();
 
+        void render();
+
     private:
         friend class boost::serialization::access;
 

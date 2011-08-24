@@ -13,32 +13,24 @@ GLWindow::~GLWindow()
 
 }
 
+TextureFactory & GLWindow::getTextureFactory()
+{
+    return textureFactory_;
+}
+
 void GLWindow::initializeGL()
 {
-
 }
 
 void GLWindow::paintGL()
 {
-    double border = 0.0025;
-    
     setView(width(), height());
 
     std::vector<boost::shared_ptr<Content> > contents = g_displayGroup.getContents();
 
     for(unsigned int i=0; i<contents.size(); i++)
     {
-        double x,y,w,h;
-        contents[i]->getCoordinates(x,y,w,h);
-
-        QRectF rect(x,y,w,h);
-
-        glEnable(GL_TEXTURE_2D);
-        drawTexture(rect, textureFactory_.getTexture(contents[i]->getURI()));
-
-        glDisable(GL_TEXTURE_2D);
-        glColor4f(1,1,1,1);
-        drawRectangle(x-border,y-border,w+2.*border,h+2.*border);
+        contents[i]->render();
     }
 
     // continuously synchronize and update
