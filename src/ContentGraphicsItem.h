@@ -5,6 +5,8 @@
 #define DEFAULT_SIZE 25000.
 
 #include <QtGui>
+#include <boost/shared_ptr.hpp>
+#include <boost/weak_ptr.hpp>
 
 class Content;
 
@@ -12,7 +14,7 @@ class ContentGraphicsItem : public QGraphicsRectItem {
 
     public:
 
-        ContentGraphicsItem(Content * parent);
+        ContentGraphicsItem(boost::shared_ptr<Content> parent);
 
     protected:
 
@@ -22,9 +24,11 @@ class ContentGraphicsItem : public QGraphicsRectItem {
 
     private:
 
-        Content * parent_;
-
         bool resizing_;
+
+        boost::weak_ptr<Content> parent_;
+
+        void updateParent();
 };
 
 #endif

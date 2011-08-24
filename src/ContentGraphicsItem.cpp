@@ -1,7 +1,7 @@
 #include "ContentGraphicsItem.h"
 #include "Content.h"
 
-ContentGraphicsItem::ContentGraphicsItem(Content * parent)
+ContentGraphicsItem::ContentGraphicsItem(boost::shared_ptr<Content> parent)
 {
     // defaults
     resizing_ = false;
@@ -33,8 +33,7 @@ void ContentGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
         setRect(r);
 
         // update coordinates of parent during resize
-        QRectF rScene = mapRectToScene(rect());
-        parent_->setCoordinates(rScene.x() / scene()->width(), rScene.y() / scene()->height(), rScene.width() / scene()->width(), rScene.height() / scene()->height());
+        updateParent();
 
         update();
     }
@@ -55,10 +54,18 @@ QVariant ContentGraphicsItem::itemChange(GraphicsItemChange change, const QVaria
 {
     if(change == ItemPositionChange)
     {
-        QRectF r = mapRectToScene(rect());
-
-        parent_->setCoordinates(r.x() / scene()->width(), r.y() / scene()->height(), r.width() / scene()->width(), r.height() / scene()->height());
+        updateParent();
     }
 
     return QGraphicsItem::itemChange(change, value);
+}
+
+void ContentGraphicsItem::updateParent()
+{
+    QRectF r = mapRectToScene(rect());
+
+    if(boost::shared_ptr<Content> c = parent_.lock())
+    {
+        c->setCoordinates(r.x() / scene()->width(), r.y() / scene()->height(), r.width() / scene()->width(), r.height() / scene()->height());
+    }
 }

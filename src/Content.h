@@ -4,23 +4,24 @@
 #include <string>
 #include <QtGui>
 #include <boost/shared_ptr.hpp>
+#include <boost/enable_shared_from_this.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 
 class ContentGraphicsItem;
 
-class Content {
+class Content : public boost::enable_shared_from_this<Content> {
 
     public:
 
         Content(std::string uri = "");
 
-        boost::shared_ptr<ContentGraphicsItem> getGraphicsItem();
-
         std::string getURI();
 
         void setCoordinates(double x, double y, double w, double h);
         void getCoordinates(double &x, double &y, double &w, double &h);
+
+        boost::shared_ptr<ContentGraphicsItem> getGraphicsItem();
 
     private:
         friend class boost::serialization::access;

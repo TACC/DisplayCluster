@@ -8,17 +8,6 @@ Content::Content(std::string uri)
     uri_ = uri;
 }
 
-boost::shared_ptr<ContentGraphicsItem> Content::getGraphicsItem()
-{
-    if(graphicsItem_ == NULL)
-    {
-        boost::shared_ptr<ContentGraphicsItem> gi(new ContentGraphicsItem(this));
-        graphicsItem_ = gi;
-    }
-
-    return graphicsItem_;
-}
-
 std::string Content::getURI()
 {
     return uri_;
@@ -41,4 +30,15 @@ void Content::getCoordinates(double &x, double &y, double &w, double &h)
     y = y_;
     w = w_;
     h = h_;
+}
+
+boost::shared_ptr<ContentGraphicsItem> Content::getGraphicsItem()
+{
+    if(graphicsItem_ == NULL)
+    {
+        boost::shared_ptr<ContentGraphicsItem> gi(new ContentGraphicsItem(shared_from_this()));
+        graphicsItem_ = gi;
+    }
+
+    return graphicsItem_;
 }
