@@ -4,6 +4,7 @@
 #include "GLWindow.h"
 #include <QtGui>
 #include <QGLWidget>
+#include <boost/shared_ptr.hpp>
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -12,7 +13,7 @@ class MainWindow : public QMainWindow {
 
         MainWindow();
 
-        GLWindow * getGLWindow();
+        boost::shared_ptr<GLWindow> getGLWindow();
 
     public slots:
 
@@ -20,7 +21,7 @@ class MainWindow : public QMainWindow {
 
     private:
 
-        GLWindow * glWindow_;
+        boost::shared_ptr<GLWindow> glWindow_;
 
         // widget listing contents in the left dock
         QListWidget * contentsListWidget_;

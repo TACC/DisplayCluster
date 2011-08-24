@@ -4,8 +4,6 @@
 
 MainWindow::MainWindow()
 {
-    glWindow_ = NULL;
-
     if(g_mpiRank == 0)
     {
         // rank 0 window setup
@@ -48,14 +46,16 @@ MainWindow::MainWindow()
         move(QPoint(g_configuration->getTileX(), g_configuration->getTileY()));
         resize(g_configuration->getScreenWidth(), g_configuration->getScreenHeight());
 
-        glWindow_ = new GLWindow();
-        setCentralWidget(glWindow_);
+        boost::shared_ptr<GLWindow> glw(new GLWindow());
+        glWindow_ = glw;
 
         showFullScreen();
+        setCentralWidget(glWindow_.get());
+
     }
 }
 
-GLWindow * MainWindow::getGLWindow()
+boost::shared_ptr<GLWindow> MainWindow::getGLWindow()
 {
     return glWindow_;
 }
