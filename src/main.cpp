@@ -28,8 +28,9 @@ int main(int argc, char * argv[])
 
     g_mainWindow = new MainWindow();
 
-    // we can't MPI finalize since we need to enter the Qt event loop
-    // MPI_Finalize();
+    // enter Qt event loop
+    app->exec();
 
-    return app->exec();
+    // clean up the MPI environment after the Qt event loop exits
+    MPI_Finalize();
 }
