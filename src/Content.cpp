@@ -1,7 +1,6 @@
 #include "Content.h"
 #include "ContentGraphicsItem.h"
 #include "main.h"
-#include <iostream>
 
 Content::Content(std::string uri)
 {
