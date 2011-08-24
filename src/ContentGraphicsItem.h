@@ -1,9 +1,6 @@
 #ifndef CONTENT_GRAPHICS_ITEM_H
 #define CONTENT_GRAPHICS_ITEM_H
 
-#define CORNER_MOVE_FRACTION 0.05
-#define DEFAULT_SIZE 25000.
-
 #include <QtGui>
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>

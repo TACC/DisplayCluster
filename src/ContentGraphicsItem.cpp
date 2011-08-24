@@ -11,17 +11,19 @@ ContentGraphicsItem::ContentGraphicsItem(boost::shared_ptr<Content> parent)
     setFlag(QGraphicsItem::ItemIsMovable, true);
     setFlag(QGraphicsItem::ItemSendsGeometryChanges, true);
 
-    setRect(0., 0., DEFAULT_SIZE, DEFAULT_SIZE);
+    setRect(0., 0., 0.25, 0.25);
 }
 
 void ContentGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
 {
+    float cornerMoveFraction = 0.05;
+
     // check to see if we're near enough a corner to do a resize event
     QRectF r = rect();
 
     QPointF eventPos = event->pos();
 
-    if(QLineF(r.bottomLeft(), eventPos).length() < CORNER_MOVE_FRACTION * scene()->width())
+    if(QLineF(r.bottomLeft(), eventPos).length() < cornerMoveFraction * scene()->width())
     {
         resizing_ = true;
     }

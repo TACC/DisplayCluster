@@ -3,7 +3,7 @@
 DisplayGroupGraphicsView::DisplayGroupGraphicsView()
 {
     // create and set scene for the view
-    setScene(new QGraphicsScene(0., 0., 100000., 100000.));
+    setScene(new QGraphicsScene(0., 0., 1., 1.));
 
     // force scene to be anchored at top left
     setAlignment(Qt::AlignLeft | Qt::AlignTop);
