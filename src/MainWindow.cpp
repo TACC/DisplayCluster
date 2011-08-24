@@ -25,7 +25,7 @@ MainWindow::MainWindow()
         setCentralWidget(mainWidget);
 
         // add the local renderer group
-        mainWidget->addTab((QWidget *)g_displayGroup.getGraphicsView(), "Display group 0");
+        mainWidget->addTab((QWidget *)g_displayGroup.getGraphicsView().get(), "Display group 0");
 
         // create contents dock widget
         QDockWidget * contentsDockWidget = new QDockWidget("Contents", this);
