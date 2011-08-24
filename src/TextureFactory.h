@@ -9,8 +9,6 @@ class TextureFactory {
 
     public:
 
-        TextureFactory();
-
         GLuint getTexture(std::string uri);
 
     private:

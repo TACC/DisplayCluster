@@ -2,11 +2,6 @@
 #include "main.h"
 #include "log.h"
 
-TextureFactory::TextureFactory()
-{
-
-}
-
 GLuint TextureFactory::getTexture(std::string uri)
 {
     // see if we need to create the texture
