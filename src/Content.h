@@ -8,6 +8,7 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 
+class DisplayGroup;
 class ContentGraphicsItem;
 
 class Content : public boost::enable_shared_from_this<Content> {
@@ -15,6 +16,9 @@ class Content : public boost::enable_shared_from_this<Content> {
     public:
 
         Content(std::string uri = "");
+
+        boost::shared_ptr<DisplayGroup> getDisplayGroup();
+        void setDisplayGroup(boost::shared_ptr<DisplayGroup> displayGroup);
 
         std::string getURI();
 
@@ -31,12 +35,16 @@ class Content : public boost::enable_shared_from_this<Content> {
         template<class Archive>
         void serialize(Archive & ar, const unsigned int version)
         {
+            // todo: do we serialize the display group? it's not necessary for MPI synchronization, but it would be for state loading...
+
             ar & uri_;
             ar & x_;
             ar & y_;
             ar & w_;
             ar & h_;
         }
+
+        boost::weak_ptr<DisplayGroup> displayGroup_;
 
         std::string uri_;
 

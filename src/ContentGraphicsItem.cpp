@@ -1,5 +1,6 @@
 #include "ContentGraphicsItem.h"
 #include "Content.h"
+#include "DisplayGroup.h"
 
 ContentGraphicsItem::ContentGraphicsItem(boost::shared_ptr<Content> parent)
 {
@@ -43,6 +44,24 @@ void ContentGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
     {
         QGraphicsItem::mouseMoveEvent(event);
     }
+}
+
+void ContentGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent * event)
+{
+    // move content to front of display group
+    if(boost::shared_ptr<Content> c = parent_.lock())
+    {
+        if(boost::shared_ptr<DisplayGroup> dg = c->getDisplayGroup())
+        {
+            // todo: should this be moved to Content::?
+            dg->moveContentToFront(c);
+
+            // update coordinates of parent (depth change)
+            updateParent();
+        }
+    }
+
+    QGraphicsItem::mousePressEvent(event);
 }
 
 void ContentGraphicsItem::mouseReleaseEvent(QGraphicsSceneMouseEvent * event)

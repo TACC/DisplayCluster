@@ -4,11 +4,12 @@
 #include <QtGui>
 #include <vector>
 #include <boost/shared_ptr.hpp>
+#include <boost/enable_shared_from_this.hpp>
 
 class Content;
 class DisplayGroupGraphicsView;
 
-class DisplayGroup {
+class DisplayGroup : public boost::enable_shared_from_this<DisplayGroup> {
 
     public:
 
@@ -16,6 +17,8 @@ class DisplayGroup {
 
         void addContent(boost::shared_ptr<Content> content);
         std::vector<boost::shared_ptr<Content> > getContents();
+
+        void moveContentToFront(boost::shared_ptr<Content> content);
 
         void synchronizeContents();
 

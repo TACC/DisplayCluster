@@ -28,12 +28,31 @@ void DisplayGroup::addContent(boost::shared_ptr<Content> content)
 {
     contents_.push_back(content);
 
+    // set display group in content object
+    content->setDisplayGroup(shared_from_this());
+
     getGraphicsView()->scene()->addItem((QGraphicsRectItem *)content->getGraphicsItem().get());
 }
 
 std::vector<boost::shared_ptr<Content> > DisplayGroup::getContents()
 {
     return contents_;
+}
+
+void DisplayGroup::moveContentToFront(boost::shared_ptr<Content> content)
+{
+    // find vector entry for content
+    std::vector<boost::shared_ptr<Content> >::iterator it;
+
+    it = find(contents_.begin(), contents_.end(), content);
+
+    if(it != contents_.end())
+    {
+        // we found the entry
+        // now, move it to the front
+        contents_.erase(it);
+        contents_.insert(contents_.begin(), content);
+    }
 }
 
 void DisplayGroup::synchronizeContents()

@@ -8,6 +8,16 @@ Content::Content(std::string uri)
     uri_ = uri;
 }
 
+boost::shared_ptr<DisplayGroup> Content::getDisplayGroup()
+{
+    return displayGroup_.lock();
+}
+
+void Content::setDisplayGroup(boost::shared_ptr<DisplayGroup> displayGroup)
+{
+    displayGroup_ = displayGroup;
+}
+
 std::string Content::getURI()
 {
     return uri_;

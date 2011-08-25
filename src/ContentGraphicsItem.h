@@ -16,7 +16,8 @@ class ContentGraphicsItem : public QGraphicsRectItem {
     protected:
 
         void mouseMoveEvent(QGraphicsSceneMouseEvent * event);
-        void mouseReleaseEvent (QGraphicsSceneMouseEvent * event);
+        void mousePressEvent(QGraphicsSceneMouseEvent * event);
+        void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
         QVariant itemChange(GraphicsItemChange change, const QVariant &value);
 
     private:

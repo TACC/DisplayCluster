@@ -33,7 +33,13 @@ void GLWindow::paintGL()
 
     for(unsigned int i=0; i<contents.size(); i++)
     {
+        // manage depth order
+        glPushMatrix();
+        glTranslatef(0.,0.,-(float)i / (float)contents.size());
+
         contents[i]->render();
+
+        glPopMatrix();
     }
 
     // continuously synchronize and update
