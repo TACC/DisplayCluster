@@ -10,9 +10,8 @@
 int g_mpiRank = -1;
 int g_mpiSize = -1;
 Configuration * g_configuration = NULL;
+boost::shared_ptr<DisplayGroup> g_displayGroup;
 MainWindow * g_mainWindow = NULL;
-
-DisplayGroup g_displayGroup;
 
 int main(int argc, char * argv[])
 {
@@ -25,6 +24,9 @@ int main(int argc, char * argv[])
     MPI_Comm_size(MPI_COMM_WORLD, &g_mpiSize);
 
     g_configuration = new Configuration("configuration.xml");
+
+    boost::shared_ptr<DisplayGroup> dg(new DisplayGroup);
+    g_displayGroup = dg;
 
     g_mainWindow = new MainWindow();
 

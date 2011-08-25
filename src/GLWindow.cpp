@@ -29,7 +29,7 @@ void GLWindow::paintGL()
 {
     setView(width(), height());
 
-    std::vector<boost::shared_ptr<Content> > contents = g_displayGroup.getContents();
+    std::vector<boost::shared_ptr<Content> > contents = g_displayGroup->getContents();
 
     for(unsigned int i=0; i<contents.size(); i++)
     {
@@ -37,7 +37,7 @@ void GLWindow::paintGL()
     }
 
     // continuously synchronize and update
-    g_displayGroup.synchronizeContents();
+    g_displayGroup->synchronizeContents();
     update();
 }
 

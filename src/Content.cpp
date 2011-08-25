@@ -21,7 +21,7 @@ void Content::setCoordinates(double x, double y, double w, double h)
     h_ = h;
 
     // force synchronization
-    g_displayGroup.synchronizeContents();
+    g_displayGroup->synchronizeContents();
 }
 
 void Content::getCoordinates(double &x, double &y, double &w, double &h)
