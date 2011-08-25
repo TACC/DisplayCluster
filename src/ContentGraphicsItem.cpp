@@ -37,8 +37,6 @@ void ContentGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
 
         // update coordinates of parent during resize
         updateParent();
-
-        update();
     }
     else
     {
