@@ -17,12 +17,16 @@ class ContentGraphicsItem : public QGraphicsRectItem {
 
         void mouseMoveEvent(QGraphicsSceneMouseEvent * event);
         void mousePressEvent(QGraphicsSceneMouseEvent * event);
+        void mouseDoubleClickEvent(QGraphicsSceneMouseEvent * event);
         void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
         QVariant itemChange(GraphicsItemChange change, const QVariant &value);
 
     private:
 
         bool resizing_;
+        bool selected_;
+
+        Qt::MouseButton button_;
 
         boost::weak_ptr<Content> parent_;
 
