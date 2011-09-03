@@ -24,6 +24,8 @@ class DisplayGroup : public boost::enable_shared_from_this<DisplayGroup> {
 
     private:
 
+	QTime timer_;
+
         // vector of all of its contents
         std::vector<boost::shared_ptr<Content> > contents_;
 

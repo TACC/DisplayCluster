@@ -59,6 +59,16 @@ void DisplayGroup::synchronizeContents()
 {
     if(g_mpiRank == 0)
     {
+        // rate limit
+        if(timer_.elapsed() < 1000/24)
+        {
+            return;
+        }
+        else
+        {
+            timer_.restart();
+        }
+
         // serialize contents
         std::ostringstream oss(std::ostringstream::binary);
 
