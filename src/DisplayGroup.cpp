@@ -73,50 +73,80 @@ void DisplayGroup::synchronizeContents()
         int size = serializedString.size();
 
         // send the size and the message
-        MPI_Bcast((void *)&size, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+        // the size is sent via a send, so that we can probe it on the render processes
+        for(int i=1; i<g_mpiSize; i++)
+        {
+            MPI_Send((void *)&size, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
+        }
+
+        // broadcast the message
         MPI_Bcast((void *)serializedString.data(), serializedString.size(), MPI_BYTE, 0, MPI_COMM_WORLD);
     }
     else
     {
         // receive serialized data
 
-        // first, get size of data
-        int count = 0;
-        MPI_Bcast((void *)&count, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        // check to see if we have a message (non-blocking)
+        int flag;
+        MPI_Status status;
+        MPI_Iprobe(0, 0, MPI_COMM_WORLD, &flag, &status);
 
-        // we have a message
+        // check to see if all render processes have a message
+        int allFlag;
+        MPI_Allreduce(&flag, &allFlag, 1, MPI_INT, MPI_LAND, g_mpiRenderComm);
 
-        // read it
-        char * buf = new char[count];
+        // buffer size and buffer
+        int bufSize = 0;
+        char * buf = NULL;
 
-        if(buf == NULL)
+        // if all render processes have a message...
+        if(allFlag != 0)
         {
-            put_flog(LOG_FATAL, "rank %i: error allocating memory", g_mpiRank);
-            exit(-1);
+            // continue receiving messages until we get to the last one which all render processes have
+            // this will "drop frames" and keep all processes synchronized
+            while(allFlag)
+            {
+                // first, get buffer size
+                MPI_Recv((void *)&bufSize, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
+
+                // allocate buffer
+                if(buf != NULL)
+                {
+                    delete [] buf;
+                }
+
+                buf = new char[bufSize];
+
+                // read message into the buffer
+                MPI_Bcast((void *)buf, bufSize, MPI_BYTE, 0, MPI_COMM_WORLD);
+
+                // check to see if we have another message waiting, for this process and for all render processes
+                MPI_Iprobe(0, 0, MPI_COMM_WORLD, &flag, &status);
+                MPI_Allreduce(&flag, &allFlag, 1, MPI_INT, MPI_LAND, g_mpiRenderComm);
+            }
+
+            // at this point, we've received the last message available for all render processes
+            // de-serialize...
+            std::istringstream iss(std::istringstream::binary);
+
+            if(iss.rdbuf()->pubsetbuf(buf, bufSize) == NULL)
+            {
+                put_flog(LOG_FATAL, "rank %i: error setting stream buffer", g_mpiRank);
+                exit(-1);
+            }
+
+            // read to a new vector
+            std::vector<boost::shared_ptr<Content> > newContents;
+
+            boost::archive::binary_iarchive ia(iss);
+            ia >> newContents;
+
+            // overwrite old contents
+            contents_ = newContents;
+
+            // free mpi buffer
+            delete [] buf;
         }
-
-        MPI_Bcast((void *)buf, count, MPI_BYTE, 0, MPI_COMM_WORLD);
-
-        std::istringstream iss(std::istringstream::binary);
-
-        if(iss.rdbuf()->pubsetbuf(buf, count) == NULL)
-        {
-            put_flog(LOG_FATAL, "rank %i: error setting stream buffer", g_mpiRank);
-            exit(-1);
-        }
-
-        // read to a new vector
-        std::vector<boost::shared_ptr<Content> > newContents;
-
-        boost::archive::binary_iarchive ia(iss);
-        ia >> newContents;
-
-        // overwrite old contents
-        contents_ = newContents;
-
-        // free mpi buffer
-        delete [] buf;
     }
-    
-    MPI_Barrier(MPI_COMM_WORLD);
 }

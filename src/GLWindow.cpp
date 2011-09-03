@@ -42,8 +42,13 @@ void GLWindow::paintGL()
         glPopMatrix();
     }
 
-    // continuously synchronize and update
+    // get updated contents
     g_displayGroup->synchronizeContents();
+
+    // all render processes render simultaneously
+    MPI_Barrier(g_mpiRenderComm);
+
+    // continuously render
     update();
 }
 

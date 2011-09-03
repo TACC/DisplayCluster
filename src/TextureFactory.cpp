@@ -1,21 +1,14 @@
 #include "TextureFactory.h"
-#include "main.h"
-#include "log.h"
+#include "DynamicTexture.h"
 
-GLuint TextureFactory::getTexture(std::string uri)
+boost::shared_ptr<DynamicTexture> TextureFactory::getTexture(std::string uri)
 {
     // see if we need to create the texture
     if(map_.count(uri) == 0)
     {
-        QImage image(uri.c_str());
+        boost::shared_ptr<DynamicTexture> dt(new DynamicTexture(uri));
 
-        if(image.isNull() == true)
-        {
-            put_flog(LOG_ERROR, "error loading %s", uri.c_str());
-            return 0;
-        }
-
-        map_[uri] = g_mainWindow->getGLWindow()->bindTexture(image, GL_TEXTURE_2D, GL_RGBA, QGLContext::DefaultBindOption);
+        map_[uri] = dt;
     }
 
     return map_[uri];

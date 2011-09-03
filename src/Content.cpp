@@ -2,6 +2,7 @@
 #include "ContentGraphicsItem.h"
 #include "main.h"
 #include "TextureFactory.h"
+#include "DynamicTexture.h"
 
 Content::Content(std::string uri)
 {
@@ -96,36 +97,21 @@ void Content::render()
     float tW = 1./zoom_;
     float tH = 1./zoom_;
 
-    glPushAttrib(GL_ENABLE_BIT | GL_TEXTURE_BIT);
+    // transform to a normalize coordinate system so the content can be rendered at (x,y,w,h) = (0,0,1,1)
+    glPushMatrix();
 
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, g_mainWindow->getGLWindow()->getTextureFactory().getTexture(getURI()));
+    glTranslatef(x_, y_, 0.);
+    glScalef(w_, h_, 1.);
 
-    // on zoom-out, clamp to border (instead of showing the texture tiled / repeated)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    // render the content
+    g_mainWindow->getGLWindow()->getTextureFactory().getTexture(getURI())->render(tX, tY, tW, tH);
 
-    glBegin(GL_QUADS);
+    glPopMatrix();
 
-    // note we need to flip the y coordinate since the textures are loaded upside down
-    glTexCoord2f(tX,1.-tY);
-    glVertex2f(x_,y_);
-
-    glTexCoord2f(tX+tW,1.-tY);
-    glVertex2f(x_+w_,y_);
-
-    glTexCoord2f(tX+tW,1.-(tY+tH));
-    glVertex2f(x_+w_,y_+h_);
-
-    glTexCoord2f(tX,1.-(tY+tH));
-    glVertex2f(x_,y_+h_);
-
-    glEnd();
-
-    glDisable(GL_TEXTURE_2D);
-
-    // border
+    // render the border
     double border = 0.0025;
+
+    glPushAttrib(GL_CURRENT_BIT);
 
     glColor4f(1,1,1,1);
     g_mainWindow->getGLWindow()->drawRectangle(x_-border,y_-border,w_+2.*border,h_+2.*border);

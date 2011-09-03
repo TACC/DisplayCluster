@@ -39,6 +39,7 @@ set(SRCS
     src/ContentGraphicsItem.cpp
     src/DisplayGroup.cpp
     src/DisplayGroupGraphicsView.cpp
+    src/DynamicTexture.cpp
     src/GLWindow.cpp
     src/log.cpp
     src/main.cpp
