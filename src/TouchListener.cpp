@@ -61,8 +61,20 @@ void TouchListener::addTuioCursor(TUIO::TuioCursor *tcur)
     event->setScenePos(point);
     event->setPos(point);
     event->setScreenPos(pointGlobal);
-    event->setButton(Qt::LeftButton);
-    event->setButtons(Qt::LeftButton);
+
+    if(tcur->getCursorID() == 0)
+    {
+        event->setButton(Qt::LeftButton);
+        event->setButtons(Qt::LeftButton);
+    }
+    else if(tcur->getCursorID() == 1)
+    {
+        event->setButton(Qt::RightButton);
+        event->setButtons(Qt::RightButton);
+    }
+
+    // use alt keyboard modifier to indicate this is a touch event
+    event->setModifiers(Qt::AltModifier);
 
     // post the event (thread-safe)
     QApplication::postEvent(g_displayGroup->getGraphicsView()->scene(), event);
@@ -73,6 +85,12 @@ void TouchListener::addTuioCursor(TUIO::TuioCursor *tcur)
 
 void TouchListener::updateTuioCursor(TUIO::TuioCursor *tcur)
 {
+    // if more than one cursor is down, only accept cursor 1 for right movements
+    if(client_.getTuioCursors().size() > 1 && tcur->getCursorID() != 1)
+    {
+        return;
+    }
+
     QPointF point(tcur->getX(), tcur->getY());
 
     // point mapped to view and global coordinates
@@ -94,7 +112,18 @@ void TouchListener::updateTuioCursor(TUIO::TuioCursor *tcur)
     event->setLastPos(lastPoint_);
     event->setLastScreenPos(lastPointGlobal);
     event->setButton(Qt::NoButton);
-    event->setButtons(Qt::LeftButton);
+
+    // use alt keyboard modifier to indicate this is a touch event
+    event->setModifiers(Qt::AltModifier);
+
+    if(tcur->getCursorID() == 0)
+    {
+        event->setButtons(Qt::LeftButton);
+    }
+    else if(tcur->getCursorID() == 1)
+    {
+        event->setButtons(Qt::RightButton);
+    }
 
     // post the event (thread-safe)
     QApplication::postEvent(g_displayGroup->getGraphicsView()->scene(), event);
@@ -118,6 +147,9 @@ void TouchListener::removeTuioCursor(TUIO::TuioCursor *tcur)
     event->setScenePos(point);
     event->setPos(point);
     event->setScreenPos(pointGlobal);
+
+    // use alt keyboard modifier to indicate this is a touch event
+    event->setModifiers(Qt::AltModifier);
 
     // post the event (thread-safe)
     QApplication::postEvent(g_displayGroup->getGraphicsView()->scene(), event);

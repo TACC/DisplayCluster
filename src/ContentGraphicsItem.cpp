@@ -62,7 +62,7 @@ void ContentGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
     else
     {
         // handle zooms / pans
-        QPointF delta = event->pos() - event->lastPos();
+        QPointF delta = event->scenePos() - event->lastScenePos();
 
         if(button_ == Qt::RightButton)
         {
@@ -70,7 +70,22 @@ void ContentGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
             if(boost::shared_ptr<Content> c = parent_.lock())
             {
                 double zoom = c->getZoom();
-                zoom *= (1. - delta.y());
+
+                // if this is a touch event, use cross-product for determining change in zoom (counterclockwise rotation == zoom in, etc.)
+                // otherwise, use y as the change in zoom
+                double zoomDelta;
+
+                if(event->modifiers().testFlag(Qt::AltModifier) == true)
+                {
+                    zoomDelta = (event->scenePos().x()-0.5) * delta.y() - (event->scenePos().y()-0.5) * delta.x();
+                    zoomDelta *= 2.;
+                }
+                else
+                {
+                    zoomDelta = delta.y();
+                }
+
+                zoom *= (1. - zoomDelta);
 
                 c->setZoom(zoom);
             }
@@ -80,11 +95,13 @@ void ContentGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
             // pan (move center coordinates)
             if(boost::shared_ptr<Content> c = parent_.lock())
             {
+                double zoom = c->getZoom();
+
                 double centerX, centerY;
                 c->getCenterCoordinates(centerX, centerY);
 
-                centerX += delta.x();
-                centerY += delta.y();
+                centerX += 2.*delta.x() / zoom;
+                centerY += 2.*delta.y() / zoom;
 
                 c->setCenterCoordinates(centerX, centerY);
             }
