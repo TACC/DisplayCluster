@@ -55,7 +55,8 @@ void ContentGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
         }
         else
         {
-            QGraphicsItem::mouseMoveEvent(event);
+            QPointF delta = event->pos() - event->lastPos();
+            moveBy(delta.x(), delta.y());
         }
     }
     else

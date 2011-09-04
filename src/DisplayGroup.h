@@ -1,10 +1,13 @@
 #ifndef DISPLAY_GROUP_H
 #define DISPLAY_GROUP_H
 
+#include "Cursor.h"
 #include <QtGui>
 #include <vector>
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
 
 class Content;
 class DisplayGroupGraphicsView;
@@ -15,16 +18,29 @@ class DisplayGroup : public boost::enable_shared_from_this<DisplayGroup> {
 
         boost::shared_ptr<DisplayGroupGraphicsView> getGraphicsView();
 
+        Cursor & getCursor();
+
         void addContent(boost::shared_ptr<Content> content);
         std::vector<boost::shared_ptr<Content> > getContents();
 
         void moveContentToFront(boost::shared_ptr<Content> content);
 
-        void synchronizeContents();
+        void synchronize();
 
     private:
+        friend class boost::serialization::access;
 
-	QTime timer_;
+        template<class Archive>
+        void serialize(Archive & ar, const unsigned int version)
+        {
+            ar & cursor_;
+            ar & contents_;
+        }
+
+        QTime timer_;
+
+        // cursor
+        Cursor cursor_;
 
         // vector of all of its contents
         std::vector<boost::shared_ptr<Content> > contents_;

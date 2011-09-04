@@ -24,6 +24,11 @@ boost::shared_ptr<DisplayGroupGraphicsView> DisplayGroup::getGraphicsView()
     return graphicsView_;
 }
 
+Cursor & DisplayGroup::getCursor()
+{
+    return cursor_;
+}
+
 void DisplayGroup::addContent(boost::shared_ptr<Content> content)
 {
     contents_.push_back(content);
@@ -55,7 +60,7 @@ void DisplayGroup::moveContentToFront(boost::shared_ptr<Content> content)
     }
 }
 
-void DisplayGroup::synchronizeContents()
+void DisplayGroup::synchronize()
 {
     if(g_mpiRank == 0)
     {
@@ -69,13 +74,13 @@ void DisplayGroup::synchronizeContents()
             timer_.restart();
         }
 
-        // serialize contents
+        // serialize state
         std::ostringstream oss(std::ostringstream::binary);
 
         // brace this so destructor is called on archive before we use the stream
         {
             boost::archive::binary_oarchive oa(oss);
-            oa << contents_;
+            oa << g_displayGroup;
         }
 
         // serialized data to string
@@ -146,14 +151,14 @@ void DisplayGroup::synchronizeContents()
                 exit(-1);
             }
 
-            // read to a new vector
-            std::vector<boost::shared_ptr<Content> > newContents;
+            // read to a new display group
+            boost::shared_ptr<DisplayGroup> displayGroup;
 
             boost::archive::binary_iarchive ia(iss);
-            ia >> newContents;
+            ia >> displayGroup;
 
-            // overwrite old contents
-            contents_ = newContents;
+            // overwrite old display group
+            g_displayGroup = displayGroup;
 
             // free mpi buffer
             delete [] buf;

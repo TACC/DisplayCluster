@@ -39,7 +39,7 @@ void Content::setCoordinates(double x, double y, double w, double h)
     h_ = h;
 
     // force synchronization
-    g_displayGroup->synchronizeContents();
+    g_displayGroup->synchronize();
 }
 
 void Content::getCoordinates(double &x, double &y, double &w, double &h)
@@ -56,7 +56,7 @@ void Content::setCenterCoordinates(double centerX, double centerY)
     centerY_ = centerY;
 
     // force synchronization
-    g_displayGroup->synchronizeContents();
+    g_displayGroup->synchronize();
 }
 
 void Content::getCenterCoordinates(double &centerX, double &centerY)
@@ -70,7 +70,7 @@ void Content::setZoom(double zoom)
     zoom_ = zoom;
 
     // force synchronization
-    g_displayGroup->synchronizeContents();
+    g_displayGroup->synchronize();
 }
 
 double Content::getZoom()

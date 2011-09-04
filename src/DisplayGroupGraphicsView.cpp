@@ -1,9 +1,10 @@
 #include "DisplayGroupGraphicsView.h"
+#include "DisplayGroupGraphicsScene.h"
 
 DisplayGroupGraphicsView::DisplayGroupGraphicsView()
 {
     // create and set scene for the view
-    setScene(new QGraphicsScene(0., 0., 1., 1.));
+    setScene(new DisplayGroupGraphicsScene());
 
     // force scene to be anchored at top left
     setAlignment(Qt::AlignLeft | Qt::AlignTop);

@@ -1,5 +1,6 @@
 #include "GLWindow.h"
 #include "main.h"
+#include "Cursor.h"
 #include "Content.h"
 #include <QtOpenGL>
 
@@ -29,6 +30,10 @@ void GLWindow::paintGL()
 {
     setView(width(), height());
 
+    // render the cursor
+    g_displayGroup->getCursor().render();
+
+    // render contents
     std::vector<boost::shared_ptr<Content> > contents = g_displayGroup->getContents();
 
     for(unsigned int i=0; i<contents.size(); i++)
@@ -43,7 +48,7 @@ void GLWindow::paintGL()
     }
 
     // get updated contents
-    g_displayGroup->synchronizeContents();
+    g_displayGroup->synchronize();
 
     // all render processes render simultaneously
     MPI_Barrier(g_mpiRenderComm);

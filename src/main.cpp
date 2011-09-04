@@ -1,10 +1,15 @@
 #include "main.h"
+#include "config.h"
 #include "log.h"
 
 #ifdef __APPLE__
     #include <mpi.h>
 #else
     #include <mpi/mpi.h>
+#endif
+
+#if ENABLE_TUIO_TOUCH_LISTENER
+    #include "TouchListener.h"
 #endif
 
 int g_mpiRank = -1;
@@ -31,6 +36,13 @@ int main(int argc, char * argv[])
     g_displayGroup = dg;
 
     g_mainWindow = new MainWindow();
+
+#if ENABLE_TUIO_TOUCH_LISTENER
+    if(g_mpiRank == 0)
+    {
+        new TouchListener();
+    }
+#endif
 
     // enter Qt event loop
     app->exec();

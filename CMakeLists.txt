@@ -10,6 +10,9 @@ endif(COMMAND cmake_policy)
 # enable debugging, and show all warnings
 set(CMAKE_CXX_FLAGS "-g -Wall")
 
+# build options
+option(ENABLE_TUIO_TOUCH_LISTENER "Enable TUIO touch listener for multi-touch events" OFF)
+
 # find and setup Qt4
 # see http://cmake.org/cmake/help/cmake2.6docs.html#module:FindQt4 for details
 find_package(Qt4 REQUIRED) 
@@ -33,11 +36,24 @@ set(LIBS ${LIBS} ${Boost_LIBRARIES})
 include_directories("/usr/include/mpi")
 set(LIBS ${LIBS} mpi mpi_cxx)
 
-set(SRCS
+# handle build options
+if(ENABLE_TUIO_TOUCH_LISTENER)
+    include_directories("/usr/local/include/TUIO")
+    set(LIBS ${LIBS} TUIO)
+    set(SRCS ${SRCS} src/TouchListener.cpp)
+endif()
+
+# process config file
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+set(SRCS ${SRCS}
     src/Configuration.cpp
     src/Content.cpp
     src/ContentGraphicsItem.cpp
+    src/Cursor.cpp
     src/DisplayGroup.cpp
+    src/DisplayGroupGraphicsScene.cpp
     src/DisplayGroupGraphicsView.cpp
     src/DynamicTexture.cpp
     src/GLWindow.cpp
