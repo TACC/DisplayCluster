@@ -7,6 +7,7 @@
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
+#include <boost/serialization/assume_abstract.hpp>
 
 class DisplayGroup;
 class ContentGraphicsItem;
@@ -71,6 +72,10 @@ class Content : public boost::enable_shared_from_this<Content> {
 
         // used for GUI display
         boost::shared_ptr<ContentGraphicsItem> graphicsItem_;
+
+        virtual void renderFactoryObject(float tX, float tY, float tW, float tH) = 0;
 };
+
+BOOST_SERIALIZATION_ASSUME_ABSTRACT(Content)
 
 #endif

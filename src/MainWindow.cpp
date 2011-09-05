@@ -1,6 +1,6 @@
 #include "MainWindow.h"
 #include "main.h"
-#include "Content.h"
+#include "DynamicTextureContent.h"
 
 MainWindow::MainWindow()
 {
@@ -66,7 +66,7 @@ void MainWindow::openContent()
 
     if(!filename.isEmpty())
     {
-        boost::shared_ptr<Content> c(new Content(filename.toStdString()));
+        boost::shared_ptr<Content> c(new DynamicTextureContent(filename.toStdString()));
 
         g_displayGroup->addContent(c);
 

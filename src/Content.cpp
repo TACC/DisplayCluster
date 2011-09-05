@@ -1,8 +1,6 @@
 #include "Content.h"
 #include "ContentGraphicsItem.h"
 #include "main.h"
-#include "DynamicTextureFactory.h"
-#include "DynamicTexture.h"
 
 Content::Content(std::string uri)
 {
@@ -103,8 +101,8 @@ void Content::render()
     glTranslatef(x_, y_, 0.);
     glScalef(w_, h_, 1.);
 
-    // render the content
-    g_mainWindow->getGLWindow()->getDynamicTextureFactory().getDynamicTexture(getURI())->render(tX, tY, tW, tH);
+    // render the factory object
+    renderFactoryObject(tX, tY, tW, tH);
 
     glPopMatrix();
 

@@ -56,6 +56,7 @@ set(SRCS ${SRCS}
     src/DisplayGroupGraphicsScene.cpp
     src/DisplayGroupGraphicsView.cpp
     src/DynamicTexture.cpp
+    src/DynamicTextureContent.cpp
     src/DynamicTextureFactory.cpp
     src/GLWindow.cpp
     src/log.cpp
