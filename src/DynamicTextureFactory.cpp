@@ -1,7 +1,7 @@
-#include "TextureFactory.h"
+#include "DynamicTextureFactory.h"
 #include "DynamicTexture.h"
 
-boost::shared_ptr<DynamicTexture> TextureFactory::getTexture(std::string uri)
+boost::shared_ptr<DynamicTexture> DynamicTextureFactory::getDynamicTexture(std::string uri)
 {
     // see if we need to create the texture
     if(map_.count(uri) == 0)

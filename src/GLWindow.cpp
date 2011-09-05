@@ -14,9 +14,9 @@ GLWindow::~GLWindow()
 
 }
 
-TextureFactory & GLWindow::getTextureFactory()
+DynamicTextureFactory & GLWindow::getDynamicTextureFactory()
 {
-    return textureFactory_;
+    return dynamicTextureFactory_;
 }
 
 void GLWindow::initializeGL()

@@ -1,7 +1,7 @@
 #ifndef GL_WINDOW_H
 #define GL_WINDOW_H
 
-#include "TextureFactory.h"
+#include "DynamicTextureFactory.h"
 #include <QGLWidget>
 
 class GLWindow : public QGLWidget
@@ -12,7 +12,7 @@ class GLWindow : public QGLWidget
         GLWindow();
         ~GLWindow();
 
-        TextureFactory & getTextureFactory();
+        DynamicTextureFactory & getDynamicTextureFactory();
 
         void initializeGL();
         void paintGL();
@@ -23,7 +23,7 @@ class GLWindow : public QGLWidget
 
     private:
 
-        TextureFactory textureFactory_;
+        DynamicTextureFactory dynamicTextureFactory_;
 };
 
 #endif

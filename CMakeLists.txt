@@ -56,11 +56,11 @@ set(SRCS ${SRCS}
     src/DisplayGroupGraphicsScene.cpp
     src/DisplayGroupGraphicsView.cpp
     src/DynamicTexture.cpp
+    src/DynamicTextureFactory.cpp
     src/GLWindow.cpp
     src/log.cpp
     src/main.cpp
     src/MainWindow.cpp
-    src/TextureFactory.cpp
 )
 
 set(MOC_HEADERS

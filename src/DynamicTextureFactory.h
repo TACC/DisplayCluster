@@ -1,5 +1,5 @@
-#ifndef TEXTURE_FACTORY_H
-#define TEXTURE_FACTORY_H
+#ifndef DYNAMIC_TEXTURE_FACTORY_H
+#define DYNAMIC_TEXTURE_FACTORY_H
 
 #include <map>
 #include <string>
@@ -7,11 +7,11 @@
 
 class DynamicTexture;
 
-class TextureFactory {
+class DynamicTextureFactory {
 
     public:
 
-        boost::shared_ptr<DynamicTexture> getTexture(std::string uri);
+        boost::shared_ptr<DynamicTexture> getDynamicTexture(std::string uri);
 
     private:
 
