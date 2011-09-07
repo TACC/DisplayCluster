@@ -10,6 +10,7 @@
 
 #if ENABLE_TUIO_TOUCH_LISTENER
     #include "TouchListener.h"
+    #include <X11/Xlib.h>
 #endif
 
 int g_mpiRank = -1;
@@ -22,6 +23,11 @@ MainWindow * g_mainWindow = NULL;
 int main(int argc, char * argv[])
 {
     put_flog(LOG_INFO, "");
+
+#if ENABLE_TUIO_TOUCH_LISTENER
+    // we need X multithreading support if we're running the TouchListener thread and creating X events
+    XInitThreads();
+#endif
 
     QApplication * app = new QApplication(argc, argv);
 

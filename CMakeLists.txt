@@ -41,6 +41,10 @@ if(ENABLE_TUIO_TOUCH_LISTENER)
     include_directories("/usr/local/include/TUIO")
     set(LIBS ${LIBS} TUIO)
     set(SRCS ${SRCS} src/TouchListener.cpp)
+
+    find_package(X11 REQUIRED)
+    include_directories(${X11_INCLUDE_DIR})
+    set(LIBS ${LIBS} ${X11_LIBRARIES})
 endif()
 
 # process config file
