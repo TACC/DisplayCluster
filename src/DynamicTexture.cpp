@@ -24,6 +24,13 @@ DynamicTexture::DynamicTexture(std::string uri, boost::shared_ptr<DynamicTexture
     {
         depth_ = parent->depth_ + 1;
     }
+
+    // always load image for top-level object
+    if(depth_ == 0)
+    {
+        loadImageThread_ = QtConcurrent::run(loadImageThread, this);
+        loadImageThreadStarted_ = true;
+    }
 }
 
 DynamicTexture::~DynamicTexture()
@@ -183,6 +190,12 @@ QImage DynamicTexture::getImageFromRoot(float x, float y, float w, float h)
 {
     if(depth_ == 0)
     {
+        // if necessary, block and wait for image loading to complete
+        if(loadImageThreadStarted_ == true && loadImageThread_.isFinished() == false)
+        {
+            loadImageThread_.waitForFinished();
+        }
+
         QImage copy = image_.copy(x*image_.width(), y*image_.height(), w*image_.width(), h*image_.height());
         return copy;
     }
