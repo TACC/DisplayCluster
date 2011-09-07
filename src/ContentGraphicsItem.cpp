@@ -39,14 +39,14 @@ void ContentGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
 
         QPointF eventPos = event->pos();
 
-        if(QLineF(r.bottomLeft(), eventPos).length() < cornerMoveFraction * scene()->width())
+        if(QLineF(r.bottomRight(), eventPos).length() < cornerMoveFraction * scene()->width())
         {
             resizing_ = true;
         }
 
         if(resizing_ == true)
         {
-            r.setBottomLeft(eventPos);
+            r.setBottomRight(eventPos);
 
             setRect(r);
 
