@@ -17,7 +17,7 @@ class DisplayGroupGraphicsScene : public QGraphicsScene {
 
     private:
 
-        void updateCursor(float x, float y);
+        void updateMarker(float x, float y);
 };
 
 #endif

@@ -1,6 +1,6 @@
 #include "GLWindow.h"
 #include "main.h"
-#include "Cursor.h"
+#include "Marker.h"
 #include "Content.h"
 #include <QtOpenGL>
 
@@ -30,8 +30,8 @@ void GLWindow::paintGL()
 {
     setView(width(), height());
 
-    // render the cursor
-    g_displayGroup->getCursor().render();
+    // render the marker
+    g_displayGroup->getMarker().render();
 
     // render contents
     std::vector<boost::shared_ptr<Content> > contents = g_displayGroup->getContents();

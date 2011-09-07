@@ -55,7 +55,7 @@ set(SRCS ${SRCS}
     src/Configuration.cpp
     src/Content.cpp
     src/ContentGraphicsItem.cpp
-    src/Cursor.cpp
+    src/Marker.cpp
     src/DisplayGroup.cpp
     src/DisplayGroupGraphicsScene.cpp
     src/DisplayGroupGraphicsView.cpp

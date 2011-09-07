@@ -24,9 +24,9 @@ boost::shared_ptr<DisplayGroupGraphicsView> DisplayGroup::getGraphicsView()
     return graphicsView_;
 }
 
-Cursor & DisplayGroup::getCursor()
+Marker & DisplayGroup::getMarker()
 {
-    return cursor_;
+    return marker_;
 }
 
 void DisplayGroup::addContent(boost::shared_ptr<Content> content)

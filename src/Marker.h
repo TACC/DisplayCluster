@@ -1,14 +1,14 @@
-#ifndef CURSOR_H
-#define CURSOR_H
+#ifndef MARKER_H
+#define MARKER_H
 
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 
-class Cursor {
+class Marker {
 
     public:
 
-        Cursor();
+        Marker();
 
         void setPosition(float x, float y);
         void getPosition(float &x, float &y);
