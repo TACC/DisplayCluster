@@ -27,57 +27,70 @@ void TouchListener::addTuioCursor(TUIO::TuioCursor *tcur)
 {
     QPointF point(tcur->getX(), tcur->getY());
 
-    // check to see if this is a double click
-    bool doubleClick = false;
+    // figure out what kind of click this is
+    int clickType = 0; // 0: no click, 1: single click, 2: double click
 
-    QPointF delta = point - lastClickPoint_;
+    QPointF delta1 = point - lastClickPoint1_;
 
-    if(sqrtf(delta.x()*delta.x() + delta.y()*delta.y()) < DOUBLE_CLICK_DISTANCE && lastClickTime_.elapsed() < DOUBLE_CLICK_TIME)
+    if(sqrtf(delta1.x()*delta1.x() + delta1.y()*delta1.y()) < DOUBLE_CLICK_DISTANCE && lastClickTime1_.elapsed() < DOUBLE_CLICK_TIME)
     {
-        doubleClick = true;
+        clickType = 1;
+
+        QPointF delta2 = point - lastClickPoint2_;
+
+        if(sqrtf(delta2.x()*delta2.x() + delta2.y()*delta2.y()) < DOUBLE_CLICK_DISTANCE && lastClickTime2_.elapsed() < DOUBLE_CLICK_TIME)
+        {
+            clickType = 2;
+        }
     }
 
     // reset last click information
-    lastClickTime_.restart();
-    lastClickPoint_ = point;
+    lastClickTime2_ = lastClickTime1_;
+    lastClickPoint2_ = lastClickPoint1_;
+
+    lastClickTime1_.restart();
+    lastClickPoint1_ = point;
 
     // point mapped to view and global coordinates
     QPoint pointView = g_displayGroup->getGraphicsView()->mapFromScene(point);
     QPoint pointGlobal = g_displayGroup->getGraphicsView()->viewport()->mapToGlobal(pointView);
 
     // create the mouse event
-    QGraphicsSceneMouseEvent * event;
+    QGraphicsSceneMouseEvent * event = NULL;
     
-    if(doubleClick == true)
+    if(clickType == 2)
     {
         event = new QGraphicsSceneMouseEvent(QEvent::GraphicsSceneMouseDoubleClick);
     }
-    else
+    else if(clickType == 1)
     {
         event = new QGraphicsSceneMouseEvent(QEvent::GraphicsSceneMousePress);
     }
 
-    // set event parameters
-    event->setScenePos(point);
-    event->setPos(point);
-    event->setScreenPos(pointGlobal);
-
-    if(tcur->getCursorID() == 0)
+    if(event != NULL)
     {
-        event->setButton(Qt::LeftButton);
-        event->setButtons(Qt::LeftButton);
-    }
-    else if(tcur->getCursorID() == 1)
-    {
-        event->setButton(Qt::RightButton);
-        event->setButtons(Qt::RightButton);
-    }
+        // set event parameters
+        event->setScenePos(point);
+        event->setPos(point);
+        event->setScreenPos(pointGlobal);
 
-    // use alt keyboard modifier to indicate this is a touch event
-    event->setModifiers(Qt::AltModifier);
+        if(tcur->getCursorID() == 0)
+        {
+            event->setButton(Qt::LeftButton);
+            event->setButtons(Qt::LeftButton);
+        }
+        else if(tcur->getCursorID() == 1)
+        {
+            event->setButton(Qt::RightButton);
+            event->setButtons(Qt::RightButton);
+        }
 
-    // post the event (thread-safe)
-    QApplication::postEvent(g_displayGroup->getGraphicsView()->scene(), event);
+        // use alt keyboard modifier to indicate this is a touch event
+        event->setModifiers(Qt::AltModifier);
+
+        // post the event (thread-safe)
+        QApplication::postEvent(g_displayGroup->getGraphicsView()->scene(), event);
+    }
 
     // reset last point
     lastPoint_ = point;

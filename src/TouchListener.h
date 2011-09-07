@@ -6,7 +6,7 @@
 #include <QtGui>
 
 #define DOUBLE_CLICK_DISTANCE 0.1 // recall this is the (0,0,1,1) coordinate system
-#define DOUBLE_CLICK_TIME 500 // ms
+#define DOUBLE_CLICK_TIME 750 // ms
 
 class TouchListener : public TUIO::TuioListener
 {
@@ -29,9 +29,12 @@ class TouchListener : public TUIO::TuioListener
         TUIO::TuioClient client_;
         QPointF lastPoint_;
 
-        // detect double-clicks
-        QTime lastClickTime_;
-        QPointF lastClickPoint_;
+        // detect double-clicks and triple-clicks
+        QTime lastClickTime1_;
+        QPointF lastClickPoint1_;
+
+        QTime lastClickTime2_;
+        QPointF lastClickPoint2_;
 };
 
 #endif
