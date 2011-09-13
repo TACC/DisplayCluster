@@ -1,5 +1,6 @@
 #include "MainWindow.h"
 #include "main.h"
+#include "TextureContent.h"
 #include "DynamicTextureContent.h"
 
 MainWindow::MainWindow()
@@ -66,9 +67,36 @@ void MainWindow::openContent()
 
     if(!filename.isEmpty())
     {
-        boost::shared_ptr<Content> c(new DynamicTextureContent(filename.toStdString()));
+        // see if this is an image
+        QImageReader imageReader(filename);
 
-        g_displayGroup->addContent(c);
+        if(imageReader.canRead() == true)
+        {
+            // get its size
+            QSize size = imageReader.size();
+
+            // small images will use Texture; larger images will use DynamicTexture
+            boost::shared_ptr<Content> c;
+
+            if(size.width() <= 4096 && size.height() <= 4096)
+            {
+                boost::shared_ptr<Content> temp(new TextureContent(filename.toStdString()));
+                c = temp;
+            }
+            else
+            {
+                boost::shared_ptr<Content> temp(new DynamicTextureContent(filename.toStdString()));
+                c = temp;
+            }
+
+            g_displayGroup->addContent(c);
+        }
+        else
+        {
+            QMessageBox messageBox;
+            messageBox.setText("Unsupported file format.");
+            messageBox.exec();
+        }
     }
 }
 

@@ -66,6 +66,9 @@ set(SRCS ${SRCS}
     src/log.cpp
     src/main.cpp
     src/MainWindow.cpp
+    src/Texture.cpp
+    src/TextureContent.cpp
+    src/TextureFactory.cpp
 )
 
 set(MOC_HEADERS
