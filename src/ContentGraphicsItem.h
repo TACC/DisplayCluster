@@ -13,6 +13,8 @@ class ContentGraphicsItem : public QGraphicsRectItem {
 
         ContentGraphicsItem(boost::shared_ptr<Content> parent);
 
+        void paint(QPainter * painter, const QStyleOptionGraphicsItem * option, QWidget * widget=0);
+
     protected:
 
         void mouseMoveEvent(QGraphicsSceneMouseEvent * event);
@@ -31,6 +33,7 @@ class ContentGraphicsItem : public QGraphicsRectItem {
         boost::weak_ptr<Content> parent_;
 
         void updateParent();
+        void getButtonDimensions(float &width, float &height);
 };
 
 #endif

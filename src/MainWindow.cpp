@@ -69,9 +69,20 @@ void MainWindow::openContent()
         boost::shared_ptr<Content> c(new DynamicTextureContent(filename.toStdString()));
 
         g_displayGroup->addContent(c);
+    }
+}
 
+void MainWindow::refreshContentsList()
+{
+    // clear contents list widget
+    contentsListWidget_->clear();
+
+    std::vector<boost::shared_ptr<Content> > contents = g_displayGroup->getContents();
+
+    for(unsigned int i=0; i<contents.size(); i++)
+    {
         // add to list view
         QListWidgetItem * newItem = new QListWidgetItem(contentsListWidget_);
-        newItem->setText(filename);     
+        newItem->setText(contents[i]->getURI().c_str());
     }
 }

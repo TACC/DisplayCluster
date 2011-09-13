@@ -18,6 +18,7 @@ class MainWindow : public QMainWindow {
     public slots:
 
         void openContent();
+        void refreshContentsList();
 
     private:
 

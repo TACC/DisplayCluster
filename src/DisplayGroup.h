@@ -21,6 +21,8 @@ class DisplayGroup : public boost::enable_shared_from_this<DisplayGroup> {
         Marker & getMarker();
 
         void addContent(boost::shared_ptr<Content> content);
+        void removeContent(boost::shared_ptr<Content> content);
+
         std::vector<boost::shared_ptr<Content> > getContents();
 
         void moveContentToFront(boost::shared_ptr<Content> content);

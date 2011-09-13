@@ -37,6 +37,31 @@ void DisplayGroup::addContent(boost::shared_ptr<Content> content)
     content->setDisplayGroup(shared_from_this());
 
     getGraphicsView()->scene()->addItem((QGraphicsRectItem *)content->getGraphicsItem().get());
+
+    g_mainWindow->refreshContentsList();
+}
+
+void DisplayGroup::removeContent(boost::shared_ptr<Content> content)
+{
+    // find vector entry for content
+    std::vector<boost::shared_ptr<Content> >::iterator it;
+
+    it = find(contents_.begin(), contents_.end(), content);
+
+    if(it != contents_.end())
+    {
+        // we found the entry
+        // now, remove it
+        contents_.erase(it);
+    }
+
+    // set null display group in content object
+    content->setDisplayGroup(boost::shared_ptr<DisplayGroup>());
+
+    // remove from scene
+    getGraphicsView()->scene()->removeItem((QGraphicsRectItem *)content->getGraphicsItem().get());
+
+    g_mainWindow->refreshContentsList();
 }
 
 std::vector<boost::shared_ptr<Content> > DisplayGroup::getContents()
@@ -58,6 +83,8 @@ void DisplayGroup::moveContentToFront(boost::shared_ptr<Content> content)
         contents_.erase(it);
         contents_.insert(contents_.begin(), content);
     }
+
+    g_mainWindow->refreshContentsList();
 }
 
 void DisplayGroup::synchronize()
