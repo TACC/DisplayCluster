@@ -13,6 +13,9 @@ set(CMAKE_CXX_FLAGS "-g -Wall")
 # build options
 option(ENABLE_TUIO_TOUCH_LISTENER "Enable TUIO touch listener for multi-touch events" OFF)
 
+# path for additional modules
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
+
 # find and setup Qt4
 # see http://cmake.org/cmake/help/cmake2.6docs.html#module:FindQt4 for details
 find_package(Qt4 REQUIRED) 
@@ -35,6 +38,10 @@ set(LIBS ${LIBS} ${Boost_LIBRARIES})
 
 include_directories("/usr/include/mpi")
 set(LIBS ${LIBS} mpi mpi_cxx)
+
+find_package(FFMPEG REQUIRED)
+include_directories(${FFMPEG_INCLUDE_DIR})
+set(LIBS ${LIBS} ${FFMPEG_LIBRARIES})
 
 # handle build options
 if(ENABLE_TUIO_TOUCH_LISTENER)
@@ -66,6 +73,9 @@ set(SRCS ${SRCS}
     src/log.cpp
     src/main.cpp
     src/MainWindow.cpp
+    src/Movie.cpp
+    src/MovieContent.cpp
+    src/MovieFactory.cpp
     src/Texture.cpp
     src/TextureContent.cpp
     src/TextureFactory.cpp

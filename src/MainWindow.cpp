@@ -2,6 +2,7 @@
 #include "main.h"
 #include "TextureContent.h"
 #include "DynamicTextureContent.h"
+#include "MovieContent.h"
 
 MainWindow::MainWindow()
 {
@@ -88,6 +89,14 @@ void MainWindow::openContent()
                 boost::shared_ptr<Content> temp(new DynamicTextureContent(filename.toStdString()));
                 c = temp;
             }
+
+            g_displayGroup->addContent(c);
+        }
+        // see if this is a movie
+        // todo: need a better way to determine file type
+        else if(filename.endsWith(".mov") || filename.endsWith(".avi") || filename.endsWith(".mp4") || filename.endsWith(".mkv"))
+        {
+            boost::shared_ptr<Content> c(new MovieContent(filename.toStdString()));
 
             g_displayGroup->addContent(c);
         }

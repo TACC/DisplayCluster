@@ -3,6 +3,7 @@
 
 #include "TextureFactory.h"
 #include "DynamicTextureFactory.h"
+#include "MovieFactory.h"
 #include <QGLWidget>
 
 class GLWindow : public QGLWidget
@@ -15,6 +16,7 @@ class GLWindow : public QGLWidget
 
         TextureFactory & getTextureFactory();
         DynamicTextureFactory & getDynamicTextureFactory();
+        MovieFactory & getMovieFactory();
 
         void initializeGL();
         void paintGL();
@@ -27,6 +29,7 @@ class GLWindow : public QGLWidget
 
         TextureFactory textureFactory_;
         DynamicTextureFactory dynamicTextureFactory_;
+        MovieFactory movieFactory_;
 };
 
 #endif

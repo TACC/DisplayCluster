@@ -24,6 +24,11 @@ DynamicTextureFactory & GLWindow::getDynamicTextureFactory()
     return dynamicTextureFactory_;
 }
 
+MovieFactory & GLWindow::getMovieFactory()
+{
+    return movieFactory_;
+}
+
 void GLWindow::initializeGL()
 {
     // enable depth testing; disable lighting
