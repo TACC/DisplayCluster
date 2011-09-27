@@ -3,6 +3,19 @@
 
 #include <QGLWidget>
 
+// required for FFMPEG includes below, specifically for the Linux build
+#ifdef __cplusplus
+    #ifndef __STDC_CONSTANT_MACROS
+        #define __STDC_CONSTANT_MACROS
+    #endif
+
+    #ifdef _STDINT_H
+        #undef _STDINT_H
+    #endif
+
+    #include <stdint.h>
+#endif
+
 extern "C" {
     #include <libavcodec/avcodec.h>
     #include <libavformat/avformat.h>
