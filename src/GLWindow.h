@@ -1,9 +1,10 @@
 #ifndef GL_WINDOW_H
 #define GL_WINDOW_H
 
-#include "TextureFactory.h"
-#include "DynamicTextureFactory.h"
-#include "MovieFactory.h"
+#include "Factory.hpp"
+#include "Texture.h"
+#include "DynamicTexture.h"
+#include "Movie.h"
 #include <QGLWidget>
 
 class GLWindow : public QGLWidget
@@ -14,9 +15,9 @@ class GLWindow : public QGLWidget
         GLWindow();
         ~GLWindow();
 
-        TextureFactory & getTextureFactory();
-        DynamicTextureFactory & getDynamicTextureFactory();
-        MovieFactory & getMovieFactory();
+        Factory<Texture> & getTextureFactory();
+        Factory<DynamicTexture> & getDynamicTextureFactory();
+        Factory<Movie> & getMovieFactory();
 
         void initializeGL();
         void paintGL();
@@ -27,9 +28,9 @@ class GLWindow : public QGLWidget
 
     private:
 
-        TextureFactory textureFactory_;
-        DynamicTextureFactory dynamicTextureFactory_;
-        MovieFactory movieFactory_;
+        Factory<Texture> textureFactory_;
+        Factory<DynamicTexture> dynamicTextureFactory_;
+        Factory<Movie> movieFactory_;
 };
 
 #endif
