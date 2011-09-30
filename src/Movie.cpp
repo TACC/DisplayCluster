@@ -80,7 +80,7 @@ Movie::Movie(std::string uri)
     QImage image(avCodecContext_->width, avCodecContext_->height, QImage::Format_RGB32);
     image.fill(0);
 
-    textureId_ = g_mainWindow->getGLWindow()->bindTexture(image, GL_TEXTURE_2D, GL_RGB, QGLContext::LinearFilteringBindOption);
+    textureId_ = g_mainWindow->getGLWindow()->bindTexture(image, GL_TEXTURE_2D, GL_RGBA, QGLContext::LinearFilteringBindOption);
     textureBound_ = true;
 
     // allocate video frame for video decoding
@@ -97,14 +97,14 @@ Movie::Movie(std::string uri)
 
     // get required buffer size and allocate buffer for pFrameRGB
     // this memory will be overwritten during frame conversion, but needs to be allocated ahead of time
-    int numBytes = avpicture_get_size(PIX_FMT_RGB24, avCodecContext_->width, avCodecContext_->height);
+    int numBytes = avpicture_get_size(PIX_FMT_RGBA, avCodecContext_->width, avCodecContext_->height);
     uint8_t * buffer = (uint8_t *)av_malloc(numBytes*sizeof(uint8_t));
 
     // assign buffer to pFrameRGB
-    avpicture_fill((AVPicture *)avFrameRGB_, buffer, PIX_FMT_RGB24, avCodecContext_->width, avCodecContext_->height);
+    avpicture_fill((AVPicture *)avFrameRGB_, buffer, PIX_FMT_RGBA, avCodecContext_->width, avCodecContext_->height);
 
     // create sws scaler context
-    swsContext_ = sws_getContext(avCodecContext_->width, avCodecContext_->height, avCodecContext_->pix_fmt, avCodecContext_->width, avCodecContext_->height, PIX_FMT_RGB24, SWS_FAST_BILINEAR, NULL, NULL, NULL);
+    swsContext_ = sws_getContext(avCodecContext_->width, avCodecContext_->height, avCodecContext_->pix_fmt, avCodecContext_->width, avCodecContext_->height, PIX_FMT_RGBA, SWS_FAST_BILINEAR, NULL, NULL, NULL);
 
     initialized_ = true;
 }
@@ -198,7 +198,7 @@ void Movie::nextFrame()
                 // put the RGB image to the already-created texture
                 // glTexSubImage2D uses the existing texture and is more efficient than other means
                 glBindTexture(GL_TEXTURE_2D, textureId_);            
-                glTexSubImage2D(GL_TEXTURE_2D, 0, 0,0, avCodecContext_->width, avCodecContext_->height, GL_RGB, GL_UNSIGNED_BYTE, avFrameRGB_->data[0]);
+                glTexSubImage2D(GL_TEXTURE_2D, 0, 0,0, avCodecContext_->width, avCodecContext_->height, GL_RGBA, GL_UNSIGNED_BYTE, avFrameRGB_->data[0]);
 
                 // free the packet that was allocated by av_read_frame
                 av_free_packet(&packet);
