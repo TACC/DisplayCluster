@@ -29,6 +29,11 @@ Factory<Movie> & GLWindow::getMovieFactory()
     return movieFactory_;
 }
 
+Factory<PixelStream> & GLWindow::getPixelStreamFactory()
+{
+    return pixelStreamFactory_;
+}
+
 void GLWindow::initializeGL()
 {
     // enable depth testing; disable lighting
@@ -57,7 +62,7 @@ void GLWindow::paintGL()
         glPopMatrix();
     }
 
-    // get updated contents
+    // get updated data
     g_displayGroup->synchronize();
 
     // all render processes render simultaneously

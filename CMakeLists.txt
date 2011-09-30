@@ -74,6 +74,9 @@ set(SRCS ${SRCS}
     src/MainWindow.cpp
     src/Movie.cpp
     src/MovieContent.cpp
+    src/PixelStream.cpp
+    src/PixelStreamContent.cpp
+    src/PixelStreamSource.cpp
     src/Texture.cpp
     src/TextureContent.cpp
 )

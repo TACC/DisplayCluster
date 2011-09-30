@@ -31,5 +31,5 @@ void DisplayGroupGraphicsScene::mouseReleaseEvent(QGraphicsSceneMouseEvent * eve
 void DisplayGroupGraphicsScene::updateMarker(float x, float y)
 {
     g_displayGroup->getMarker().setPosition(x, y);
-    g_displayGroup->synchronize(); // todo: only call this if an item isn't underneath (x,y)
+    g_displayGroup->sendDisplayGroup(); // todo: only call this if an item isn't underneath (x,y)
 }

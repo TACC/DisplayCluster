@@ -3,6 +3,8 @@
 #include "Content.h"
 #include "main.h"
 #include "log.h"
+#include "PixelStream.h"
+#include "PixelStreamSource.h"
 #include <sstream>
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/shared_ptr.hpp>
@@ -101,46 +103,14 @@ void DisplayGroup::moveContentToFront(boost::shared_ptr<Content> content)
 
 void DisplayGroup::synchronize()
 {
+    // rank 0: send out display group and pixel streams
     if(g_mpiRank == 0)
     {
-        // rate limit
-        if(timer_.elapsed() < 1000/24)
-        {
-            return;
-        }
-        else
-        {
-            timer_.restart();
-        }
-
-        // serialize state
-        std::ostringstream oss(std::ostringstream::binary);
-
-        // brace this so destructor is called on archive before we use the stream
-        {
-            boost::archive::binary_oarchive oa(oss);
-            oa << g_displayGroup;
-        }
-
-        // serialized data to string
-        std::string serializedString = oss.str();
-        int size = serializedString.size();
-
-        // send the size and the message
-
-        // the size is sent via a send, so that we can probe it on the render processes
-        for(int i=1; i<g_mpiSize; i++)
-        {
-            MPI_Send((void *)&size, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
-        }
-
-        // broadcast the message
-        MPI_Bcast((void *)serializedString.data(), serializedString.size(), MPI_BYTE, 0, MPI_COMM_WORLD);
+        sendDisplayGroup();
+        sendPixelStreams();
     }
     else
     {
-        // receive serialized data
-
         // check to see if we have a message (non-blocking)
         int flag;
         MPI_Status status;
@@ -150,9 +120,8 @@ void DisplayGroup::synchronize()
         int allFlag;
         MPI_Allreduce(&flag, &allFlag, 1, MPI_INT, MPI_LAND, g_mpiRenderComm);
 
-        // buffer size and buffer
-        int bufSize = 0;
-        char * buf = NULL;
+        // message header
+        MessageHeader mh;
 
         // if all render processes have a message...
         if(allFlag != 0)
@@ -161,19 +130,17 @@ void DisplayGroup::synchronize()
             // this will "drop frames" and keep all processes synchronized
             while(allFlag)
             {
-                // first, get buffer size
-                MPI_Recv((void *)&bufSize, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
+                // first, get message header
+                MPI_Recv((void *)&mh, sizeof(MessageHeader), MPI_BYTE, 0, 0, MPI_COMM_WORLD, &status);
 
-                // allocate buffer
-                if(buf != NULL)
+                if(mh.type == MESSAGE_TYPE_CONTENTS)
                 {
-                    delete [] buf;
+                    receiveDisplayGroup(mh);
                 }
-
-                buf = new char[bufSize];
-
-                // read message into the buffer
-                MPI_Bcast((void *)buf, bufSize, MPI_BYTE, 0, MPI_COMM_WORLD);
+                else if(mh.type == MESSAGE_TYPE_PIXELSTREAM)
+                {
+                    receivePixelStreams(mh);
+                }
 
                 // check to see if we have another message waiting, for this process and for all render processes
                 MPI_Iprobe(0, 0, MPI_COMM_WORLD, &flag, &status);
@@ -181,26 +148,107 @@ void DisplayGroup::synchronize()
             }
 
             // at this point, we've received the last message available for all render processes
-            // de-serialize...
-            std::istringstream iss(std::istringstream::binary);
-
-            if(iss.rdbuf()->pubsetbuf(buf, bufSize) == NULL)
-            {
-                put_flog(LOG_FATAL, "rank %i: error setting stream buffer", g_mpiRank);
-                exit(-1);
-            }
-
-            // read to a new display group
-            boost::shared_ptr<DisplayGroup> displayGroup;
-
-            boost::archive::binary_iarchive ia(iss);
-            ia >> displayGroup;
-
-            // overwrite old display group
-            g_displayGroup = displayGroup;
-
-            // free mpi buffer
-            delete [] buf;
         }
     }
+}
+
+void DisplayGroup::sendDisplayGroup()
+{
+    // serialize state
+    std::ostringstream oss(std::ostringstream::binary);
+
+    // brace this so destructor is called on archive before we use the stream
+    {
+        boost::archive::binary_oarchive oa(oss);
+        oa << g_displayGroup;
+    }
+
+    // serialized data to string
+    std::string serializedString = oss.str();
+    int size = serializedString.size();
+
+    // send the header and the message
+    MessageHeader mh;
+    mh.size = size;
+    mh.type = MESSAGE_TYPE_CONTENTS;
+
+    // the header is sent via a send, so that we can probe it on the render processes
+    for(int i=1; i<g_mpiSize; i++)
+    {
+        MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, i, 0, MPI_COMM_WORLD);
+    }
+
+    // broadcast the message
+    MPI_Bcast((void *)serializedString.data(), size, MPI_BYTE, 0, MPI_COMM_WORLD);
+}
+
+void DisplayGroup::sendPixelStreams()
+{
+    // get buffer
+    bool updated;
+    QByteArray imageData = g_pixelStreamSourceFactory.getObject("desktop")->getImageData(updated);
+
+    if(updated == true)
+    {
+        int size = imageData.size();
+
+        // send the header and the message
+        MessageHeader mh;
+        mh.size = size;
+        mh.type = MESSAGE_TYPE_PIXELSTREAM;
+
+        // the header is sent via a send, so that we can probe it on the render processes
+        for(int i=1; i<g_mpiSize; i++)
+        {
+            MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, i, 0, MPI_COMM_WORLD);
+        }
+
+        // broadcast the message
+        MPI_Bcast((void *)imageData.data(), size, MPI_BYTE, 0, MPI_COMM_WORLD);
+    }
+}
+
+void DisplayGroup::receiveDisplayGroup(MessageHeader messageHeader)
+{
+    // receive serialized data
+    char * buf = new char[messageHeader.size];
+
+    // read message into the buffer
+    MPI_Bcast((void *)buf, messageHeader.size, MPI_BYTE, 0, MPI_COMM_WORLD);
+
+    // de-serialize...
+    std::istringstream iss(std::istringstream::binary);
+
+    if(iss.rdbuf()->pubsetbuf(buf, messageHeader.size) == NULL)
+    {
+        put_flog(LOG_FATAL, "rank %i: error setting stream buffer", g_mpiRank);
+        exit(-1);
+    }
+
+    // read to a new display group
+    boost::shared_ptr<DisplayGroup> displayGroup;
+
+    boost::archive::binary_iarchive ia(iss);
+    ia >> displayGroup;
+
+    // overwrite old display group
+    g_displayGroup = displayGroup;
+
+    // free mpi buffer
+    delete [] buf;
+}
+
+void DisplayGroup::receivePixelStreams(MessageHeader messageHeader)
+{
+    // receive serialized data
+    char * buf = new char[messageHeader.size];
+
+    // read message into the buffer
+    MPI_Bcast((void *)buf, messageHeader.size, MPI_BYTE, 0, MPI_COMM_WORLD);
+
+    // de-serialize...
+    g_mainWindow->getGLWindow()->getPixelStreamFactory().getObject("desktop")->setImageData(QByteArray(buf, messageHeader.size));
+
+    // free mpi buffer
+    delete [] buf;
 }

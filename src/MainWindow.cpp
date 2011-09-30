@@ -3,6 +3,8 @@
 #include "TextureContent.h"
 #include "DynamicTextureContent.h"
 #include "MovieContent.h"
+#include "PixelStreamContent.h"
+#include "PixelStreamSource.h"
 
 MainWindow::MainWindow()
 {
@@ -19,8 +21,16 @@ MainWindow::MainWindow()
         openContentAction->setStatusTip("Open content");
         connect(openContentAction, SIGNAL(triggered()), this, SLOT(openContent()));
 
+        // share desktop action
+        QAction * shareDesktopAction = new QAction("Share Desktop", this);
+        shareDesktopAction->setStatusTip("Share desktop");
+        shareDesktopAction->setCheckable(true);
+        shareDesktopAction->setChecked(false);
+        connect(shareDesktopAction, SIGNAL(toggled(bool)), this, SLOT(shareDesktop(bool)));
+
         // add actions to toolbar
         toolbar->addAction(openContentAction);
+        toolbar->addAction(shareDesktopAction);
 
         // main widget / layout area
         QTabWidget * mainWidget = new QTabWidget();
@@ -122,4 +132,45 @@ void MainWindow::refreshContentsList()
         QListWidgetItem * newItem = new QListWidgetItem(contentsListWidget_);
         newItem->setText(contents[i]->getURI().c_str());
     }
+}
+
+void MainWindow::shareDesktop(bool set)
+{
+    if(set == true)
+    {
+        // get width and height of area at top-left corner of desktop to share
+        shareDesktopWidth_ = QInputDialog::getInt(this, "Width", "Width");
+        shareDesktopHeight_ = QInputDialog::getInt(this, "Height", "Height");
+
+        // add the content object
+        boost::shared_ptr<Content> c(new PixelStreamContent("desktop"));
+        g_displayGroup->addContent(c);
+
+        // setup timer to repeatedly update the shared desktop image
+        connect(&shareDesktopUpdateTimer_, SIGNAL(timeout()), this, SLOT(shareDesktopUpdate()));
+        shareDesktopUpdateTimer_.start(SHARE_DESKTOP_UPDATE_DELAY);
+    }
+    else
+    {
+        shareDesktopUpdateTimer_.stop();
+        g_displayGroup->removeContent("desktop");
+    }
+
+    g_displayGroup->sendDisplayGroup();
+}
+
+void MainWindow::shareDesktopUpdate()
+{
+    // take screenshot
+    QPixmap desktopPixmap = QPixmap::grabWindow(QApplication::desktop()->winId(), 0, 0, shareDesktopWidth_, shareDesktopHeight_);
+
+    // save it to buffer
+    QBuffer buffer;
+    desktopPixmap.save(&buffer, "JPEG");
+
+    // update pixel stream source
+    g_pixelStreamSourceFactory.getObject("desktop")->setImageData(buffer.data());
+
+    // send out updated pixel stream
+    g_displayGroup->sendPixelStreams();
 }

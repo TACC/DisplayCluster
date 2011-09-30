@@ -12,6 +12,13 @@
 class Content;
 class DisplayGroupGraphicsView;
 
+enum MESSAGE_TYPE { MESSAGE_TYPE_CONTENTS, MESSAGE_TYPE_PIXELSTREAM };
+
+struct MessageHeader {
+    int size;
+    MESSAGE_TYPE type;
+};
+
 class DisplayGroup : public boost::enable_shared_from_this<DisplayGroup> {
 
     public:
@@ -29,6 +36,9 @@ class DisplayGroup : public boost::enable_shared_from_this<DisplayGroup> {
 
         void synchronize();
 
+        void sendDisplayGroup();
+        void sendPixelStreams();
+
     private:
         friend class boost::serialization::access;
 
@@ -39,8 +49,6 @@ class DisplayGroup : public boost::enable_shared_from_this<DisplayGroup> {
             ar & contents_;
         }
 
-        QTime timer_;
-
         // marker
         Marker marker_;
 
@@ -49,6 +57,9 @@ class DisplayGroup : public boost::enable_shared_from_this<DisplayGroup> {
 
         // used for GUI display
         boost::shared_ptr<DisplayGroupGraphicsView> graphicsView_;
+
+        void receiveDisplayGroup(MessageHeader messageHeader);
+        void receivePixelStreams(MessageHeader messageHeader);
 };
 
 #endif

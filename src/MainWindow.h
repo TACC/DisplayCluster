@@ -1,6 +1,8 @@
 #ifndef MAIN_WINDOW_H
 #define MAIN_WINDOW_H
 
+#define SHARE_DESKTOP_UPDATE_DELAY 25
+
 #include "GLWindow.h"
 #include <QtGui>
 #include <QGLWidget>
@@ -19,6 +21,8 @@ class MainWindow : public QMainWindow {
 
         void openContent();
         void refreshContentsList();
+        void shareDesktop(bool set);
+        void shareDesktopUpdate();
 
     private:
 
@@ -26,6 +30,10 @@ class MainWindow : public QMainWindow {
 
         // widget listing contents in the left dock
         QListWidget * contentsListWidget_;
+
+        QTimer shareDesktopUpdateTimer_;
+        int shareDesktopWidth_;
+        int shareDesktopHeight_;
 };
 
 #endif
