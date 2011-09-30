@@ -60,22 +60,25 @@ void ContentGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
     // handle mouse movements differently depending on selected mode of item
     if(selected_ == false)
     {
-        if(resizing_ == true)
+        if(button_ == Qt::LeftButton || button_ == Qt::RightButton)
         {
-            QRectF r = rect();
-            QPointF eventPos = event->pos();
+            if(resizing_ == true)
+            {
+                QRectF r = rect();
+                QPointF eventPos = event->pos();
 
-            r.setBottomRight(eventPos);
+                r.setBottomRight(eventPos);
 
-            setRect(r);
+                setRect(r);
 
-            // update coordinates of parent during resize
-            updateParent();
-        }
-        else
-        {
-            QPointF delta = event->pos() - event->lastPos();
-            moveBy(delta.x(), delta.y());
+                // update coordinates of parent during resize
+                updateParent();
+            }
+            else
+            {
+                QPointF delta = event->pos() - event->lastPos();
+                moveBy(delta.x(), delta.y());
+            }
         }
     }
     else
