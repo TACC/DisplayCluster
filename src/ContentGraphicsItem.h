@@ -25,6 +25,8 @@ class ContentGraphicsItem : public QGraphicsRectItem {
 
     private:
 
+        bool initialized_;
+
         bool resizing_;
         bool selected_;
 

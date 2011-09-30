@@ -5,6 +5,7 @@
 ContentGraphicsItem::ContentGraphicsItem(boost::shared_ptr<Content> parent)
 {
     // defaults
+    initialized_ = false;
     resizing_ = false;
     selected_ = false;
 
@@ -29,6 +30,14 @@ ContentGraphicsItem::ContentGraphicsItem(boost::shared_ptr<Content> parent)
 
 void ContentGraphicsItem::paint(QPainter * painter, const QStyleOptionGraphicsItem * option, QWidget * widget)
 {
+    if(initialized_ == false)
+    {
+        // on first paint, parent needs to be updated with initial coordinates
+        updateParent();
+
+        initialized_ = true;
+    }
+
     QGraphicsRectItem::paint(painter, option, widget);
 
     // default pen
