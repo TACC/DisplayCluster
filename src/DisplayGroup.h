@@ -22,7 +22,7 @@ class DisplayGroup : public boost::enable_shared_from_this<DisplayGroup> {
 
         void addContent(boost::shared_ptr<Content> content);
         void removeContent(boost::shared_ptr<Content> content);
-
+        void removeContent(std::string uri);
         std::vector<boost::shared_ptr<Content> > getContents();
 
         void moveContentToFront(boost::shared_ptr<Content> content);

@@ -64,6 +64,18 @@ void DisplayGroup::removeContent(boost::shared_ptr<Content> content)
     g_mainWindow->refreshContentsList();
 }
 
+void DisplayGroup::removeContent(std::string uri)
+{
+    for(unsigned int i=0; i<contents_.size(); i++)
+    {
+        if(contents_[i]->getURI() == uri)
+        {
+            removeContent(contents_[i]);
+            return;
+        }
+    }
+}
+
 std::vector<boost::shared_ptr<Content> > DisplayGroup::getContents()
 {
     return contents_;
