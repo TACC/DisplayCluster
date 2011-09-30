@@ -151,7 +151,6 @@ void Movie::render(float tX, float tY, float tW, float tH)
 
     glBegin(GL_QUADS);
 
-    // note we need to flip the y coordinate since the textures are loaded upside down
     glTexCoord2f(tX,tY);
     glVertex2f(0.,0.);
 
