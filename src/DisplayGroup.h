@@ -19,7 +19,8 @@ struct MessageHeader {
     MESSAGE_TYPE type;
 };
 
-class DisplayGroup : public boost::enable_shared_from_this<DisplayGroup> {
+class DisplayGroup : public QObject, public boost::enable_shared_from_this<DisplayGroup> {
+    Q_OBJECT
 
     public:
 
@@ -34,6 +35,8 @@ class DisplayGroup : public boost::enable_shared_from_this<DisplayGroup> {
         std::vector<boost::shared_ptr<Content> > getContents();
 
         void moveContentToFront(boost::shared_ptr<Content> content);
+
+    public slots:
 
         void synchronize();
 

@@ -82,6 +82,7 @@ set(SRCS ${SRCS}
 )
 
 set(MOC_HEADERS
+    src/DisplayGroup.h
     src/MainWindow.h
 )
 
