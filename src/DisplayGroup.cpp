@@ -197,27 +197,40 @@ void DisplayGroup::sendDisplayGroup()
 
 void DisplayGroup::sendPixelStreams()
 {
-    // get buffer
-    bool updated;
-    QByteArray imageData = g_pixelStreamSourceFactory.getObject("desktop")->getImageData(updated);
+    // iterate through all pixel streams and send updates if needed
+    std::map<std::string, boost::shared_ptr<PixelStreamSource> > map = g_pixelStreamSourceFactory.getMap();
 
-    if(updated == true)
+    for(std::map<std::string, boost::shared_ptr<PixelStreamSource> >::iterator it = map.begin(); it != map.end(); it++)
     {
-        int size = imageData.size();
+        std::string uri = (*it).first;
+        boost::shared_ptr<PixelStreamSource> pixelStreamSource = (*it).second;
 
-        // send the header and the message
-        MessageHeader mh;
-        mh.size = size;
-        mh.type = MESSAGE_TYPE_PIXELSTREAM;
+        // get buffer
+        bool updated;
+        QByteArray imageData = pixelStreamSource->getImageData(updated);
 
-        // the header is sent via a send, so that we can probe it on the render processes
-        for(int i=1; i<g_mpiSize; i++)
+        if(updated == true)
         {
-            MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, i, 0, MPI_COMM_WORLD);
-        }
+            int size = imageData.size();
 
-        // broadcast the message
-        MPI_Bcast((void *)imageData.data(), size, MPI_BYTE, 0, MPI_COMM_WORLD);
+            // send the header and the message
+            MessageHeader mh;
+            mh.size = size;
+            mh.type = MESSAGE_TYPE_PIXELSTREAM;
+
+            // add the truncated URI to the header
+            size_t len = uri.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
+            mh.uri[len] = '\0';
+
+            // the header is sent via a send, so that we can probe it on the render processes
+            for(int i=1; i<g_mpiSize; i++)
+            {
+                MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, i, 0, MPI_COMM_WORLD);
+            }
+
+            // broadcast the message
+            MPI_Bcast((void *)imageData.data(), size, MPI_BYTE, 0, MPI_COMM_WORLD);
+        }
     }
 }
 
@@ -259,8 +272,11 @@ void DisplayGroup::receivePixelStreams(MessageHeader messageHeader)
     // read message into the buffer
     MPI_Bcast((void *)buf, messageHeader.size, MPI_BYTE, 0, MPI_COMM_WORLD);
 
+    // URI
+    std::string uri = std::string(messageHeader.uri);
+
     // de-serialize...
-    g_mainWindow->getGLWindow()->getPixelStreamFactory().getObject("desktop")->setImageData(QByteArray(buf, messageHeader.size));
+    g_mainWindow->getGLWindow()->getPixelStreamFactory().getObject(uri)->setImageData(QByteArray(buf, messageHeader.size));
 
     // free mpi buffer
     delete [] buf;
