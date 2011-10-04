@@ -22,6 +22,8 @@ class PixelStream {
 
         // texture
         GLuint textureId_;
+        int textureWidth_;
+        int textureHeight_;
         bool textureBound_;
 
         // thread for generating images from image data

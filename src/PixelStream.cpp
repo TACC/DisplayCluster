@@ -6,6 +6,8 @@ PixelStream::PixelStream(std::string uri)
 {
     // defaults
     textureId_ = 0;
+    textureWidth_ = 0;
+    textureHeight_ = 0;
     textureBound_ = false;
     imageReady_ = false;
 
@@ -95,6 +97,8 @@ void PixelStream::setImage(QImage & image)
     {
         // want mipmaps disabled
         textureId_ = g_mainWindow->getGLWindow()->bindTexture(image, GL_TEXTURE_2D, GL_RGBA, QGLContext::LinearFilteringBindOption);
+        textureWidth_ = image.width();
+        textureHeight_ = image.height();
         textureBound_ = true;
     }
     else
@@ -102,8 +106,23 @@ void PixelStream::setImage(QImage & image)
         // update the texture. note that generally we would need to convert the image to an OpenGL supported format
         // however, we're lucky and can use GL_BGRA on the original image...
         // example conversion to GL format: QImage glImage = QGLWidget::convertToGLFormat(image);
-        glBindTexture(GL_TEXTURE_2D, textureId_);            
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0,0, image.width(), image.height(), GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
+
+        // if the size has changed, create a new texture
+        if(image.width() != textureWidth_ || image.height() != textureHeight_)
+        {
+            // delete bound texture
+            glDeleteTextures(1, &textureId_); // it appears deleteTexture() below is not actually deleting the texture from the GPU...
+            g_mainWindow->getGLWindow()->deleteTexture(textureId_);
+
+            textureId_ = g_mainWindow->getGLWindow()->bindTexture(image, GL_TEXTURE_2D, GL_RGBA, QGLContext::LinearFilteringBindOption);
+            textureWidth_ = image.width();
+            textureHeight_ = image.height();
+        }
+        else
+        {
+            glBindTexture(GL_TEXTURE_2D, textureId_);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0,0, image.width(), image.height(), GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
+        }
     }
 }
 
