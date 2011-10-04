@@ -77,6 +77,8 @@ set(SRCS ${SRCS}
     src/PixelStream.cpp
     src/PixelStreamContent.cpp
     src/PixelStreamSource.cpp
+    src/PixelStreamSourceListener.cpp
+    src/PixelStreamSourceListenerThread.cpp
     src/Texture.cpp
     src/TextureContent.cpp
 )
@@ -84,6 +86,8 @@ set(SRCS ${SRCS}
 set(MOC_HEADERS
     src/DisplayGroup.h
     src/MainWindow.h
+    src/PixelStreamSourceListener.h
+    src/PixelStreamSourceListenerThread.h
 )
 
 qt4_wrap_cpp(MOC_OUTFILES ${MOC_HEADERS})

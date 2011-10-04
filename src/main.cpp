@@ -19,6 +19,7 @@ MPI_Comm g_mpiRenderComm;
 Configuration * g_configuration = NULL;
 boost::shared_ptr<DisplayGroup> g_displayGroup;
 MainWindow * g_mainWindow = NULL;
+PixelStreamSourceListener * g_pixelStreamSourceListener = NULL;
 
 int main(int argc, char * argv[])
 {
@@ -49,6 +50,11 @@ int main(int argc, char * argv[])
         new TouchListener();
     }
 #endif
+
+    if(g_mpiRank == 0)
+    {
+        g_pixelStreamSourceListener = new PixelStreamSourceListener();
+    }
 
     // enter Qt event loop
     app->exec();
