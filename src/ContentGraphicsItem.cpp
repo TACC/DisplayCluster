@@ -2,6 +2,8 @@
 #include "Content.h"
 #include "DisplayGroup.h"
 
+qreal ContentGraphicsItem::zCounter_ = 0;
+
 ContentGraphicsItem::ContentGraphicsItem(boost::shared_ptr<Content> parent)
 {
     // defaults
@@ -32,6 +34,19 @@ void ContentGraphicsItem::paint(QPainter * painter, const QStyleOptionGraphicsIt
 {
     if(initialized_ == false)
     {
+        // move content to front of display group
+        if(boost::shared_ptr<Content> c = parent_.lock())
+        {
+            if(boost::shared_ptr<DisplayGroup> dg = c->getDisplayGroup())
+            {
+                dg->moveContentToFront(c);
+            }
+        }
+
+        // and, new items at the front
+        zCounter_ = zCounter_ + 1;
+        setZValue(zCounter_);
+
         // on first paint, parent needs to be updated with initial coordinates
         updateParent();
 
@@ -184,6 +199,10 @@ void ContentGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent * event)
             updateParent();
         }
     }
+
+    // and to the front of the GUI display
+    zCounter_ = zCounter_ + 1;
+    setZValue(zCounter_);
 
     QGraphicsItem::mousePressEvent(event);
 }

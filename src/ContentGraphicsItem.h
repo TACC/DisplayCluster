@@ -34,6 +34,9 @@ class ContentGraphicsItem : public QGraphicsRectItem {
 
         boost::weak_ptr<Content> parent_;
 
+        // counter used to determine stacking order in the UI
+        static qreal zCounter_;
+
         void updateParent();
         void getButtonDimensions(float &width, float &height);
 };
