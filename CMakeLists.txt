@@ -95,3 +95,20 @@ qt4_wrap_cpp(MOC_OUTFILES ${MOC_HEADERS})
 add_executable(displaycluster ${SRCS} ${MOC_OUTFILES})
 
 target_link_libraries(displaycluster ${LIBS})
+
+# DesktopStreamer app
+set(DESKTOP_STREAMER_SRCS ${DESKTOP_STREAMER_SRCS}
+    src/log.cpp
+    apps/DesktopStreamer/src/main.cpp
+    apps/DesktopStreamer/src/MainWindow.cpp
+)
+
+set(DESKTOP_STREAMER_MOC_HEADERS
+    apps/DesktopStreamer/src/MainWindow.h
+)
+
+qt4_wrap_cpp(DESKTOP_STREAMER_MOC_OUTFILES ${DESKTOP_STREAMER_MOC_HEADERS})
+
+add_executable(desktopstreamer ${DESKTOP_STREAMER_SRCS} ${DESKTOP_STREAMER_MOC_OUTFILES})
+
+target_link_libraries(desktopstreamer ${QT_LIBRARIES})
