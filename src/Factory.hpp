@@ -23,6 +23,11 @@ class Factory {
             return map_[uri];
         }
 
+        std::map<std::string, boost::shared_ptr<T> > getMap()
+        {
+            return map_;
+        }
+
     private:
 
         // all existing objects
