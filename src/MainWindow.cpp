@@ -8,10 +8,16 @@
 
 MainWindow::MainWindow()
 {
+    // make application quit when last window is closed
+    QObject::connect(g_app, SIGNAL(lastWindowClosed()), g_app, SLOT(quit()));
+
     if(g_mpiRank == 0)
     {
         // rank 0 window setup
         resize(800,600);
+
+        // create menus in menu bar
+        QMenu * fileMenu = menuBar()->addMenu("&File");
 
         // create tool bar
         QToolBar * toolbar = addToolBar("toolbar");
@@ -27,6 +33,16 @@ MainWindow::MainWindow()
         shareDesktopAction->setCheckable(true);
         shareDesktopAction->setChecked(false);
         connect(shareDesktopAction, SIGNAL(toggled(bool)), this, SLOT(shareDesktop(bool)));
+
+        // quit action
+        QAction * quitAction = new QAction("Quit", this);
+        quitAction->setStatusTip("Quit application");
+        connect(quitAction, SIGNAL(triggered()), this, SLOT(close()));
+
+        // add actions to menus
+        fileMenu->addAction(openContentAction);
+        fileMenu->addAction(shareDesktopAction);
+        fileMenu->addAction(quitAction);
 
         // add actions to toolbar
         toolbar->addAction(openContentAction);

@@ -12,7 +12,7 @@
 class Content;
 class DisplayGroupGraphicsView;
 
-enum MESSAGE_TYPE { MESSAGE_TYPE_CONTENTS, MESSAGE_TYPE_PIXELSTREAM };
+enum MESSAGE_TYPE { MESSAGE_TYPE_CONTENTS, MESSAGE_TYPE_PIXELSTREAM, MESSAGE_TYPE_QUIT };
 
 #define MESSAGE_HEADER_URI_LENGTH 64
 
@@ -45,6 +45,7 @@ class DisplayGroup : public QObject, public boost::enable_shared_from_this<Displ
 
         void sendDisplayGroup();
         void sendPixelStreams();
+        void sendQuit();
 
     private:
         friend class boost::serialization::access;

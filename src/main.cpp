@@ -13,6 +13,7 @@
     #include <X11/Xlib.h>
 #endif
 
+QApplication * g_app = NULL;
 int g_mpiRank = -1;
 int g_mpiSize = -1;
 MPI_Comm g_mpiRenderComm;
@@ -30,7 +31,7 @@ int main(int argc, char * argv[])
     XInitThreads();
 #endif
 
-    QApplication * app = new QApplication(argc, argv);
+    g_app = new QApplication(argc, argv);
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &g_mpiRank);
@@ -57,7 +58,14 @@ int main(int argc, char * argv[])
     }
 
     // enter Qt event loop
-    app->exec();
+    g_app->exec();
+
+    put_flog(LOG_DEBUG, "quitting");
+
+    if(g_mpiRank == 0)
+    {
+        g_displayGroup->sendQuit();
+    }
 
     // clean up the MPI environment after the Qt event loop exits
     MPI_Finalize();

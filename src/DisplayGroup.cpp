@@ -154,6 +154,11 @@ void DisplayGroup::synchronize()
                 {
                     receivePixelStreams(mh);
                 }
+                else if(mh.type == MESSAGE_TYPE_QUIT)
+                {
+                    g_app->quit();
+                    return;
+                }
 
                 // check to see if we have another message waiting, for this process and for all render processes
                 MPI_Iprobe(0, 0, MPI_COMM_WORLD, &flag, &status);
@@ -231,6 +236,19 @@ void DisplayGroup::sendPixelStreams()
             // broadcast the message
             MPI_Bcast((void *)imageData.data(), size, MPI_BYTE, 0, MPI_COMM_WORLD);
         }
+    }
+}
+
+void DisplayGroup::sendQuit()
+{
+    // send the header and the message
+    MessageHeader mh;
+    mh.type = MESSAGE_TYPE_QUIT;
+
+    // the header is sent via a send, so that we can probe it on the render processes
+    for(int i=1; i<g_mpiSize; i++)
+    {
+        MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, i, 0, MPI_COMM_WORLD);
     }
 }
 
