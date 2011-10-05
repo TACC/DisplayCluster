@@ -26,8 +26,11 @@ ContentGraphicsItem::ContentGraphicsItem(boost::shared_ptr<Content> parent)
 
     setPen(pen);
 
-    // default position / size
-    setRect(0., 0., 0.25, 0.25);
+    // set to existing coordinates
+    double x,y,w,h;
+    parent->getCoordinates(x,y,w,h);
+
+    setRect(x,y,w,h);
 }
 
 void ContentGraphicsItem::paint(QPainter * painter, const QStyleOptionGraphicsItem * option, QWidget * widget)

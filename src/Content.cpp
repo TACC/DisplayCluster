@@ -6,6 +6,10 @@ Content::Content(std::string uri)
 {
     uri_ = uri;
 
+    // default position / size
+    x_ = y_ = 0.;
+    w_ = h_ = 0.25;
+
     // default to centered
     centerX_ = 0.5;
     centerY_ = 0.5;
