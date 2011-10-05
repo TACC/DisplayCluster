@@ -5,6 +5,11 @@
 #include "MovieContent.h"
 #include "PixelStreamContent.h"
 #include "PixelStreamSource.h"
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/shared_ptr.hpp>
+#include <fstream>
 
 MainWindow::MainWindow()
 {
@@ -27,6 +32,16 @@ MainWindow::MainWindow()
         openContentAction->setStatusTip("Open content");
         connect(openContentAction, SIGNAL(triggered()), this, SLOT(openContent()));
 
+        // save contents action
+        QAction * saveContentsAction = new QAction("Save State", this);
+        saveContentsAction->setStatusTip("Save state");
+        connect(saveContentsAction, SIGNAL(triggered()), this, SLOT(saveContents()));
+
+        // load contents action
+        QAction * loadContentsAction = new QAction("Load State", this);
+        loadContentsAction->setStatusTip("Load state");
+        connect(loadContentsAction, SIGNAL(triggered()), this, SLOT(loadContents()));
+
         // share desktop action
         QAction * shareDesktopAction = new QAction("Share Desktop", this);
         shareDesktopAction->setStatusTip("Share desktop");
@@ -41,11 +56,15 @@ MainWindow::MainWindow()
 
         // add actions to menus
         fileMenu->addAction(openContentAction);
+        fileMenu->addAction(saveContentsAction);
+        fileMenu->addAction(loadContentsAction);
         fileMenu->addAction(shareDesktopAction);
         fileMenu->addAction(quitAction);
 
         // add actions to toolbar
         toolbar->addAction(openContentAction);
+        toolbar->addAction(saveContentsAction);
+        toolbar->addAction(loadContentsAction);
         toolbar->addAction(shareDesktopAction);
 
         // main widget / layout area
@@ -147,6 +166,49 @@ void MainWindow::refreshContentsList()
         // add to list view
         QListWidgetItem * newItem = new QListWidgetItem(contentsListWidget_);
         newItem->setText(contents[i]->getURI().c_str());
+    }
+}
+
+void MainWindow::saveContents()
+{
+    QString filename = QFileDialog::getSaveFileName(this, "Save State", "", "State files (*.dcs)");
+
+    if(!filename.isEmpty())
+    {
+        // get contents vector
+        std::vector<boost::shared_ptr<Content> > contents = g_displayGroup->getContents();
+
+        // serialize state
+        std::ofstream ofs(filename.toStdString().c_str());
+
+        // brace this so destructor is called on archive before we use the stream
+        {
+            boost::archive::binary_oarchive oa(ofs);
+            oa << contents;
+        }
+    }
+}
+
+void MainWindow::loadContents()
+{
+    QString filename = QFileDialog::getOpenFileName(this, "Load State", "", "State files (*.dcs)");
+
+    if(!filename.isEmpty())
+    {
+        // new contents vector
+        std::vector<boost::shared_ptr<Content> > contents;
+
+        // serialize state
+        std::ifstream ifs(filename.toStdString().c_str());
+
+        // brace this so destructor is called on archive before we use the stream
+        {
+            boost::archive::binary_iarchive ia(ifs);
+            ia >> contents;
+        }
+
+        // assign new contents vector to display group
+        g_displayGroup->setContents(contents);
     }
 }
 

@@ -21,6 +21,8 @@ class MainWindow : public QMainWindow {
 
         void openContent();
         void refreshContentsList();
+        void saveContents();
+        void loadContents();
         void shareDesktop(bool set);
         void shareDesktopUpdate();
 
