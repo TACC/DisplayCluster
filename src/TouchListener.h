@@ -1,8 +1,8 @@
 #ifndef TOUCH_LISTENER_H
 #define TOUCH_LISTENER_H
 
-#include "TuioListener.h"
-#include "TuioClient.h"
+#include <TuioListener.h>
+#include <TuioClient.h>
 #include <QtGui>
 
 #define DOUBLE_CLICK_DISTANCE 0.1 // recall this is the (0,0,1,1) coordinate system

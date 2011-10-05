@@ -46,8 +46,10 @@ set(LIBS ${LIBS} ${FFMPEG_LIBRARIES})
 
 # handle build options
 if(ENABLE_TUIO_TOUCH_LISTENER)
-    include_directories("/usr/local/include/TUIO")
-    set(LIBS ${LIBS} TUIO)
+    find_package(TUIO REQUIRED)
+    include_directories(${TUIO_INCLUDE_DIRS})
+    set(LIBS ${LIBS} ${TUIO_LIBRARIES})
+
     set(SRCS ${SRCS} src/TouchListener.cpp)
 
     find_package(X11 REQUIRED)
