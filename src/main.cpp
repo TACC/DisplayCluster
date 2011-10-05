@@ -1,12 +1,7 @@
 #include "main.h"
 #include "config.h"
 #include "log.h"
-
-#ifdef __APPLE__
-    #include <mpi.h>
-#else
-    #include <mpi/mpi.h>
-#endif
+#include <mpi.h>
 
 #if ENABLE_TUIO_TOUCH_LISTENER
     #include "TouchListener.h"

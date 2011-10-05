@@ -8,12 +8,7 @@
 #include <sstream>
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/shared_ptr.hpp>
-
-#ifdef __APPLE__
-    #include <mpi.h>
-#else
-    #include <mpi/mpi.h>
-#endif
+#include <mpi.h>
 
 boost::shared_ptr<DisplayGroupGraphicsView> DisplayGroup::getGraphicsView()
 {

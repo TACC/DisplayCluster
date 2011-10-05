@@ -36,8 +36,9 @@ find_package(Boost REQUIRED COMPONENTS serialization)
 include_directories(${Boost_INCLUDE_DIRS})
 set(LIBS ${LIBS} ${Boost_LIBRARIES})
 
-include_directories("/usr/include/mpi")
-set(LIBS ${LIBS} mpi mpi_cxx)
+find_package(MPI REQUIRED)
+include_directories(${MPI_INCLUDE_PATH})
+set(LIBS ${LIBS} ${MPI_LIBRARIES})
 
 find_package(FFMPEG REQUIRED)
 include_directories(${FFMPEG_INCLUDE_DIR})
