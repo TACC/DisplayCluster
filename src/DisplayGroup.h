@@ -35,6 +35,7 @@ class DisplayGroup : public QObject, public boost::enable_shared_from_this<Displ
         void removeContent(boost::shared_ptr<Content> content);
         void removeContent(std::string uri);
         bool hasContent(std::string uri);
+        void setContents(std::vector<boost::shared_ptr<Content> > contents);
         std::vector<boost::shared_ptr<Content> > getContents();
 
         void moveContentToFront(boost::shared_ptr<Content> content);

@@ -86,6 +86,18 @@ bool DisplayGroup::hasContent(std::string uri)
     return false;
 }
 
+void DisplayGroup::setContents(std::vector<boost::shared_ptr<Content> > contents)
+{
+    // clear existing contents
+    contents_.clear();
+
+    // add new contents
+    for(unsigned int i=0; i<contents.size(); i++)
+    {
+        addContent(contents[i]);
+    }
+}
+
 std::vector<boost::shared_ptr<Content> > DisplayGroup::getContents()
 {
     return contents_;
