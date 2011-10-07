@@ -14,7 +14,7 @@ class DynamicTexture : public boost::enable_shared_from_this<DynamicTexture> {
 
     public:
 
-        DynamicTexture(std::string uri = "", boost::shared_ptr<DynamicTexture> parent = boost::shared_ptr<DynamicTexture>(), float parentX=0., float parentY=0., float parentW=0., float parentH=0.);
+        DynamicTexture(std::string uri = "", boost::shared_ptr<DynamicTexture> parent = boost::shared_ptr<DynamicTexture>(), float parentX=0., float parentY=0., float parentW=0., float parentH=0., int childIndex=0);
         ~DynamicTexture();
 
         void loadImage(); // thread needs access to this method
@@ -36,6 +36,9 @@ class DynamicTexture : public boost::enable_shared_from_this<DynamicTexture> {
         float parentX_, parentY_, parentW_, parentH_;
 
         // for all objects:
+
+        // path through the tree
+        std::vector<int> treePath_;
 
         // thread for loading images
         QFuture<void> loadImageThread_;

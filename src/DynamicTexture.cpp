@@ -4,7 +4,7 @@
 #include "log.h"
 #include <algorithm>
 
-DynamicTexture::DynamicTexture(std::string uri, boost::shared_ptr<DynamicTexture> parent, float parentX, float parentY, float parentW, float parentH)
+DynamicTexture::DynamicTexture(std::string uri, boost::shared_ptr<DynamicTexture> parent, float parentX, float parentY, float parentW, float parentH, int childIndex)
 {
     // defaults
     depth_ = 0;
@@ -23,11 +23,19 @@ DynamicTexture::DynamicTexture(std::string uri, boost::shared_ptr<DynamicTexture
     if(parent != NULL)
     {
         depth_ = parent->depth_ + 1;
+
+        // append childIndex to parent's path to form this object's path
+        treePath_ = parent->treePath_;
+        treePath_.push_back(childIndex);
     }
 
-    // always load image for top-level object
+    // if we're the top-level object
     if(depth_ == 0)
     {
+        // this is the top-level object, so its path is 0
+        treePath_.push_back(0);
+
+        // always load image for top-level object
         loadImageThread_ = QtConcurrent::run(loadImageThread, this);
         loadImageThreadStarted_ = true;
     }
@@ -250,7 +258,7 @@ void DynamicTexture::renderChildren(float tX, float tY, float tW, float tH)
     {
         for(unsigned int i=0; i<4; i++)
         {
-            boost::shared_ptr<DynamicTexture> c(new DynamicTexture("", shared_from_this(), imageBounds[i].x(), imageBounds[i].y(), imageBounds[i].width(), imageBounds[i].height()));
+            boost::shared_ptr<DynamicTexture> c(new DynamicTexture("", shared_from_this(), imageBounds[i].x(), imageBounds[i].y(), imageBounds[i].width(), imageBounds[i].height(), i));
             children_.push_back(c);
         }
     }
