@@ -5,6 +5,7 @@
 #include "MovieContent.h"
 #include "PixelStreamContent.h"
 #include "PixelStreamSource.h"
+#include "log.h"
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
@@ -49,6 +50,11 @@ MainWindow::MainWindow()
         shareDesktopAction->setChecked(false);
         connect(shareDesktopAction, SIGNAL(toggled(bool)), this, SLOT(shareDesktop(bool)));
 
+        // compute image pyramid action
+        QAction * computeImagePyramidAction = new QAction("Compute Image Pyramid", this);
+        computeImagePyramidAction->setStatusTip("Compute image pyramid");
+        connect(computeImagePyramidAction, SIGNAL(triggered()), this, SLOT(computeImagePyramid()));
+
         // quit action
         QAction * quitAction = new QAction("Quit", this);
         quitAction->setStatusTip("Quit application");
@@ -59,6 +65,7 @@ MainWindow::MainWindow()
         fileMenu->addAction(saveContentsAction);
         fileMenu->addAction(loadContentsAction);
         fileMenu->addAction(shareDesktopAction);
+        fileMenu->addAction(computeImagePyramidAction);
         fileMenu->addAction(quitAction);
 
         // add actions to toolbar
@@ -66,6 +73,7 @@ MainWindow::MainWindow()
         toolbar->addAction(saveContentsAction);
         toolbar->addAction(loadContentsAction);
         toolbar->addAction(shareDesktopAction);
+        toolbar->addAction(computeImagePyramidAction);
 
         // main widget / layout area
         QTabWidget * mainWidget = new QTabWidget();
@@ -142,6 +150,13 @@ void MainWindow::openContent()
         else if(filename.endsWith(".mov") || filename.endsWith(".avi") || filename.endsWith(".mp4") || filename.endsWith(".mkv"))
         {
             boost::shared_ptr<Content> c(new MovieContent(filename.toStdString()));
+
+            g_displayGroup->addContent(c);
+        }
+        // see if this is an image pyramid
+        else if(filename.endsWith(".pyr"))
+        {
+            boost::shared_ptr<Content> c(new DynamicTextureContent(filename.toStdString()));
 
             g_displayGroup->addContent(c);
         }
@@ -235,6 +250,26 @@ void MainWindow::shareDesktop(bool set)
     }
 
     g_displayGroup->sendDisplayGroup();
+}
+
+void MainWindow::computeImagePyramid()
+{
+    // get image filename
+    QString imageFilename = QFileDialog::getOpenFileName(this, "Select image");
+
+    if(!imageFilename.isEmpty())
+    {
+        put_flog(LOG_DEBUG, "got image filename %s", imageFilename.toStdString().c_str());
+
+        std::string imagePyramidPath = imageFilename.toStdString() + ".pyramid/";
+
+        put_flog(LOG_DEBUG, "got image pyramid path %s", imagePyramidPath.c_str());
+
+        boost::shared_ptr<DynamicTexture> dt(new DynamicTexture(imageFilename.toStdString()));
+        dt->computeImagePyramid(imagePyramidPath);
+
+        put_flog(LOG_DEBUG, "done");
+    }
 }
 
 void MainWindow::shareDesktopUpdate()

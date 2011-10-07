@@ -3,11 +3,13 @@
 #include "vector.h"
 #include "log.h"
 #include <algorithm>
+#include <fstream>
 
 DynamicTexture::DynamicTexture(std::string uri, boost::shared_ptr<DynamicTexture> parent, float parentX, float parentY, float parentW, float parentH, int childIndex)
 {
     // defaults
     depth_ = 0;
+    useImagePyramid_ = false;
     loadImageThreadStarted_ = false;
     textureBound_ = false;
 
@@ -35,6 +37,17 @@ DynamicTexture::DynamicTexture(std::string uri, boost::shared_ptr<DynamicTexture
         // this is the top-level object, so its path is 0
         treePath_.push_back(0);
 
+        // see if this is an image pyramid metadata filename
+        if(uri.find(".pyr") != std::string::npos)
+        {
+            std::ifstream ifs(uri.c_str());
+            ifs >> imagePyramidPath_ >> imageWidth_ >> imageHeight_;
+
+            useImagePyramid_ = true;
+
+            put_flog(LOG_DEBUG, "got image pyramid path %s, imageWidth = %i, imageHeight = %i", imagePyramidPath_.c_str(), imageWidth_, imageHeight_);
+        }
+
         // always load image for top-level object
         loadImageThread_ = QtConcurrent::run(loadImageThread, this);
         loadImageThreadStarted_ = true;
@@ -54,35 +67,125 @@ DynamicTexture::~DynamicTexture()
 
 void DynamicTexture::loadImage()
 {
-    // root node
-    if(depth_ == 0)
+    if(getRoot()->useImagePyramid_ == true)
     {
-        image_.load(uri_.c_str());
+        // form filename
+        std::string filename = getRoot()->imagePyramidPath_ + '/';
 
-        if(image_.isNull() == true)
+        for(unsigned int i=0; i<treePath_.size(); i++)
         {
-            put_flog(LOG_ERROR, "error loading %s", uri_.c_str());
-            return;
+            filename += QString::number(treePath_[i]).toStdString();
+
+            if(i != treePath_.size() - 1)
+            {
+                filename += "-";
+            }
         }
+
+        filename += ".jpg";
+
+        scaledImage_.load(QString(filename.c_str()), "jpg");
     }
     else
     {
-        // get image from parent
-        boost::shared_ptr<DynamicTexture> parent = parent_.lock();
-        image_ = parent->getImageFromRoot(parentX_, parentY_, parentW_, parentH_);
-    }
+        // root node
+        if(depth_ == 0)
+        {
+            image_.load(uri_.c_str());
 
-    // save image dimensions for later use; recall image may be deleted
-    imageWidth_ = image_.width();
-    imageHeight_ = image_.height();
+            if(image_.isNull() == true)
+            {
+                put_flog(LOG_ERROR, "error loading %s", uri_.c_str());
+            }
+        }
+        else
+        {
+            // get image from parent
+            boost::shared_ptr<DynamicTexture> parent = parent_.lock();
+            image_ = parent->getImageFromParent(parentX_, parentY_, parentW_, parentH_, this);
+        }
 
-    // compute the scaled image
-    scaledImage_ = image_.scaled(TEXTURE_SIZE, TEXTURE_SIZE);
+        // if we managed to get a valid image, go ahead and scale it
+        // otherwise, we'll need to read it in differently...
+        if(image_.isNull() != true)
+        {
+            // save image dimensions for later use; recall image may be deleted
+            imageWidth_ = image_.width();
+            imageHeight_ = image_.height();
 
-    // only the root needs to keep the non-scaled image
-    if(depth_ != 0)
-    {
-        image_ = QImage();
+            // compute the scaled image
+            scaledImage_ = image_.scaled(TEXTURE_SIZE, TEXTURE_SIZE);
+
+            // only the root needs to keep the non-scaled image in this case
+            // we only want to keep the top-most valid image_ in the tree for memory efficiency
+            if(depth_ != 0)
+            {
+                image_ = QImage();
+            }
+        }
+        else
+        {
+            // we could not get a valid image_ from a parent
+            // try alternative methods of reading it using QImageReader
+            QImageReader imageReader(getRoot()->uri_.c_str());
+
+            if(imageReader.canRead() == true)
+            {
+                put_flog(LOG_DEBUG, "image can be read. trying alternate methods.");
+
+                // get image rectangle for this object in the root's coordinates
+                QRect rootRect;
+
+                if(depth_ == 0)
+                {
+                    rootRect = QRect(0,0, imageReader.size().width(), imageReader.size().height());
+                }
+                else
+                {
+                    rootRect = getRootImageCoordinates(0., 0., 1., 1.);
+                }
+
+                // save the image dimensions (in terms of the root image) that this object represents
+                imageWidth_ = rootRect.width();
+                imageHeight_ = rootRect.height();
+
+                put_flog(LOG_DEBUG, "reading clipped region of image");
+
+                imageReader.setClipRect(rootRect);
+                image_ = imageReader.read();
+
+                if(image_.isNull() != true)
+                {
+                    // successfully loaded clipped image
+                    // compute the scaled image
+                    scaledImage_ = image_.scaled(TEXTURE_SIZE, TEXTURE_SIZE);
+                }
+                else
+                {
+                    // failed to load the clipped image
+                    put_flog(LOG_DEBUG, "failed to read clipped region of image; attempting to read clipped and scaled region of image");
+
+                    QImageReader imageScaledReader(getRoot()->uri_.c_str());
+                    imageScaledReader.setClipRect(rootRect);
+                    imageScaledReader.setScaledSize(QSize(TEXTURE_SIZE, TEXTURE_SIZE));
+                    scaledImage_ = imageScaledReader.read();
+                }
+
+                // this means we couldn't get a scaled image by any means
+                if(scaledImage_.isNull() == true)
+                {
+                    put_flog(LOG_ERROR, "failed to read the image. aborting.");
+                    exit(-1);
+                    return;
+                }
+            }
+            else
+            {
+                put_flog(LOG_ERROR, "image cannot be read. aborting.");
+                exit(-1);
+                return;
+            }
+        }
     }
 }
 
@@ -181,6 +284,82 @@ void DynamicTexture::render(float tX, float tY, float tW, float tH, bool compute
     }
 }
 
+void DynamicTexture::computeImagePyramid(std::string imagePyramidPath)
+{
+    if(depth_ == 0)
+    {
+        // make directory if necessary
+        if(QDir(imagePyramidPath.c_str()).exists() != true)
+        {
+            bool success = QDir().mkdir(imagePyramidPath.c_str());
+
+            if(success != true)
+            {
+                put_flog(LOG_ERROR, "error creating directory %s", imagePyramidPath.c_str());
+                return;
+            }
+        }
+
+        // wait for initial image load to finish thread
+        loadImageThread_.waitForFinished();
+
+        // write metadata file
+        std::string metadataFilename = imagePyramidPath + "/pyramid.pyr";
+
+        std::ofstream ofs(metadataFilename.c_str());
+        ofs << imagePyramidPath << " " << imageWidth_ << " " << imageHeight_;
+    }
+
+    // generate this object's image and write to disk
+
+    // this will give us scaledImage_
+    if(depth_ != 0)
+    {
+        loadImage();
+    }
+
+    // form filename
+    std::string filename = imagePyramidPath + '/';
+
+    for(unsigned int i=0; i<treePath_.size(); i++)
+    {
+        filename += QString::number(treePath_[i]).toStdString();
+
+        if(i != treePath_.size() - 1)
+        {
+            filename += "-";
+        }
+    }
+
+    filename += ".jpg";
+
+    put_flog(LOG_DEBUG, "saving %s", filename.c_str());
+
+    scaledImage_.save(QString(filename.c_str()), "jpg");
+
+    // no longer need scaled image
+    scaledImage_ = QImage();
+
+    // if we need to descend further...
+    if(getRoot()->imageWidth_ / pow(2,depth_) > TEXTURE_SIZE || getRoot()->imageHeight_ / pow(2,depth_) > TEXTURE_SIZE)
+    {
+        // image rectangle a child quadrant contains
+        QRectF imageBounds[4];
+        imageBounds[0] = QRectF(0.,0.,0.5,0.5);
+        imageBounds[1] = QRectF(0.5,0.,0.5,0.5);
+        imageBounds[2] = QRectF(0.5,0.5,0.5,0.5);
+        imageBounds[3] = QRectF(0.,0.5,0.5,0.5);
+
+        // generate and compute children
+        for(unsigned int i=0; i<4; i++)
+        {
+            boost::shared_ptr<DynamicTexture> c(new DynamicTexture("", shared_from_this(), imageBounds[i].x(), imageBounds[i].y(), imageBounds[i].width(), imageBounds[i].height(), i));
+
+            c->computeImagePyramid(imagePyramidPath);
+        }
+    }
+}
+
 boost::shared_ptr<DynamicTexture> DynamicTexture::getRoot()
 {
     if(depth_ == 0)
@@ -194,7 +373,7 @@ boost::shared_ptr<DynamicTexture> DynamicTexture::getRoot()
     }
 }
 
-QImage DynamicTexture::getImageFromRoot(float x, float y, float w, float h)
+QRect DynamicTexture::getRootImageCoordinates(float x, float y, float w, float h)
 {
     if(depth_ == 0)
     {
@@ -204,8 +383,8 @@ QImage DynamicTexture::getImageFromRoot(float x, float y, float w, float h)
             loadImageThread_.waitForFinished();
         }
 
-        QImage copy = image_.copy(x*image_.width(), y*image_.height(), w*image_.width(), h*image_.height());
-        return copy;
+        QRect rect = QRect(x*imageWidth_, y*imageHeight_, w*imageWidth_, h*imageHeight_);
+        return rect;
     }
     else
     {
@@ -216,7 +395,63 @@ QImage DynamicTexture::getImageFromRoot(float x, float y, float w, float h)
         float pW = w * parentW_;
         float pH = h * parentH_;
 
-        return parent->getImageFromRoot(pX, pY, pW, pH);
+        return parent->getRootImageCoordinates(pX, pY, pW, pH);
+    }
+}
+
+QImage DynamicTexture::getImageFromParent(float x, float y, float w, float h, DynamicTexture * start)
+{
+    // if we're in the starting node, we must ascend
+    if(start == this)
+    {
+        if(depth_ == 0)
+        {
+            put_flog(LOG_ERROR, "starting from root object and cannot ascend");
+            return QImage();
+        }
+
+        boost::shared_ptr<DynamicTexture> parent = parent_.lock();
+
+        float pX = parentX_ + x * parentW_;
+        float pY = parentY_ + y * parentH_;
+        float pW = w * parentW_;
+        float pH = h * parentH_;
+
+        return parent->getImageFromParent(pX, pY, pW, pH, start);
+    }
+
+    // wait for the load image thread to complete if it's in progress
+    if(loadImageThreadStarted_ == true && loadImageThread_.isFinished() == false)
+    {
+        loadImageThread_.waitForFinished();
+    }
+
+    if(image_.isNull() != true)
+    {
+        // we have a valid image, return the clipped image
+        QImage copy = image_.copy(x*image_.width(), y*image_.height(), w*image_.width(), h*image_.height());
+        return copy;
+    }
+    else
+    {
+        // we don't have a valid image
+        // if we're the root object, return a NULL image
+        // otherwise, continue up the tree looking for an image
+        if(depth_ == 0)
+        {
+            return QImage();
+        }
+        else
+        {
+            boost::shared_ptr<DynamicTexture> parent = parent_.lock();
+
+            float pX = parentX_ + x * parentW_;
+            float pY = parentY_ + y * parentH_;
+            float pW = w * parentW_;
+            float pH = h * parentH_;
+
+            return parent->getImageFromParent(pX, pY, pW, pH, start);
+        }
     }
 }
 

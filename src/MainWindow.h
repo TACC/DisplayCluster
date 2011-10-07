@@ -24,6 +24,7 @@ class MainWindow : public QMainWindow {
         void saveContents();
         void loadContents();
         void shareDesktop(bool set);
+        void computeImagePyramid();
         void shareDesktopUpdate();
 
     private:

@@ -19,6 +19,7 @@ class DynamicTexture : public boost::enable_shared_from_this<DynamicTexture> {
 
         void loadImage(); // thread needs access to this method
         void render(float tX, float tY, float tW, float tH, bool computeOnDemand=true, bool considerChildren=true);
+        void computeImagePyramid(std::string imagePyramidPath);
 
     private:
 
@@ -26,6 +27,10 @@ class DynamicTexture : public boost::enable_shared_from_this<DynamicTexture> {
 
         // for root only: image location
         std::string uri_;
+
+        // image pyramid parameters
+        std::string imagePyramidPath_;
+        bool useImagePyramid_;
 
         // for children:
 
@@ -60,7 +65,8 @@ class DynamicTexture : public boost::enable_shared_from_this<DynamicTexture> {
         std::vector<boost::shared_ptr<DynamicTexture> > children_;
 
         boost::shared_ptr<DynamicTexture> getRoot();
-        QImage getImageFromRoot(float x, float y, float w, float h);
+        QRect getRootImageCoordinates(float x, float y, float w, float h);
+        QImage getImageFromParent(float x, float y, float w, float h, DynamicTexture * start);
         void uploadTexture();
         void renderChildren(float tX, float tY, float tW, float tH);
         double getProjectedPixelArea();
