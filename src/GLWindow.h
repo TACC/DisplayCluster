@@ -26,6 +26,7 @@ class GLWindow : public QGLWidget
         void resizeGL(int width, int height);
         void setView(int width, int height);
 
+        static bool isRectangleVisible(double x, double y, double w, double h);
         static void drawRectangle(double x, double y, double w, double h);
 
     private:

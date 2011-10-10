@@ -141,6 +141,60 @@ void GLWindow::setView(int width, int height)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
+bool GLWindow::isRectangleVisible(double x, double y, double w, double h)
+{
+    // get four corners in object space
+    double xObj[4][3];
+
+    xObj[0][0] = x;
+    xObj[0][1] = y;
+    xObj[0][2] = 0.;
+
+    xObj[1][0] = x+w;
+    xObj[1][1] = y;
+    xObj[1][2] = 0.;
+
+    xObj[2][0] = x+w;
+    xObj[2][1] = y+h;
+    xObj[2][2] = 0.;
+
+    xObj[3][0] = x;
+    xObj[3][1] = y+h;
+    xObj[3][2] = 0.;
+
+    // get four corners in screen space
+    GLdouble modelview[16];
+    glGetDoublev(GL_MODELVIEW_MATRIX, modelview);
+
+    GLdouble projection[16];
+    glGetDoublev(GL_PROJECTION_MATRIX, projection);
+
+    GLint viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+
+    GLdouble xWin[4][3];
+
+    for(int i=0; i<4; i++)
+    {
+        gluProject(xObj[i][0], xObj[i][1], xObj[i][2], modelview, projection, viewport, &xWin[i][0], &xWin[i][1], &xWin[i][2]);
+    }
+
+    // screen rectangle
+    QRectF screenRect(0.,0., (double)g_mainWindow->getGLWindow()->width(), (double)g_mainWindow->getGLWindow()->height());
+
+    // the given rectangle
+    QRectF rect(xWin[0][0], xWin[0][1], xWin[2][0]-xWin[0][0], xWin[2][1]-xWin[0][1]);
+
+    if(screenRect.intersects(rect) == true)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
 void GLWindow::drawRectangle(double x, double y, double w, double h)
 {
     glBegin(GL_QUADS);
