@@ -124,7 +124,7 @@ void Content::render()
     glPushAttrib(GL_CURRENT_BIT);
 
     glColor4f(1,1,1,1);
-    g_mainWindow->getGLWindow()->drawRectangle(x_-border,y_-border,w_+2.*border,h_+2.*border);
+    GLWindow::drawRectangle(x_-border,y_-border,w_+2.*border,h_+2.*border);
 
     glPopAttrib();
 }
