@@ -23,7 +23,7 @@ class Content : public boost::enable_shared_from_this<Content> {
 
         std::string getURI();
 
-        void setCoordinates(double x, double y, double w, double h);
+        void setCoordinates(double x, double y, double w, double h, bool setGraphicsItem=true);
         void getCoordinates(double &x, double &y, double &w, double &h);
 
         void setCenterCoordinates(double centerX, double centerY);

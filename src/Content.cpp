@@ -33,12 +33,20 @@ std::string Content::getURI()
     return uri_;
 }
 
-void Content::setCoordinates(double x, double y, double w, double h)
+void Content::setCoordinates(double x, double y, double w, double h, bool setGraphicsItem)
 {
     x_ = x;
     y_ = y;
     w_ = w;
     h_ = h;
+
+    if(setGraphicsItem == true)
+    {
+        if(graphicsItem_ != NULL)
+        {
+            graphicsItem_->setRect(x_, y_, w_, h_);
+        }
+    }
 
     // force synchronization
     g_displayGroup->sendDisplayGroup();

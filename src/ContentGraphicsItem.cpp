@@ -256,7 +256,7 @@ void ContentGraphicsItem::updateParent()
 
     if(boost::shared_ptr<Content> c = parent_.lock())
     {
-        c->setCoordinates(r.x() / scene()->width(), r.y() / scene()->height(), r.width() / scene()->width(), r.height() / scene()->height());
+        c->setCoordinates(r.x() / scene()->width(), r.y() / scene()->height(), r.width() / scene()->width(), r.height() / scene()->height(), false);
     }
 }
 
