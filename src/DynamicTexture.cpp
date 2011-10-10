@@ -67,10 +67,23 @@ DynamicTexture::~DynamicTexture()
 
 void DynamicTexture::loadImage()
 {
-    if(getRoot()->useImagePyramid_ == true)
+    // get the root node for later use
+    // note that getRoot() is not safe to be called in the root object during construction, since it uses shared_from_this()
+    DynamicTexture * root = NULL;
+
+    if(depth_ == 0)
+    {
+        root = this;
+    }
+    else
+    {
+        root = getRoot().get();
+    }
+
+    if(root->useImagePyramid_ == true)
     {
         // form filename
-        std::string filename = getRoot()->imagePyramidPath_ + '/';
+        std::string filename = root->imagePyramidPath_ + '/';
 
         for(unsigned int i=0; i<treePath_.size(); i++)
         {
@@ -127,7 +140,7 @@ void DynamicTexture::loadImage()
         {
             // we could not get a valid image_ from a parent
             // try alternative methods of reading it using QImageReader
-            QImageReader imageReader(getRoot()->uri_.c_str());
+            QImageReader imageReader(root->uri_.c_str());
 
             if(imageReader.canRead() == true)
             {
@@ -165,7 +178,7 @@ void DynamicTexture::loadImage()
                     // failed to load the clipped image
                     put_flog(LOG_DEBUG, "failed to read clipped region of image; attempting to read clipped and scaled region of image");
 
-                    QImageReader imageScaledReader(getRoot()->uri_.c_str());
+                    QImageReader imageScaledReader(root->uri_.c_str());
                     imageScaledReader.setClipRect(rootRect);
                     imageScaledReader.setScaledSize(QSize(TEXTURE_SIZE, TEXTURE_SIZE));
                     scaledImage_ = imageScaledReader.read();
