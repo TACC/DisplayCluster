@@ -33,7 +33,7 @@ class Movie {
 
     private:
 
-        void nextFrame();
+        void nextFrame(bool skip);
 
         // true if all the movie initializations were successful
         bool initialized_;

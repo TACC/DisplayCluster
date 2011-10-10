@@ -136,8 +136,15 @@ void Movie::render(float tX, float tY, float tW, float tH)
         return;
     }
 
-    // advance one frame on every render
-    nextFrame();
+    // skip a frame if the Content rectangle is not visible in the window; otherwise decode normally
+    if(GLWindow::isRectangleVisible(0.,0.,1.,1.) == true)
+    {
+        nextFrame(false);
+    }
+    else
+    {
+        nextFrame(true);
+    }
 
     // draw the texture
     glPushAttrib(GL_ENABLE_BIT | GL_TEXTURE_BIT);
@@ -168,7 +175,7 @@ void Movie::render(float tX, float tY, float tW, float tH)
     glPopAttrib();
 }
 
-void Movie::nextFrame()
+void Movie::nextFrame(bool skip)
 {
     if(initialized_ != true)
     {
@@ -185,6 +192,13 @@ void Movie::nextFrame()
         // make sure packet is from video stream
         if(packet.stream_index == videoStream_)
         {
+            if(skip == true)
+            {
+                // free the packet that was allocated by av_read_frame
+                av_free_packet(&packet);
+                break;
+            }
+
             // decode video frame
             avcodec_decode_video2(avCodecContext_, avFrame_, &frameFinished, &packet);
                                      
