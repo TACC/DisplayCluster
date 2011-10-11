@@ -20,6 +20,8 @@ class MovieContent : public Content {
             ar & boost::serialization::base_object<Content>(*this);
         }
 
+        void advance();
+
         void renderFactoryObject(float tX, float tY, float tW, float tH);
 };
 

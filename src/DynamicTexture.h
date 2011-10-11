@@ -19,6 +19,7 @@ class DynamicTexture : public boost::enable_shared_from_this<DynamicTexture> {
 
         void loadImage(); // thread needs access to this method
         void render(float tX, float tY, float tW, float tH, bool computeOnDemand=true, bool considerChildren=true);
+        void clearOldChildren(long minFrameCount); // clear children of nodes with renderChildrenFrameCount_ < minFrameCount
         void computeImagePyramid(std::string imagePyramidPath);
 
     private:
@@ -63,6 +64,9 @@ class DynamicTexture : public boost::enable_shared_from_this<DynamicTexture> {
 
         // children
         std::vector<boost::shared_ptr<DynamicTexture> > children_;
+
+        // last children render frame count
+        long renderChildrenFrameCount_;
 
         boost::shared_ptr<DynamicTexture> getRoot();
         QRect getRootImageCoordinates(float x, float y, float w, float h);

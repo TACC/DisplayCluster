@@ -98,21 +98,59 @@ MainWindow::MainWindow()
     }
     else
     {
-        move(QPoint(g_configuration->getTileX(), g_configuration->getTileY()));
-        resize(g_configuration->getScreenWidth(), g_configuration->getScreenHeight());
+        // setup OpenGL windows
+        // if we have just one tile for this process, make the GL window the central widget
+        // otherwise, create multiple windows
+        if(g_configuration->getMyNumTiles() == 1)
+        {
+            move(QPoint(g_configuration->getTileX(0), g_configuration->getTileY(0)));
+            resize(g_configuration->getScreenWidth(), g_configuration->getScreenHeight());
 
-        boost::shared_ptr<GLWindow> glw(new GLWindow());
-        glWindow_ = glw;
+            boost::shared_ptr<GLWindow> glw(new GLWindow(0));
+            glWindows_.push_back(glw);
 
-        showFullScreen();
-        setCentralWidget(glWindow_.get());
+            setCentralWidget(glw.get());
 
+            showFullScreen();
+        }
+        else
+        {
+            for(unsigned int i=0; i<g_configuration->getMyNumTiles(); i++)
+            {
+                QRect windowRect = QRect(g_configuration->getTileX(i), g_configuration->getTileY(i), g_configuration->getScreenWidth(), g_configuration->getScreenHeight());
+
+                // setup shared OpenGL contexts
+                GLWindow * shareWidget = NULL;
+
+                if(i > 0)
+                {
+                    shareWidget = glWindows_[0].get();
+                }
+
+                boost::shared_ptr<GLWindow> glw(new GLWindow(i, windowRect, shareWidget));
+                glWindows_.push_back(glw);
+
+                glw->showFullScreen();
+            }
+        }
+
+        // setup connection so updateGLWindows() will be called continuously
+        // must be queued so we return to the main event loop and avoid infinite recursion
+        connect(this, SIGNAL(updateGLWindowsFinished()), this, SLOT(updateGLWindows()), Qt::QueuedConnection);
+
+        // trigger the first update
+        updateGLWindows();
     }
 }
 
-boost::shared_ptr<GLWindow> MainWindow::getGLWindow()
+boost::shared_ptr<GLWindow> MainWindow::getGLWindow(int index)
 {
-    return glWindow_;
+    return glWindows_[index];
+}
+
+std::vector<boost::shared_ptr<GLWindow> > MainWindow::getGLWindows()
+{
+    return glWindows_;
 }
 
 void MainWindow::openContent()
@@ -286,4 +324,28 @@ void MainWindow::shareDesktopUpdate()
 
     // send out updated pixel stream
     g_displayGroup->sendPixelStreams();
+}
+
+void MainWindow::updateGLWindows()
+{
+    // get updated contents
+    g_displayGroup->synchronize();
+
+    // render all GLWindows
+    for(unsigned int i=0; i<glWindows_.size(); i++)
+    {
+        glWindows_[i]->updateGL();
+    }
+
+    // all render processes render simultaneously
+    // todo: sync swapbuffers
+    MPI_Barrier(g_mpiRenderComm);
+
+    // advance all contents
+    g_displayGroup->advanceContents();
+
+    // increment frame counter
+    g_frameCount = g_frameCount + 1;
+
+    emit(updateGLWindowsFinished());
 }

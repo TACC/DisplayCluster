@@ -206,6 +206,9 @@ void DynamicTexture::render(float tX, float tY, float tW, float tH, bool compute
 {
     if(considerChildren == true && getProjectedPixelArea() > TEXTURE_SIZE*TEXTURE_SIZE && (getRoot()->imageWidth_ / pow(2,depth_) > TEXTURE_SIZE || getRoot()->imageHeight_ / pow(2,depth_) > TEXTURE_SIZE)) // todo: need to scale projected pixel area by shown texture width and height (clamped to 0->1)!
     {
+        // mark this object as having rendered children in this frame
+        renderChildrenFrameCount_ = g_frameCount;
+
         renderChildren(tX,tY,tW,tH);
     }
     else
@@ -223,13 +226,6 @@ void DynamicTexture::render(float tX, float tY, float tW, float tH, bool compute
         if(loadImageThreadStarted_ == true && loadImageThread_.isFinished() == true && textureBound_ == false)
         {
             uploadTexture();
-        }
-
-        // see if we have children we can delete (i.e., we're not trying to render them)
-        // also, make sure no threads are computing on them
-        if(considerChildren == true && getThreadsDoneDescending() == true)
-        {
-            children_.clear();
         }
 
         // if we don't yet have a texture, try to render from parent's texture
@@ -294,6 +290,21 @@ void DynamicTexture::render(float tX, float tY, float tW, float tH, bool compute
 
             glPopAttrib();
         }
+    }
+}
+
+void DynamicTexture::clearOldChildren(long minFrameCount)
+{
+    // clear children if renderChildrenFrameCount_ < minFrameCount
+    if(children_.size() > 0 && renderChildrenFrameCount_ < minFrameCount && getThreadsDoneDescending() == true)
+    {
+        children_.clear();
+    }
+
+    // run on my children (if i still have any)
+    for(unsigned int i=0; i<children_.size(); i++)
+    {
+        children_[i]->clearOldChildren(minFrameCount);
     }
 }
 

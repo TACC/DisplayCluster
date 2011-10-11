@@ -16,5 +16,6 @@ extern Configuration * g_configuration;
 extern boost::shared_ptr<DisplayGroup> g_displayGroup;
 extern MainWindow * g_mainWindow;
 extern PixelStreamSourceListener * g_pixelStreamSourceListener;
+extern long g_frameCount;
 
 #endif

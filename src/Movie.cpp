@@ -136,16 +136,6 @@ void Movie::render(float tX, float tY, float tW, float tH)
         return;
     }
 
-    // skip a frame if the Content rectangle is not visible in the window; otherwise decode normally
-    if(GLWindow::isRectangleVisible(0.,0.,1.,1.) == true)
-    {
-        nextFrame(false);
-    }
-    else
-    {
-        nextFrame(true);
-    }
-
     // draw the texture
     glPushAttrib(GL_ENABLE_BIT | GL_TEXTURE_BIT);
 

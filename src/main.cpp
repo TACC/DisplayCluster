@@ -16,6 +16,7 @@ Configuration * g_configuration = NULL;
 boost::shared_ptr<DisplayGroup> g_displayGroup;
 MainWindow * g_mainWindow = NULL;
 PixelStreamSourceListener * g_pixelStreamSourceListener = NULL;
+long g_frameCount = 0;
 
 int main(int argc, char * argv[])
 {

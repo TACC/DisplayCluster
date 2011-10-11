@@ -15,7 +15,8 @@ class MainWindow : public QMainWindow {
 
         MainWindow();
 
-        boost::shared_ptr<GLWindow> getGLWindow();
+        boost::shared_ptr<GLWindow> getGLWindow(int index=0);
+        std::vector<boost::shared_ptr<GLWindow> > getGLWindows();
 
     public slots:
 
@@ -27,9 +28,15 @@ class MainWindow : public QMainWindow {
         void computeImagePyramid();
         void shareDesktopUpdate();
 
+        void updateGLWindows();
+
+    signals:
+
+        void updateGLWindowsFinished();
+
     private:
 
-        boost::shared_ptr<GLWindow> glWindow_;
+        std::vector<boost::shared_ptr<GLWindow> > glWindows_;
 
         // widget listing contents in the left dock
         QListWidget * contentsListWidget_;

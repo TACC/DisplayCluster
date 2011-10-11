@@ -48,6 +48,8 @@ class DisplayGroup : public QObject, public boost::enable_shared_from_this<Displ
         void sendPixelStreams();
         void sendQuit();
 
+        void advanceContents();
+
     private:
         friend class boost::serialization::access;
 

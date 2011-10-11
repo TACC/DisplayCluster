@@ -43,33 +43,45 @@ Configuration::Configuration(const char * filename)
 
     put_flog(LOG_INFO, "dimensions: numTilesWidth = %i, numTilesHeight = %i, screenWidth = %i, screenHeight = %i, mullionWidth = %i, mullionHeight = %i", numTilesWidth_, numTilesHeight_, screenWidth_, screenHeight_, mullionWidth_, mullionHeight_);
 
-    // get tile dimension (if we're not rank 0)
+    // get tile parameters (if we're not rank 0)
     if(g_mpiRank > 0)
     {
-        int tileIndex = g_mpiRank;
+        int processIndex = g_mpiRank;
 
-        sprintf(string, "string(//tile[%i]/screen/@x)", tileIndex);
+        // get number of tiles for my process
+        sprintf(string, "string(count(//process[%i]/screen))", processIndex);
         query_.setQuery(string);
         query_.evaluateTo(&qstring);
-        tileX_ = qstring.toInt();
+        myNumTiles_ = qstring.toInt();
 
-        sprintf(string, "string(//tile[%i]/screen/@y)", tileIndex);
-        query_.setQuery(string);
-        query_.evaluateTo(&qstring);
-        tileY_ = qstring.toInt();
+        put_flog(LOG_INFO, "rank %i: %i tiles", processIndex, myNumTiles_);
 
-        // local pixel offsets on display
-        sprintf(string, "string(//tile[%i]/screen/@i)", tileIndex);
-        query_.setQuery(string);
-        query_.evaluateTo(&qstring);
-        tileI_ = qstring.toInt();
+        // populate parameters for each tile
+        for(int i=1; i<=myNumTiles_; i++)
+        {
+            sprintf(string, "string(//process[%i]/screen[%i]/@x)", processIndex, i);
+            query_.setQuery(string);
+            query_.evaluateTo(&qstring);
+            tileX_.push_back(qstring.toInt());
 
-        sprintf(string, "string(//tile[%i]/screen/@j)", tileIndex);
-        query_.setQuery(string);
-        query_.evaluateTo(&qstring);
-        tileJ_ = qstring.toInt();
+            sprintf(string, "string(//process[%i]/screen[%i]/@y)", processIndex, i);
+            query_.setQuery(string);
+            query_.evaluateTo(&qstring);
+            tileY_.push_back(qstring.toInt());
 
-        put_flog(LOG_INFO, "tile parameters: tileX = %i, tileY = %i, tileI = %i, tileJ = %i", tileX_, tileY_, tileI_, tileJ_);
+            // local pixel offsets on display
+            sprintf(string, "string(//process[%i]/screen[%i]/@i)", processIndex, i);
+            query_.setQuery(string);
+            query_.evaluateTo(&qstring);
+            tileI_.push_back(qstring.toInt());
+
+            sprintf(string, "string(//process[%i]/screen[%i]/@j)", processIndex, i);
+            query_.setQuery(string);
+            query_.evaluateTo(&qstring);
+            tileJ_.push_back(qstring.toInt());
+
+            put_flog(LOG_INFO, "tile parameters: tileX = %i, tileY = %i, tileI = %i, tileJ = %i", tileX_.back(), tileY_.back(), tileI_.back(), tileJ_.back());
+        }
     }
 }
 
@@ -103,22 +115,27 @@ int Configuration::getMullionHeight()
     return mullionHeight_;
 }
 
-int Configuration::getTileX()
+int Configuration::getMyNumTiles()
 {
-    return tileX_;
+    return myNumTiles_;
 }
 
-int Configuration::getTileY()
+int Configuration::getTileX(int i)
 {
-    return tileY_;
+    return tileX_[i];
 }
 
-int Configuration::getTileI()
+int Configuration::getTileY(int i)
 {
-    return tileI_;
+    return tileY_[i];
 }
 
-int Configuration::getTileJ()
+int Configuration::getTileI(int i)
 {
-    return tileJ_;
+    return tileI_[i];
+}
+
+int Configuration::getTileJ(int i)
+{
+    return tileJ_[i];
 }

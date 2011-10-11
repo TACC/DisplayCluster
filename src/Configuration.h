@@ -17,10 +17,11 @@ class Configuration {
         int getMullionWidth();
         int getMullionHeight();
 
-        int getTileX();
-        int getTileY();
-        int getTileI();
-        int getTileJ();
+        int getMyNumTiles();
+        int getTileX(int i);
+        int getTileY(int i);
+        int getTileI(int i);
+        int getTileJ(int i);
 
     private:
 
@@ -33,10 +34,11 @@ class Configuration {
         int mullionWidth_;
         int mullionHeight_;
 
-        int tileX_;
-        int tileY_;
-        int tileI_;
-        int tileJ_;
+        int myNumTiles_;
+        std::vector<int> tileX_;
+        std::vector<int> tileY_;
+        std::vector<int> tileI_;
+        std::vector<int> tileJ_;
 };
 
 #endif

@@ -259,6 +259,14 @@ void DisplayGroup::sendQuit()
     }
 }
 
+void DisplayGroup::advanceContents()
+{
+    for(unsigned int i=0; i<contents_.size(); i++)
+    {
+        contents_[i]->advance();
+    }
+}
+
 void DisplayGroup::receiveDisplayGroup(MessageHeader messageHeader)
 {
     // receive serialized data

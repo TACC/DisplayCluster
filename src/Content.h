@@ -36,7 +36,11 @@ class Content : public boost::enable_shared_from_this<Content> {
 
         void render();
 
-    private:
+        // virtual method for implementing actions on advancing to a new frame
+        // useful when a process has multiple GLWindows
+        virtual void advance() { }
+
+    protected:
         friend class boost::serialization::access;
 
         template<class Archive>

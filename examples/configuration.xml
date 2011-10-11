@@ -1,16 +1,12 @@
 <configuration>
     <dimensions numTilesWidth="2" numTilesHeight="2" screenWidth="400" screenHeight="400" mullionWidth="50" mullionHeight="50"/>
 
-    <tile>
+    <process>
         <screen x="0" y="0" i="0" j="0"/>
-    </tile>
-    <tile>
         <screen x="400" y="0" i="1" j="0"/>
-    </tile>
-    <tile>
+    </process>
+    <process>
         <screen x="0" y="400" i="0" j="1"/>
-    </tile>
-    <tile>
         <screen x="400" y="400" i="1" j="1"/>
-    </tile>
+    </process>
 </configuration>

@@ -13,7 +13,8 @@ class GLWindow : public QGLWidget
 
     public:
 
-        GLWindow();
+        GLWindow(int tileIndex);
+        GLWindow(int tileIndex, QRect windowRect, QGLWidget * shareWidget = 0);
         ~GLWindow();
 
         Factory<Texture> & getTextureFactory();
@@ -26,10 +27,21 @@ class GLWindow : public QGLWidget
         void resizeGL(int width, int height);
         void setView(int width, int height);
 
+        bool isScreenRectangleVisible(double x, double y, double w, double h);
+
         static bool isRectangleVisible(double x, double y, double w, double h);
         static void drawRectangle(double x, double y, double w, double h);
 
     private:
+
+        int tileIndex_;
+
+        bool viewInitialized_;
+
+        double left_;
+        double right_;
+        double bottom_;
+        double top_;
 
         Factory<Texture> textureFactory_;
         Factory<DynamicTexture> dynamicTextureFactory_;

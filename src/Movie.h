@@ -30,10 +30,9 @@ class Movie {
         ~Movie();
 
         void render(float tX, float tY, float tW, float tH);
+        void nextFrame(bool skip);
 
     private:
-
-        void nextFrame(bool skip);
 
         // true if all the movie initializations were successful
         bool initialized_;
