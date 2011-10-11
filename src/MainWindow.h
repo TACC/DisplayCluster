@@ -21,6 +21,7 @@ class MainWindow : public QMainWindow {
     public slots:
 
         void openContent();
+        void openContentsDirectory();
         void refreshContentsList();
         void saveContents();
         void loadContents();

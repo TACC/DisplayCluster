@@ -1,8 +1,5 @@
 #include "MainWindow.h"
 #include "main.h"
-#include "TextureContent.h"
-#include "DynamicTextureContent.h"
-#include "MovieContent.h"
 #include "PixelStreamContent.h"
 #include "PixelStreamSource.h"
 #include "log.h"
@@ -33,6 +30,11 @@ MainWindow::MainWindow()
         openContentAction->setStatusTip("Open content");
         connect(openContentAction, SIGNAL(triggered()), this, SLOT(openContent()));
 
+        // open contents directory action
+        QAction * openContentsDirectoryAction = new QAction("Open Contents Directory", this);
+        openContentsDirectoryAction->setStatusTip("Open contents directory");
+        connect(openContentsDirectoryAction, SIGNAL(triggered()), this, SLOT(openContentsDirectory()));
+
         // save contents action
         QAction * saveContentsAction = new QAction("Save State", this);
         saveContentsAction->setStatusTip("Save state");
@@ -62,6 +64,7 @@ MainWindow::MainWindow()
 
         // add actions to menus
         fileMenu->addAction(openContentAction);
+        fileMenu->addAction(openContentsDirectoryAction);
         fileMenu->addAction(saveContentsAction);
         fileMenu->addAction(loadContentsAction);
         fileMenu->addAction(shareDesktopAction);
@@ -70,6 +73,7 @@ MainWindow::MainWindow()
 
         // add actions to toolbar
         toolbar->addAction(openContentAction);
+        toolbar->addAction(openContentsDirectoryAction);
         toolbar->addAction(saveContentsAction);
         toolbar->addAction(loadContentsAction);
         toolbar->addAction(shareDesktopAction);
@@ -159,43 +163,10 @@ void MainWindow::openContent()
 
     if(!filename.isEmpty())
     {
-        // see if this is an image
-        QImageReader imageReader(filename);
+        boost::shared_ptr<Content> c = Content::getContent(filename.toStdString());
 
-        if(imageReader.canRead() == true)
+        if(c != NULL)
         {
-            // get its size
-            QSize size = imageReader.size();
-
-            // small images will use Texture; larger images will use DynamicTexture
-            boost::shared_ptr<Content> c;
-
-            if(size.width() <= 4096 && size.height() <= 4096)
-            {
-                boost::shared_ptr<Content> temp(new TextureContent(filename.toStdString()));
-                c = temp;
-            }
-            else
-            {
-                boost::shared_ptr<Content> temp(new DynamicTextureContent(filename.toStdString()));
-                c = temp;
-            }
-
-            g_displayGroup->addContent(c);
-        }
-        // see if this is a movie
-        // todo: need a better way to determine file type
-        else if(filename.endsWith(".mov") || filename.endsWith(".avi") || filename.endsWith(".mp4") || filename.endsWith(".mkv"))
-        {
-            boost::shared_ptr<Content> c(new MovieContent(filename.toStdString()));
-
-            g_displayGroup->addContent(c);
-        }
-        // see if this is an image pyramid
-        else if(filename.endsWith(".pyr"))
-        {
-            boost::shared_ptr<Content> c(new DynamicTextureContent(filename.toStdString()));
-
             g_displayGroup->addContent(c);
         }
         else
@@ -203,6 +174,51 @@ void MainWindow::openContent()
             QMessageBox messageBox;
             messageBox.setText("Unsupported file format.");
             messageBox.exec();
+        }
+    }
+}
+
+void MainWindow::openContentsDirectory()
+{
+    QString directoryName = QFileDialog::getExistingDirectory(this);
+
+    int gridX = QInputDialog::getInt(this, "Grid X dimension", "Grid X dimension");
+    int gridY = QInputDialog::getInt(this, "Grid Y dimension", "Grid Y dimension");
+    float w = 1./(float)gridX;
+    float h = 1./(float)gridY;
+
+    if(!directoryName.isEmpty())
+    {
+        QDir directory(directoryName);
+        directory.setFilter(QDir::Files);
+
+        QFileInfoList list = directory.entryInfoList();
+
+        int contentIndex = 0;
+
+        for(int i=0; i<list.size() && contentIndex < gridX*gridY; i++)
+        {
+            QFileInfo fileInfo = list.at(i);
+
+            boost::shared_ptr<Content> c = Content::getContent(fileInfo.absoluteFilePath().toStdString());
+
+            if(c != NULL)
+            {
+                g_displayGroup->addContent(c);
+
+                int x = contentIndex % gridX;
+                int y = contentIndex / gridX;
+
+                c->setCoordinates(x*w, y*h, w, h);
+
+                contentIndex++;
+
+                put_flog(LOG_DEBUG, "added file %s", fileInfo.absoluteFilePath().toStdString().c_str());
+            }
+            else
+            {
+                put_flog(LOG_DEBUG, "ignoring unsupported file %s", fileInfo.absoluteFilePath().toStdString().c_str());
+            }
         }
     }
 }

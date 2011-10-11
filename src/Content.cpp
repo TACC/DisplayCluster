@@ -1,6 +1,9 @@
 #include "Content.h"
 #include "ContentGraphicsItem.h"
 #include "main.h"
+#include "TextureContent.h"
+#include "DynamicTextureContent.h"
+#include "MovieContent.h"
 
 Content::Content(std::string uri)
 {
@@ -127,4 +130,50 @@ void Content::render()
     GLWindow::drawRectangle(x_-border,y_-border,w_+2.*border,h_+2.*border);
 
     glPopAttrib();
+}
+
+boost::shared_ptr<Content> Content::getContent(std::string uri)
+{
+    // see if this is an image
+    QImageReader imageReader(uri.c_str());
+
+    if(imageReader.canRead() == true)
+    {
+        // get its size
+        QSize size = imageReader.size();
+
+        // small images will use Texture; larger images will use DynamicTexture
+        boost::shared_ptr<Content> c;
+
+        if(size.width() <= 4096 && size.height() <= 4096)
+        {
+            boost::shared_ptr<Content> temp(new TextureContent(uri));
+            c = temp;
+        }
+        else
+        {
+            boost::shared_ptr<Content> temp(new DynamicTextureContent(uri));
+            c = temp;
+        }
+
+        return c;
+    }
+    // see if this is a movie
+    // todo: need a better way to determine file type
+    else if(QString::fromStdString(uri).endsWith(".mov") || QString::fromStdString(uri).endsWith(".avi") || QString::fromStdString(uri).endsWith(".mp4") || QString::fromStdString(uri).endsWith(".mkv"))
+    {
+        boost::shared_ptr<Content> c(new MovieContent(uri));
+
+        return c;
+    }
+    // see if this is an image pyramid
+    else if(QString::fromStdString(uri).endsWith(".pyr"))
+    {
+        boost::shared_ptr<Content> c(new DynamicTextureContent(uri));
+
+        return c;
+    }
+
+    // otherwise, return NULL
+    return boost::shared_ptr<Content>();
 }

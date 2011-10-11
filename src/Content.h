@@ -40,6 +40,9 @@ class Content : public boost::enable_shared_from_this<Content> {
         // useful when a process has multiple GLWindows
         virtual void advance() { }
 
+        // get a Content object of the appropriate derived type based on the URI given
+        static boost::shared_ptr<Content> getContent(std::string uri);
+
     protected:
         friend class boost::serialization::access;
 
