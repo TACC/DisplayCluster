@@ -80,6 +80,28 @@ void ContentGraphicsItem::paint(QPainter * painter, const QStyleOptionGraphicsIt
     painter->setPen(pen);
     painter->drawRect(resizeRect);
     painter->drawLine(QPointF(rect().x() + rect().width(), rect().y() + rect().height() - buttonHeight), QPointF(rect().x() + rect().width() - buttonWidth, rect().y() + rect().height()));
+
+    // text label
+
+    // set the font. note the minimum size is 1, which corresponds to the entire height of our scaled graphics scene
+    QFont font;
+    font.setPixelSize(1.);
+    painter->setFont(font);
+
+    // color the text black
+    pen.setColor(QColor(0,0,0));
+    painter->setPen(pen);
+
+    // scale the text size down from the entire height of the scene to something reasonable
+    // and, calculate the bounding rectangle for the text based on this scale
+    float textScale = 0.04;
+    painter->scale(textScale, textScale);
+    QRectF textBoundingRect = QRectF(rect().x() / textScale, rect().y() / textScale, rect().width() / textScale, rect().height() / textScale);
+
+    // get the label and render it
+    QString label(parent_.lock()->getURI().c_str());
+    QString labelSection = label.section("/", -1, -1);
+    painter->drawText(textBoundingRect, Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap, labelSection);
 }
 
 void ContentGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
