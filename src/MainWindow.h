@@ -23,6 +23,7 @@ class MainWindow : public QMainWindow {
         void openContent();
         void openContentsDirectory();
         void refreshContentsList();
+        void clearContents();
         void saveContents();
         void loadContents();
         void shareDesktop(bool set);

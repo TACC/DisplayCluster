@@ -96,6 +96,10 @@ void DisplayGroup::setContents(std::vector<boost::shared_ptr<Content> > contents
     {
         addContent(contents[i]);
     }
+
+    g_mainWindow->refreshContentsList();
+
+    sendDisplayGroup();
 }
 
 std::vector<boost::shared_ptr<Content> > DisplayGroup::getContents()

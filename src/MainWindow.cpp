@@ -35,6 +35,11 @@ MainWindow::MainWindow()
         openContentsDirectoryAction->setStatusTip("Open contents directory");
         connect(openContentsDirectoryAction, SIGNAL(triggered()), this, SLOT(openContentsDirectory()));
 
+        // clear contents action
+        QAction * clearContentsAction = new QAction("Clear", this);
+        clearContentsAction->setStatusTip("Clear");
+        connect(clearContentsAction, SIGNAL(triggered()), this, SLOT(clearContents()));
+
         // save contents action
         QAction * saveContentsAction = new QAction("Save State", this);
         saveContentsAction->setStatusTip("Save state");
@@ -65,6 +70,7 @@ MainWindow::MainWindow()
         // add actions to menus
         fileMenu->addAction(openContentAction);
         fileMenu->addAction(openContentsDirectoryAction);
+        fileMenu->addAction(clearContentsAction);
         fileMenu->addAction(saveContentsAction);
         fileMenu->addAction(loadContentsAction);
         fileMenu->addAction(shareDesktopAction);
@@ -74,6 +80,7 @@ MainWindow::MainWindow()
         // add actions to toolbar
         toolbar->addAction(openContentAction);
         toolbar->addAction(openContentsDirectoryAction);
+        toolbar->addAction(clearContentsAction);
         toolbar->addAction(saveContentsAction);
         toolbar->addAction(loadContentsAction);
         toolbar->addAction(shareDesktopAction);
@@ -236,6 +243,11 @@ void MainWindow::refreshContentsList()
         QListWidgetItem * newItem = new QListWidgetItem(contentsListWidget_);
         newItem->setText(contents[i]->getURI().c_str());
     }
+}
+
+void MainWindow::clearContents()
+{
+    g_displayGroup->setContents(std::vector<boost::shared_ptr<Content> >());
 }
 
 void MainWindow::saveContents()
