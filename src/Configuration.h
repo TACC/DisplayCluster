@@ -16,6 +16,7 @@ class Configuration {
         int getScreenHeight();
         int getMullionWidth();
         int getMullionHeight();
+        bool getFullscreen();
 
         int getMyNumTiles();
         int getTileX(int i);
@@ -33,6 +34,7 @@ class Configuration {
         int screenHeight_;
         int mullionWidth_;
         int mullionHeight_;
+        int fullscreen_;
 
         int myNumTiles_;
         std::vector<int> tileX_;

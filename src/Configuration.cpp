@@ -41,7 +41,20 @@ Configuration::Configuration(const char * filename)
     query_.evaluateTo(&qstring);
     mullionHeight_ = qstring.toInt();
 
-    put_flog(LOG_INFO, "dimensions: numTilesWidth = %i, numTilesHeight = %i, screenWidth = %i, screenHeight = %i, mullionWidth = %i, mullionHeight = %i", numTilesWidth_, numTilesHeight_, screenWidth_, screenHeight_, mullionWidth_, mullionHeight_);
+    // check for fullscreen mode flag
+    query_.setQuery("string(/configuration/dimensions/@fullscreen)");
+
+    if(query_.evaluateTo(&qstring) == true)
+    {
+        fullscreen_ = qstring.toInt();
+    }
+    else
+    {
+        // default to fullscreen disabled
+        fullscreen_ = 0;
+    }
+
+    put_flog(LOG_INFO, "dimensions: numTilesWidth = %i, numTilesHeight = %i, screenWidth = %i, screenHeight = %i, mullionWidth = %i, mullionHeight = %i. fullscreen = %i", numTilesWidth_, numTilesHeight_, screenWidth_, screenHeight_, mullionWidth_, mullionHeight_, fullscreen_);
 
     // get tile parameters (if we're not rank 0)
     if(g_mpiRank > 0)
@@ -113,6 +126,11 @@ int Configuration::getMullionWidth()
 int Configuration::getMullionHeight()
 {
     return mullionHeight_;
+}
+
+bool Configuration::getFullscreen()
+{
+    return (fullscreen_ != 0);
 }
 
 int Configuration::getMyNumTiles()

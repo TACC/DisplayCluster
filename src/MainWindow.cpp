@@ -122,7 +122,14 @@ MainWindow::MainWindow()
 
             setCentralWidget(glw.get());
 
-            showFullScreen();
+            if(g_configuration->getFullscreen() == true)
+            {
+                showFullScreen();
+            }
+            else
+            {
+                show();
+            }
         }
         else
         {
@@ -141,7 +148,14 @@ MainWindow::MainWindow()
                 boost::shared_ptr<GLWindow> glw(new GLWindow(i, windowRect, shareWidget));
                 glWindows_.push_back(glw);
 
-                glw->showFullScreen();
+                if(g_configuration->getFullscreen() == true)
+                {
+                    glw->showFullScreen();
+                }
+                else
+                {
+                    glw->show();
+                }
             }
         }
 
