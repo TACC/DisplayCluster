@@ -51,6 +51,14 @@ class Movie {
         AVFrame * avFrame_;
         AVFrame * avFrameRGB_;
         int videoStream_;
+
+        // used for seeking
+        int64_t start_time_;
+        int64_t duration_;
+        int64_t num_frames_;
+
+        int64_t frame_index_;
+        int64_t skipped_frames_;
 };
 
 #endif

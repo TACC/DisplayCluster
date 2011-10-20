@@ -16,6 +16,12 @@ Movie::Movie(std::string uri)
     avFrameRGB_ = NULL;
     videoStream_ = -1;
 
+    start_time_ = 0;
+    duration_ = 0;
+    num_frames_ = 0;
+    frame_index_ = 0;
+    skipped_frames_ = 0;
+
     // assign values
     uri_ = uri;
 
@@ -75,6 +81,13 @@ Movie::Movie(std::string uri)
         put_flog(LOG_ERROR, "could not open codec");
         return;
     }
+
+    // generate seeking parameters
+    start_time_ = avFormatContext_->streams[videoStream_]->start_time;
+    duration_ = avFormatContext_->streams[videoStream_]->duration;
+    num_frames_ = av_rescale(duration_, avFormatContext_->streams[videoStream_]->time_base.num * avFormatContext_->streams[videoStream_]->r_frame_rate.num, avFormatContext_->streams[videoStream_]->time_base.den * avFormatContext_->streams[videoStream_]->r_frame_rate.den);
+
+    put_flog(LOG_DEBUG, "seeking parameters: start_time = %i, duration_ = %i, num frames = %i", start_time_, duration_, num_frames_);
 
     // create texture for movie
     QImage image(avCodecContext_->width, avCodecContext_->height, QImage::Format_RGB32);
@@ -172,6 +185,46 @@ void Movie::nextFrame(bool skip)
         return;
     }
 
+    // seeking
+
+    // keep track of a desired timestamp if we seek in this frame
+    int64_t desiredTimestamp = 0;
+
+    // where we should be after we read a frame in this function
+    frame_index_++;
+
+    // if we're skipping this frame, increment the skipped frame counter and return
+    // otherwise, make sure we're in the correct position in the stream and decode
+    if(skip == true)
+    {
+        skipped_frames_++;
+        return;
+    }
+    else
+    {
+        if(skipped_frames_ > 0)
+        {
+            // need to seek
+
+            // frame number we want
+            int64_t index = (frame_index_) % (num_frames_ + 1);
+
+            // timestamp we want
+            desiredTimestamp = start_time_ + av_rescale(index, avFormatContext_->streams[videoStream_]->time_base.den * avFormatContext_->streams[videoStream_]->r_frame_rate.den, avFormatContext_->streams[videoStream_]->time_base.num * avFormatContext_->streams[videoStream_]->r_frame_rate.num);
+
+            // seek to the nearest keyframe before desiredTimestamp and flush buffers
+            if(avformat_seek_file(avFormatContext_, videoStream_, 0, desiredTimestamp, desiredTimestamp, 0) != 0)
+            {
+                put_flog(LOG_ERROR, "seeking error");
+                return;
+            }
+
+            avcodec_flush_buffers(avCodecContext_);
+
+            skipped_frames_ = 0;
+        }
+    }
+
     int avReadStatus = 0;
 
     AVPacket packet;
@@ -182,31 +235,30 @@ void Movie::nextFrame(bool skip)
         // make sure packet is from video stream
         if(packet.stream_index == videoStream_)
         {
-            if(skip == true)
-            {
-                // free the packet that was allocated by av_read_frame
-                av_free_packet(&packet);
-                break;
-            }
-
             // decode video frame
             avcodec_decode_video2(avCodecContext_, avFrame_, &frameFinished, &packet);
                                      
             // make sure we got a full video frame
             if(frameFinished)
             {
-                // convert the frame from its native format to RGB
-                sws_scale(swsContext_, avFrame_->data, avFrame_->linesize, 0, avCodecContext_->height, avFrameRGB_->data, avFrameRGB_->linesize);
+                // note that the last packet decoded will have a DTS corresponding to this frame's PTS
+                // hence the use of avFrame_->pkt_dts as the timestamp. also, we'll keep reading frames
+                // until we get to the desired timestamp (in the case that we seeked)
+                if(desiredTimestamp == 0 || (avFrame_->pkt_dts >= desiredTimestamp))
+                {
+                    // convert the frame from its native format to RGB
+                    sws_scale(swsContext_, avFrame_->data, avFrame_->linesize, 0, avCodecContext_->height, avFrameRGB_->data, avFrameRGB_->linesize);
 
-                // put the RGB image to the already-created texture
-                // glTexSubImage2D uses the existing texture and is more efficient than other means
-                glBindTexture(GL_TEXTURE_2D, textureId_);            
-                glTexSubImage2D(GL_TEXTURE_2D, 0, 0,0, avCodecContext_->width, avCodecContext_->height, GL_RGBA, GL_UNSIGNED_BYTE, avFrameRGB_->data[0]);
+                    // put the RGB image to the already-created texture
+                    // glTexSubImage2D uses the existing texture and is more efficient than other means
+                    glBindTexture(GL_TEXTURE_2D, textureId_);
+                    glTexSubImage2D(GL_TEXTURE_2D, 0, 0,0, avCodecContext_->width, avCodecContext_->height, GL_RGBA, GL_UNSIGNED_BYTE, avFrameRGB_->data[0]);
 
-                // free the packet that was allocated by av_read_frame
-                av_free_packet(&packet);
+                    // free the packet that was allocated by av_read_frame
+                    av_free_packet(&packet);
 
-                break;
+                    break;
+                }
             }
         }
 
