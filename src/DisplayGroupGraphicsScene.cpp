@@ -6,7 +6,7 @@ DisplayGroupGraphicsScene::DisplayGroupGraphicsScene()
 {
     setSceneRect(0., 0., 1., 1.);
 
-    // add rectangles for each monitor
+    // add rectangles for tiled display and each monitor
 
     // tiled display parameters
     int numTilesWidth = g_configuration->getNumTilesWidth();
@@ -28,6 +28,8 @@ DisplayGroupGraphicsScene::DisplayGroupGraphicsScene()
 
     // fill color / opacity
     QBrush brush = QBrush(QColor(0, 0, 0, 32));
+
+    addRect(0., 0., 1., 1., pen);
 
     for(int i=0; i<numTilesWidth; i++)
     {
