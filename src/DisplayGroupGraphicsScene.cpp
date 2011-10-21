@@ -17,8 +17,8 @@ DisplayGroupGraphicsScene::DisplayGroupGraphicsScene()
     int screenHeight = g_configuration->getScreenHeight();
     int mullionHeight = g_configuration->getMullionHeight();
 
-    int totalWidth = numTilesWidth * screenWidth + (numTilesWidth - 1) * mullionWidth;
-    int totalHeight = numTilesHeight * screenHeight + (numTilesHeight - 1) * mullionHeight;
+    int totalWidth = g_configuration->getTotalWidth();
+    int totalHeight = g_configuration->getTotalHeight();
 
     // rendering parameters
 

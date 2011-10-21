@@ -17,6 +17,8 @@ class Configuration {
         int getMullionWidth();
         int getMullionHeight();
         bool getFullscreen();
+        int getTotalWidth();
+        int getTotalHeight();
 
         int getMyNumTiles();
         int getTileX(int i);

@@ -133,6 +133,16 @@ bool Configuration::getFullscreen()
     return (fullscreen_ != 0);
 }
 
+int Configuration::getTotalWidth()
+{
+    return numTilesWidth_ * screenWidth_ + (numTilesWidth_ - 1) * mullionWidth_;
+}
+
+int Configuration::getTotalHeight()
+{
+    return numTilesHeight_ * screenHeight_ + (numTilesHeight_ - 1) * mullionHeight_;
+}
+
 int Configuration::getMyNumTiles()
 {
     return myNumTiles_;

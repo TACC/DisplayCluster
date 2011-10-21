@@ -132,8 +132,8 @@ void GLWindow::setView(int width, int height)
             top_ = bottom_ + screenHeight;
 
             // normalize to 0->1
-            double totalWidth = numTilesWidth * screenWidth + (numTilesWidth - 1.) * mullionWidth;
-            double totalHeight = numTilesHeight * screenHeight + (numTilesHeight - 1.) * mullionHeight;
+            double totalWidth = (double)g_configuration->getTotalWidth();
+            double totalHeight = (double)g_configuration->getTotalHeight();
 
             left_ /= totalWidth;
             right_ /= totalWidth;
