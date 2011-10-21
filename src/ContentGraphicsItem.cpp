@@ -22,7 +22,6 @@ ContentGraphicsItem::ContentGraphicsItem(boost::shared_ptr<Content> parent)
     // default border
     QPen pen;
     pen.setColor(QColor(0,0,0));
-    pen.setWidthF(0.0025);
 
     setPen(pen);
 
@@ -60,7 +59,6 @@ void ContentGraphicsItem::paint(QPainter * painter, const QStyleOptionGraphicsIt
 
     // default pen
     QPen pen;
-    pen.setWidthF(0.0025);
 
     // button dimensions
     float buttonWidth, buttonHeight;
