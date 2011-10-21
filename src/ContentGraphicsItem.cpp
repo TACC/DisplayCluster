@@ -83,24 +83,29 @@ void ContentGraphicsItem::paint(QPainter * painter, const QStyleOptionGraphicsIt
 
     // text label
 
-    // set the font. note the minimum size is 1, which corresponds to the entire height of our scaled graphics scene
+    // set the font
+    float fontSize = 24.;
+
     QFont font;
-    font.setPixelSize(1.);
+    font.setPixelSize(fontSize);
     painter->setFont(font);
 
     // color the text black
     pen.setColor(QColor(0,0,0));
     painter->setPen(pen);
 
-    // scale the text size down from the entire height of the scene to something reasonable
+    // scale the text size down to the height of the graphics view
     // and, calculate the bounding rectangle for the text based on this scale
-    float textScale = 0.04;
-    painter->scale(textScale, textScale);
-    QRectF textBoundingRect = QRectF(rect().x() / textScale, rect().y() / textScale, rect().width() / textScale, rect().height() / textScale);
+    float verticalTextScale = 1. / (float)scene()->views()[0]->height();
+    float horizontalTextScale = (float)scene()->views()[0]->height() / (float)scene()->views()[0]->width() * verticalTextScale;
+
+    painter->scale(horizontalTextScale, verticalTextScale);
+
+    QRectF textBoundingRect = QRectF(rect().x() / horizontalTextScale, rect().y() / verticalTextScale, rect().width() / horizontalTextScale, rect().height() / verticalTextScale);
 
     // get the label and render it
     QString label(parent_.lock()->getURI().c_str());
-    QString labelSection = label.section("/", -1, -1);
+    QString labelSection = label.section("/", -1, -1).prepend(" ");
     painter->drawText(textBoundingRect, Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap, labelSection);
 }
 
