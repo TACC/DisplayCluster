@@ -122,12 +122,13 @@ void Content::render()
     glPopMatrix();
 
     // render the border
-    double border = 0.0025;
+    double horizontalBorder = 20. / (double)g_configuration->getTotalHeight(); // 20 pixels
+    double verticalBorder = (double)g_configuration->getTotalHeight() / (double)g_configuration->getTotalWidth() * horizontalBorder;
 
     glPushAttrib(GL_CURRENT_BIT);
 
     glColor4f(1,1,1,1);
-    GLWindow::drawRectangle(x_-border,y_-border,w_+2.*border,h_+2.*border);
+    GLWindow::drawRectangle(x_-verticalBorder,y_-horizontalBorder,w_+2.*verticalBorder,h_+2.*horizontalBorder);
 
     glPopAttrib();
 }
