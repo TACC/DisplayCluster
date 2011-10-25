@@ -10,6 +10,7 @@ DynamicTexture::DynamicTexture(std::string uri, boost::shared_ptr<DynamicTexture
     // defaults
     depth_ = 0;
     useImagePyramid_ = false;
+    threadCount_ = 0;
     loadImageThreadStarted_ = false;
     textureBound_ = false;
 
@@ -49,6 +50,7 @@ DynamicTexture::DynamicTexture(std::string uri, boost::shared_ptr<DynamicTexture
         }
 
         // always load image for top-level object
+        incrementThreadCount();
         loadImageThread_ = QtConcurrent::run(loadImageThread, this);
         loadImageThreadStarted_ = true;
     }
@@ -225,8 +227,17 @@ void DynamicTexture::render(float tX, float tY, float tW, float tH, bool compute
         // see if we need to start loading the image
         if(computeOnDemand == true && loadImageThreadStarted_ == false)
         {
-            loadImageThread_ = QtConcurrent::run(loadImageThread, this);
-            loadImageThreadStarted_ = true;
+            // only start the thread if this DynamicTexture tree has one available
+            // each DynamicTexture tree is limited to (maxThreads - 2) threads, where the max is determined by the global QThreadPool instance
+            // we increase responsiveness / interactivity by not queuing up image loading
+            int maxThreads = std::max(QThreadPool::globalInstance()->maxThreadCount() - 2, 1);
+
+            if(getThreadCount() < maxThreads)
+            {
+                incrementThreadCount();
+                loadImageThread_ = QtConcurrent::run(loadImageThread, this);
+                loadImageThreadStarted_ = true;
+            }
         }
 
         // see if we need to load the texture
@@ -393,6 +404,19 @@ void DynamicTexture::computeImagePyramid(std::string imagePyramidPath)
 
             c->computeImagePyramid(imagePyramidPath);
         }
+    }
+}
+
+void DynamicTexture::decrementThreadCount()
+{
+    if(depth_ == 0)
+    {
+        QMutexLocker locker(&threadCountMutex_);
+        threadCount_ = threadCount_ - 1;
+    }
+    else
+    {
+        return getRoot()->decrementThreadCount();
     }
 }
 
@@ -662,8 +686,35 @@ bool DynamicTexture::getThreadsDoneDescending()
     return true;
 }
 
+int DynamicTexture::getThreadCount()
+{
+    if(depth_ == 0)
+    {
+        QMutexLocker locker(&threadCountMutex_);
+        return threadCount_;
+    }
+    else
+    {
+        return getRoot()->getThreadCount();
+    }
+}
+
+void DynamicTexture::incrementThreadCount()
+{
+    if(depth_ == 0)
+    {
+        QMutexLocker locker(&threadCountMutex_);
+        threadCount_ = threadCount_ + 1;
+    }
+    else
+    {
+        return getRoot()->incrementThreadCount();
+    }
+}
+
 void loadImageThread(DynamicTexture * dynamicTexture)
 {
     dynamicTexture->loadImage();
+    dynamicTexture->decrementThreadCount();
     return;
 }

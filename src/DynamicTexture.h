@@ -21,6 +21,7 @@ class DynamicTexture : public boost::enable_shared_from_this<DynamicTexture> {
         void render(float tX, float tY, float tW, float tH, bool computeOnDemand=true, bool considerChildren=true);
         void clearOldChildren(long minFrameCount); // clear children of nodes with renderChildrenFrameCount_ < minFrameCount
         void computeImagePyramid(std::string imagePyramidPath);
+        void decrementThreadCount(); // thread needs access to this method
 
     private:
 
@@ -32,6 +33,10 @@ class DynamicTexture : public boost::enable_shared_from_this<DynamicTexture> {
         // image pyramid parameters
         std::string imagePyramidPath_;
         bool useImagePyramid_;
+
+        // thread count
+        int threadCount_;
+        QMutex threadCountMutex_;
 
         // for children:
 
@@ -75,6 +80,8 @@ class DynamicTexture : public boost::enable_shared_from_this<DynamicTexture> {
         void renderChildren(float tX, float tY, float tW, float tH);
         double getProjectedPixelArea();
         bool getThreadsDoneDescending();
+        int getThreadCount();
+        void incrementThreadCount();
 };
 
 extern void loadImageThread(DynamicTexture * dynamicTexture);
