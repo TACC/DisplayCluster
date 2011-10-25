@@ -122,7 +122,7 @@ void Content::render()
     glPopMatrix();
 
     // render the border
-    double horizontalBorder = 20. / (double)g_configuration->getTotalHeight(); // 20 pixels
+    double horizontalBorder = 5. / (double)g_configuration->getTotalHeight(); // 5 pixels
     double verticalBorder = (double)g_configuration->getTotalHeight() / (double)g_configuration->getTotalWidth() * horizontalBorder;
 
     glPushAttrib(GL_CURRENT_BIT);
