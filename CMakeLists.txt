@@ -7,8 +7,8 @@ if(COMMAND cmake_policy)
     cmake_policy(SET CMP0003 NEW)
 endif(COMMAND cmake_policy)
 
-# enable debugging, and show all warnings
-set(CMAKE_CXX_FLAGS "-g -Wall")
+# show all warnings
+set(CMAKE_CXX_FLAGS "-Wall")
 
 # build options
 option(ENABLE_TUIO_TOUCH_LISTENER "Enable TUIO touch listener for multi-touch events" OFF)
