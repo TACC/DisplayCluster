@@ -59,13 +59,12 @@ DynamicTexture::~DynamicTexture()
     // delete bound texture
     if(textureBound_ == true)
     {
-        glDeleteTextures(1, &textureId_); // it appears deleteTexture() below is not actually deleting the texture from the GPU...
-        g_mainWindow->getGLWindow()->deleteTexture(textureId_);
+        glDeleteTextures(1, &textureId_);
         textureBound_ = false;
     }
 }
 
-void DynamicTexture::loadImage()
+void DynamicTexture::loadImage(bool convertToGLFormat)
 {
     // get the root node for later use
     // note that getRoot() is not safe to be called in the root object during construction, since it uses shared_from_this()
@@ -200,6 +199,14 @@ void DynamicTexture::loadImage()
             }
         }
     }
+
+    // optionally convert the image to OpenGL format
+    // note that the resulting image can only be used for width(), height(), and bits() calls for OpenGL
+    // save(), etc. won't work.
+    if(convertToGLFormat == true)
+    {
+        scaledImage_ = QGLWidget::convertToGLFormat(scaledImage_);
+    }
 }
 
 void DynamicTexture::render(float tX, float tY, float tW, float tH, bool computeOnDemand, bool considerChildren)
@@ -266,6 +273,10 @@ void DynamicTexture::render(float tX, float tY, float tW, float tH, bool compute
 
             glEnable(GL_TEXTURE_2D);
             glBindTexture(GL_TEXTURE_2D, textureId_);
+
+            // linear min / max filtering
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
             // on zoom-out, clamp to border (instead of showing the texture tiled / repeated)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
@@ -337,10 +348,11 @@ void DynamicTexture::computeImagePyramid(std::string imagePyramidPath)
     // generate this object's image and write to disk
 
     // this will give us scaledImage_
-    if(depth_ != 0)
-    {
-        loadImage();
-    }
+    // don't convert scaledImage_ to the GL format; we need to be able to save it
+    // note that for depth_ == 0 we already have scaledImage_, but it is in the OpenGL format
+    // so, we need to load it again in the non-OpenGL format so we're able to save it
+    // todo: in the future it might be nice not to require the re-loading of the image for depth_ == 0
+    loadImage(false);
 
     // form filename
     std::string filename = imagePyramidPath + '/';
@@ -483,7 +495,11 @@ void DynamicTexture::uploadTexture()
 {
     // generate new texture
     // no need to compute mipmaps
-    textureId_ = g_mainWindow->getGLWindow()->bindTexture(scaledImage_, GL_TEXTURE_2D, GL_RGBA, QGLContext::LinearFilteringBindOption | QGLContext::InvertedYBindOption);
+    // note that scaledImage_ is already in the GL format so we can use glTexImage2D directly
+    glGenTextures(1, &textureId_);
+    glBindTexture(GL_TEXTURE_2D, textureId_);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, scaledImage_.width(), scaledImage_.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, scaledImage_.bits());
+
     textureBound_ = true;
 
     // no longer need the scaled image
