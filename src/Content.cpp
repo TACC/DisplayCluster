@@ -161,7 +161,7 @@ boost::shared_ptr<Content> Content::getContent(std::string uri)
     }
     // see if this is a movie
     // todo: need a better way to determine file type
-    else if(QString::fromStdString(uri).endsWith(".mov") || QString::fromStdString(uri).endsWith(".avi") || QString::fromStdString(uri).endsWith(".mp4") || QString::fromStdString(uri).endsWith(".mkv"))
+    else if(QString::fromStdString(uri).endsWith(".mov") || QString::fromStdString(uri).endsWith(".avi") || QString::fromStdString(uri).endsWith(".mp4") || QString::fromStdString(uri).endsWith(".mkv") || QString::fromStdString(uri).endsWith(".mpg"))
     {
         boost::shared_ptr<Content> c(new MovieContent(uri));
 
