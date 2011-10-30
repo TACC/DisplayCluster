@@ -10,7 +10,7 @@
 #include <boost/serialization/assume_abstract.hpp>
 
 class DisplayGroup;
-class ContentGraphicsItem;
+class ContentWindow;
 
 class Content : public boost::enable_shared_from_this<Content> {
 
@@ -32,7 +32,7 @@ class Content : public boost::enable_shared_from_this<Content> {
         void setZoom(double zoom);
         double getZoom();
 
-        boost::shared_ptr<ContentGraphicsItem> getGraphicsItem();
+        boost::shared_ptr<ContentWindow> getGraphicsItem();
 
         void render();
 
@@ -78,7 +78,7 @@ class Content : public boost::enable_shared_from_this<Content> {
         double zoom_;
 
         // used for GUI display
-        boost::shared_ptr<ContentGraphicsItem> graphicsItem_;
+        boost::shared_ptr<ContentWindow> graphicsItem_;
 
         virtual void renderFactoryObject(float tX, float tY, float tW, float tH) = 0;
 };

@@ -1,10 +1,10 @@
-#include "ContentGraphicsItem.h"
+#include "ContentWindow.h"
 #include "Content.h"
 #include "DisplayGroup.h"
 
-qreal ContentGraphicsItem::zCounter_ = 0;
+qreal ContentWindow::zCounter_ = 0;
 
-ContentGraphicsItem::ContentGraphicsItem(boost::shared_ptr<Content> parent)
+ContentWindow::ContentWindow(boost::shared_ptr<Content> parent)
 {
     // defaults
     initialized_ = false;
@@ -32,7 +32,7 @@ ContentGraphicsItem::ContentGraphicsItem(boost::shared_ptr<Content> parent)
     setRect(x,y,w,h);
 }
 
-void ContentGraphicsItem::paint(QPainter * painter, const QStyleOptionGraphicsItem * option, QWidget * widget)
+void ContentWindow::paint(QPainter * painter, const QStyleOptionGraphicsItem * option, QWidget * widget)
 {
     if(initialized_ == false)
     {
@@ -107,7 +107,7 @@ void ContentGraphicsItem::paint(QPainter * painter, const QStyleOptionGraphicsIt
     painter->drawText(textBoundingRect, Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap, labelSection);
 }
 
-void ContentGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
+void ContentWindow::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
 {
     // handle mouse movements differently depending on selected mode of item
     if(selected_ == false)
@@ -183,7 +183,7 @@ void ContentGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
     }
 }
 
-void ContentGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent * event)
+void ContentWindow::mousePressEvent(QGraphicsSceneMouseEvent * event)
 {
     // button dimensions
     float buttonWidth, buttonHeight;
@@ -235,7 +235,7 @@ void ContentGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent * event)
     QGraphicsItem::mousePressEvent(event);
 }
 
-void ContentGraphicsItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent * event)
+void ContentWindow::mouseDoubleClickEvent(QGraphicsSceneMouseEvent * event)
 {
     selected_ = !selected_;
 
@@ -256,7 +256,7 @@ void ContentGraphicsItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent * event
     QGraphicsItem::mouseDoubleClickEvent(event);
 }
 
-void ContentGraphicsItem::mouseReleaseEvent(QGraphicsSceneMouseEvent * event)
+void ContentWindow::mouseReleaseEvent(QGraphicsSceneMouseEvent * event)
 {
     button_ = Qt::NoButton;
 
@@ -265,7 +265,7 @@ void ContentGraphicsItem::mouseReleaseEvent(QGraphicsSceneMouseEvent * event)
     QGraphicsItem::mouseReleaseEvent(event);
 }
 
-QVariant ContentGraphicsItem::itemChange(GraphicsItemChange change, const QVariant &value)
+QVariant ContentWindow::itemChange(GraphicsItemChange change, const QVariant &value)
 {
     if(change == ItemPositionChange)
     {
@@ -275,7 +275,7 @@ QVariant ContentGraphicsItem::itemChange(GraphicsItemChange change, const QVaria
     return QGraphicsItem::itemChange(change, value);
 }
 
-void ContentGraphicsItem::updateParent()
+void ContentWindow::updateParent()
 {
     QRectF r = mapRectToScene(rect());
 
@@ -285,7 +285,7 @@ void ContentGraphicsItem::updateParent()
     }
 }
 
-void ContentGraphicsItem::getButtonDimensions(float &width, float &height)
+void ContentWindow::getButtonDimensions(float &width, float &height)
 {
     float sceneFraction = 0.05;
 

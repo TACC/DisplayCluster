@@ -7,11 +7,11 @@
 
 class Content;
 
-class ContentGraphicsItem : public QGraphicsRectItem {
+class ContentWindow : public QGraphicsRectItem {
 
     public:
 
-        ContentGraphicsItem(boost::shared_ptr<Content> parent);
+        ContentWindow(boost::shared_ptr<Content> parent);
 
         void paint(QPainter * painter, const QStyleOptionGraphicsItem * option, QWidget * widget=0);
 

@@ -1,5 +1,5 @@
 #include "Content.h"
-#include "ContentGraphicsItem.h"
+#include "ContentWindow.h"
 #include "main.h"
 #include "TextureContent.h"
 #include "DynamicTextureContent.h"
@@ -91,11 +91,11 @@ double Content::getZoom()
     return zoom_;
 }
 
-boost::shared_ptr<ContentGraphicsItem> Content::getGraphicsItem()
+boost::shared_ptr<ContentWindow> Content::getGraphicsItem()
 {
     if(graphicsItem_ == NULL)
     {
-        boost::shared_ptr<ContentGraphicsItem> gi(new ContentGraphicsItem(shared_from_this()));
+        boost::shared_ptr<ContentWindow> gi(new ContentWindow(shared_from_this()));
         graphicsItem_ = gi;
     }
 

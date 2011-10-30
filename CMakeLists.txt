@@ -64,7 +64,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 set(SRCS ${SRCS}
     src/Configuration.cpp
     src/Content.cpp
-    src/ContentGraphicsItem.cpp
+    src/ContentWindow.cpp
     src/Marker.cpp
     src/DisplayGroup.cpp
     src/DisplayGroupGraphicsScene.cpp
