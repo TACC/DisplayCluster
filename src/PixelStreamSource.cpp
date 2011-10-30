@@ -33,8 +33,12 @@ void PixelStreamSource::setImageData(QByteArray imageData)
 {
     QMutexLocker locker(&imageDataMutex_);
 
-    imageData_ = imageData;
-    imageDataCount_++;
+    // only take the update if the image data has changed
+    if(imageData_ != imageData)
+    {
+        imageData_ = imageData;
+        imageDataCount_++;
+    }
 }
 
 Factory<PixelStreamSource> g_pixelStreamSourceFactory;
