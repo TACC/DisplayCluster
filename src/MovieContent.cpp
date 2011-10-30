@@ -1,17 +1,22 @@
 #include "MovieContent.h"
 #include "main.h"
 #include "Movie.h"
+#include "ContentWindow.h"
 
-void MovieContent::advance()
+void MovieContent::advance(boost::shared_ptr<ContentWindow> window)
 {
     // skip a frame if the Content rectangle is not visible in ANY windows; otherwise decode normally
     bool skip = true;
+
+    // Content window parameters
+    double x, y, w, h;
+    window->getCoordinates(x, y, w, h);
 
     std::vector<boost::shared_ptr<GLWindow> > glWindows = g_mainWindow->getGLWindows();
 
     for(unsigned int i=0; i<glWindows.size(); i++)
     {
-        if(glWindows[i]->isScreenRectangleVisible(x_, y_, w_, h_) == true)
+        if(glWindows[i]->isScreenRectangleVisible(x, y, w, h) == true)
         {
             skip = false;
             break;

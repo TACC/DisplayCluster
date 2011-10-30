@@ -9,7 +9,7 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 
-class Content;
+class ContentWindow;
 class DisplayGroupGraphicsView;
 
 enum MESSAGE_TYPE { MESSAGE_TYPE_CONTENTS, MESSAGE_TYPE_PIXELSTREAM, MESSAGE_TYPE_QUIT };
@@ -31,14 +31,13 @@ class DisplayGroup : public QObject, public boost::enable_shared_from_this<Displ
 
         Marker & getMarker();
 
-        void addContent(boost::shared_ptr<Content> content);
-        void removeContent(boost::shared_ptr<Content> content);
-        void removeContent(std::string uri);
+        void addContentWindow(boost::shared_ptr<ContentWindow> contentWindow);
+        void removeContentWindow(boost::shared_ptr<ContentWindow> contentWindow);
         bool hasContent(std::string uri);
-        void setContents(std::vector<boost::shared_ptr<Content> > contents);
-        std::vector<boost::shared_ptr<Content> > getContents();
+        void setContentWindows(std::vector<boost::shared_ptr<ContentWindow> > contentWindows);
+        std::vector<boost::shared_ptr<ContentWindow> > getContentWindows();
 
-        void moveContentToFront(boost::shared_ptr<Content> content);
+        void moveContentWindowToFront(boost::shared_ptr<ContentWindow> contentWindow);
 
     public slots:
 
@@ -57,14 +56,14 @@ class DisplayGroup : public QObject, public boost::enable_shared_from_this<Displ
         void serialize(Archive & ar, const unsigned int version)
         {
             ar & marker_;
-            ar & contents_;
+            ar & contentWindows_;
         }
 
         // marker
         Marker marker_;
 
-        // vector of all of its contents
-        std::vector<boost::shared_ptr<Content> > contents_;
+        // vector of all of its content windows
+        std::vector<boost::shared_ptr<ContentWindow> > contentWindows_;
 
         // used for GUI display
         boost::shared_ptr<DisplayGroupGraphicsView> graphicsView_;

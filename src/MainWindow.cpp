@@ -2,6 +2,7 @@
 #include "main.h"
 #include "PixelStreamContent.h"
 #include "PixelStreamSource.h"
+#include "ContentWindow.h"
 #include "log.h"
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
@@ -188,7 +189,9 @@ void MainWindow::openContent()
 
         if(c != NULL)
         {
-            g_displayGroup->addContent(c);
+            boost::shared_ptr<ContentWindow> cw(new ContentWindow(c));
+
+            g_displayGroup->addContentWindow(cw);
         }
         else
         {
@@ -225,12 +228,14 @@ void MainWindow::openContentsDirectory()
 
             if(c != NULL)
             {
-                g_displayGroup->addContent(c);
+                boost::shared_ptr<ContentWindow> cw(new ContentWindow(c));
+
+                g_displayGroup->addContentWindow(cw);
 
                 int x = contentIndex % gridX;
                 int y = contentIndex / gridX;
 
-                c->setCoordinates(x*w, y*h, w, h);
+                cw->setCoordinates(x*w, y*h, w, h);
 
                 contentIndex++;
 
@@ -249,19 +254,19 @@ void MainWindow::refreshContentsList()
     // clear contents list widget
     contentsListWidget_->clear();
 
-    std::vector<boost::shared_ptr<Content> > contents = g_displayGroup->getContents();
+    std::vector<boost::shared_ptr<ContentWindow> > contentWindows = g_displayGroup->getContentWindows();
 
-    for(unsigned int i=0; i<contents.size(); i++)
+    for(unsigned int i=0; i<contentWindows.size(); i++)
     {
         // add to list view
         QListWidgetItem * newItem = new QListWidgetItem(contentsListWidget_);
-        newItem->setText(contents[i]->getURI().c_str());
+        newItem->setText(contentWindows[i]->getContent()->getURI().c_str());
     }
 }
 
 void MainWindow::clearContents()
 {
-    g_displayGroup->setContents(std::vector<boost::shared_ptr<Content> >());
+    g_displayGroup->setContentWindows(std::vector<boost::shared_ptr<ContentWindow> >());
 }
 
 void MainWindow::saveContents()
@@ -271,7 +276,7 @@ void MainWindow::saveContents()
     if(!filename.isEmpty())
     {
         // get contents vector
-        std::vector<boost::shared_ptr<Content> > contents = g_displayGroup->getContents();
+        std::vector<boost::shared_ptr<ContentWindow> > contentWindows = g_displayGroup->getContentWindows();
 
         // serialize state
         std::ofstream ofs(filename.toStdString().c_str());
@@ -279,7 +284,7 @@ void MainWindow::saveContents()
         // brace this so destructor is called on archive before we use the stream
         {
             boost::archive::binary_oarchive oa(ofs);
-            oa << contents;
+            oa << contentWindows;
         }
     }
 }
@@ -291,7 +296,7 @@ void MainWindow::loadContents()
     if(!filename.isEmpty())
     {
         // new contents vector
-        std::vector<boost::shared_ptr<Content> > contents;
+        std::vector<boost::shared_ptr<ContentWindow> > contentWindows;
 
         // serialize state
         std::ifstream ifs(filename.toStdString().c_str());
@@ -299,11 +304,11 @@ void MainWindow::loadContents()
         // brace this so destructor is called on archive before we use the stream
         {
             boost::archive::binary_iarchive ia(ifs);
-            ia >> contents;
+            ia >> contentWindows;
         }
 
         // assign new contents vector to display group
-        g_displayGroup->setContents(contents);
+        g_displayGroup->setContentWindows(contentWindows);
     }
 }
 
@@ -315,9 +320,14 @@ void MainWindow::shareDesktop(bool set)
         shareDesktopWidth_ = QInputDialog::getInt(this, "Width", "Width");
         shareDesktopHeight_ = QInputDialog::getInt(this, "Height", "Height");
 
-        // add the content object
-        boost::shared_ptr<Content> c(new PixelStreamContent("desktop"));
-        g_displayGroup->addContent(c);
+        // add the content window if we don't already have one
+        if(g_displayGroup->hasContent("desktop") != true)
+        {
+            boost::shared_ptr<Content> c(new PixelStreamContent("desktop"));
+            boost::shared_ptr<ContentWindow> cw(new ContentWindow(c));
+
+            g_displayGroup->addContentWindow(cw);
+        }
 
         // setup timer to repeatedly update the shared desktop image
         connect(&shareDesktopUpdateTimer_, SIGNAL(timeout()), this, SLOT(shareDesktopUpdate()));
@@ -326,7 +336,6 @@ void MainWindow::shareDesktop(bool set)
     else
     {
         shareDesktopUpdateTimer_.stop();
-        g_displayGroup->removeContent("desktop");
     }
 
     g_displayGroup->sendDisplayGroup();
@@ -370,7 +379,7 @@ void MainWindow::shareDesktopUpdate()
 
 void MainWindow::updateGLWindows()
 {
-    // get updated contents
+    // get updated content windows
     g_displayGroup->synchronize();
 
     // render all GLWindows

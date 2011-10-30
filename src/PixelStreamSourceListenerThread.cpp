@@ -3,6 +3,7 @@
 #include "PixelStreamContent.h"
 #include "DisplayGroup.h" // for MessageHeader, etc.
 #include "main.h"
+#include "ContentWindow.h"
 #include "log.h"
 
 PixelStreamSourceListenerThread::PixelStreamSourceListenerThread(int socketDescriptor)
@@ -89,7 +90,9 @@ void PixelStreamSourceListenerThread::initialize()
         put_flog(LOG_DEBUG, "adding pixel stream: %s", uri_.c_str());
 
         boost::shared_ptr<Content> c(new PixelStreamContent(uri_));
-        g_displayGroup->addContent(c);
+        boost::shared_ptr<ContentWindow> cw(new ContentWindow(c));
+
+        g_displayGroup->addContentWindow(cw);
     }
 
     initialized_ = true;

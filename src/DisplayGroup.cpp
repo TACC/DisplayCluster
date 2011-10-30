@@ -1,5 +1,6 @@
 #include "DisplayGroup.h"
 #include "DisplayGroupGraphicsView.h"
+#include "ContentWindow.h"
 #include "Content.h"
 #include "main.h"
 #include "log.h"
@@ -26,58 +27,46 @@ Marker & DisplayGroup::getMarker()
     return marker_;
 }
 
-void DisplayGroup::addContent(boost::shared_ptr<Content> content)
+void DisplayGroup::addContentWindow(boost::shared_ptr<ContentWindow> contentWindow)
 {
-    contents_.push_back(content);
+    contentWindows_.push_back(contentWindow);
 
-    // set display group in content object
-    content->setDisplayGroup(shared_from_this());
+    // set display group in content window object
+    contentWindow->setDisplayGroup(shared_from_this());
 
-    getGraphicsView()->scene()->addItem((QGraphicsRectItem *)content->getGraphicsItem().get());
+    getGraphicsView()->scene()->addItem((QGraphicsRectItem *)contentWindow.get());
 
     g_mainWindow->refreshContentsList();
 }
 
-void DisplayGroup::removeContent(boost::shared_ptr<Content> content)
+void DisplayGroup::removeContentWindow(boost::shared_ptr<ContentWindow> contentWindow)
 {
-    // find vector entry for content
-    std::vector<boost::shared_ptr<Content> >::iterator it;
+    // find vector entry for content window
+    std::vector<boost::shared_ptr<ContentWindow> >::iterator it;
 
-    it = find(contents_.begin(), contents_.end(), content);
+    it = find(contentWindows_.begin(), contentWindows_.end(), contentWindow);
 
-    if(it != contents_.end())
+    if(it != contentWindows_.end())
     {
         // we found the entry
         // now, remove it
-        contents_.erase(it);
+        contentWindows_.erase(it);
     }
 
-    // set null display group in content object
-    content->setDisplayGroup(boost::shared_ptr<DisplayGroup>());
+    // set null display group in content window object
+    contentWindow->setDisplayGroup(boost::shared_ptr<DisplayGroup>());
 
     // remove from scene
-    getGraphicsView()->scene()->removeItem((QGraphicsRectItem *)content->getGraphicsItem().get());
+    getGraphicsView()->scene()->removeItem((QGraphicsRectItem *)contentWindow.get());
 
     g_mainWindow->refreshContentsList();
-}
-
-void DisplayGroup::removeContent(std::string uri)
-{
-    for(unsigned int i=0; i<contents_.size(); i++)
-    {
-        if(contents_[i]->getURI() == uri)
-        {
-            removeContent(contents_[i]);
-            return;
-        }
-    }
 }
 
 bool DisplayGroup::hasContent(std::string uri)
 {
-    for(unsigned int i=0; i<contents_.size(); i++)
+    for(unsigned int i=0; i<contentWindows_.size(); i++)
     {
-        if(contents_[i]->getURI() == uri)
+        if(contentWindows_[i]->getContent()->getURI() == uri)
         {
             return true;
         }
@@ -86,15 +75,15 @@ bool DisplayGroup::hasContent(std::string uri)
     return false;
 }
 
-void DisplayGroup::setContents(std::vector<boost::shared_ptr<Content> > contents)
+void DisplayGroup::setContentWindows(std::vector<boost::shared_ptr<ContentWindow> > contentWindows)
 {
-    // clear existing contents
-    contents_.clear();
+    // clear existing content windows
+    contentWindows_.clear();
 
-    // add new contents
-    for(unsigned int i=0; i<contents.size(); i++)
+    // add new content windows
+    for(unsigned int i=0; i<contentWindows.size(); i++)
     {
-        addContent(contents[i]);
+        addContentWindow(contentWindows[i]);
     }
 
     g_mainWindow->refreshContentsList();
@@ -102,24 +91,24 @@ void DisplayGroup::setContents(std::vector<boost::shared_ptr<Content> > contents
     sendDisplayGroup();
 }
 
-std::vector<boost::shared_ptr<Content> > DisplayGroup::getContents()
+std::vector<boost::shared_ptr<ContentWindow> > DisplayGroup::getContentWindows()
 {
-    return contents_;
+    return contentWindows_;
 }
 
-void DisplayGroup::moveContentToFront(boost::shared_ptr<Content> content)
+void DisplayGroup::moveContentWindowToFront(boost::shared_ptr<ContentWindow> contentWindow)
 {
-    // find vector entry for content
-    std::vector<boost::shared_ptr<Content> >::iterator it;
+    // find vector entry for content window
+    std::vector<boost::shared_ptr<ContentWindow> >::iterator it;
 
-    it = find(contents_.begin(), contents_.end(), content);
+    it = find(contentWindows_.begin(), contentWindows_.end(), contentWindow);
 
-    if(it != contents_.end())
+    if(it != contentWindows_.end())
     {
         // we found the entry
-        // now, move it to the front
-        contents_.erase(it);
-        contents_.insert(contents_.begin(), content);
+        // now, move it to end of the list (last item rendered is on top)
+        contentWindows_.erase(it);
+        contentWindows_.push_back(contentWindow);
     }
 
     g_mainWindow->refreshContentsList();
@@ -188,8 +177,10 @@ void DisplayGroup::sendDisplayGroup()
 
     // brace this so destructor is called on archive before we use the stream
     {
+        boost::shared_ptr<DisplayGroup> dg = shared_from_this();
+
         boost::archive::binary_oarchive oa(oss);
-        oa << g_displayGroup;
+        oa << dg;
     }
 
     // serialized data to string
@@ -265,9 +256,11 @@ void DisplayGroup::sendQuit()
 
 void DisplayGroup::advanceContents()
 {
-    for(unsigned int i=0; i<contents_.size(); i++)
+    // note that if we have multiple ContentWindows corresponding to a single Content object,
+    // we will call advance() multiple times per frame on that Content object...
+    for(unsigned int i=0; i<contentWindows_.size(); i++)
     {
-        contents_[i]->advance();
+        contentWindows_[i]->getContent()->advance(contentWindows_[i]);
     }
 }
 

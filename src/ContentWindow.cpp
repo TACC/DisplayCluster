@@ -1,56 +1,162 @@
 #include "ContentWindow.h"
 #include "Content.h"
 #include "DisplayGroup.h"
+#include "main.h"
 
 qreal ContentWindow::zCounter_ = 0;
 
-ContentWindow::ContentWindow(boost::shared_ptr<Content> parent)
+ContentWindow::ContentWindow()
+{
+    initialized_ = false;
+}
+
+ContentWindow::ContentWindow(boost::shared_ptr<Content> content)
 {
     // defaults
     initialized_ = false;
+
+    // default position / size
+    x_ = y_ = 0.;
+    w_ = h_ = 0.25;
+
+    // default to centered
+    centerX_ = 0.5;
+    centerY_ = 0.5;
+
+    // default to no zoom
+    zoom_ = 1.;
+
+    // default window state
     resizing_ = false;
     selected_ = false;
 
-    parent_ = parent;
+    // set content object
+    content_ = content;
+}
 
-    setFlag(QGraphicsItem::ItemIsMovable, true);
-    setFlag(QGraphicsItem::ItemSendsGeometryChanges, true);
+boost::shared_ptr<Content> ContentWindow::getContent()
+{
+    return content_;
+}
 
-    // default fill color / opacity
-    setBrush(QBrush(QColor(0, 0, 0, 128)));
+boost::shared_ptr<DisplayGroup> ContentWindow::getDisplayGroup()
+{
+    return displayGroup_.lock();
+}
 
-    // default border
-    QPen pen;
-    pen.setColor(QColor(0,0,0));
+void ContentWindow::setDisplayGroup(boost::shared_ptr<DisplayGroup> displayGroup)
+{
+    displayGroup_ = displayGroup;
+}
 
-    setPen(pen);
+void ContentWindow::setCoordinates(double x, double y, double w, double h)
+{
+    x_ = x;
+    y_ = y;
+    w_ = w;
+    h_ = h;
 
-    // set to existing coordinates
-    double x,y,w,h;
-    parent->getCoordinates(x,y,w,h);
+    setRect(x_, y_, w_, h_);
 
-    setRect(x,y,w,h);
+    // force synchronization
+    if(getDisplayGroup() != NULL)
+    {
+        getDisplayGroup()->sendDisplayGroup();
+    }
+}
+
+void ContentWindow::getCoordinates(double &x, double &y, double &w, double &h)
+{
+    x = x_;
+    y = y_;
+    w = w_;
+    h = h_;
+}
+
+void ContentWindow::setCenterCoordinates(double centerX, double centerY)
+{
+    centerX_ = centerX;
+    centerY_ = centerY;
+
+    // force synchronization
+    if(getDisplayGroup() != NULL)
+    {
+        getDisplayGroup()->sendDisplayGroup();
+    }
+}
+
+void ContentWindow::getCenterCoordinates(double &centerX, double &centerY)
+{
+    centerX = centerX_;
+    centerY = centerY_;
+}
+
+void ContentWindow::setZoom(double zoom)
+{
+    zoom_ = zoom;
+
+    // force synchronization
+    if(getDisplayGroup() != NULL)
+    {
+        getDisplayGroup()->sendDisplayGroup();
+    }
+}
+
+double ContentWindow::getZoom()
+{
+    return zoom_;
+}
+
+void ContentWindow::render()
+{
+    content_->render(shared_from_this());
+
+    // render the border
+    double horizontalBorder = 5. / (double)g_configuration->getTotalHeight(); // 5 pixels
+    double verticalBorder = (double)g_configuration->getTotalHeight() / (double)g_configuration->getTotalWidth() * horizontalBorder;
+
+    glPushAttrib(GL_CURRENT_BIT);
+
+    // color the border based on window state
+    if(selected_ == true)
+    {
+        glColor4f(1,0,0,1);
+    }
+    else
+    {
+        glColor4f(1,1,1,1);
+    }
+
+    GLWindow::drawRectangle(x_-verticalBorder,y_-horizontalBorder,w_+2.*verticalBorder,h_+2.*horizontalBorder);
+
+    glPopAttrib();
 }
 
 void ContentWindow::paint(QPainter * painter, const QStyleOptionGraphicsItem * option, QWidget * widget)
 {
     if(initialized_ == false)
     {
-        // move content to front of display group
-        if(boost::shared_ptr<Content> c = parent_.lock())
-        {
-            if(boost::shared_ptr<DisplayGroup> dg = c->getDisplayGroup())
-            {
-                dg->moveContentToFront(c);
-            }
-        }
+        // on first paint, initialize
+        // note that we can't call some of these in the constructor, since they wouldn't then be called after de-serialization
 
-        // and, new items at the front
+        setRect(x_, y_, w_, h_);
+
+        // graphics items are movable and fire events on geometry changes
+        setFlag(QGraphicsItem::ItemIsMovable, true);
+        setFlag(QGraphicsItem::ItemSendsGeometryChanges, true);
+
+        // default fill color / opacity
+        setBrush(QBrush(QColor(0, 0, 0, 128)));
+
+        // default border
+        setPen(QPen(QColor(0,0,0)));
+
+        // new items at the front
         zCounter_ = zCounter_ + 1;
         setZValue(zCounter_);
 
-        // on first paint, parent needs to be updated with initial coordinates
-        updateParent();
+        // force synchronization of display group since this is a new window
+        getDisplayGroup()->sendDisplayGroup();
 
         initialized_ = true;
     }
@@ -102,7 +208,7 @@ void ContentWindow::paint(QPainter * painter, const QStyleOptionGraphicsItem * o
     QRectF textBoundingRect = QRectF(rect().x() / horizontalTextScale, rect().y() / verticalTextScale, rect().width() / horizontalTextScale, rect().height() / verticalTextScale);
 
     // get the label and render it
-    QString label(parent_.lock()->getURI().c_str());
+    QString label(content_->getURI().c_str());
     QString labelSection = label.section("/", -1, -1).prepend(" ");
     painter->drawText(textBoundingRect, Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap, labelSection);
 }
@@ -112,7 +218,7 @@ void ContentWindow::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
     // handle mouse movements differently depending on selected mode of item
     if(selected_ == false)
     {
-        if(button_ == Qt::LeftButton || button_ == Qt::RightButton)
+        if(event->buttons().testFlag(Qt::LeftButton) == true)
         {
             if(resizing_ == true)
             {
@@ -123,8 +229,8 @@ void ContentWindow::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
 
                 setRect(r);
 
-                // update coordinates of parent during resize
-                updateParent();
+                // setRect() won't cause an itemChange event, so trigger one manually
+                itemChange(ItemPositionChange, 0);
             }
             else
             {
@@ -138,47 +244,35 @@ void ContentWindow::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
         // handle zooms / pans
         QPointF delta = event->scenePos() - event->lastScenePos();
 
-        if(button_ == Qt::RightButton)
+        if(event->buttons().testFlag(Qt::RightButton) == true)
         {
             // increment zoom
-            if(boost::shared_ptr<Content> c = parent_.lock())
+
+            // if this is a touch event, use cross-product for determining change in zoom (counterclockwise rotation == zoom in, etc.)
+            // otherwise, use y as the change in zoom
+            double zoomDelta;
+
+            if(event->modifiers().testFlag(Qt::AltModifier) == true)
             {
-                double zoom = c->getZoom();
-
-                // if this is a touch event, use cross-product for determining change in zoom (counterclockwise rotation == zoom in, etc.)
-                // otherwise, use y as the change in zoom
-                double zoomDelta;
-
-                if(event->modifiers().testFlag(Qt::AltModifier) == true)
-                {
-                    zoomDelta = (event->scenePos().x()-0.5) * delta.y() - (event->scenePos().y()-0.5) * delta.x();
-                    zoomDelta *= 2.;
-                }
-                else
-                {
-                    zoomDelta = delta.y();
-                }
-
-                zoom *= (1. - zoomDelta);
-
-                c->setZoom(zoom);
+                zoomDelta = (event->scenePos().x()-0.5) * delta.y() - (event->scenePos().y()-0.5) * delta.x();
+                zoomDelta *= 2.;
             }
+            else
+            {
+                zoomDelta = delta.y();
+            }
+
+            zoom_ *= (1. - zoomDelta);
+
+            setZoom(zoom_);
         }
-        else if(button_ == Qt::LeftButton)
+        else if(event->buttons().testFlag(Qt::LeftButton) == true)
         {
             // pan (move center coordinates)
-            if(boost::shared_ptr<Content> c = parent_.lock())
-            {
-                double zoom = c->getZoom();
+            centerX_ += 2.*delta.x() / zoom_;
+            centerY_ += 2.*delta.y() / zoom_;
 
-                double centerX, centerY;
-                c->getCenterCoordinates(centerX, centerY);
-
-                centerX += 2.*delta.x() / zoom;
-                centerY += 2.*delta.y() / zoom;
-
-                c->setCenterCoordinates(centerX, centerY);
-            }
+            setCenterCoordinates(centerX_, centerY_);
         }
     }
 }
@@ -196,13 +290,7 @@ void ContentWindow::mousePressEvent(QGraphicsSceneMouseEvent * event)
     // check to see if user clicked on the close button
     if(fabs((r.x()+r.width()) - eventPos.x()) <= buttonWidth && fabs((r.y()) - eventPos.y()) <= buttonHeight)
     {
-        if(boost::shared_ptr<Content> c = parent_.lock())
-        {
-            if(boost::shared_ptr<DisplayGroup> dg = c->getDisplayGroup())
-            {
-                dg->removeContent(c);
-            }
-        }
+        getDisplayGroup()->removeContentWindow(shared_from_this());
 
         return;
     }
@@ -213,20 +301,8 @@ void ContentWindow::mousePressEvent(QGraphicsSceneMouseEvent * event)
         resizing_ = true;
     }
 
-    button_ = event->button();
-
     // move content to front of display group
-    if(boost::shared_ptr<Content> c = parent_.lock())
-    {
-        if(boost::shared_ptr<DisplayGroup> dg = c->getDisplayGroup())
-        {
-            // todo: should this be moved to Content::?
-            dg->moveContentToFront(c);
-
-            // update coordinates of parent (depth change)
-            updateParent();
-        }
-    }
+    getDisplayGroup()->moveContentWindowToFront(shared_from_this());
 
     // and to the front of the GUI display
     zCounter_ = zCounter_ + 1;
@@ -258,8 +334,6 @@ void ContentWindow::mouseDoubleClickEvent(QGraphicsSceneMouseEvent * event)
 
 void ContentWindow::mouseReleaseEvent(QGraphicsSceneMouseEvent * event)
 {
-    button_ = Qt::NoButton;
-
     resizing_ = false;
 
     QGraphicsItem::mouseReleaseEvent(event);
@@ -269,20 +343,18 @@ QVariant ContentWindow::itemChange(GraphicsItemChange change, const QVariant &va
 {
     if(change == ItemPositionChange)
     {
-        updateParent();
+        QRectF r = mapRectToScene(rect());
+
+        x_ = r.x() / scene()->width();
+        y_ = r.y() / scene()->height();
+        w_ = r.width() / scene()->width();
+        h_ = r.height() / scene()->height();
+
+        // note that we don't have to call sendDisplayGroup() here
+        // the display group is already updated due to the marker (cursor) changing
     }
 
     return QGraphicsItem::itemChange(change, value);
-}
-
-void ContentWindow::updateParent()
-{
-    QRectF r = mapRectToScene(rect());
-
-    if(boost::shared_ptr<Content> c = parent_.lock())
-    {
-        c->setCoordinates(r.x() / scene()->width(), r.y() / scene()->height(), r.width() / scene()->width(), r.height() / scene()->height(), false);
-    }
 }
 
 void ContentWindow::getButtonDimensions(float &width, float &height)

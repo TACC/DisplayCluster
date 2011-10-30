@@ -1,7 +1,7 @@
 #include "GLWindow.h"
 #include "main.h"
 #include "Marker.h"
-#include "Content.h"
+#include "ContentWindow.h"
 #include <QtOpenGL>
 #include "log.h"
 
@@ -68,16 +68,16 @@ void GLWindow::paintGL()
     // render the marker
     g_displayGroup->getMarker().render();
 
-    // render contents
-    std::vector<boost::shared_ptr<Content> > contents = g_displayGroup->getContents();
+    // render content windows
+    std::vector<boost::shared_ptr<ContentWindow> > contentWindows = g_displayGroup->getContentWindows();
 
-    for(unsigned int i=0; i<contents.size(); i++)
+    for(unsigned int i=0; i<contentWindows.size(); i++)
     {
         // manage depth order
         glPushMatrix();
-        glTranslatef(0.,0.,-(float)i / (float)contents.size());
+        glTranslatef(0.,0.,(float)i / (float)contentWindows.size());
 
-        contents[i]->render();
+        contentWindows[i]->render();
 
         glPopMatrix();
     }
