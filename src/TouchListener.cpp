@@ -51,10 +51,6 @@ void TouchListener::addTuioCursor(TUIO::TuioCursor *tcur)
     lastClickTime1_.restart();
     lastClickPoint1_ = point;
 
-    // point mapped to view and global coordinates
-    QPoint pointView = g_displayGroup->getGraphicsView()->mapFromScene(point);
-    QPoint pointGlobal = g_displayGroup->getGraphicsView()->viewport()->mapToGlobal(pointView);
-
     // create the mouse event
     QGraphicsSceneMouseEvent * event = NULL;
     
@@ -71,8 +67,6 @@ void TouchListener::addTuioCursor(TUIO::TuioCursor *tcur)
     {
         // set event parameters
         event->setScenePos(point);
-        event->setPos(point);
-        event->setScreenPos(pointGlobal);
 
         if(tcur->getCursorID() == 0)
         {
@@ -106,24 +100,12 @@ void TouchListener::updateTuioCursor(TUIO::TuioCursor *tcur)
 
     QPointF point(tcur->getX(), tcur->getY());
 
-    // point mapped to view and global coordinates
-    QPoint pointView = g_displayGroup->getGraphicsView()->mapFromScene(point);
-    QPoint pointGlobal = g_displayGroup->getGraphicsView()->viewport()->mapToGlobal(pointView);
-
-    // for a move event we need last point information
-    QPoint lastPointView = g_displayGroup->getGraphicsView()->mapFromScene(lastPoint_);
-    QPoint lastPointGlobal = g_displayGroup->getGraphicsView()->viewport()->mapToGlobal(lastPointView);
-
     // create the mouse event
     QGraphicsSceneMouseEvent * event = new QGraphicsSceneMouseEvent(QEvent::GraphicsSceneMouseMove);
 
     // set event parameters
     event->setScenePos(point);
-    event->setPos(point);
-    event->setScreenPos(pointGlobal);
     event->setLastScenePos(lastPoint_);
-    event->setLastPos(lastPoint_);
-    event->setLastScreenPos(lastPointGlobal);
     event->setButton(Qt::NoButton);
 
     // use alt keyboard modifier to indicate this is a touch event
@@ -149,23 +131,31 @@ void TouchListener::removeTuioCursor(TUIO::TuioCursor *tcur)
 {
     QPointF point(tcur->getX(), tcur->getY());
 
-    // point mapped to view and global coordinates
-    QPoint pointView = g_displayGroup->getGraphicsView()->mapFromScene(point);
-    QPoint pointGlobal = g_displayGroup->getGraphicsView()->viewport()->mapToGlobal(pointView);
-
     // create the mouse event
     QGraphicsSceneMouseEvent * event = new QGraphicsSceneMouseEvent(QEvent::GraphicsSceneMouseRelease);
 
     // set event parameters
     event->setScenePos(point);
-    event->setPos(point);
-    event->setScreenPos(pointGlobal);
 
     // use alt keyboard modifier to indicate this is a touch event
     event->setModifiers(Qt::AltModifier);
 
+    // note that we shouldn't call setButtons() here, since the release will only trigger an "ungrab" of the mouse
+    // if there are no other buttons set
+    if(tcur->getCursorID() == 0)
+    {
+        event->setButton(Qt::LeftButton);
+    }
+    else if(tcur->getCursorID() == 1)
+    {
+        event->setButton(Qt::RightButton);
+    }
+
     // post the event (thread-safe)
     QApplication::postEvent(g_displayGroup->getGraphicsView()->scene(), event);
+
+    // reset last point
+    lastPoint_ = point;
 }
 
 void TouchListener::refresh(TUIO::TuioTime frameTime)
