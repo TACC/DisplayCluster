@@ -74,8 +74,9 @@ void GLWindow::paintGL()
     for(unsigned int i=0; i<contentWindows.size(); i++)
     {
         // manage depth order
+        // the visible depths seem to be in the range (-1,1); make the ContentWindow depths be in the range (-1,0)
         glPushMatrix();
-        glTranslatef(0.,0.,(float)i / (float)contentWindows.size());
+        glTranslatef(0.,0.,-((float)contentWindows.size() - (float)i) / ((float)contentWindows.size() + 1.));
 
         contentWindows[i]->render();
 
