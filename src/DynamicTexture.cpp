@@ -279,6 +279,7 @@ void DynamicTexture::render(float tX, float tY, float tW, float tH, bool compute
         }
         else
         {
+#ifdef DYNAMIC_TEXTURE_SHOW_BORDER
             // draw the border
             glPushAttrib(GL_CURRENT_BIT);
 
@@ -292,6 +293,7 @@ void DynamicTexture::render(float tX, float tY, float tW, float tH, bool compute
             glEnd();
 
             glPopAttrib();
+#endif
 
             // draw the texture
             glPushAttrib(GL_ENABLE_BIT | GL_TEXTURE_BIT);

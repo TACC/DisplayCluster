@@ -4,6 +4,9 @@
 // todo: get this dynamically
 #define TEXTURE_SIZE 512
 
+// define this to show borders around image tiles
+#undef DYNAMIC_TEXTURE_SHOW_BORDER
+
 #include <QGLWidget>
 #include <QtConcurrentRun>
 #include <boost/shared_ptr.hpp>
