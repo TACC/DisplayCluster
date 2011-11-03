@@ -12,6 +12,9 @@
 
 MainWindow::MainWindow()
 {
+    // defaults
+    constrainAspectRatio_ = true;
+
     // make application quit when last window is closed
     QObject::connect(g_app, SIGNAL(lastWindowClosed()), g_app, SLOT(quit()));
 
@@ -22,6 +25,7 @@ MainWindow::MainWindow()
 
         // create menus in menu bar
         QMenu * fileMenu = menuBar()->addMenu("&File");
+        QMenu * viewMenu = menuBar()->addMenu("&View");
 
         // create tool bar
         QToolBar * toolbar = addToolBar("toolbar");
@@ -68,6 +72,13 @@ MainWindow::MainWindow()
         quitAction->setStatusTip("Quit application");
         connect(quitAction, SIGNAL(triggered()), this, SLOT(close()));
 
+        // constrain aspect ratio action
+        QAction * constrainAspectRatioAction = new QAction("Constrain Aspect Ratio", this);
+        constrainAspectRatioAction->setStatusTip("Constrain aspect ratio");
+        constrainAspectRatioAction->setCheckable(true);
+        constrainAspectRatioAction->setChecked(constrainAspectRatio_);
+        connect(constrainAspectRatioAction, SIGNAL(toggled(bool)), this, SLOT(constrainAspectRatio(bool)));
+
         // add actions to menus
         fileMenu->addAction(openContentAction);
         fileMenu->addAction(openContentsDirectoryAction);
@@ -77,6 +88,7 @@ MainWindow::MainWindow()
         fileMenu->addAction(shareDesktopAction);
         fileMenu->addAction(computeImagePyramidAction);
         fileMenu->addAction(quitAction);
+        viewMenu->addAction(constrainAspectRatioAction);
 
         // add actions to toolbar
         toolbar->addAction(openContentAction);
@@ -167,6 +179,11 @@ MainWindow::MainWindow()
         // trigger the first update
         updateGLWindows();
     }
+}
+
+bool MainWindow::getConstrainAspectRatio()
+{
+    return constrainAspectRatio_;
 }
 
 boost::shared_ptr<GLWindow> MainWindow::getGLWindow(int index)
@@ -358,6 +375,24 @@ void MainWindow::computeImagePyramid()
         dt->computeImagePyramid(imagePyramidPath);
 
         put_flog(LOG_DEBUG, "done");
+    }
+}
+
+void MainWindow::constrainAspectRatio(bool set)
+{
+    constrainAspectRatio_ = set;
+
+    if(constrainAspectRatio_ == true)
+    {
+        std::vector<boost::shared_ptr<ContentWindow> > contentWindows = g_displayGroup->getContentWindows();
+
+        for(unsigned int i=0; i<contentWindows.size(); i++)
+        {
+            contentWindows[i]->fixAspectRatio();
+        }
+
+        // force a display group synchronization
+        g_displayGroup->sendDisplayGroup();
     }
 }
 

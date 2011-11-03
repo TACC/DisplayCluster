@@ -10,6 +10,8 @@ class TextureContent : public Content {
     public:
         TextureContent(std::string uri = "") : Content(uri) { }
 
+        void getFactoryObjectDimensions(int &width, int &height);
+
     private:
         friend class boost::serialization::access;
 

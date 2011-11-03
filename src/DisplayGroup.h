@@ -12,7 +12,7 @@
 class ContentWindow;
 class DisplayGroupGraphicsView;
 
-enum MESSAGE_TYPE { MESSAGE_TYPE_CONTENTS, MESSAGE_TYPE_PIXELSTREAM, MESSAGE_TYPE_QUIT };
+enum MESSAGE_TYPE { MESSAGE_TYPE_CONTENTS, MESSAGE_TYPE_CONTENTS_DIMENSIONS, MESSAGE_TYPE_PIXELSTREAM, MESSAGE_TYPE_QUIT };
 
 #define MESSAGE_HEADER_URI_LENGTH 64
 
@@ -44,6 +44,7 @@ class DisplayGroup : public QObject, public boost::enable_shared_from_this<Displ
         void synchronize();
 
         void sendDisplayGroup();
+        void sendContentsDimensionsRequest();
         void sendPixelStreams();
         void sendQuit();
 
@@ -69,6 +70,7 @@ class DisplayGroup : public QObject, public boost::enable_shared_from_this<Displ
         boost::shared_ptr<DisplayGroupGraphicsView> graphicsView_;
 
         void receiveDisplayGroup(MessageHeader messageHeader);
+        void receiveContentsDimensionsRequest(MessageHeader messageHeader);
         void receivePixelStreams(MessageHeader messageHeader);
 };
 

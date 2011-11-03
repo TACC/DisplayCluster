@@ -10,6 +10,8 @@ class MovieContent : public Content {
     public:
         MovieContent(std::string uri = "") : Content(uri) { }
 
+        void getFactoryObjectDimensions(int &width, int &height);
+
     private:
         friend class boost::serialization::access;
 

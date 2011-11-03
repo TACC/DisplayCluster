@@ -12,6 +12,8 @@ DynamicTexture::DynamicTexture(std::string uri, boost::shared_ptr<DynamicTexture
     useImagePyramid_ = false;
     threadCount_ = 0;
     loadImageThreadStarted_ = false;
+    imageWidth_ = 0;
+    imageHeight_ = 0;
     textureBound_ = false;
 
     // assign values
@@ -209,6 +211,18 @@ void DynamicTexture::loadImage(bool convertToGLFormat)
     {
         scaledImage_ = QGLWidget::convertToGLFormat(scaledImage_);
     }
+}
+
+void DynamicTexture::getDimensions(int &width, int &height)
+{
+    // if we don't have a width and height, and the load image thread is running, wait for it to finish
+    if(imageWidth_ == 0 && imageHeight_ == 0 && loadImageThreadStarted_ == true)
+    {
+        loadImageThread_.waitForFinished();
+    }
+
+    width = imageWidth_;
+    height = imageHeight_;
 }
 
 void DynamicTexture::render(float tX, float tY, float tW, float tH, bool computeOnDemand, bool considerChildren)

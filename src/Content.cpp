@@ -8,11 +8,25 @@
 Content::Content(std::string uri)
 {
     uri_ = uri;
+    width_ = 0;
+    height_ = 0;
 }
 
 std::string Content::getURI()
 {
     return uri_;
+}
+
+void Content::getDimensions(int &width, int &height)
+{
+    width = width_;
+    height = height_;
+}
+
+void Content::setDimensions(int width, int height)
+{
+    width_ = width;
+    height_ = height;
 }
 
 void Content::render(boost::shared_ptr<ContentWindow> window)

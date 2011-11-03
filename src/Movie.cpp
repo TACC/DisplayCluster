@@ -142,6 +142,12 @@ Movie::~Movie()
     av_free(avFrameRGB_);
 }
 
+void Movie::getDimensions(int &width, int &height)
+{
+    width = avCodecContext_->width;
+    height = avCodecContext_->height;
+}
+
 void Movie::render(float tX, float tY, float tW, float tH)
 {
     if(initialized_ != true)

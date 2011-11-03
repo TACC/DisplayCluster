@@ -29,6 +29,7 @@ class Movie {
         Movie(std::string uri);
         ~Movie();
 
+        void getDimensions(int &width, int &height);
         void render(float tX, float tY, float tW, float tH);
         void nextFrame(bool skip);
 

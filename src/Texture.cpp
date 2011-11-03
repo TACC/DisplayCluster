@@ -18,6 +18,10 @@ Texture::Texture(std::string uri)
         return;
     }
 
+    // save image dimensions
+    imageWidth_ = image.width();
+    imageHeight_ = image.height();
+
     // generate new texture
     textureId_ = g_mainWindow->getGLWindow()->bindTexture(image, GL_TEXTURE_2D, GL_RGBA, QGLContext::DefaultBindOption);
     textureBound_ = true;
@@ -32,6 +36,12 @@ Texture::~Texture()
         g_mainWindow->getGLWindow()->deleteTexture(textureId_);
         textureBound_ = false;
     }
+}
+
+void Texture::getDimensions(int &width, int &height)
+{
+    width = imageWidth_;
+    height = imageHeight_;
 }
 
 void Texture::render(float tX, float tY, float tW, float tH)

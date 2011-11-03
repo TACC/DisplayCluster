@@ -107,6 +107,44 @@ double ContentWindow::getZoom()
     return zoom_;
 }
 
+void ContentWindow::fixAspectRatio()
+{
+    int contentWidth, contentHeight;
+    content_->getDimensions(contentWidth, contentHeight);
+
+    double aspect = (double)contentWidth / (double)contentHeight;
+    double screenAspect = (double)g_configuration->getTotalWidth() / (double)g_configuration->getTotalHeight();
+
+    aspect /= screenAspect;
+
+    if(aspect > w_ / h_)
+    {
+        h_ = w_ / aspect;
+    }
+    else if(aspect <= w_ / h_)
+    {
+        w_ = h_ * aspect;
+    }
+
+    QRectF r = rect();
+
+    // the rect() isn't set until the first paint after serialization, so we need to make sure the (x,y) coordinates are correct
+    // todo: this shouldn't be necessary, and should be fixed later...
+    if(r.x() == 0. && r.y() == 0.)
+    {
+        r.setX(x_);
+        r.setY(y_);
+    }
+
+    r.setWidth(w_);
+    r.setHeight(h_);
+
+    setRect(r);
+
+    // setRect() won't cause an itemChange event, so trigger one manually
+    itemChange(ItemPositionChange, 0);
+}
+
 void ContentWindow::render()
 {
     content_->render(shared_from_this());
@@ -231,6 +269,11 @@ void ContentWindow::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
 
                 // setRect() won't cause an itemChange event, so trigger one manually
                 itemChange(ItemPositionChange, 0);
+
+                if(g_mainWindow->getConstrainAspectRatio() == true)
+                {
+                    fixAspectRatio();
+                }
             }
             else
             {

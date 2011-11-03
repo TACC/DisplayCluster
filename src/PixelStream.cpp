@@ -25,6 +25,12 @@ PixelStream::~PixelStream()
     }
 }
 
+void PixelStream::getDimensions(int &width, int &height)
+{
+    width = textureWidth_;
+    height = textureHeight_;
+}
+
 void PixelStream::render(float tX, float tY, float tW, float tH)
 {
     imageReadyMutex_.lock();

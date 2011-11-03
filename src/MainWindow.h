@@ -15,6 +15,8 @@ class MainWindow : public QMainWindow {
 
         MainWindow();
 
+        bool getConstrainAspectRatio();
+
         boost::shared_ptr<GLWindow> getGLWindow(int index=0);
         std::vector<boost::shared_ptr<GLWindow> > getGLWindows();
 
@@ -28,6 +30,7 @@ class MainWindow : public QMainWindow {
         void loadContents();
         void shareDesktop(bool set);
         void computeImagePyramid();
+        void constrainAspectRatio(bool set);
         void shareDesktopUpdate();
 
         void updateGLWindows();
@@ -46,6 +49,8 @@ class MainWindow : public QMainWindow {
         QTimer shareDesktopUpdateTimer_;
         int shareDesktopWidth_;
         int shareDesktopHeight_;
+
+        bool constrainAspectRatio_;
 };
 
 #endif

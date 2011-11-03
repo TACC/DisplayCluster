@@ -35,6 +35,9 @@ class ContentWindow : public QGraphicsRectItem, public boost::enable_shared_from
         void setZoom(double zoom);
         double getZoom();
 
+        // aspect ratio correction
+        void fixAspectRatio();
+
         // GLWindow rendering
         void render();
 

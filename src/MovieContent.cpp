@@ -3,6 +3,11 @@
 #include "Movie.h"
 #include "ContentWindow.h"
 
+void MovieContent::getFactoryObjectDimensions(int &width, int &height)
+{
+    g_mainWindow->getGLWindow()->getMovieFactory().getObject(getURI())->getDimensions(width, height);
+}
+
 void MovieContent::advance(boost::shared_ptr<ContentWindow> window)
 {
     // skip a frame if the Content rectangle is not visible in ANY windows; otherwise decode normally

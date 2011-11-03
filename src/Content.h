@@ -18,6 +18,9 @@ class Content {
 
         std::string getURI();
 
+        void getDimensions(int &width, int &height);
+        void setDimensions(int width, int height);
+        virtual void getFactoryObjectDimensions(int &width, int &height) = 0;
         void render(boost::shared_ptr<ContentWindow> window);
 
         // virtual method for implementing actions on advancing to a new frame
@@ -34,9 +37,13 @@ class Content {
         void serialize(Archive & ar, const unsigned int version)
         {
             ar & uri_;
+            ar & width_;
+            ar & height_;
         }
 
         std::string uri_;
+        int width_;
+        int height_;
 
         virtual void renderFactoryObject(float tX, float tY, float tW, float tH) = 0;
 };

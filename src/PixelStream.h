@@ -11,6 +11,7 @@ class PixelStream {
         PixelStream(std::string uri);
         ~PixelStream();
 
+        void getDimensions(int &width, int &height);
         void render(float tX, float tY, float tW, float tH);
         void setImageData(QByteArray imageData);
         void imageReady(QImage image);

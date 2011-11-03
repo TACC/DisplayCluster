@@ -18,6 +18,7 @@ class DynamicTexture : public boost::enable_shared_from_this<DynamicTexture> {
         ~DynamicTexture();
 
         void loadImage(bool convertToGLFormat=true); // thread needs access to this method
+        void getDimensions(int &width, int &height);
         void render(float tX, float tY, float tW, float tH, bool computeOnDemand=true, bool considerChildren=true);
         void clearOldChildren(long minFrameCount); // clear children of nodes with renderChildrenFrameCount_ < minFrameCount
         void computeImagePyramid(std::string imagePyramidPath);
