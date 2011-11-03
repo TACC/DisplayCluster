@@ -167,6 +167,93 @@ void ContentWindow::render()
 
     GLWindow::drawRectangle(x_-verticalBorder,y_-horizontalBorder,w_+2.*verticalBorder,h_+2.*horizontalBorder);
 
+    // render buttons if the marker is over the window
+    float markerX, markerY;
+    getDisplayGroup()->getMarker().getPosition(markerX, markerY);
+
+    if(QRectF(x_, y_, w_, h_).contains(markerX, markerY) == true)
+    {
+        // we need this to be slightly in front of the rest of the window
+        glPushMatrix();
+        glTranslatef(0,0,0.001);
+
+        // button dimensions
+        float buttonWidth, buttonHeight;
+        getButtonDimensions(buttonWidth, buttonHeight);
+
+        // draw close button
+        QRectF closeRect(x_ + w_ - buttonWidth, y_, buttonWidth, buttonHeight);
+
+        // semi-transparent background
+        glColor4f(1,0,0,0.125);
+
+        glPushAttrib(GL_ENABLE_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_BLEND);
+        glDepthMask(GL_FALSE);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        glBegin(GL_QUADS);
+        glVertex2f(closeRect.x(), closeRect.y());
+        glVertex2f(closeRect.x()+closeRect.width(), closeRect.y());
+        glVertex2f(closeRect.x()+closeRect.width(), closeRect.y()+closeRect.height());
+        glVertex2f(closeRect.x(), closeRect.y()+closeRect.height());
+        glEnd();
+
+        glPopAttrib();
+
+        glColor4f(1,0,0,1);
+
+        glBegin(GL_LINE_LOOP);
+        glVertex2f(closeRect.x(), closeRect.y());
+        glVertex2f(closeRect.x()+closeRect.width(), closeRect.y());
+        glVertex2f(closeRect.x()+closeRect.width(), closeRect.y()+closeRect.height());
+        glVertex2f(closeRect.x(), closeRect.y()+closeRect.height());
+        glEnd();
+
+        glBegin(GL_LINES);
+        glVertex2f(closeRect.x(), closeRect.y());
+        glVertex2f(closeRect.x() + closeRect.width(), closeRect.y() + closeRect.height());
+        glVertex2f(closeRect.x()+closeRect.width(), closeRect.y());
+        glVertex2f(closeRect.x(), closeRect.y() + closeRect.height());
+        glEnd();
+
+        // resize indicator
+        QRectF resizeRect(x_ + w_ - buttonWidth, y_ + h_ - buttonHeight, buttonWidth, buttonHeight);
+
+        // semi-transparent background
+        glColor4f(0.5,0.5,0.5,0.25);
+
+        glPushAttrib(GL_ENABLE_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_BLEND);
+        glDepthMask(GL_FALSE);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        glBegin(GL_QUADS);
+        glVertex2f(resizeRect.x(), resizeRect.y());
+        glVertex2f(resizeRect.x()+resizeRect.width(), resizeRect.y());
+        glVertex2f(resizeRect.x()+resizeRect.width(), resizeRect.y()+resizeRect.height());
+        glVertex2f(resizeRect.x(), resizeRect.y()+resizeRect.height());
+        glEnd();
+
+        glPopAttrib();
+
+        glColor4f(0.5,0.5,0.5,1);
+
+        glBegin(GL_LINE_LOOP);
+        glVertex2f(resizeRect.x(), resizeRect.y());
+        glVertex2f(resizeRect.x()+resizeRect.width(), resizeRect.y());
+        glVertex2f(resizeRect.x()+resizeRect.width(), resizeRect.y()+resizeRect.height());
+        glVertex2f(resizeRect.x(), resizeRect.y()+resizeRect.height());
+        glEnd();
+
+        glBegin(GL_LINES);
+        glVertex2f(resizeRect.x()+resizeRect.width(), resizeRect.y());
+        glVertex2f(resizeRect.x(), resizeRect.y() + resizeRect.height());
+        glEnd();
+
+        glPopMatrix();
+    }
+
     glPopAttrib();
 }
 
