@@ -402,19 +402,20 @@ QVariant ContentWindow::itemChange(GraphicsItemChange change, const QVariant &va
 
 void ContentWindow::getButtonDimensions(float &width, float &height)
 {
-    float sceneFraction = 0.05;
+    float sceneHeightFraction = 0.125;
+    double screenAspect = (double)g_configuration->getTotalWidth() / (double)g_configuration->getTotalHeight();
 
-    width = sceneFraction * scene()->height();
-    height = sceneFraction * scene()->height();
+    width = sceneHeightFraction / screenAspect;
+    height = sceneHeightFraction;
 
-    // clamp to rect dimensions
-    if(width > 0.5 * rect().width())
+    // clamp to half rect dimensions
+    if(width > 0.5 * w_)
     {
-        width = 0.49 * rect().width();
+        width = 0.49 * w_;
     }
 
-    if(height > 0.5 * rect().height())
+    if(height > 0.5 * h_)
     {
-        height = 0.49 * rect().height();
+        height = 0.49 * h_;
     }
 }
