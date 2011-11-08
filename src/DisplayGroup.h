@@ -9,7 +9,7 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 
-class ContentWindow;
+#include "ContentWindow.h" 
 class DisplayGroupGraphicsView;
 
 enum MESSAGE_TYPE { MESSAGE_TYPE_CONTENTS, MESSAGE_TYPE_CONTENTS_DIMENSIONS, MESSAGE_TYPE_PIXELSTREAM, MESSAGE_TYPE_QUIT };
@@ -38,6 +38,20 @@ class DisplayGroup : public QObject, public boost::enable_shared_from_this<Displ
         std::vector<boost::shared_ptr<ContentWindow> > getContentWindows();
 
         void moveContentWindowToFront(boost::shared_ptr<ContentWindow> contentWindow);
+
+        void dump() 
+        { 
+          if (contentWindows_.size()) 
+          { 
+            std::cerr << "DisplayGroup: \n"; 
+            for(unsigned int i=0; i<contentWindows_.size(); i++) 
+            { 
+              boost::shared_ptr<ContentWindow> c = contentWindows_[i]; 
+              c->dump(); 
+            } 
+          } 
+        } 
+
 
     public slots:
 
@@ -73,5 +87,26 @@ class DisplayGroup : public QObject, public boost::enable_shared_from_this<Displ
         void receiveContentsDimensionsRequest(MessageHeader messageHeader);
         void receivePixelStreams(MessageHeader messageHeader);
 };
+
+typedef boost::shared_ptr<DisplayGroup> pDisplayGroup; 
+ 
+class pyDisplayGroup 
+{ 
+public: 
+  pyDisplayGroup(pDisplayGroup pdg) {ptr = pdg;} 
+  ~pyDisplayGroup() {} 
+ 
+  pDisplayGroup getp() {return ptr;} 
+ 
+  bool hasContent(const char *uri) { return ptr->hasContent(std::string(uri)); } 
+  void addContentWindow(const pyContentWindow& cw) {ptr->addContentWindow(cw.get());} 
+  void removeContentWindow(const pyContentWindow& cw) {ptr->removeContentWindow(cw.get());} 
+  void dump() {ptr->dump();} 
+   
+private: 
+  pDisplayGroup ptr; 
+}; 
+ 
+extern pyDisplayGroup getThePyDisplayGroup(); 
 
 #endif

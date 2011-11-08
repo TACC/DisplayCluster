@@ -40,6 +40,15 @@ find_package(MPI REQUIRED)
 include_directories(${MPI_INCLUDE_PATH})
 set(LIBS ${LIBS} ${MPI_LIBRARIES})
 
+find_path(PYTHON_HEADERS Python.h /usr/include/python2.6)
+include_directories(${PYTHON_HEADERS})
+
+find_path(PYTHON_QT_HEADERS PythonQt.h ${CMAKE_SOURCE_DIR}/dependencies/PythonQt2.0.1/src)
+include_directories(${PYTHON_QT_HEADERS})
+
+find_library(PYTHON_QT_LIBRARIES PythonQt ${CMAKE_SOURCE_DIR}/dependencies/PythonQt2.0.1/lib)
+set(LIBS ${LIBS} ${PYTHON_QT_LIBRARIES})
+
 find_package(FFMPEG REQUIRED)
 include_directories(${FFMPEG_INCLUDE_DIR})
 set(LIBS ${LIBS} ${FFMPEG_LIBRARIES})
@@ -82,6 +91,7 @@ set(SRCS ${SRCS}
     src/PixelStreamSource.cpp
     src/PixelStreamSourceListener.cpp
     src/PixelStreamSourceListenerThread.cpp
+    src/PythonConsole.cpp
     src/Texture.cpp
     src/TextureContent.cpp
 )
@@ -91,6 +101,7 @@ set(MOC_HEADERS
     src/MainWindow.h
     src/PixelStreamSourceListener.h
     src/PixelStreamSourceListenerThread.h
+    src/PythonConsole.h
 )
 
 qt4_wrap_cpp(MOC_OUTFILES ${MOC_HEADERS})

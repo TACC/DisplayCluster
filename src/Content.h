@@ -21,11 +21,11 @@ class Content {
         void getDimensions(int &width, int &height);
         void setDimensions(int width, int height);
         virtual void getFactoryObjectDimensions(int &width, int &height) = 0;
-        void render(boost::shared_ptr<ContentWindow> window);
+        void render(boost::shared_ptr<ContentWindow>);
 
         // virtual method for implementing actions on advancing to a new frame
         // useful when a process has multiple GLWindows
-        virtual void advance(boost::shared_ptr<ContentWindow> window) { }
+        virtual void advance(boost::shared_ptr<ContentWindow>) { }
 
         // get a Content object of the appropriate derived type based on the URI given
         static boost::shared_ptr<Content> getContent(std::string uri);
@@ -34,7 +34,7 @@ class Content {
         friend class boost::serialization::access;
 
         template<class Archive>
-        void serialize(Archive & ar, const unsigned int version)
+        void serialize(Archive & ar, const unsigned int)
         {
             ar & uri_;
             ar & width_;
@@ -49,5 +49,20 @@ class Content {
 };
 
 BOOST_SERIALIZATION_ASSUME_ABSTRACT(Content)
+
+typedef boost::shared_ptr<Content> pContent;
+
+class pyContent {
+public:
+  pyContent() {}
+  pContent get() {return ptr;}
+  void dump() {
+    std::cerr << "pyContent: " << ptr->getURI() << "\n";
+  }
+
+protected:
+  pContent ptr;
+};
+
 
 #endif

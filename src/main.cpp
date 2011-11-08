@@ -18,6 +18,13 @@ MainWindow * g_mainWindow = NULL;
 PixelStreamSourceListener * g_pixelStreamSourceListener = NULL;
 long g_frameCount = 0;
 
+// GDA
+pyDisplayGroup 
+getThePyDisplayGroup() 
+{ 
+    return pyDisplayGroup(g_displayGroup); 
+} 
+
 int main(int argc, char * argv[])
 {
     put_flog(LOG_INFO, "");

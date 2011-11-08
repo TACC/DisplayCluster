@@ -9,7 +9,7 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/weak_ptr.hpp>
 
-class Content;
+#include "Content.h"
 class DisplayGroup;
 
 class ContentWindow : public QGraphicsRectItem, public boost::enable_shared_from_this<ContentWindow> {
@@ -43,6 +43,14 @@ class ContentWindow : public QGraphicsRectItem, public boost::enable_shared_from
 
         // QGraphicsRectItem painting
         void paint(QPainter * painter, const QStyleOptionGraphicsItem * option, QWidget * widget=0);
+
+        void dump()
+        {
+          std::cerr << "x: " << x_ << " " << "y: " << y_ << " "
+                    << "w: " << w_ << " " << "w: " << h_ << ": "
+                    << content_->getURI() << "\n";
+        }
+
 
     protected:
         friend class boost::serialization::access;
@@ -99,5 +107,21 @@ class ContentWindow : public QGraphicsRectItem, public boost::enable_shared_from
 
         void getButtonDimensions(float &width, float &height);
 };
+
+typedef boost::shared_ptr<ContentWindow> pContentWindow;
+
+class pyContentWindow
+{
+public:
+  pyContentWindow(pyContent content) { ptr = pContentWindow(new ContentWindow(content.get())); }
+  ~pyContentWindow() {}
+
+  pContentWindow get() const {return ptr;}
+
+private:
+  pContentWindow ptr;
+
+};
+
 
 #endif
