@@ -8,11 +8,12 @@
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 class ContentWindow;
 class DisplayGroupGraphicsView;
 
-enum MESSAGE_TYPE { MESSAGE_TYPE_CONTENTS, MESSAGE_TYPE_CONTENTS_DIMENSIONS, MESSAGE_TYPE_PIXELSTREAM, MESSAGE_TYPE_QUIT };
+enum MESSAGE_TYPE { MESSAGE_TYPE_CONTENTS, MESSAGE_TYPE_CONTENTS_DIMENSIONS, MESSAGE_TYPE_PIXELSTREAM, MESSAGE_TYPE_FRAME_CLOCK, MESSAGE_TYPE_QUIT };
 
 #define MESSAGE_HEADER_URI_LENGTH 64
 
@@ -39,6 +40,8 @@ class DisplayGroup : public QObject, public boost::enable_shared_from_this<Displ
 
         void moveContentWindowToFront(boost::shared_ptr<ContentWindow> contentWindow);
 
+        boost::shared_ptr<boost::posix_time::ptime> getTimestamp();
+
     public slots:
 
         void synchronize();
@@ -46,6 +49,8 @@ class DisplayGroup : public QObject, public boost::enable_shared_from_this<Displ
         void sendDisplayGroup();
         void sendContentsDimensionsRequest();
         void sendPixelStreams();
+        void sendFrameClockUpdate();
+        void receiveFrameClockUpdate();
         void sendQuit();
 
         void advanceContents();
@@ -68,6 +73,9 @@ class DisplayGroup : public QObject, public boost::enable_shared_from_this<Displ
 
         // used for GUI display
         boost::shared_ptr<DisplayGroupGraphicsView> graphicsView_;
+
+        // frame timing
+        boost::shared_ptr<boost::posix_time::ptime> timestamp_;
 
         void receiveDisplayGroup(MessageHeader messageHeader);
         void receiveContentsDimensionsRequest(MessageHeader messageHeader);

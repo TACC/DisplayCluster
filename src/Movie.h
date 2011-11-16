@@ -2,6 +2,7 @@
 #define MOVIE_H
 
 #include <QGLWidget>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 // required for FFMPEG includes below, specifically for the Linux build
 #ifdef __cplusplus
@@ -60,6 +61,9 @@ class Movie {
 
         int64_t frame_index_;
         int64_t skipped_frames_;
+
+        // frame timing
+        boost::shared_ptr<boost::posix_time::ptime> nextTimestamp_;
 };
 
 #endif

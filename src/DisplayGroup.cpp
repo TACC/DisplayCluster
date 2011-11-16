@@ -10,6 +10,7 @@
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/shared_ptr.hpp>
 #include <boost/serialization/utility.hpp>
+#include <boost/date_time/posix_time/time_serialize.hpp>
 #include <mpi.h>
 
 boost::shared_ptr<DisplayGroupGraphicsView> DisplayGroup::getGraphicsView()
@@ -117,6 +118,11 @@ void DisplayGroup::moveContentWindowToFront(boost::shared_ptr<ContentWindow> con
     g_mainWindow->refreshContentsList();
 
     sendDisplayGroup();
+}
+
+boost::shared_ptr<boost::posix_time::ptime> DisplayGroup::getTimestamp()
+{
+    return timestamp_;
 }
 
 void DisplayGroup::synchronize()
@@ -306,6 +312,95 @@ void DisplayGroup::sendPixelStreams()
             MPI_Bcast((void *)imageData.data(), size, MPI_BYTE, 0, MPI_COMM_WORLD);
         }
     }
+}
+
+void DisplayGroup::sendFrameClockUpdate()
+{
+    // this should only be called by the rank 1 process
+    if(g_mpiRank != 1)
+    {
+        put_flog(LOG_WARN, "called by rank %i != 1", g_mpiRank);
+        return;
+    }
+
+    boost::shared_ptr<boost::posix_time::ptime> timestamp(new boost::posix_time::ptime(boost::posix_time::microsec_clock::universal_time()));
+
+    // serialize state
+    std::ostringstream oss(std::ostringstream::binary);
+
+    // brace this so destructor is called on archive before we use the stream
+    {
+        boost::archive::binary_oarchive oa(oss);
+        oa << timestamp;
+    }
+
+    // serialized data to string
+    std::string serializedString = oss.str();
+    int size = serializedString.size();
+
+    // send the header and the message
+    MessageHeader mh;
+    mh.size = size;
+    mh.type = MESSAGE_TYPE_FRAME_CLOCK;
+
+    // the header is sent via a send, so that we can probe it on the render processes
+    for(int i=2; i<g_mpiSize; i++)
+    {
+        MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, i, 0, MPI_COMM_WORLD);
+    }
+
+    // broadcast it
+    MPI_Bcast((void *)serializedString.data(), size, MPI_BYTE, 0, g_mpiRenderComm);
+
+    // update timestamp
+    timestamp_ = timestamp;
+}
+
+void DisplayGroup::receiveFrameClockUpdate()
+{
+    // we shouldn't run the broadcast if we're rank 1
+    if(g_mpiRank == 1)
+    {
+        return;
+    }
+
+    // receive the message header
+    MessageHeader messageHeader;
+    MPI_Status status;
+    MPI_Recv((void *)&messageHeader, sizeof(MessageHeader), MPI_BYTE, 1, 0, MPI_COMM_WORLD, &status);
+
+    if(messageHeader.type != MESSAGE_TYPE_FRAME_CLOCK)
+    {
+        put_flog(LOG_FATAL, "unexpected message type");
+        exit(-1);
+    }
+
+    // receive serialized data
+    char * buf = new char[messageHeader.size];
+
+    // read message into the buffer
+    MPI_Bcast((void *)buf, messageHeader.size, MPI_BYTE, 0, g_mpiRenderComm);
+
+    // de-serialize...
+    std::istringstream iss(std::istringstream::binary);
+
+    if(iss.rdbuf()->pubsetbuf(buf, messageHeader.size) == NULL)
+    {
+        put_flog(LOG_FATAL, "rank %i: error setting stream buffer", g_mpiRank);
+        exit(-1);
+    }
+
+    // read to a new timestamp
+    boost::shared_ptr<boost::posix_time::ptime> timestamp;
+
+    boost::archive::binary_iarchive ia(iss);
+    ia >> timestamp;
+
+    // free mpi buffer
+    delete [] buf;
+
+    // update timestamp
+    timestamp_ = timestamp;
 }
 
 void DisplayGroup::sendQuit()

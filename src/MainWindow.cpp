@@ -427,6 +427,16 @@ void MainWindow::updateGLWindows()
     // todo: sync swapbuffers
     MPI_Barrier(g_mpiRenderComm);
 
+    // synchronize clock
+    if(g_mpiRank == 1)
+    {
+        g_displayGroup->sendFrameClockUpdate();
+    }
+    else
+    {
+        g_displayGroup->receiveFrameClockUpdate();
+    }
+
     // advance all contents
     g_displayGroup->advanceContents();
 
