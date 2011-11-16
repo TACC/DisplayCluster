@@ -65,6 +65,8 @@ set(SRCS ${SRCS}
     src/Configuration.cpp
     src/Content.cpp
     src/ContentWindow.cpp
+    src/ContentWindowInterface.cpp
+    src/ContentWindowGraphicsItem.cpp
     src/Marker.cpp
     src/DisplayGroup.cpp
     src/DisplayGroupGraphicsScene.cpp
@@ -87,6 +89,8 @@ set(SRCS ${SRCS}
 )
 
 set(MOC_HEADERS
+    src/Content.h
+    src/ContentWindowInterface.h
     src/DisplayGroup.h
     src/MainWindow.h
     src/PixelStreamSourceListener.h

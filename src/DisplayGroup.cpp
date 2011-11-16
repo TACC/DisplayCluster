@@ -37,7 +37,7 @@ void DisplayGroup::addContentWindow(boost::shared_ptr<ContentWindow> contentWind
 
     // add the window to the display group and to the GUI scene
     sendDisplayGroup();
-    getGraphicsView()->scene()->addItem((QGraphicsRectItem *)contentWindow.get());
+    getGraphicsView()->scene()->addItem((QGraphicsItem *)(contentWindow->getContentWindowGraphicsItem()));
 
     // make sure we have its dimensions so we can constrain its aspect ratio
     sendContentsDimensionsRequest();
@@ -61,9 +61,6 @@ void DisplayGroup::removeContentWindow(boost::shared_ptr<ContentWindow> contentW
 
     // set null display group in content window object
     contentWindow->setDisplayGroup(boost::shared_ptr<DisplayGroup>());
-
-    // remove from scene
-    getGraphicsView()->scene()->removeItem((QGraphicsRectItem *)contentWindow.get());
 
     g_mainWindow->refreshContentsList();
 }
@@ -118,6 +115,8 @@ void DisplayGroup::moveContentWindowToFront(boost::shared_ptr<ContentWindow> con
     }
 
     g_mainWindow->refreshContentsList();
+
+    sendDisplayGroup();
 }
 
 void DisplayGroup::synchronize()
