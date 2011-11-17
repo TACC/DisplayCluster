@@ -6,6 +6,7 @@
 #include "log.h"
 #include "PixelStream.h"
 #include "PixelStreamSource.h"
+#include "PixelStreamContent.h"
 #include <sstream>
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/shared_ptr.hpp>
@@ -123,6 +124,31 @@ void DisplayGroup::moveContentWindowToFront(boost::shared_ptr<ContentWindow> con
 boost::shared_ptr<boost::posix_time::ptime> DisplayGroup::getTimestamp()
 {
     return timestamp_;
+}
+
+void DisplayGroup::handleMessage(MessageHeader messageHeader, QByteArray byteArray)
+{
+    if(messageHeader.type == MESSAGE_TYPE_PIXELSTREAM)
+    {
+        // check to see if Content/ContentWindow exists for the URI
+        std::string uri = std::string(messageHeader.uri);
+
+        if(hasContent(uri) == false)
+        {
+            put_flog(LOG_DEBUG, "adding pixel stream: %s", uri.c_str());
+
+            boost::shared_ptr<Content> c(new PixelStreamContent(uri));
+            boost::shared_ptr<ContentWindow> cw(new ContentWindow(c));
+
+            addContentWindow(cw);
+        }
+
+        // update pixel stream source
+        g_pixelStreamSourceFactory.getObject(uri)->setImageData(byteArray);
+
+        // send updated pixelstream
+        sendPixelStreams();
+    }
 }
 
 void DisplayGroup::synchronize()

@@ -15,7 +15,7 @@ MPI_Comm g_mpiRenderComm;
 Configuration * g_configuration = NULL;
 boost::shared_ptr<DisplayGroup> g_displayGroup;
 MainWindow * g_mainWindow = NULL;
-PixelStreamSourceListener * g_pixelStreamSourceListener = NULL;
+NetworkListener * g_networkListener = NULL;
 long g_frameCount = 0;
 
 int main(int argc, char * argv[])
@@ -50,7 +50,7 @@ int main(int argc, char * argv[])
 
     if(g_mpiRank == 0)
     {
-        g_pixelStreamSourceListener = new PixelStreamSourceListener();
+        g_networkListener = new NetworkListener();
     }
 
     // enter Qt event loop

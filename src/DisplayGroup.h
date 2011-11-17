@@ -44,6 +44,8 @@ class DisplayGroup : public QObject, public boost::enable_shared_from_this<Displ
 
     public slots:
 
+        void handleMessage(MessageHeader messageHeader, QByteArray byteArray);
+
         void synchronize();
 
         void sendDisplayGroup();

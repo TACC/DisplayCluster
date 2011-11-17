@@ -79,11 +79,11 @@ set(SRCS ${SRCS}
     src/MainWindow.cpp
     src/Movie.cpp
     src/MovieContent.cpp
+    src/NetworkListener.cpp
+    src/NetworkListenerThread.cpp
     src/PixelStream.cpp
     src/PixelStreamContent.cpp
     src/PixelStreamSource.cpp
-    src/PixelStreamSourceListener.cpp
-    src/PixelStreamSourceListenerThread.cpp
     src/Texture.cpp
     src/TextureContent.cpp
 )
@@ -93,8 +93,8 @@ set(MOC_HEADERS
     src/ContentWindowInterface.h
     src/DisplayGroup.h
     src/MainWindow.h
-    src/PixelStreamSourceListener.h
-    src/PixelStreamSourceListenerThread.h
+    src/NetworkListener.h
+    src/NetworkListenerThread.h
 )
 
 qt4_wrap_cpp(MOC_OUTFILES ${MOC_HEADERS})
