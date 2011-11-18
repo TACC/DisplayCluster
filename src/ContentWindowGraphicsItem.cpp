@@ -27,9 +27,8 @@ ContentWindowGraphicsItem::ContentWindowGraphicsItem(boost::shared_ptr<ContentWi
     setRect(x_, y_, w_, h_);
 
     // new items at the front
-    // use the -1 argument to force an update but not emit signals
     // we assume that interface items will be constructed in depth order so this produces the correct result...
-    moveToFront((ContentWindowInterface *)-1);
+    setZToFront();
 }
 
 void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGraphicsItem * option, QWidget * widget)
@@ -149,36 +148,10 @@ void ContentWindowGraphicsItem::setSelected(bool selected, ContentWindowInterfac
     }
 }
 
-void ContentWindowGraphicsItem::moveToFront(ContentWindowInterface * source)
+void ContentWindowGraphicsItem::setZToFront()
 {
-    ContentWindowInterface::moveToFront(source);
-
-    if(source != this)
-    {
-        zCounter_ = zCounter_ + 1;
-        setZValue(zCounter_);
-    }
-}
-
-void ContentWindowGraphicsItem::destroy(ContentWindowInterface * source)
-{
-    ContentWindowInterface::destroy(source);
-
-    // remove self from graphics scene, which will trigger object destruction
-    if(source != this)
-    {
-        boost::shared_ptr<ContentWindow> contentWindow = getContentWindow();
-
-        if(contentWindow != NULL)
-        {
-            boost::shared_ptr<DisplayGroup> displayGroup = contentWindow->getDisplayGroup();
-
-            if(displayGroup != NULL)
-            {
-                displayGroup->getGraphicsView()->scene()->removeItem((QGraphicsItem *)this);
-            }
-        }
-    }
+    zCounter_ = zCounter_ + 1;
+    setZValue(zCounter_);
 }
 
 void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
@@ -268,7 +241,7 @@ void ContentWindowGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent * event
         // check to see if user clicked on the close button
         if(fabs((r.x()+r.width()) - eventPos.x()) <= buttonWidth && fabs((r.y()) - eventPos.y()) <= buttonHeight)
         {
-            destroy();
+            close();
 
             return;
         }
@@ -281,9 +254,6 @@ void ContentWindowGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent * event
     }
 
     // move to the front of the GUI display
-    zCounter_ = zCounter_ + 1;
-    setZValue(zCounter_);
-
     moveToFront();
 
     QGraphicsItem::mousePressEvent(event);

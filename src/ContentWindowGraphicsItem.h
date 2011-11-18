@@ -21,8 +21,9 @@ class ContentWindowGraphicsItem : public QGraphicsRectItem, public ContentWindow
         void setPosition(double x, double y, ContentWindowInterface * source=NULL);
         void setSize(double w, double h, ContentWindowInterface * source=NULL);
         void setSelected(bool selected, ContentWindowInterface * source=NULL);
-        void moveToFront(ContentWindowInterface * source=NULL);
-        void destroy(ContentWindowInterface * source=NULL);
+
+        // increment the Z value of this item
+        void setZToFront();
 
     protected:
 

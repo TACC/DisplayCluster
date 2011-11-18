@@ -28,7 +28,7 @@ class ContentWindow : public ContentWindowInterface, public boost::enable_shared
 
         // re-implemented ContentWindowInterface slots
         void moveToFront(ContentWindowInterface * source=NULL);
-        void destroy(ContentWindowInterface * source=NULL);
+        void close(ContentWindowInterface * source=NULL);
 
         // GLWindow rendering
         void render();
@@ -37,6 +37,8 @@ class ContentWindow : public ContentWindowInterface, public boost::enable_shared
         void getButtonDimensions(float &width, float &height);
 
         // interfaces
+
+        // regular pointer used since Qt will own the object
         ContentWindowGraphicsItem * getContentWindowGraphicsItem();
 
     protected:

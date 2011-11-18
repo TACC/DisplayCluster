@@ -69,7 +69,9 @@ set(SRCS ${SRCS}
     src/ContentWindowGraphicsItem.cpp
     src/Marker.cpp
     src/DisplayGroup.cpp
+    src/DisplayGroupInterface.cpp
     src/DisplayGroupGraphicsScene.cpp
+    src/DisplayGroupGraphicsViewProxy.cpp
     src/DisplayGroupGraphicsView.cpp
     src/DynamicTexture.cpp
     src/DynamicTextureContent.cpp
@@ -92,6 +94,7 @@ set(MOC_HEADERS
     src/Content.h
     src/ContentWindowInterface.h
     src/DisplayGroup.h
+    src/DisplayGroupInterface.h
     src/MainWindow.h
     src/NetworkListener.h
     src/NetworkListenerThread.h

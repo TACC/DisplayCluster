@@ -282,7 +282,7 @@ void ContentWindowInterface::moveToFront(ContentWindowInterface * source)
     }
 }
 
-void ContentWindowInterface::destroy(ContentWindowInterface * source)
+void ContentWindowInterface::close(ContentWindowInterface * source)
 {
     if(source == this)
     {
@@ -296,6 +296,6 @@ void ContentWindowInterface::destroy(ContentWindowInterface * source)
             source = this;
         }
 
-        emit(destroyed(source));
+        emit(closed(source));
     }
 }

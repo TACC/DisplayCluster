@@ -1,5 +1,5 @@
 #include "DisplayGroup.h"
-#include "DisplayGroupGraphicsView.h"
+#include "DisplayGroupGraphicsViewProxy.h"
 #include "ContentWindow.h"
 #include "Content.h"
 #include "main.h"
@@ -14,15 +14,10 @@
 #include <boost/date_time/posix_time/time_serialize.hpp>
 #include <mpi.h>
 
-boost::shared_ptr<DisplayGroupGraphicsView> DisplayGroup::getGraphicsView()
+DisplayGroup::DisplayGroup()
 {
-    if(graphicsView_ == NULL)
-    {
-        boost::shared_ptr<DisplayGroupGraphicsView> dggv(new DisplayGroupGraphicsView());
-        graphicsView_ = dggv;
-    }
-
-    return graphicsView_;
+    // register types for use in signals/slots
+    qRegisterMetaType<boost::shared_ptr<ContentWindow> >("boost::shared_ptr<ContentWindow>");
 }
 
 Marker & DisplayGroup::getMarker()
@@ -30,100 +25,70 @@ Marker & DisplayGroup::getMarker()
     return marker_;
 }
 
-void DisplayGroup::addContentWindow(boost::shared_ptr<ContentWindow> contentWindow)
-{
-    contentWindows_.push_back(contentWindow);
-
-    // set display group in content window object
-    contentWindow->setDisplayGroup(shared_from_this());
-
-    // add the window to the display group and to the GUI scene
-    sendDisplayGroup();
-    getGraphicsView()->scene()->addItem((QGraphicsItem *)(contentWindow->getContentWindowGraphicsItem()));
-
-    // make sure we have its dimensions so we can constrain its aspect ratio
-    sendContentsDimensionsRequest();
-
-    g_mainWindow->refreshContentsList();
-}
-
-void DisplayGroup::removeContentWindow(boost::shared_ptr<ContentWindow> contentWindow)
-{
-    // find vector entry for content window
-    std::vector<boost::shared_ptr<ContentWindow> >::iterator it;
-
-    it = find(contentWindows_.begin(), contentWindows_.end(), contentWindow);
-
-    if(it != contentWindows_.end())
-    {
-        // we found the entry
-        // now, remove it
-        contentWindows_.erase(it);
-    }
-
-    // set null display group in content window object
-    contentWindow->setDisplayGroup(boost::shared_ptr<DisplayGroup>());
-
-    g_mainWindow->refreshContentsList();
-}
-
-bool DisplayGroup::hasContent(std::string uri)
-{
-    for(unsigned int i=0; i<contentWindows_.size(); i++)
-    {
-        if(contentWindows_[i]->getContent()->getURI() == uri)
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-void DisplayGroup::setContentWindows(std::vector<boost::shared_ptr<ContentWindow> > contentWindows)
-{
-    // clear existing content windows
-    contentWindows_.clear();
-
-    // add new content windows
-    for(unsigned int i=0; i<contentWindows.size(); i++)
-    {
-        addContentWindow(contentWindows[i]);
-    }
-
-    g_mainWindow->refreshContentsList();
-
-    sendDisplayGroup();
-}
-
-std::vector<boost::shared_ptr<ContentWindow> > DisplayGroup::getContentWindows()
-{
-    return contentWindows_;
-}
-
-void DisplayGroup::moveContentWindowToFront(boost::shared_ptr<ContentWindow> contentWindow)
-{
-    // find vector entry for content window
-    std::vector<boost::shared_ptr<ContentWindow> >::iterator it;
-
-    it = find(contentWindows_.begin(), contentWindows_.end(), contentWindow);
-
-    if(it != contentWindows_.end())
-    {
-        // we found the entry
-        // now, move it to end of the list (last item rendered is on top)
-        contentWindows_.erase(it);
-        contentWindows_.push_back(contentWindow);
-    }
-
-    g_mainWindow->refreshContentsList();
-
-    sendDisplayGroup();
-}
-
 boost::shared_ptr<boost::posix_time::ptime> DisplayGroup::getTimestamp()
 {
     return timestamp_;
+}
+
+void DisplayGroup::addContentWindow(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source)
+{
+    DisplayGroupInterface::addContentWindow(contentWindow, source);
+
+    if(source != this)
+    {
+        // set display group in content window object
+        contentWindow->setDisplayGroup(shared_from_this());
+
+        sendDisplayGroup();
+
+        // make sure we have its dimensions so we can constrain its aspect ratio
+        sendContentsDimensionsRequest();
+    }
+}
+
+void DisplayGroup::removeContentWindow(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source)
+{
+    DisplayGroupInterface::removeContentWindow(contentWindow, source);
+
+    if(source != this)
+    {
+        // set null display group in content window object
+        contentWindow->setDisplayGroup(boost::shared_ptr<DisplayGroup>());
+
+        sendDisplayGroup();
+    }
+}
+
+void DisplayGroup::moveContentWindowToFront(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source)
+{
+    DisplayGroupInterface::moveContentWindowToFront(contentWindow, source);
+
+    if(source != this)
+    {
+        sendDisplayGroup();
+    }
+}
+
+DisplayGroupGraphicsViewProxy * DisplayGroup::getGraphicsViewProxy()
+{
+    DisplayGroupGraphicsViewProxy * dggvp = new DisplayGroupGraphicsViewProxy(shared_from_this());
+
+    // connect signals from dggvp to slots on this object
+    // use queued connections for thread-safety
+    connect((DisplayGroupInterface *)dggvp, SIGNAL(contentWindowAdded(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), this, SLOT(addContentWindow(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect((DisplayGroupInterface *)dggvp, SIGNAL(contentWindowRemoved(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), this, SLOT(removeContentWindow(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect((DisplayGroupInterface *)dggvp, SIGNAL(contentWindowMovedToFront(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), this, SLOT(moveContentWindowToFront(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), Qt::QueuedConnection);
+
+    // connect signals on this object to dggvp
+    // use queued connections for thread-safety
+    connect(this, SIGNAL(contentWindowAdded(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), (DisplayGroupInterface *)dggvp, SLOT(addContentWindow(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect(this, SIGNAL(contentWindowRemoved(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), (DisplayGroupInterface *)dggvp, SLOT(removeContentWindow(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect(this, SIGNAL(contentWindowMovedToFront(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), (DisplayGroupInterface *)dggvp, SLOT(moveContentWindowToFront(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), Qt::QueuedConnection);
+
+    // destruction
+    connect(this, SIGNAL(destroyed(QObject *)), dggvp, SLOT(deleteLater()));
+
+    return dggvp;
 }
 
 void DisplayGroup::handleMessage(MessageHeader messageHeader, QByteArray byteArray)
@@ -151,63 +116,60 @@ void DisplayGroup::handleMessage(MessageHeader messageHeader, QByteArray byteArr
     }
 }
 
-void DisplayGroup::synchronize()
+void DisplayGroup::receiveMessages()
 {
-    // rank 0: send out display group and pixel streams
     if(g_mpiRank == 0)
     {
-        sendDisplayGroup();
-        sendPixelStreams();
+        put_flog(LOG_FATAL, "called on rank 0");
+        exit(-1);
     }
-    else
+
+    // check to see if we have a message (non-blocking)
+    int flag;
+    MPI_Status status;
+    MPI_Iprobe(0, 0, MPI_COMM_WORLD, &flag, &status);
+
+    // check to see if all render processes have a message
+    int allFlag;
+    MPI_Allreduce(&flag, &allFlag, 1, MPI_INT, MPI_LAND, g_mpiRenderComm);
+
+    // message header
+    MessageHeader mh;
+
+    // if all render processes have a message...
+    if(allFlag != 0)
     {
-        // check to see if we have a message (non-blocking)
-        int flag;
-        MPI_Status status;
-        MPI_Iprobe(0, 0, MPI_COMM_WORLD, &flag, &status);
-
-        // check to see if all render processes have a message
-        int allFlag;
-        MPI_Allreduce(&flag, &allFlag, 1, MPI_INT, MPI_LAND, g_mpiRenderComm);
-
-        // message header
-        MessageHeader mh;
-
-        // if all render processes have a message...
-        if(allFlag != 0)
+        // continue receiving messages until we get to the last one which all render processes have
+        // this will "drop frames" and keep all processes synchronized
+        while(allFlag)
         {
-            // continue receiving messages until we get to the last one which all render processes have
-            // this will "drop frames" and keep all processes synchronized
-            while(allFlag)
+            // first, get message header
+            MPI_Recv((void *)&mh, sizeof(MessageHeader), MPI_BYTE, 0, 0, MPI_COMM_WORLD, &status);
+
+            if(mh.type == MESSAGE_TYPE_CONTENTS)
             {
-                // first, get message header
-                MPI_Recv((void *)&mh, sizeof(MessageHeader), MPI_BYTE, 0, 0, MPI_COMM_WORLD, &status);
-
-                if(mh.type == MESSAGE_TYPE_CONTENTS)
-                {
-                    receiveDisplayGroup(mh);
-                }
-                else if(mh.type == MESSAGE_TYPE_CONTENTS_DIMENSIONS)
-                {
-                    receiveContentsDimensionsRequest(mh);
-                }
-                else if(mh.type == MESSAGE_TYPE_PIXELSTREAM)
-                {
-                    receivePixelStreams(mh);
-                }
-                else if(mh.type == MESSAGE_TYPE_QUIT)
-                {
-                    g_app->quit();
-                    return;
-                }
-
-                // check to see if we have another message waiting, for this process and for all render processes
-                MPI_Iprobe(0, 0, MPI_COMM_WORLD, &flag, &status);
-                MPI_Allreduce(&flag, &allFlag, 1, MPI_INT, MPI_LAND, g_mpiRenderComm);
+                receiveDisplayGroup(mh);
+            }
+            else if(mh.type == MESSAGE_TYPE_CONTENTS_DIMENSIONS)
+            {
+                receiveContentsDimensionsRequest(mh);
+            }
+            else if(mh.type == MESSAGE_TYPE_PIXELSTREAM)
+            {
+                receivePixelStreams(mh);
+            }
+            else if(mh.type == MESSAGE_TYPE_QUIT)
+            {
+                g_app->quit();
+                return;
             }
 
-            // at this point, we've received the last message available for all render processes
+            // check to see if we have another message waiting, for this process and for all render processes
+            MPI_Iprobe(0, 0, MPI_COMM_WORLD, &flag, &status);
+            MPI_Allreduce(&flag, &allFlag, 1, MPI_INT, MPI_LAND, g_mpiRenderComm);
         }
+
+        // at this point, we've received the last message available for all render processes
     }
 }
 

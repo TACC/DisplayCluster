@@ -41,7 +41,7 @@ class ContentWindowInterface : public QObject {
         virtual void setZoom(double zoom, ContentWindowInterface * source=NULL);
         virtual void setSelected(bool selected, ContentWindowInterface * source=NULL);
         virtual void moveToFront(ContentWindowInterface * source=NULL);
-        virtual void destroy(ContentWindowInterface * source=NULL);
+        virtual void close(ContentWindowInterface * source=NULL);
 
     signals:
 
@@ -55,7 +55,7 @@ class ContentWindowInterface : public QObject {
         void zoomChanged(double zoom, ContentWindowInterface * source);
         void selectedChanged(bool selected, ContentWindowInterface * source);
         void movedToFront(ContentWindowInterface * source);
-        void destroyed(ContentWindowInterface * source);
+        void closed(ContentWindowInterface * source);
 
     protected:
 

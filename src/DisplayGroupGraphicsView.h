@@ -12,9 +12,6 @@ class DisplayGroupGraphicsView : public QGraphicsView {
     protected:
 
         void resizeEvent(QResizeEvent * event);
-
-    private:
-
 };
 
 #endif
