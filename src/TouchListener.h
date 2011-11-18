@@ -8,6 +8,8 @@
 #define DOUBLE_CLICK_DISTANCE 0.1 // recall this is the (0,0,1,1) coordinate system
 #define DOUBLE_CLICK_TIME 750 // ms
 
+class DisplayGroupGraphicsViewProxy;
+
 class TouchListener : public TUIO::TuioListener
 {
     public:
@@ -25,6 +27,8 @@ class TouchListener : public TUIO::TuioListener
         void refresh(TUIO::TuioTime frameTime);
 
     private:
+
+        DisplayGroupGraphicsViewProxy * graphicsViewProxy_;
 
         TUIO::TuioClient client_;
         QPointF lastPoint_;
