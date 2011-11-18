@@ -5,6 +5,7 @@
 #include "ContentWindow.h"
 #include "log.h"
 #include "DisplayGroupGraphicsViewProxy.h"
+#include "DisplayGroupListWidgetProxy.h"
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
@@ -116,8 +117,7 @@ MainWindow::MainWindow()
         addDockWidget(Qt::LeftDockWidgetArea, contentsDockWidget);
 
         // add the list widget
-        contentsListWidget_ = new QListWidget();    
-        contentsLayout->addWidget(contentsListWidget_);
+        contentsLayout->addWidget(g_displayGroup->getListWidgetProxy()->getListWidget());
 
         show();
     }
@@ -264,21 +264,6 @@ void MainWindow::openContentsDirectory()
                 put_flog(LOG_DEBUG, "ignoring unsupported file %s", fileInfo.absoluteFilePath().toStdString().c_str());
             }
         }
-    }
-}
-
-void MainWindow::refreshContentsList()
-{
-    // clear contents list widget
-    contentsListWidget_->clear();
-
-    std::vector<boost::shared_ptr<ContentWindow> > contentWindows = g_displayGroup->getContentWindows();
-
-    for(unsigned int i=0; i<contentWindows.size(); i++)
-    {
-        // add to list view
-        QListWidgetItem * newItem = new QListWidgetItem(contentsListWidget_);
-        newItem->setText(contentWindows[i]->getContent()->getURI().c_str());
     }
 }
 

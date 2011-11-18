@@ -1,5 +1,6 @@
 #include "DisplayGroup.h"
 #include "DisplayGroupGraphicsViewProxy.h"
+#include "DisplayGroupListWidgetProxy.h"
 #include "ContentWindow.h"
 #include "Content.h"
 #include "main.h"
@@ -89,6 +90,28 @@ DisplayGroupGraphicsViewProxy * DisplayGroup::getGraphicsViewProxy()
     connect(this, SIGNAL(destroyed(QObject *)), dggvp, SLOT(deleteLater()));
 
     return dggvp;
+}
+
+DisplayGroupListWidgetProxy * DisplayGroup::getListWidgetProxy()
+{
+    DisplayGroupListWidgetProxy * dglwp = new DisplayGroupListWidgetProxy(shared_from_this());
+
+    // connect signals from dggvp to slots on this object
+    // use queued connections for thread-safety
+    connect((DisplayGroupInterface *)dglwp, SIGNAL(contentWindowAdded(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), this, SLOT(addContentWindow(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect((DisplayGroupInterface *)dglwp, SIGNAL(contentWindowRemoved(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), this, SLOT(removeContentWindow(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect((DisplayGroupInterface *)dglwp, SIGNAL(contentWindowMovedToFront(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), this, SLOT(moveContentWindowToFront(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), Qt::QueuedConnection);
+
+    // connect signals on this object to dggvp
+    // use queued connections for thread-safety
+    connect(this, SIGNAL(contentWindowAdded(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), (DisplayGroupInterface *)dglwp, SLOT(addContentWindow(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect(this, SIGNAL(contentWindowRemoved(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), (DisplayGroupInterface *)dglwp, SLOT(removeContentWindow(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect(this, SIGNAL(contentWindowMovedToFront(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), (DisplayGroupInterface *)dglwp, SLOT(moveContentWindowToFront(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), Qt::QueuedConnection);
+
+    // destruction
+    connect(this, SIGNAL(destroyed(QObject *)), dglwp, SLOT(deleteLater()));
+
+    return dglwp;
 }
 
 void DisplayGroup::handleMessage(MessageHeader messageHeader, QByteArray byteArray)

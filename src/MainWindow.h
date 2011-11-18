@@ -24,7 +24,6 @@ class MainWindow : public QMainWindow {
 
         void openContent();
         void openContentsDirectory();
-        void refreshContentsList();
         void clearContents();
         void saveContents();
         void loadContents();
@@ -42,9 +41,6 @@ class MainWindow : public QMainWindow {
     private:
 
         std::vector<boost::shared_ptr<GLWindow> > glWindows_;
-
-        // widget listing contents in the left dock
-        QListWidget * contentsListWidget_;
 
         QTimer shareDesktopUpdateTimer_;
         int shareDesktopWidth_;

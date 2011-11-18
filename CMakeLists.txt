@@ -73,6 +73,7 @@ set(SRCS ${SRCS}
     src/DisplayGroupGraphicsScene.cpp
     src/DisplayGroupGraphicsViewProxy.cpp
     src/DisplayGroupGraphicsView.cpp
+    src/DisplayGroupListWidgetProxy.cpp
     src/DynamicTexture.cpp
     src/DynamicTextureContent.cpp
     src/GLWindow.cpp
