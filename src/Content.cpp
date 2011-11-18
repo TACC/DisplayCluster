@@ -27,6 +27,8 @@ void Content::setDimensions(int width, int height)
 {
     width_ = width;
     height_ = height;
+
+    emit(dimensionsChanged(width_, height_));
 }
 
 void Content::render(boost::shared_ptr<ContentWindow> window)
@@ -36,7 +38,7 @@ void Content::render(boost::shared_ptr<ContentWindow> window)
     window->getCoordinates(x, y, w, h);
 
     double centerX, centerY;
-    window->getCenterCoordinates(centerX, centerY);
+    window->getCenter(centerX, centerY);
 
     double zoom = window->getZoom();
 
@@ -86,7 +88,7 @@ boost::shared_ptr<Content> Content::getContent(std::string uri)
     }
     // see if this is a movie
     // todo: need a better way to determine file type
-    else if(QString::fromStdString(uri).endsWith(".mov") || QString::fromStdString(uri).endsWith(".avi") || QString::fromStdString(uri).endsWith(".mp4") || QString::fromStdString(uri).endsWith(".mkv") || QString::fromStdString(uri).endsWith(".mpg"))
+    else if(QString::fromStdString(uri).endsWith(".mov") || QString::fromStdString(uri).endsWith(".avi") || QString::fromStdString(uri).endsWith(".mp4") || QString::fromStdString(uri).endsWith(".mkv") || QString::fromStdString(uri).endsWith(".mpg") || QString::fromStdString(uri).endsWith(".flv"))
     {
         boost::shared_ptr<Content> c(new MovieContent(uri));
 

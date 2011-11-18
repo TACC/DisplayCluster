@@ -1,8 +1,8 @@
-#include "PixelStreamSourceListener.h"
-#include "PixelStreamSourceListenerThread.h"
+#include "NetworkListener.h"
+#include "NetworkListenerThread.h"
 #include "log.h"
 
-PixelStreamSourceListener::PixelStreamSourceListener(int port)
+NetworkListener::NetworkListener(int port)
 {
     // assign values
     port_ = port;
@@ -14,11 +14,11 @@ PixelStreamSourceListener::PixelStreamSourceListener(int port)
     }
 }
 
-void PixelStreamSourceListener::incomingConnection(int socketDescriptor)
+void NetworkListener::incomingConnection(int socketDescriptor)
 {
     put_flog(LOG_DEBUG, "");
 
-    PixelStreamSourceListenerThread * thread = new PixelStreamSourceListenerThread(socketDescriptor);
+    NetworkListenerThread * thread = new NetworkListenerThread(socketDescriptor);
     connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
     thread->start();
 }

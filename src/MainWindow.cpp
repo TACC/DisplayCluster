@@ -5,6 +5,7 @@
 #include "ContentWindow.h"
 #include "PythonConsole.h"
 #include "log.h"
+#include "DisplayGroupGraphicsViewProxy.h"
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
@@ -113,7 +114,7 @@ MainWindow::MainWindow()
         setCentralWidget(mainWidget);
 
         // add the local renderer group
-        mainWidget->addTab((QWidget *)g_displayGroup->getGraphicsView().get(), "Display group 0");
+        mainWidget->addTab((QWidget *)g_displayGroup->getGraphicsViewProxy()->getGraphicsView(), "Display group 0");
 
         // create contents dock widget
         QDockWidget * contentsDockWidget = new QDockWidget("Contents", this);
@@ -423,8 +424,8 @@ void MainWindow::shareDesktopUpdate()
 
 void MainWindow::updateGLWindows()
 {
-    // get updated content windows
-    g_displayGroup->synchronize();
+    // receive any waiting messages
+    g_displayGroup->receiveMessages();
 
     // render all GLWindows
     for(unsigned int i=0; i<glWindows_.size(); i++)
@@ -435,6 +436,16 @@ void MainWindow::updateGLWindows()
     // all render processes render simultaneously
     // todo: sync swapbuffers
     MPI_Barrier(g_mpiRenderComm);
+
+    // synchronize clock
+    if(g_mpiRank == 1)
+    {
+        g_displayGroup->sendFrameClockUpdate();
+    }
+    else
+    {
+        g_displayGroup->receiveFrameClockUpdate();
+    }
 
     // advance all contents
     g_displayGroup->advanceContents();

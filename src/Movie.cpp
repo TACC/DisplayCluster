@@ -186,6 +186,24 @@ void Movie::render(float tX, float tY, float tW, float tH)
 
 void Movie::nextFrame(bool skip)
 {
+    double frameDuration = (double)avFormatContext_->streams[videoStream_]->r_frame_rate.den / (double)avFormatContext_->streams[videoStream_]->r_frame_rate.num;
+
+    // rate limiting
+    double elapsedSeconds = 999999.;
+
+    if(nextTimestamp_ != NULL && nextTimestamp_->is_not_a_date_time() == false)
+    {
+        elapsedSeconds = (double)(*(g_displayGroup->getTimestamp()) - *nextTimestamp_).total_microseconds() / 1000000.;
+    }
+
+    if(elapsedSeconds < frameDuration)
+    {
+        return;
+    }
+
+    // update timestamp of last frame
+    nextTimestamp_ = g_displayGroup->getTimestamp();
+
     if(initialized_ != true)
     {
         return;

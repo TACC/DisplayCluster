@@ -105,27 +105,32 @@ void MainWindow::shareDesktopUpdate()
 
     QByteArray byteArray = buffer.data();
 
-    MessageHeader mh;
-    mh.size = byteArray.size();
-    mh.type = MESSAGE_TYPE_PIXELSTREAM;
-
-    // add the truncated URI to the header
-    size_t len = uri_.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
-    mh.uri[len] = '\0';
-
-    // send the header
-    int sent = tcpSocket_.write((const char *)&mh, sizeof(MessageHeader));
-
-    while(sent < (int)sizeof(MessageHeader))
+    if(byteArray != previousImageData_)
     {
-        sent += tcpSocket_.write((const char *)&mh + sent, sizeof(MessageHeader) - sent);
-    }
+        MessageHeader mh;
+        mh.size = byteArray.size();
+        mh.type = MESSAGE_TYPE_PIXELSTREAM;
 
-    // send the message
-    sent = tcpSocket_.write((const char *)byteArray.data(), byteArray.size());
+        // add the truncated URI to the header
+        size_t len = uri_.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
+        mh.uri[len] = '\0';
 
-    while(sent < byteArray.size())
-    {
-        sent += tcpSocket_.write((const char *)byteArray.data() + sent, byteArray.size() - sent);
+        // send the header
+        int sent = tcpSocket_.write((const char *)&mh, sizeof(MessageHeader));
+
+        while(sent < (int)sizeof(MessageHeader))
+        {
+            sent += tcpSocket_.write((const char *)&mh + sent, sizeof(MessageHeader) - sent);
+        }
+
+        // send the message
+        sent = tcpSocket_.write((const char *)byteArray.data(), byteArray.size());
+
+        while(sent < byteArray.size())
+        {
+            sent += tcpSocket_.write((const char *)byteArray.data() + sent, byteArray.size() - sent);
+        }
+
+        previousImageData_ = byteArray;
     }
 }

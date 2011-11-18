@@ -10,7 +10,8 @@
 
 class ContentWindow;
 
-class Content {
+class Content : public QObject {
+    Q_OBJECT
 
     public:
 
@@ -29,6 +30,10 @@ class Content {
 
         // get a Content object of the appropriate derived type based on the URI given
         static boost::shared_ptr<Content> getContent(std::string uri);
+
+    signals:
+
+        void dimensionsChanged(int width, int height);
 
     protected:
         friend class boost::serialization::access;

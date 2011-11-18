@@ -1,7 +1,6 @@
 #include "DisplayGroupGraphicsView.h"
 #include "DisplayGroupGraphicsScene.h"
 #include "main.h"
-#include <algorithm>
 
 DisplayGroupGraphicsView::DisplayGroupGraphicsView()
 {

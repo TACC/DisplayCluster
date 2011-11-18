@@ -35,6 +35,8 @@ class MainWindow : public QMainWindow {
         int width_;
         int height_;
 
+        QByteArray previousImageData_;
+
         QTimer shareDesktopUpdateTimer_;
 
         QTcpSocket tcpSocket_;

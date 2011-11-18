@@ -32,7 +32,7 @@ find_package(GLUT REQUIRED)
 include_directories(${GLUT_INCLUDE_DIRS})
 set(LIBS ${LIBS} ${GLUT_LIBRARIES})
 
-find_package(Boost REQUIRED COMPONENTS serialization)
+find_package(Boost REQUIRED COMPONENTS serialization date_time)
 include_directories(${Boost_INCLUDE_DIRS})
 set(LIBS ${LIBS} ${Boost_LIBRARIES})
 
@@ -74,9 +74,13 @@ set(SRCS ${SRCS}
     src/Configuration.cpp
     src/Content.cpp
     src/ContentWindow.cpp
+    src/ContentWindowInterface.cpp
+    src/ContentWindowGraphicsItem.cpp
     src/Marker.cpp
     src/DisplayGroup.cpp
+    src/DisplayGroupInterface.cpp
     src/DisplayGroupGraphicsScene.cpp
+    src/DisplayGroupGraphicsViewProxy.cpp
     src/DisplayGroupGraphicsView.cpp
     src/DynamicTexture.cpp
     src/DynamicTextureContent.cpp
@@ -86,21 +90,24 @@ set(SRCS ${SRCS}
     src/MainWindow.cpp
     src/Movie.cpp
     src/MovieContent.cpp
+    src/NetworkListener.cpp
+    src/NetworkListenerThread.cpp
     src/PixelStream.cpp
     src/PixelStreamContent.cpp
     src/PixelStreamSource.cpp
-    src/PixelStreamSourceListener.cpp
-    src/PixelStreamSourceListenerThread.cpp
     src/PythonConsole.cpp
     src/Texture.cpp
     src/TextureContent.cpp
 )
 
 set(MOC_HEADERS
+    src/Content.h
+    src/ContentWindowInterface.h
     src/DisplayGroup.h
+    src/DisplayGroupInterface.h
     src/MainWindow.h
-    src/PixelStreamSourceListener.h
-    src/PixelStreamSourceListenerThread.h
+    src/NetworkListener.h
+    src/NetworkListenerThread.h
     src/PythonConsole.h
 )
 

@@ -1,26 +1,23 @@
 #include "DisplayGroup.h"
-#include "DisplayGroupGraphicsView.h"
+#include "DisplayGroupGraphicsViewProxy.h"
 #include "ContentWindow.h"
 #include "Content.h"
 #include "main.h"
 #include "log.h"
 #include "PixelStream.h"
 #include "PixelStreamSource.h"
+#include "PixelStreamContent.h"
 #include <sstream>
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/shared_ptr.hpp>
 #include <boost/serialization/utility.hpp>
+#include <boost/date_time/posix_time/time_serialize.hpp>
 #include <mpi.h>
 
-boost::shared_ptr<DisplayGroupGraphicsView> DisplayGroup::getGraphicsView()
+DisplayGroup::DisplayGroup()
 {
-    if(graphicsView_ == NULL)
-    {
-        boost::shared_ptr<DisplayGroupGraphicsView> dggv(new DisplayGroupGraphicsView());
-        graphicsView_ = dggv;
-    }
-
-    return graphicsView_;
+    // register types for use in signals/slots
+    qRegisterMetaType<boost::shared_ptr<ContentWindow> >("boost::shared_ptr<ContentWindow>");
 }
 
 Marker & DisplayGroup::getMarker()
@@ -28,155 +25,151 @@ Marker & DisplayGroup::getMarker()
     return marker_;
 }
 
-void DisplayGroup::addContentWindow(boost::shared_ptr<ContentWindow> contentWindow)
+boost::shared_ptr<boost::posix_time::ptime> DisplayGroup::getTimestamp()
 {
-    contentWindows_.push_back(contentWindow);
-
-    // set display group in content window object
-    contentWindow->setDisplayGroup(shared_from_this());
-
-    // add the window to the display group and to the GUI scene
-    sendDisplayGroup();
-    getGraphicsView()->scene()->addItem((QGraphicsRectItem *)contentWindow.get());
-
-    // make sure we have its dimensions so we can constrain its aspect ratio
-    sendContentsDimensionsRequest();
-
-    g_mainWindow->refreshContentsList();
+    return timestamp_;
 }
 
-void DisplayGroup::removeContentWindow(boost::shared_ptr<ContentWindow> contentWindow)
+void DisplayGroup::addContentWindow(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source)
 {
-    // find vector entry for content window
-    std::vector<boost::shared_ptr<ContentWindow> >::iterator it;
+    DisplayGroupInterface::addContentWindow(contentWindow, source);
 
-    it = find(contentWindows_.begin(), contentWindows_.end(), contentWindow);
-
-    if(it != contentWindows_.end())
+    if(source != this)
     {
-        // we found the entry
-        // now, remove it
-        contentWindows_.erase(it);
+        // set display group in content window object
+        contentWindow->setDisplayGroup(shared_from_this());
+
+        sendDisplayGroup();
+
+        // make sure we have its dimensions so we can constrain its aspect ratio
+        sendContentsDimensionsRequest();
     }
-
-    // set null display group in content window object
-    contentWindow->setDisplayGroup(boost::shared_ptr<DisplayGroup>());
-
-    // remove from scene
-    getGraphicsView()->scene()->removeItem((QGraphicsRectItem *)contentWindow.get());
-
-    g_mainWindow->refreshContentsList();
 }
 
-bool DisplayGroup::hasContent(std::string uri)
+void DisplayGroup::removeContentWindow(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source)
 {
-    for(unsigned int i=0; i<contentWindows_.size(); i++)
+    DisplayGroupInterface::removeContentWindow(contentWindow, source);
+
+    if(source != this)
     {
-        if(contentWindows_[i]->getContent()->getURI() == uri)
-        {
-            return true;
-        }
+        // set null display group in content window object
+        contentWindow->setDisplayGroup(boost::shared_ptr<DisplayGroup>());
+
+        sendDisplayGroup();
     }
-
-    return false;
 }
 
-void DisplayGroup::setContentWindows(std::vector<boost::shared_ptr<ContentWindow> > contentWindows)
+void DisplayGroup::moveContentWindowToFront(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source)
 {
-    // clear existing content windows
-    contentWindows_.clear();
+    DisplayGroupInterface::moveContentWindowToFront(contentWindow, source);
 
-    // add new content windows
-    for(unsigned int i=0; i<contentWindows.size(); i++)
-    {
-        addContentWindow(contentWindows[i]);
-    }
-
-    g_mainWindow->refreshContentsList();
-
-    sendDisplayGroup();
-}
-
-std::vector<boost::shared_ptr<ContentWindow> > DisplayGroup::getContentWindows()
-{
-    return contentWindows_;
-}
-
-void DisplayGroup::moveContentWindowToFront(boost::shared_ptr<ContentWindow> contentWindow)
-{
-    // find vector entry for content window
-    std::vector<boost::shared_ptr<ContentWindow> >::iterator it;
-
-    it = find(contentWindows_.begin(), contentWindows_.end(), contentWindow);
-
-    if(it != contentWindows_.end())
-    {
-        // we found the entry
-        // now, move it to end of the list (last item rendered is on top)
-        contentWindows_.erase(it);
-        contentWindows_.push_back(contentWindow);
-    }
-
-    g_mainWindow->refreshContentsList();
-}
-
-void DisplayGroup::synchronize()
-{
-    // rank 0: send out display group and pixel streams
-    if(g_mpiRank == 0)
+    if(source != this)
     {
         sendDisplayGroup();
+    }
+}
+
+DisplayGroupGraphicsViewProxy * DisplayGroup::getGraphicsViewProxy()
+{
+    DisplayGroupGraphicsViewProxy * dggvp = new DisplayGroupGraphicsViewProxy(shared_from_this());
+
+    // connect signals from dggvp to slots on this object
+    // use queued connections for thread-safety
+    connect((DisplayGroupInterface *)dggvp, SIGNAL(contentWindowAdded(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), this, SLOT(addContentWindow(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect((DisplayGroupInterface *)dggvp, SIGNAL(contentWindowRemoved(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), this, SLOT(removeContentWindow(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect((DisplayGroupInterface *)dggvp, SIGNAL(contentWindowMovedToFront(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), this, SLOT(moveContentWindowToFront(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), Qt::QueuedConnection);
+
+    // connect signals on this object to dggvp
+    // use queued connections for thread-safety
+    connect(this, SIGNAL(contentWindowAdded(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), (DisplayGroupInterface *)dggvp, SLOT(addContentWindow(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect(this, SIGNAL(contentWindowRemoved(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), (DisplayGroupInterface *)dggvp, SLOT(removeContentWindow(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect(this, SIGNAL(contentWindowMovedToFront(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), (DisplayGroupInterface *)dggvp, SLOT(moveContentWindowToFront(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), Qt::QueuedConnection);
+
+    // destruction
+    connect(this, SIGNAL(destroyed(QObject *)), dggvp, SLOT(deleteLater()));
+
+    return dggvp;
+}
+
+void DisplayGroup::handleMessage(MessageHeader messageHeader, QByteArray byteArray)
+{
+    if(messageHeader.type == MESSAGE_TYPE_PIXELSTREAM)
+    {
+        // check to see if Content/ContentWindow exists for the URI
+        std::string uri = std::string(messageHeader.uri);
+
+        if(hasContent(uri) == false)
+        {
+            put_flog(LOG_DEBUG, "adding pixel stream: %s", uri.c_str());
+
+            boost::shared_ptr<Content> c(new PixelStreamContent(uri));
+            boost::shared_ptr<ContentWindow> cw(new ContentWindow(c));
+
+            addContentWindow(cw);
+        }
+
+        // update pixel stream source
+        g_pixelStreamSourceFactory.getObject(uri)->setImageData(byteArray);
+
+        // send updated pixelstream
         sendPixelStreams();
     }
-    else
+}
+
+void DisplayGroup::receiveMessages()
+{
+    if(g_mpiRank == 0)
     {
-        // check to see if we have a message (non-blocking)
-        int flag;
-        MPI_Status status;
-        MPI_Iprobe(0, 0, MPI_COMM_WORLD, &flag, &status);
+        put_flog(LOG_FATAL, "called on rank 0");
+        exit(-1);
+    }
 
-        // check to see if all render processes have a message
-        int allFlag;
-        MPI_Allreduce(&flag, &allFlag, 1, MPI_INT, MPI_LAND, g_mpiRenderComm);
+    // check to see if we have a message (non-blocking)
+    int flag;
+    MPI_Status status;
+    MPI_Iprobe(0, 0, MPI_COMM_WORLD, &flag, &status);
 
-        // message header
-        MessageHeader mh;
+    // check to see if all render processes have a message
+    int allFlag;
+    MPI_Allreduce(&flag, &allFlag, 1, MPI_INT, MPI_LAND, g_mpiRenderComm);
 
-        // if all render processes have a message...
-        if(allFlag != 0)
+    // message header
+    MessageHeader mh;
+
+    // if all render processes have a message...
+    if(allFlag != 0)
+    {
+        // continue receiving messages until we get to the last one which all render processes have
+        // this will "drop frames" and keep all processes synchronized
+        while(allFlag)
         {
-            // continue receiving messages until we get to the last one which all render processes have
-            // this will "drop frames" and keep all processes synchronized
-            while(allFlag)
+            // first, get message header
+            MPI_Recv((void *)&mh, sizeof(MessageHeader), MPI_BYTE, 0, 0, MPI_COMM_WORLD, &status);
+
+            if(mh.type == MESSAGE_TYPE_CONTENTS)
             {
-                // first, get message header
-                MPI_Recv((void *)&mh, sizeof(MessageHeader), MPI_BYTE, 0, 0, MPI_COMM_WORLD, &status);
-
-                if(mh.type == MESSAGE_TYPE_CONTENTS)
-                {
-                    receiveDisplayGroup(mh);
-                }
-                else if(mh.type == MESSAGE_TYPE_CONTENTS_DIMENSIONS)
-                {
-                    receiveContentsDimensionsRequest(mh);
-                }
-                else if(mh.type == MESSAGE_TYPE_PIXELSTREAM)
-                {
-                    receivePixelStreams(mh);
-                }
-                else if(mh.type == MESSAGE_TYPE_QUIT)
-                {
-                    g_app->quit();
-                    return;
-                }
-
-                // check to see if we have another message waiting, for this process and for all render processes
-                MPI_Iprobe(0, 0, MPI_COMM_WORLD, &flag, &status);
-                MPI_Allreduce(&flag, &allFlag, 1, MPI_INT, MPI_LAND, g_mpiRenderComm);
+                receiveDisplayGroup(mh);
+            }
+            else if(mh.type == MESSAGE_TYPE_CONTENTS_DIMENSIONS)
+            {
+                receiveContentsDimensionsRequest(mh);
+            }
+            else if(mh.type == MESSAGE_TYPE_PIXELSTREAM)
+            {
+                receivePixelStreams(mh);
+            }
+            else if(mh.type == MESSAGE_TYPE_QUIT)
+            {
+                g_app->quit();
+                return;
             }
 
-            // at this point, we've received the last message available for all render processes
+            // check to see if we have another message waiting, for this process and for all render processes
+            MPI_Iprobe(0, 0, MPI_COMM_WORLD, &flag, &status);
+            MPI_Allreduce(&flag, &allFlag, 1, MPI_INT, MPI_LAND, g_mpiRenderComm);
         }
+
+        // at this point, we've received the last message available for all render processes
     }
 }
 
@@ -307,6 +300,95 @@ void DisplayGroup::sendPixelStreams()
             MPI_Bcast((void *)imageData.data(), size, MPI_BYTE, 0, MPI_COMM_WORLD);
         }
     }
+}
+
+void DisplayGroup::sendFrameClockUpdate()
+{
+    // this should only be called by the rank 1 process
+    if(g_mpiRank != 1)
+    {
+        put_flog(LOG_WARN, "called by rank %i != 1", g_mpiRank);
+        return;
+    }
+
+    boost::shared_ptr<boost::posix_time::ptime> timestamp(new boost::posix_time::ptime(boost::posix_time::microsec_clock::universal_time()));
+
+    // serialize state
+    std::ostringstream oss(std::ostringstream::binary);
+
+    // brace this so destructor is called on archive before we use the stream
+    {
+        boost::archive::binary_oarchive oa(oss);
+        oa << timestamp;
+    }
+
+    // serialized data to string
+    std::string serializedString = oss.str();
+    int size = serializedString.size();
+
+    // send the header and the message
+    MessageHeader mh;
+    mh.size = size;
+    mh.type = MESSAGE_TYPE_FRAME_CLOCK;
+
+    // the header is sent via a send, so that we can probe it on the render processes
+    for(int i=2; i<g_mpiSize; i++)
+    {
+        MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, i, 0, MPI_COMM_WORLD);
+    }
+
+    // broadcast it
+    MPI_Bcast((void *)serializedString.data(), size, MPI_BYTE, 0, g_mpiRenderComm);
+
+    // update timestamp
+    timestamp_ = timestamp;
+}
+
+void DisplayGroup::receiveFrameClockUpdate()
+{
+    // we shouldn't run the broadcast if we're rank 1
+    if(g_mpiRank == 1)
+    {
+        return;
+    }
+
+    // receive the message header
+    MessageHeader messageHeader;
+    MPI_Status status;
+    MPI_Recv((void *)&messageHeader, sizeof(MessageHeader), MPI_BYTE, 1, 0, MPI_COMM_WORLD, &status);
+
+    if(messageHeader.type != MESSAGE_TYPE_FRAME_CLOCK)
+    {
+        put_flog(LOG_FATAL, "unexpected message type");
+        exit(-1);
+    }
+
+    // receive serialized data
+    char * buf = new char[messageHeader.size];
+
+    // read message into the buffer
+    MPI_Bcast((void *)buf, messageHeader.size, MPI_BYTE, 0, g_mpiRenderComm);
+
+    // de-serialize...
+    std::istringstream iss(std::istringstream::binary);
+
+    if(iss.rdbuf()->pubsetbuf(buf, messageHeader.size) == NULL)
+    {
+        put_flog(LOG_FATAL, "rank %i: error setting stream buffer", g_mpiRank);
+        exit(-1);
+    }
+
+    // read to a new timestamp
+    boost::shared_ptr<boost::posix_time::ptime> timestamp;
+
+    boost::archive::binary_iarchive ia(iss);
+    ia >> timestamp;
+
+    // free mpi buffer
+    delete [] buf;
+
+    // update timestamp
+    timestamp_ = timestamp;
 }
 
 void DisplayGroup::sendQuit()
