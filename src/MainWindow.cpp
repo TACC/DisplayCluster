@@ -106,7 +106,8 @@ MainWindow::MainWindow()
         setCentralWidget(mainWidget);
 
         // add the local renderer group
-        mainWidget->addTab((QWidget *)g_displayGroup->getGraphicsViewProxy()->getGraphicsView(), "Display group 0");
+        DisplayGroupGraphicsViewProxy * dggv = new DisplayGroupGraphicsViewProxy(g_displayGroup);
+        mainWidget->addTab((QWidget *)dggv->getGraphicsView(), "Display group 0");
 
         // create contents dock widget
         QDockWidget * contentsDockWidget = new QDockWidget("Contents", this);
@@ -117,7 +118,8 @@ MainWindow::MainWindow()
         addDockWidget(Qt::LeftDockWidgetArea, contentsDockWidget);
 
         // add the list widget
-        contentsLayout->addWidget(g_displayGroup->getListWidgetProxy()->getListWidget());
+        DisplayGroupListWidgetProxy * dglwp = new DisplayGroupListWidgetProxy(g_displayGroup);
+        contentsLayout->addWidget(dglwp->getListWidget());
 
         show();
     }

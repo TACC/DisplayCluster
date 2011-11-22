@@ -12,7 +12,6 @@
 
 class Content;
 class DisplayGroup;
-class ContentWindowGraphicsItem;
 
 class ContentWindow : public ContentWindowInterface, public boost::enable_shared_from_this<ContentWindow> {
 
@@ -35,11 +34,6 @@ class ContentWindow : public ContentWindowInterface, public boost::enable_shared
 
         // button dimensions
         void getButtonDimensions(float &width, float &height);
-
-        // interfaces
-
-        // regular pointer used since Qt will own the object
-        ContentWindowGraphicsItem * getContentWindowGraphicsItem();
 
     protected:
         friend class boost::serialization::access;

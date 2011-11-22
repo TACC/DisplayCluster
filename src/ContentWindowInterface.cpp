@@ -20,6 +20,33 @@ ContentWindowInterface::ContentWindowInterface(boost::shared_ptr<ContentWindow> 
         zoom_ = contentWindow->zoom_;
         selected_ = contentWindow->selected_;
     }
+
+    // connect signals from this to slots on the ContentWindow
+    // use queued connections for thread-safety
+    connect(this, SIGNAL(contentDimensionsChanged(int, int, ContentWindowInterface *)), contentWindow.get(), SLOT(setContentDimensions(int, int, ContentWindowInterface *)), Qt::QueuedConnection);
+    connect(this, SIGNAL(coordinatesChanged(double, double, double, double, ContentWindowInterface *)), contentWindow.get(), SLOT(setCoordinates(double, double, double, double, ContentWindowInterface *)), Qt::QueuedConnection);
+    connect(this, SIGNAL(positionChanged(double, double, ContentWindowInterface *)), contentWindow.get(), SLOT(setPosition(double, double, ContentWindowInterface *)), Qt::QueuedConnection);
+    connect(this, SIGNAL(sizeChanged(double, double, ContentWindowInterface *)), contentWindow.get(), SLOT(setSize(double, double, ContentWindowInterface *)), Qt::QueuedConnection);
+    connect(this, SIGNAL(centerChanged(double, double, ContentWindowInterface *)), contentWindow.get(), SLOT(setCenter(double, double, ContentWindowInterface *)), Qt::QueuedConnection);
+    connect(this, SIGNAL(zoomChanged(double, ContentWindowInterface *)), contentWindow.get(), SLOT(setZoom(double, ContentWindowInterface *)), Qt::QueuedConnection);
+    connect(this, SIGNAL(selectedChanged(bool, ContentWindowInterface *)), contentWindow.get(), SLOT(setSelected(bool, ContentWindowInterface *)), Qt::QueuedConnection);
+    connect(this, SIGNAL(movedToFront(ContentWindowInterface *)), contentWindow.get(), SLOT(moveToFront(ContentWindowInterface *)), Qt::QueuedConnection);
+    connect(this, SIGNAL(closed(ContentWindowInterface *)), contentWindow.get(), SLOT(close(ContentWindowInterface *)), Qt::QueuedConnection);
+
+    // connect signals on the ContentWindow object to slots on this
+    // use queued connections for thread-safety
+    connect(contentWindow.get(), SIGNAL(contentDimensionsChanged(int, int, ContentWindowInterface *)), this, SLOT(setContentDimensions(int, int, ContentWindowInterface *)), Qt::QueuedConnection);
+    connect(contentWindow.get(), SIGNAL(coordinatesChanged(double, double, double, double, ContentWindowInterface *)), this, SLOT(setCoordinates(double, double, double, double, ContentWindowInterface *)), Qt::QueuedConnection);
+    connect(contentWindow.get(), SIGNAL(positionChanged(double, double, ContentWindowInterface *)), this, SLOT(setPosition(double, double, ContentWindowInterface *)), Qt::QueuedConnection);
+    connect(contentWindow.get(), SIGNAL(sizeChanged(double, double, ContentWindowInterface *)), this, SLOT(setSize(double, double, ContentWindowInterface *)), Qt::QueuedConnection);
+    connect(contentWindow.get(), SIGNAL(centerChanged(double, double, ContentWindowInterface *)), this, SLOT(setCenter(double, double, ContentWindowInterface *)), Qt::QueuedConnection);
+    connect(contentWindow.get(), SIGNAL(zoomChanged(double, ContentWindowInterface *)), this, SLOT(setZoom(double, ContentWindowInterface *)), Qt::QueuedConnection);
+    connect(contentWindow.get(), SIGNAL(selectedChanged(bool, ContentWindowInterface *)), this, SLOT(setSelected(bool, ContentWindowInterface *)), Qt::QueuedConnection);
+    connect(contentWindow.get(), SIGNAL(movedToFront(ContentWindowInterface *)), this, SLOT(moveToFront(ContentWindowInterface *)), Qt::QueuedConnection);
+    connect(contentWindow.get(), SIGNAL(closed(ContentWindowInterface *)), this, SLOT(close(ContentWindowInterface *)), Qt::QueuedConnection);
+
+    // destruction
+    connect(contentWindow.get(), SIGNAL(destroyed(QObject *)), this, SLOT(deleteLater()));
 }
 
 boost::shared_ptr<ContentWindow> ContentWindowInterface::getContentWindow()

@@ -2,7 +2,6 @@
 #include "Content.h"
 #include "DisplayGroup.h"
 #include "main.h"
-#include "ContentWindowGraphicsItem.h"
 
 ContentWindow::ContentWindow(boost::shared_ptr<Content> content)
 {
@@ -218,38 +217,4 @@ void ContentWindow::getButtonDimensions(float &width, float &height)
     {
         height = 0.49 * h_;
     }
-}
-
-ContentWindowGraphicsItem * ContentWindow::getContentWindowGraphicsItem()
-{
-    ContentWindowGraphicsItem * cwgi = new ContentWindowGraphicsItem(shared_from_this());
-
-    // connect signals from cwgi to slots on this object
-    // use queued connections for thread-safety
-    connect((ContentWindowInterface *)cwgi, SIGNAL(contentDimensionsChanged(int, int, ContentWindowInterface *)), this, SLOT(setContentDimensions(int, int, ContentWindowInterface *)), Qt::QueuedConnection);
-    connect((ContentWindowInterface *)cwgi, SIGNAL(coordinatesChanged(double, double, double, double, ContentWindowInterface *)), this, SLOT(setCoordinates(double, double, double, double, ContentWindowInterface *)), Qt::QueuedConnection);
-    connect((ContentWindowInterface *)cwgi, SIGNAL(positionChanged(double, double, ContentWindowInterface *)), this, SLOT(setPosition(double, double, ContentWindowInterface *)), Qt::QueuedConnection);
-    connect((ContentWindowInterface *)cwgi, SIGNAL(sizeChanged(double, double, ContentWindowInterface *)), this, SLOT(setSize(double, double, ContentWindowInterface *)), Qt::QueuedConnection);
-    connect((ContentWindowInterface *)cwgi, SIGNAL(centerChanged(double, double, ContentWindowInterface *)), this, SLOT(setCenter(double, double, ContentWindowInterface *)), Qt::QueuedConnection);
-    connect((ContentWindowInterface *)cwgi, SIGNAL(zoomChanged(double, ContentWindowInterface *)), this, SLOT(setZoom(double, ContentWindowInterface *)), Qt::QueuedConnection);
-    connect((ContentWindowInterface *)cwgi, SIGNAL(selectedChanged(bool, ContentWindowInterface *)), this, SLOT(setSelected(bool, ContentWindowInterface *)), Qt::QueuedConnection);
-    connect((ContentWindowInterface *)cwgi, SIGNAL(movedToFront(ContentWindowInterface *)), this, SLOT(moveToFront(ContentWindowInterface *)), Qt::QueuedConnection);
-    connect((ContentWindowInterface *)cwgi, SIGNAL(closed(ContentWindowInterface *)), this, SLOT(close(ContentWindowInterface *)), Qt::QueuedConnection);
-
-    // connect signals on this object to cwgi
-    // use queued connections for thread-safety
-    connect(this, SIGNAL(contentDimensionsChanged(int, int, ContentWindowInterface *)), (ContentWindowInterface *)cwgi, SLOT(setContentDimensions(int, int, ContentWindowInterface *)), Qt::QueuedConnection);
-    connect(this, SIGNAL(coordinatesChanged(double, double, double, double, ContentWindowInterface *)), (ContentWindowInterface *)cwgi, SLOT(setCoordinates(double, double, double, double, ContentWindowInterface *)), Qt::QueuedConnection);
-    connect(this, SIGNAL(positionChanged(double, double, ContentWindowInterface *)), (ContentWindowInterface *)cwgi, SLOT(setPosition(double, double, ContentWindowInterface *)), Qt::QueuedConnection);
-    connect(this, SIGNAL(sizeChanged(double, double, ContentWindowInterface *)), (ContentWindowInterface *)cwgi, SLOT(setSize(double, double, ContentWindowInterface *)), Qt::QueuedConnection);
-    connect(this, SIGNAL(centerChanged(double, double, ContentWindowInterface *)), (ContentWindowInterface *)cwgi, SLOT(setCenter(double, double, ContentWindowInterface *)), Qt::QueuedConnection);
-    connect(this, SIGNAL(zoomChanged(double, ContentWindowInterface *)), (ContentWindowInterface *)cwgi, SLOT(setZoom(double, ContentWindowInterface *)), Qt::QueuedConnection);
-    connect(this, SIGNAL(selectedChanged(bool, ContentWindowInterface *)), (ContentWindowInterface *)cwgi, SLOT(setSelected(bool, ContentWindowInterface *)), Qt::QueuedConnection);
-    connect(this, SIGNAL(movedToFront(ContentWindowInterface *)), (ContentWindowInterface *)cwgi, SLOT(moveToFront(ContentWindowInterface *)), Qt::QueuedConnection);
-    connect(this, SIGNAL(closed(ContentWindowInterface *)), (ContentWindowInterface *)cwgi, SLOT(close(ContentWindowInterface *)), Qt::QueuedConnection);
-
-    // destruction
-    connect(this, SIGNAL(destroyed(QObject *)), (QObject *)cwgi, SLOT(deleteLater()));
-
-    return cwgi;
 }

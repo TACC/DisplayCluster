@@ -12,6 +12,21 @@ DisplayGroupInterface::DisplayGroupInterface(boost::shared_ptr<DisplayGroup> dis
     {
         contentWindows_ = displayGroup->contentWindows_;
     }
+
+    // connect signals from this to slots on the DisplayGroup
+    // use queued connections for thread-safety
+    connect(this, SIGNAL(contentWindowAdded(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), displayGroup.get(), SLOT(addContentWindow(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect(this, SIGNAL(contentWindowRemoved(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), displayGroup.get(), SLOT(removeContentWindow(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect(this, SIGNAL(contentWindowMovedToFront(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), displayGroup.get(), SLOT(moveContentWindowToFront(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), Qt::QueuedConnection);
+
+    // connect signals on the DisplayGroup to slots on this
+    // use queued connections for thread-safety
+    connect(displayGroup.get(), SIGNAL(contentWindowAdded(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), this, SLOT(addContentWindow(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect(displayGroup.get(), SIGNAL(contentWindowRemoved(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), this, SLOT(removeContentWindow(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect(displayGroup.get(), SIGNAL(contentWindowMovedToFront(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), this, SLOT(moveContentWindowToFront(boost::shared_ptr<ContentWindow>, DisplayGroupInterface *)), Qt::QueuedConnection);
+
+    // destruction
+    connect(displayGroup.get(), SIGNAL(destroyed(QObject *)), this, SLOT(deleteLater()));
 }
 
 boost::shared_ptr<DisplayGroup> DisplayGroupInterface::getDisplayGroup()

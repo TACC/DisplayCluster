@@ -25,7 +25,8 @@ void DisplayGroupGraphicsViewProxy::addContentWindow(boost::shared_ptr<ContentWi
 
     if(source != this)
     {
-        graphicsView_->scene()->addItem((QGraphicsItem *)(contentWindow->getContentWindowGraphicsItem()));
+        ContentWindowGraphicsItem * cwgi = new ContentWindowGraphicsItem(contentWindow);
+        graphicsView_->scene()->addItem((QGraphicsItem *)cwgi);
     }
 }
 

@@ -12,8 +12,6 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 class ContentWindow;
-class DisplayGroupGraphicsViewProxy;
-class DisplayGroupListWidgetProxy;
 
 enum MESSAGE_TYPE { MESSAGE_TYPE_CONTENTS, MESSAGE_TYPE_CONTENTS_DIMENSIONS, MESSAGE_TYPE_PIXELSTREAM, MESSAGE_TYPE_FRAME_CLOCK, MESSAGE_TYPE_QUIT };
 
@@ -39,12 +37,6 @@ class DisplayGroup : public DisplayGroupInterface, public boost::enable_shared_f
         void addContentWindow(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source=NULL);
         void removeContentWindow(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source=NULL);
         void moveContentWindowToFront(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source=NULL);
-
-        // interfaces
-
-        // regular pointer used since Qt will own the object
-        DisplayGroupGraphicsViewProxy * getGraphicsViewProxy();
-        DisplayGroupListWidgetProxy * getListWidgetProxy();
 
     public slots:
 
