@@ -5,8 +5,10 @@
 
 DisplayGroupGraphicsViewProxy::DisplayGroupGraphicsViewProxy(boost::shared_ptr<DisplayGroup> displayGroup) : DisplayGroupInterface(displayGroup)
 {
+    std::cerr << "DisplayGroupGraphicsViewProxy ctor\n";
     // create actual graphics view
     graphicsView_ = new DisplayGroupGraphicsView();
+
 }
 
 DisplayGroupGraphicsViewProxy::~DisplayGroupGraphicsViewProxy()

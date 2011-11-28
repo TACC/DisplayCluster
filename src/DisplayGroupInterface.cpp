@@ -5,6 +5,7 @@
 
 DisplayGroupInterface::DisplayGroupInterface(boost::shared_ptr<DisplayGroup> displayGroup)
 {
+    std::cerr << "DisplayGroupInterface ctor\n";
     displayGroup_ = displayGroup;
 
     // copy all members from displayGroup
@@ -22,6 +23,15 @@ boost::shared_ptr<DisplayGroup> DisplayGroupInterface::getDisplayGroup()
 std::vector<boost::shared_ptr<ContentWindow> > DisplayGroupInterface::getContentWindows()
 {
     return contentWindows_;
+}
+
+void DisplayGroupInterface::dump()
+{
+    std::cerr << "DisplayGroupInterface: " << std::hex << ((long)this) << "\n";
+    for(unsigned int i=0; i<contentWindows_.size(); i++)
+    {
+        contentWindows_[i]->dump();
+    }
 }
 
 bool DisplayGroupInterface::hasContent(std::string uri)

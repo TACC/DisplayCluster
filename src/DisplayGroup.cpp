@@ -16,6 +16,7 @@
 
 DisplayGroup::DisplayGroup()
 {
+    std::cerr << "DisplayGroup ctor\n";
     // register types for use in signals/slots
     qRegisterMetaType<boost::shared_ptr<ContentWindow> >("boost::shared_ptr<ContentWindow>");
 }

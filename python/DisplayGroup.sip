@@ -1,23 +1,24 @@
-class pDisplayGroup
+class pDisplayGroupPython
 {
 %TypeHeaderCode
-#include <DisplayGroup.h>
+#include <DisplayGroupPython.h>
 %End
 };
 
-class pyDisplayGroup
+class pyDisplayGroupPython
 {
-  public:
-    pyDisplayGroup(pDisplayGroup  pdg);
-    pDisplayGroup getp();
+%TypeHeaderCode
+#include <DisplayGroupPython.h>
+%End
 
-    bool hasContent(const char *);
+  public:
+    pyDisplayGroupPython();
+
+    void dump();
+    void moveContentWindowToFront(const pyContentWindow&);
     void addContentWindow(const pyContentWindow&);
     void removeContentWindow(const pyContentWindow&);
-    void dump();
 
 };
-
-pyDisplayGroup  getThePyDisplayGroup();
 
 

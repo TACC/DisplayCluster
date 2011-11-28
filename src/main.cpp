@@ -18,11 +18,10 @@ MainWindow * g_mainWindow = NULL;
 NetworkListener * g_networkListener = NULL;
 long g_frameCount = 0;
 
-// GDA
-pyDisplayGroup 
-getThePyDisplayGroup() 
+boost::shared_ptr<DisplayGroup>
+getTheDisplayGroup() 
 { 
-    return pyDisplayGroup(g_displayGroup); 
+    return g_displayGroup; 
 } 
 
 int main(int argc, char * argv[])

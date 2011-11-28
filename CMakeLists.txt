@@ -82,6 +82,7 @@ set(SRCS ${SRCS}
     src/DisplayGroupGraphicsScene.cpp
     src/DisplayGroupGraphicsViewProxy.cpp
     src/DisplayGroupGraphicsView.cpp
+    src/DisplayGroupPython.cpp
     src/DynamicTexture.cpp
     src/DynamicTextureContent.cpp
     src/GLWindow.cpp
@@ -105,6 +106,7 @@ set(MOC_HEADERS
     src/ContentWindowInterface.h
     src/DisplayGroup.h
     src/DisplayGroupInterface.h
+    src/DisplayGroupPython.h
     src/MainWindow.h
     src/NetworkListener.h
     src/NetworkListenerThread.h

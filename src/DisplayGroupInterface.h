@@ -24,6 +24,8 @@ class DisplayGroupInterface : public QObject {
         // remove all current ContentWindows and add the vector of provided ContentWindows
         void setContentWindows(std::vector<boost::shared_ptr<ContentWindow> > contentWindows);
 
+ 	void dump();
+
     public slots:
 
         // these methods set the local copies of the state variables if source != this

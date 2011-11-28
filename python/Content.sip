@@ -12,6 +12,6 @@ class pyContent
 %End
 
   public:
+    pyContent(const char *str);
     pContent get();
-    void dump();
 };

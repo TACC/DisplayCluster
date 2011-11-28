@@ -25,18 +25,6 @@ class TextureContent : public Content {
         void renderFactoryObject(float tX, float tY, float tW, float tH);
 };
 
-#if !defined(SIP_SIP_SIP)
 BOOST_CLASS_EXPORT_GUID(TextureContent, "TextureContent")
-#endif
-
-typedef boost::shared_ptr<TextureContent> pTextureContent;
-
-class pyTextureContent : public pyContent
-{
-public:
-  pyTextureContent(const char *uri) {ptr = pTextureContent(new TextureContent(std::string(uri)));}
-  ~pyTextureContent() {}
-  pTextureContent get() {return pTextureContent(static_cast<TextureContent *>(ptr.get()));}
-};
 
 #endif

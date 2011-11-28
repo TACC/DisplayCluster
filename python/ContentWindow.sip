@@ -35,7 +35,7 @@ class pyContentWindow
 %MethodCode
 	pContentWindow win = sipCpp->get();
 	double x, y;
-	win->getCenterCoordinates(x, y);
+	win->getCenter(x, y);
 	return Py_BuildValue("(dd)", x, y);
 %End
 
@@ -63,7 +63,7 @@ class pyContentWindow
    void setCenter(double i, double j);
 %MethodCode
 	pContentWindow win = sipCpp->get();
-	sipCpp->get()->setCenterCoordinates(a0, a1);
+	sipCpp->get()->setCenter(a0, a1);
 %End
 
    void setZoom(double z);
