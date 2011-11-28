@@ -193,7 +193,7 @@ void Movie::nextFrame(bool skip)
 
     if(nextTimestamp_ != NULL && nextTimestamp_->is_not_a_date_time() == false)
     {
-        elapsedSeconds = (double)(*(g_displayGroup->getTimestamp()) - *nextTimestamp_).total_microseconds() / 1000000.;
+        elapsedSeconds = (double)(*(g_displayGroupManager->getTimestamp()) - *nextTimestamp_).total_microseconds() / 1000000.;
     }
 
     if(elapsedSeconds < frameDuration)
@@ -202,7 +202,7 @@ void Movie::nextFrame(bool skip)
     }
 
     // update timestamp of last frame
-    nextTimestamp_ = g_displayGroup->getTimestamp();
+    nextTimestamp_ = g_displayGroupManager->getTimestamp();
 
     if(initialized_ != true)
     {

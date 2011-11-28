@@ -1,7 +1,7 @@
 #include "MainWindow.h"
 #include "main.h"
 #include "../../../src/log.h"
-#include "../../../src/DisplayGroup.h" // for MessageHeader
+#include "../../../src/DisplayGroupManager.h" // for MessageHeader
 
 MainWindow::MainWindow()
 {

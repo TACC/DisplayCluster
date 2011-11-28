@@ -1,6 +1,6 @@
 #include "ContentWindow.h"
 #include "Content.h"
-#include "DisplayGroup.h"
+#include "DisplayGroupManager.h"
 #include "main.h"
 
 ContentWindow::ContentWindow(boost::shared_ptr<Content> content)
@@ -34,34 +34,34 @@ boost::shared_ptr<Content> ContentWindow::getContent()
     return content_;
 }
 
-boost::shared_ptr<DisplayGroup> ContentWindow::getDisplayGroup()
+boost::shared_ptr<DisplayGroupManager> ContentWindow::getDisplayGroupManager()
 {
-    return displayGroup_.lock();
+    return displayGroupManager_.lock();
 }
 
-void ContentWindow::setDisplayGroup(boost::shared_ptr<DisplayGroup> displayGroup)
+void ContentWindow::setDisplayGroupManager(boost::shared_ptr<DisplayGroupManager> displayGroupManager)
 {
-    // disconnect any existing signals to previous DisplayGroup
-    boost::shared_ptr<DisplayGroup> oldDisplayGroup = getDisplayGroup();
+    // disconnect any existing signals to previous DisplayGroupManager
+    boost::shared_ptr<DisplayGroupManager> oldDisplayGroupManager = getDisplayGroupManager();
 
-    if(oldDisplayGroup != NULL)
+    if(oldDisplayGroupManager != NULL)
     {
-        disconnect(this, 0, oldDisplayGroup.get(), 0);
+        disconnect(this, 0, oldDisplayGroupManager.get(), 0);
     }
 
-    displayGroup_ = displayGroup;
+    displayGroupManager_ = displayGroupManager;
 
-    // make connections to new DisplayGroup
+    // make connections to new DisplayGroupManager
     // don't use queued connections; we want these to execute immediately and we're in the same thread
-    if(displayGroup != NULL)
+    if(displayGroupManager != NULL)
     {
-        connect(this, SIGNAL(contentDimensionsChanged(int, int, ContentWindowInterface *)), displayGroup.get(), SLOT(sendDisplayGroup()));
-        connect(this, SIGNAL(coordinatesChanged(double, double, double, double, ContentWindowInterface *)), displayGroup.get(), SLOT(sendDisplayGroup()));
-        connect(this, SIGNAL(positionChanged(double, double, ContentWindowInterface *)), displayGroup.get(), SLOT(sendDisplayGroup()));
-        connect(this, SIGNAL(sizeChanged(double, double, ContentWindowInterface *)), displayGroup.get(), SLOT(sendDisplayGroup()));
-        connect(this, SIGNAL(centerChanged(double, double, ContentWindowInterface *)), displayGroup.get(), SLOT(sendDisplayGroup()));
-        connect(this, SIGNAL(zoomChanged(double, ContentWindowInterface *)), displayGroup.get(), SLOT(sendDisplayGroup()));
-        connect(this, SIGNAL(selectedChanged(bool, ContentWindowInterface *)), displayGroup.get(), SLOT(sendDisplayGroup()));
+        connect(this, SIGNAL(contentDimensionsChanged(int, int, ContentWindowInterface *)), displayGroupManager.get(), SLOT(sendDisplayGroup()));
+        connect(this, SIGNAL(coordinatesChanged(double, double, double, double, ContentWindowInterface *)), displayGroupManager.get(), SLOT(sendDisplayGroup()));
+        connect(this, SIGNAL(positionChanged(double, double, ContentWindowInterface *)), displayGroupManager.get(), SLOT(sendDisplayGroup()));
+        connect(this, SIGNAL(sizeChanged(double, double, ContentWindowInterface *)), displayGroupManager.get(), SLOT(sendDisplayGroup()));
+        connect(this, SIGNAL(centerChanged(double, double, ContentWindowInterface *)), displayGroupManager.get(), SLOT(sendDisplayGroup()));
+        connect(this, SIGNAL(zoomChanged(double, ContentWindowInterface *)), displayGroupManager.get(), SLOT(sendDisplayGroup()));
+        connect(this, SIGNAL(selectedChanged(bool, ContentWindowInterface *)), displayGroupManager.get(), SLOT(sendDisplayGroup()));
 
         // we don't call sendDisplayGroup() on movedToFront() or destroyed() since it happens already
     }
@@ -73,7 +73,7 @@ void ContentWindow::moveToFront(ContentWindowInterface * source)
 
     if(source != this)
     {
-        getDisplayGroup()->moveContentWindowToFront(shared_from_this());
+        getDisplayGroupManager()->moveContentWindowToFront(shared_from_this());
     }
 }
 
@@ -83,7 +83,7 @@ void ContentWindow::close(ContentWindowInterface * source)
 
     if(source != this)
     {
-        getDisplayGroup()->removeContentWindow(shared_from_this());
+        getDisplayGroupManager()->removeContentWindow(shared_from_this());
     }
 }
 
@@ -111,7 +111,7 @@ void ContentWindow::render()
 
     // render buttons if the marker is over the window
     float markerX, markerY;
-    getDisplayGroup()->getMarker().getPosition(markerX, markerY);
+    getDisplayGroupManager()->getMarker().getPosition(markerX, markerY);
 
     if(QRectF(x_, y_, w_, h_).contains(markerX, markerY) == true)
     {

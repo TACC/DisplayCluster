@@ -2,7 +2,7 @@
 #include "ContentWindow.h"
 #include "Content.h"
 
-DisplayGroupListWidgetProxy::DisplayGroupListWidgetProxy(boost::shared_ptr<DisplayGroup> displayGroup) : DisplayGroupInterface(displayGroup)
+DisplayGroupListWidgetProxy::DisplayGroupListWidgetProxy(boost::shared_ptr<DisplayGroupManager> displayGroupManager) : DisplayGroupInterface(displayGroupManager)
 {
     // create actual list widget
     listWidget_ = new QListWidget();

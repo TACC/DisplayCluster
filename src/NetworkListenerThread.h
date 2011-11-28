@@ -1,7 +1,7 @@
 #ifndef NETWORK_LISTENER_THREAD_H
 #define NETWORK_LISTENER_THREAD_H
 
-#include "DisplayGroup.h"
+#include "DisplayGroupManager.h"
 #include <QThread>
 #include <QtNetwork/QTcpSocket>
 

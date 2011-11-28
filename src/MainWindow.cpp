@@ -120,7 +120,7 @@ MainWindow::MainWindow()
         setCentralWidget(mainWidget);
 
         // add the local renderer group
-        DisplayGroupGraphicsViewProxy * dggv = new DisplayGroupGraphicsViewProxy(g_displayGroup);
+        DisplayGroupGraphicsViewProxy * dggv = new DisplayGroupGraphicsViewProxy(g_displayGroupManager);
         mainWidget->addTab((QWidget *)dggv->getGraphicsView(), "Display group 0");
 
         // create contents dock widget
@@ -132,7 +132,7 @@ MainWindow::MainWindow()
         addDockWidget(Qt::LeftDockWidgetArea, contentsDockWidget);
 
         // add the list widget
-        DisplayGroupListWidgetProxy * dglwp = new DisplayGroupListWidgetProxy(g_displayGroup);
+        DisplayGroupListWidgetProxy * dglwp = new DisplayGroupListWidgetProxy(g_displayGroupManager);
         contentsLayout->addWidget(dglwp->getListWidget());
 
         show();
@@ -225,7 +225,7 @@ void MainWindow::openContent()
         {
             boost::shared_ptr<ContentWindow> cw(new ContentWindow(c));
 
-            g_displayGroup->addContentWindow(cw);
+            g_displayGroupManager->addContentWindow(cw);
         }
         else
         {
@@ -264,7 +264,7 @@ void MainWindow::openContentsDirectory()
             {
                 boost::shared_ptr<ContentWindow> cw(new ContentWindow(c));
 
-                g_displayGroup->addContentWindow(cw);
+                g_displayGroupManager->addContentWindow(cw);
 
                 int x = contentIndex % gridX;
                 int y = contentIndex / gridX;
@@ -285,7 +285,7 @@ void MainWindow::openContentsDirectory()
 
 void MainWindow::clearContents()
 {
-    g_displayGroup->setContentWindows(std::vector<boost::shared_ptr<ContentWindow> >());
+    g_displayGroupManager->setContentWindows(std::vector<boost::shared_ptr<ContentWindow> >());
 }
 
 void MainWindow::saveContents()
@@ -295,7 +295,7 @@ void MainWindow::saveContents()
     if(!filename.isEmpty())
     {
         // get contents vector
-        std::vector<boost::shared_ptr<ContentWindow> > contentWindows = g_displayGroup->getContentWindows();
+        std::vector<boost::shared_ptr<ContentWindow> > contentWindows = g_displayGroupManager->getContentWindows();
 
         // serialize state
         std::ofstream ofs(filename.toStdString().c_str());
@@ -327,7 +327,7 @@ void MainWindow::loadContents()
         }
 
         // assign new contents vector to display group
-        g_displayGroup->setContentWindows(contentWindows);
+        g_displayGroupManager->setContentWindows(contentWindows);
     }
 }
 
@@ -340,12 +340,12 @@ void MainWindow::shareDesktop(bool set)
         shareDesktopHeight_ = QInputDialog::getInt(this, "Height", "Height");
 
         // add the content window if we don't already have one
-        if(g_displayGroup->hasContent("desktop") != true)
+        if(g_displayGroupManager->hasContent("desktop") != true)
         {
             boost::shared_ptr<Content> c(new PixelStreamContent("desktop"));
             boost::shared_ptr<ContentWindow> cw(new ContentWindow(c));
 
-            g_displayGroup->addContentWindow(cw);
+            g_displayGroupManager->addContentWindow(cw);
         }
 
         // setup timer to repeatedly update the shared desktop image
@@ -357,7 +357,7 @@ void MainWindow::shareDesktop(bool set)
         shareDesktopUpdateTimer_.stop();
     }
 
-    g_displayGroup->sendDisplayGroup();
+    g_displayGroupManager->sendDisplayGroup();
 }
 
 void MainWindow::computeImagePyramid()
@@ -386,7 +386,7 @@ void MainWindow::constrainAspectRatio(bool set)
 
     if(constrainAspectRatio_ == true)
     {
-        std::vector<boost::shared_ptr<ContentWindow> > contentWindows = g_displayGroup->getContentWindows();
+        std::vector<boost::shared_ptr<ContentWindow> > contentWindows = g_displayGroupManager->getContentWindows();
 
         for(unsigned int i=0; i<contentWindows.size(); i++)
         {
@@ -394,7 +394,7 @@ void MainWindow::constrainAspectRatio(bool set)
         }
 
         // force a display group synchronization
-        g_displayGroup->sendDisplayGroup();
+        g_displayGroupManager->sendDisplayGroup();
     }
 }
 
@@ -411,13 +411,13 @@ void MainWindow::shareDesktopUpdate()
     g_pixelStreamSourceFactory.getObject("desktop")->setImageData(buffer.data());
 
     // send out updated pixel stream
-    g_displayGroup->sendPixelStreams();
+    g_displayGroupManager->sendPixelStreams();
 }
 
 void MainWindow::updateGLWindows()
 {
     // receive any waiting messages
-    g_displayGroup->receiveMessages();
+    g_displayGroupManager->receiveMessages();
 
     // render all GLWindows
     for(unsigned int i=0; i<glWindows_.size(); i++)
@@ -432,15 +432,15 @@ void MainWindow::updateGLWindows()
     // synchronize clock
     if(g_mpiRank == 1)
     {
-        g_displayGroup->sendFrameClockUpdate();
+        g_displayGroupManager->sendFrameClockUpdate();
     }
     else
     {
-        g_displayGroup->receiveFrameClockUpdate();
+        g_displayGroupManager->receiveFrameClockUpdate();
     }
 
     // advance all contents
-    g_displayGroup->advanceContents();
+    g_displayGroupManager->advanceContents();
 
     // increment frame counter
     g_frameCount = g_frameCount + 1;

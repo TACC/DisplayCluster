@@ -1,7 +1,7 @@
 #include "ContentWindowGraphicsItem.h"
 #include "Content.h"
 #include "ContentWindow.h"
-#include "DisplayGroup.h"
+#include "DisplayGroupManager.h"
 #include "DisplayGroupGraphicsView.h"
 #include "main.h"
 

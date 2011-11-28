@@ -1,5 +1,5 @@
-#ifndef DISPLAY_GROUP_H
-#define DISPLAY_GROUP_H
+#ifndef DISPLAY_GROUP_MANAGER_H
+#define DISPLAY_GROUP_MANAGER_H
 
 #include "DisplayGroupInterface.h"
 #include "Marker.h"
@@ -28,12 +28,12 @@ struct MessageHeader {
     char uri[MESSAGE_HEADER_URI_LENGTH]; // optional URI related to message. needs to be a fixed size so sizeof(MessageHeader) is constant
 };
 
-class DisplayGroup : public DisplayGroupInterface, public boost::enable_shared_from_this<DisplayGroup> {
+class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_shared_from_this<DisplayGroupManager> {
     Q_OBJECT
 
     public:
 
-        DisplayGroup();
+        DisplayGroupManager();
 
         Marker & getMarker();
         boost::shared_ptr<boost::posix_time::ptime> getTimestamp();
