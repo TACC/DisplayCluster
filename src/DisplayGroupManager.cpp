@@ -1,4 +1,4 @@
-#include "DisplayGroup.h"
+#include "DisplayGroupManager.h"
 #include "ContentWindow.h"
 #include "Content.h"
 #include "main.h"
@@ -13,30 +13,30 @@
 #include <boost/date_time/posix_time/time_serialize.hpp>
 #include <mpi.h>
 
-DisplayGroup::DisplayGroup()
+DisplayGroupManager::DisplayGroupManager()
 {
     // register types for use in signals/slots
     qRegisterMetaType<boost::shared_ptr<ContentWindow> >("boost::shared_ptr<ContentWindow>");
 }
 
-Marker & DisplayGroup::getMarker()
+Marker & DisplayGroupManager::getMarker()
 {
     return marker_;
 }
 
-boost::shared_ptr<boost::posix_time::ptime> DisplayGroup::getTimestamp()
+boost::shared_ptr<boost::posix_time::ptime> DisplayGroupManager::getTimestamp()
 {
     return timestamp_;
 }
 
-void DisplayGroup::addContentWindow(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source)
+void DisplayGroupManager::addContentWindow(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source)
 {
     DisplayGroupInterface::addContentWindow(contentWindow, source);
 
     if(source != this)
     {
         // set display group in content window object
-        contentWindow->setDisplayGroup(shared_from_this());
+        contentWindow->setDisplayGroupManager(shared_from_this());
 
         sendDisplayGroup();
 
@@ -45,20 +45,20 @@ void DisplayGroup::addContentWindow(boost::shared_ptr<ContentWindow> contentWind
     }
 }
 
-void DisplayGroup::removeContentWindow(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source)
+void DisplayGroupManager::removeContentWindow(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source)
 {
     DisplayGroupInterface::removeContentWindow(contentWindow, source);
 
     if(source != this)
     {
         // set null display group in content window object
-        contentWindow->setDisplayGroup(boost::shared_ptr<DisplayGroup>());
+        contentWindow->setDisplayGroupManager(boost::shared_ptr<DisplayGroupManager>());
 
         sendDisplayGroup();
     }
 }
 
-void DisplayGroup::moveContentWindowToFront(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source)
+void DisplayGroupManager::moveContentWindowToFront(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source)
 {
     DisplayGroupInterface::moveContentWindowToFront(contentWindow, source);
 
@@ -68,7 +68,7 @@ void DisplayGroup::moveContentWindowToFront(boost::shared_ptr<ContentWindow> con
     }
 }
 
-void DisplayGroup::handleMessage(MessageHeader messageHeader, QByteArray byteArray)
+void DisplayGroupManager::handleMessage(MessageHeader messageHeader, QByteArray byteArray)
 {
     if(messageHeader.type == MESSAGE_TYPE_PIXELSTREAM)
     {
@@ -93,7 +93,7 @@ void DisplayGroup::handleMessage(MessageHeader messageHeader, QByteArray byteArr
     }
 }
 
-void DisplayGroup::receiveMessages()
+void DisplayGroupManager::receiveMessages()
 {
     if(g_mpiRank == 0)
     {
@@ -150,17 +150,17 @@ void DisplayGroup::receiveMessages()
     }
 }
 
-void DisplayGroup::sendDisplayGroup()
+void DisplayGroupManager::sendDisplayGroup()
 {
     // serialize state
     std::ostringstream oss(std::ostringstream::binary);
 
     // brace this so destructor is called on archive before we use the stream
     {
-        boost::shared_ptr<DisplayGroup> dg = shared_from_this();
+        boost::shared_ptr<DisplayGroupManager> dgm = shared_from_this();
 
         boost::archive::binary_oarchive oa(oss);
-        oa << dg;
+        oa << dgm;
     }
 
     // serialized data to string
@@ -182,7 +182,7 @@ void DisplayGroup::sendDisplayGroup()
     MPI_Bcast((void *)serializedString.data(), size, MPI_BYTE, 0, MPI_COMM_WORLD);
 }
 
-void DisplayGroup::sendContentsDimensionsRequest()
+void DisplayGroupManager::sendContentsDimensionsRequest()
 {
     if(g_mpiSize < 2)
     {
@@ -240,7 +240,7 @@ void DisplayGroup::sendContentsDimensionsRequest()
     delete [] buf;
 }
 
-void DisplayGroup::sendPixelStreams()
+void DisplayGroupManager::sendPixelStreams()
 {
     // iterate through all pixel streams and send updates if needed
     std::map<std::string, boost::shared_ptr<PixelStreamSource> > map = g_pixelStreamSourceFactory.getMap();
@@ -279,7 +279,7 @@ void DisplayGroup::sendPixelStreams()
     }
 }
 
-void DisplayGroup::sendFrameClockUpdate()
+void DisplayGroupManager::sendFrameClockUpdate()
 {
     // this should only be called by the rank 1 process
     if(g_mpiRank != 1)
@@ -321,7 +321,7 @@ void DisplayGroup::sendFrameClockUpdate()
     timestamp_ = timestamp;
 }
 
-void DisplayGroup::receiveFrameClockUpdate()
+void DisplayGroupManager::receiveFrameClockUpdate()
 {
     // we shouldn't run the broadcast if we're rank 1
     if(g_mpiRank == 1)
@@ -368,7 +368,7 @@ void DisplayGroup::receiveFrameClockUpdate()
     timestamp_ = timestamp;
 }
 
-void DisplayGroup::sendQuit()
+void DisplayGroupManager::sendQuit()
 {
     // send the header and the message
     MessageHeader mh;
@@ -381,7 +381,7 @@ void DisplayGroup::sendQuit()
     }
 }
 
-void DisplayGroup::advanceContents()
+void DisplayGroupManager::advanceContents()
 {
     // note that if we have multiple ContentWindows corresponding to a single Content object,
     // we will call advance() multiple times per frame on that Content object...
@@ -391,7 +391,7 @@ void DisplayGroup::advanceContents()
     }
 }
 
-void DisplayGroup::receiveDisplayGroup(MessageHeader messageHeader)
+void DisplayGroupManager::receiveDisplayGroup(MessageHeader messageHeader)
 {
     // receive serialized data
     char * buf = new char[messageHeader.size];
@@ -409,31 +409,31 @@ void DisplayGroup::receiveDisplayGroup(MessageHeader messageHeader)
     }
 
     // read to a new display group
-    boost::shared_ptr<DisplayGroup> displayGroup;
+    boost::shared_ptr<DisplayGroupManager> displayGroupManager;
 
     boost::archive::binary_iarchive ia(iss);
-    ia >> displayGroup;
+    ia >> displayGroupManager;
 
     // overwrite old display group
-    g_displayGroup = displayGroup;
+    g_displayGroupManager = displayGroupManager;
 
     // free mpi buffer
     delete [] buf;
 }
 
-void DisplayGroup::receiveContentsDimensionsRequest(MessageHeader messageHeader)
+void DisplayGroupManager::receiveContentsDimensionsRequest(MessageHeader messageHeader)
 {
     if(g_mpiRank == 1)
     {
         // get dimensions of Content objects associated with each ContentWindow
-        // note that we must use g_displayGroup to access content windows since earlier updates (in the same frame)
-        // of this display group may have occurred, and g_displayGroup would have then been replaced
+        // note that we must use g_displayGroupManager to access content windows since earlier updates (in the same frame)
+        // of this display group may have occurred, and g_displayGroupManager would have then been replaced
         std::vector<std::pair<int, int> > dimensions;
 
-        for(unsigned int i=0; i<g_displayGroup->contentWindows_.size(); i++)
+        for(unsigned int i=0; i<g_displayGroupManager->contentWindows_.size(); i++)
         {
             int w,h;
-            g_displayGroup->contentWindows_[i]->getContent()->getFactoryObjectDimensions(w, h);
+            g_displayGroupManager->contentWindows_[i]->getContent()->getFactoryObjectDimensions(w, h);
 
             dimensions.push_back(std::pair<int,int>(w,h));
         }
@@ -461,7 +461,7 @@ void DisplayGroup::receiveContentsDimensionsRequest(MessageHeader messageHeader)
     }
 }
 
-void DisplayGroup::receivePixelStreams(MessageHeader messageHeader)
+void DisplayGroupManager::receivePixelStreams(MessageHeader messageHeader)
 {
     // receive serialized data
     char * buf = new char[messageHeader.size];

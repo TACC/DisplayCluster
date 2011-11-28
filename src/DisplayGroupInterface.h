@@ -5,7 +5,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 
-class DisplayGroup;
+class DisplayGroupManager;
 class ContentWindow;
 
 class DisplayGroupInterface : public QObject {
@@ -14,9 +14,9 @@ class DisplayGroupInterface : public QObject {
     public:
 
         DisplayGroupInterface() { }
-        DisplayGroupInterface(boost::shared_ptr<DisplayGroup> displayGroup);
+        DisplayGroupInterface(boost::shared_ptr<DisplayGroupManager> displayGroupManager);
 
-        boost::shared_ptr<DisplayGroup> getDisplayGroup();
+        boost::shared_ptr<DisplayGroupManager> getDisplayGroupManager();
 
         std::vector<boost::shared_ptr<ContentWindow> > getContentWindows();
         bool hasContent(std::string uri);
@@ -43,8 +43,8 @@ class DisplayGroupInterface : public QObject {
 
     protected:
 
-        // optional: reference to DisplayGroup for non-DisplayGroup objects
-        boost::weak_ptr<DisplayGroup> displayGroup_;
+        // optional: reference to DisplayGroupManager for non-DisplayGroupManager objects
+        boost::weak_ptr<DisplayGroupManager> displayGroupManager_;
 
         // vector of all of its content windows
         std::vector<boost::shared_ptr<ContentWindow> > contentWindows_;

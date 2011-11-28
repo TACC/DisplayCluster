@@ -66,10 +66,10 @@ void GLWindow::paintGL()
     setView(width(), height());
 
     // render the marker
-    g_displayGroup->getMarker().render();
+    g_displayGroupManager->getMarker().render();
 
     // render content windows
-    std::vector<boost::shared_ptr<ContentWindow> > contentWindows = g_displayGroup->getContentWindows();
+    std::vector<boost::shared_ptr<ContentWindow> > contentWindows = g_displayGroupManager->getContentWindows();
 
     for(unsigned int i=0; i<contentWindows.size(); i++)
     {

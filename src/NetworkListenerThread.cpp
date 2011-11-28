@@ -11,7 +11,7 @@ NetworkListenerThread::NetworkListenerThread(int socketDescriptor)
     qRegisterMetaType<MessageHeader>("MessageHeader");
 
     // connect signals
-    connect(this, SIGNAL(newMessage(MessageHeader, QByteArray)), g_displayGroup.get(), SLOT(handleMessage(MessageHeader, QByteArray)), Qt::QueuedConnection);
+    connect(this, SIGNAL(newMessage(MessageHeader, QByteArray)), g_displayGroupManager.get(), SLOT(handleMessage(MessageHeader, QByteArray)), Qt::QueuedConnection);
 }
 
 void NetworkListenerThread::run()

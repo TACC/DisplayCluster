@@ -5,7 +5,7 @@
 
 TouchListener::TouchListener()
 {
-    graphicsViewProxy_ = new DisplayGroupGraphicsViewProxy(g_displayGroup);
+    graphicsViewProxy_ = new DisplayGroupGraphicsViewProxy(g_displayGroupManager);
 
     client_.addTuioListener(this);
     client_.connect();

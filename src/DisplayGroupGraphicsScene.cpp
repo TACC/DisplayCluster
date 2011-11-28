@@ -75,6 +75,6 @@ void DisplayGroupGraphicsScene::mouseReleaseEvent(QGraphicsSceneMouseEvent * eve
 
 void DisplayGroupGraphicsScene::updateMarker(float x, float y)
 {
-    g_displayGroup->getMarker().setPosition(x, y);
-    g_displayGroup->sendDisplayGroup();
+    g_displayGroupManager->getMarker().setPosition(x, y);
+    g_displayGroupManager->sendDisplayGroup();
 }

@@ -13,7 +13,7 @@ int g_mpiRank = -1;
 int g_mpiSize = -1;
 MPI_Comm g_mpiRenderComm;
 Configuration * g_configuration = NULL;
-boost::shared_ptr<DisplayGroup> g_displayGroup;
+boost::shared_ptr<DisplayGroupManager> g_displayGroupManager;
 MainWindow * g_mainWindow = NULL;
 NetworkListener * g_networkListener = NULL;
 long g_frameCount = 0;
@@ -36,8 +36,8 @@ int main(int argc, char * argv[])
 
     g_configuration = new Configuration("configuration.xml");
 
-    boost::shared_ptr<DisplayGroup> dg(new DisplayGroup);
-    g_displayGroup = dg;
+    boost::shared_ptr<DisplayGroupManager> dgm(new DisplayGroupManager);
+    g_displayGroupManager = dgm;
 
     g_mainWindow = new MainWindow();
 
@@ -60,7 +60,7 @@ int main(int argc, char * argv[])
 
     if(g_mpiRank == 0)
     {
-        g_displayGroup->sendQuit();
+        g_displayGroupManager->sendQuit();
     }
 
     // clean up the MPI environment after the Qt event loop exits

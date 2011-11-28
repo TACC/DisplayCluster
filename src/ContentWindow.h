@@ -11,7 +11,7 @@
 #include <boost/serialization/weak_ptr.hpp>
 
 class Content;
-class DisplayGroup;
+class DisplayGroupManager;
 
 class ContentWindow : public ContentWindowInterface, public boost::enable_shared_from_this<ContentWindow> {
 
@@ -22,8 +22,8 @@ class ContentWindow : public ContentWindowInterface, public boost::enable_shared
 
         boost::shared_ptr<Content> getContent();
 
-        boost::shared_ptr<DisplayGroup> getDisplayGroup();
-        void setDisplayGroup(boost::shared_ptr<DisplayGroup> displayGroup);
+        boost::shared_ptr<DisplayGroupManager> getDisplayGroupManager();
+        void setDisplayGroupManager(boost::shared_ptr<DisplayGroupManager> displayGroupManager);
 
         // re-implemented ContentWindowInterface slots
         void moveToFront(ContentWindowInterface * source=NULL);
@@ -42,7 +42,7 @@ class ContentWindow : public ContentWindowInterface, public boost::enable_shared
         void serialize(Archive & ar, const unsigned int version)
         {
             ar & content_;
-            ar & displayGroup_;
+            ar & displayGroupManager_;
             ar & contentWidth_;
             ar & contentHeight_;
             ar & x_;
@@ -59,7 +59,7 @@ class ContentWindow : public ContentWindowInterface, public boost::enable_shared
 
         boost::shared_ptr<Content> content_;
 
-        boost::weak_ptr<DisplayGroup> displayGroup_;
+        boost::weak_ptr<DisplayGroupManager> displayGroupManager_;
 };
 
 #endif
