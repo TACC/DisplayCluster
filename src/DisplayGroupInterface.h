@@ -5,8 +5,8 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 
+#include "ContentWindow.h"
 class DisplayGroupManager;
-class ContentWindow;
 
 class DisplayGroupInterface : public QObject {
     Q_OBJECT

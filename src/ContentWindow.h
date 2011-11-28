@@ -74,15 +74,14 @@ typedef boost::shared_ptr<ContentWindow> pContentWindow;
 class pyContentWindow
 {
 public:
-  pyContentWindow(pyContent content) { ptr = pContentWindow(new ContentWindow(content.get())); }
+  pyContentWindow(pyContent content) { ptr = boost::shared_ptr<ContentWindow>(new ContentWindow(content.get())); }
   ~pyContentWindow() {}
 
-  pContentWindow get() const {return ptr;}
+  boost::shared_ptr<ContentWindow> get() const {return ptr;}
 
 private:
-  pContentWindow ptr;
+  boost::shared_ptr<ContentWindow> ptr;
 
 };
-
 
 #endif

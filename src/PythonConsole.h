@@ -7,12 +7,14 @@
 #include <QMainWindow>
 #include <QTextEdit>
 
+class QCompleter;
+
 class MyPythonQt : public QObject
 {
    Q_OBJECT
 
 public:
-   void evalStringSynchronous(const QString& str);
+   // void evalStringSynchronous(const QString& str);
 
 signals:
    void eval_done();
@@ -21,8 +23,8 @@ signals:
    void myPythonStdErr(const QString&);
 
 public slots:
-   void evalString(const QString& str);
-   void loadFile(const QString &str);
+   void evalString(QString *str);
+   void loadFile(QString *str);
 
 private slots:
    void pythonStdOut(const QString&);
@@ -37,21 +39,34 @@ public:
     PythonTypeIn();
     QString getContent() {return content;}
     void clearContent() {content = "";}
-    void prompt(const char *c);
+    void prompt(bool);
 
 public slots:
     void python_eval_finished();
+    void insertCompletion(const QString&);
 
 signals:
-    void python_command(const QString &);
+    void python_command(QString *);
 
 protected:
+    void handleTabCompletion();
     void keyPressEvent(QKeyEvent *event);
+    int commandPromptPosition();
+    bool verifySelectionBeforeDeletion();
+    void executeLine(bool storeOnly);
+    void executeCode(const QString &);
+    void changeHistory();
 
 private:
+    QCompleter *_completer;
+    QString _commandPrompt;
     QString content;
+    QString _currentMultiLineCode;
     int tail;
     int indent;
+    QStringList _history;
+    int _historyPosition;
+
 };      
 
 class PythonConsole : public QMainWindow
@@ -67,12 +82,12 @@ protected:
     ~PythonConsole();
 
 signals:
-    void python_file(const QString &);
+    void python_file(QString *);
 
 public slots:
     void selectPythonScript();
     void python_load_finished();
-    void evalString(const QString& str);
+    void evalString(QString *);
     void put_result(const QString& str);
     void clear_input();
     void clear_output();
@@ -85,6 +100,7 @@ private:
     QString filename;
     PythonTypeIn *typeIn;
     QTextEdit *output;
+
 };      
 
 #endif  

@@ -4,6 +4,6 @@
 
 %Include Content.sip
 %Include ContentWindow.sip
-%Include DisplayGroup.sip
+%Include DisplayGroupPython.sip
 
 

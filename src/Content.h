@@ -59,14 +59,14 @@ typedef boost::shared_ptr<Content> pContent;
 
 class pyContent {
 public:
-  pyContent(const char *str) { ptr = pContent(Content::getContent((std::string)str)); }
-  pContent get() {return ptr;}
+  pyContent(const char *str) { ptr = boost::shared_ptr<Content>(Content::getContent((std::string)str)); }
+  boost::shared_ptr<Content> get() {return ptr;}
   void dump() {
     std::cerr << "pyContent: " << ptr->getURI() << "\n";
   }
 
 protected:
-  pContent ptr;
+  boost::shared_ptr<Content> ptr;
 };
 
 

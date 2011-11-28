@@ -18,10 +18,10 @@ MainWindow * g_mainWindow = NULL;
 NetworkListener * g_networkListener = NULL;
 long g_frameCount = 0;
 
-boost::shared_ptr<DisplayGroup>
-getTheDisplayGroup() 
+boost::shared_ptr<DisplayGroupManager>
+getTheDisplayGroupManager() 
 { 
-    return g_displayGroup; 
+    return g_displayGroupManager; 
 } 
 
 int main(int argc, char * argv[])

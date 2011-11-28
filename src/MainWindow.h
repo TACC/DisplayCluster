@@ -32,8 +32,6 @@ class MainWindow : public QMainWindow {
         void constrainAspectRatio(bool set);
         void shareDesktopUpdate();
 
- 	void xyzzy();
-
         void updateGLWindows();
 
     signals:

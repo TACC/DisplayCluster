@@ -5,7 +5,6 @@
 
 DisplayGroupGraphicsViewProxy::DisplayGroupGraphicsViewProxy(boost::shared_ptr<DisplayGroupManager> displayGroupManager) : DisplayGroupInterface(displayGroupManager)
 {
-    std::cerr << "DisplayGroupGraphicsViewProxy ctor\n";
     // create actual graphics view
     graphicsView_ = new DisplayGroupGraphicsView();
 

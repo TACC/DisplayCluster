@@ -83,11 +83,6 @@ MainWindow::MainWindow()
         connect(pythonAction, SIGNAL(triggered()), PythonConsole::self(), SLOT(show())); 
         windowMenu->addAction(pythonAction); 
 
-	QAction *xyzzyAction = new QAction("Xyzzy", this);
-        xyzzyAction->setStatusTip("Run Xyzzy "); 
-	connect(xyzzyAction, SIGNAL(triggered()), this, SLOT(xyzzy()));
-        windowMenu->addAction(xyzzyAction); 
-
         // constrain aspect ratio action
         QAction * constrainAspectRatioAction = new QAction("Constrain Aspect Ratio", this);
         constrainAspectRatioAction->setStatusTip("Constrain aspect ratio");
@@ -446,29 +441,4 @@ void MainWindow::updateGLWindows()
     g_frameCount = g_frameCount + 1;
 
     emit(updateGLWindowsFinished());
-}
-
-#include "DisplayGroupPython.h"
-
-boost::shared_ptr<DisplayGroupPython> pyDG = boost::shared_ptr<DisplayGroupPython>();
-
-void MainWindow::xyzzy()
-{
-  if (pyDG == boost::shared_ptr<DisplayGroupPython>())
-    pyDG = boost::shared_ptr<DisplayGroupPython>(new DisplayGroupPython(g_displayGroup));
-
-  boost::shared_ptr<Content> c = Content::getContent("examples/grandpa.jpg");
-  std::cerr << "content: " << c->getURI() << "\n";
-
-  boost::shared_ptr<ContentWindow> cw = boost::shared_ptr<ContentWindow>(new ContentWindow(c));
-  std::cerr << "content window: ";
-  cw->dump();
-
-  pyDG->addContentWindow(cw, NULL);
-
-  std::cerr << "g_displayGroup contents:\n";
-  g_displayGroup->dump();
-
-  std::cerr << "DisplayGroupPython contents:\n";
-  pyDG->dump();
 }
