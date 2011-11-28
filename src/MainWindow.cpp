@@ -6,6 +6,7 @@
 #include "PythonConsole.h"
 #include "log.h"
 #include "DisplayGroupGraphicsViewProxy.h"
+#include "DisplayGroupListWidgetProxy.h"
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
@@ -119,7 +120,8 @@ MainWindow::MainWindow()
         setCentralWidget(mainWidget);
 
         // add the local renderer group
-        mainWidget->addTab((QWidget *)g_displayGroup->getGraphicsViewProxy()->getGraphicsView(), "Display group 0");
+        DisplayGroupGraphicsViewProxy * dggv = new DisplayGroupGraphicsViewProxy(g_displayGroup);
+        mainWidget->addTab((QWidget *)dggv->getGraphicsView(), "Display group 0");
 
         // create contents dock widget
         QDockWidget * contentsDockWidget = new QDockWidget("Contents", this);
@@ -130,8 +132,8 @@ MainWindow::MainWindow()
         addDockWidget(Qt::LeftDockWidgetArea, contentsDockWidget);
 
         // add the list widget
-        contentsListWidget_ = new QListWidget();    
-        contentsLayout->addWidget(contentsListWidget_);
+        DisplayGroupListWidgetProxy * dglwp = new DisplayGroupListWidgetProxy(g_displayGroup);
+        contentsLayout->addWidget(dglwp->getListWidget());
 
         show();
     }
@@ -278,21 +280,6 @@ void MainWindow::openContentsDirectory()
                 put_flog(LOG_DEBUG, "ignoring unsupported file %s", fileInfo.absoluteFilePath().toStdString().c_str());
             }
         }
-    }
-}
-
-void MainWindow::refreshContentsList()
-{
-    // clear contents list widget
-    contentsListWidget_->clear();
-
-    std::vector<boost::shared_ptr<ContentWindow> > contentWindows = g_displayGroup->getContentWindows();
-
-    for(unsigned int i=0; i<contentWindows.size(); i++)
-    {
-        // add to list view
-        QListWidgetItem * newItem = new QListWidgetItem(contentsListWidget_);
-        newItem->setText(contentWindows[i]->getContent()->getURI().c_str());
     }
 }
 
