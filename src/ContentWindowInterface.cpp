@@ -237,8 +237,39 @@ void ContentWindowInterface::setCenter(double centerX, double centerY, ContentWi
         return;
     }
 
-    centerX_ = centerX;
-    centerY_ = centerY;
+    // clamp center point such that view rectangle dimensions are constrained [0,1]
+    float tX = centerX - 0.5 / zoom_;
+    float tY = centerY - 0.5 / zoom_;
+    float tW = 1./zoom_;
+    float tH = 1./zoom_;
+
+    // handle centerX, clamping it if necessary
+    if(tX >= 0. && tX+tW <= 1.)
+    {
+        centerX_ = centerX;
+    }
+    else if(tX < 0.)
+    {
+        centerX_ = 0.5 / zoom_;
+    }
+    else if(tX+tW > 1.)
+    {
+        centerX_ = 1. - tW + 0.5 / zoom_;
+    }
+
+    // handle centerY, clamping it if necessary
+    if(tY >= 0. && tY+tH <= 1.)
+    {
+        centerY_ = centerY;
+    }
+    else if(tY < 0.)
+    {
+        centerY_ = 0.5 / zoom_;
+    }
+    else if(tY+tH > 1.)
+    {
+        centerY_ = 1. - tH + 0.5 / zoom_;
+    }
 
     if(source == NULL || dynamic_cast<ContentWindowManager *>(this) != NULL)
     {
@@ -258,7 +289,44 @@ void ContentWindowInterface::setZoom(double zoom, ContentWindowInterface * sourc
         return;
     }
 
+    // clamp zoom to be >= 1
+    if(zoom < 1.)
+    {
+        zoom = 1.;
+    }
+
     zoom_ = zoom;
+
+    float tX = centerX_ - 0.5 / zoom;
+    float tY = centerY_ - 0.5 / zoom;
+    float tW = 1./zoom;
+    float tH = 1./zoom;
+
+    // see if we need to adjust the center point since the rectangle view bounds are outside [0,1]
+    if(QRectF(0.,0.,1.,1.).contains(QRectF(tX,tY,tW,tH)) != true)
+    {
+        // handle centerX, clamping it if necessary
+        if(tX < 0.)
+        {
+            centerX_ = 0.5 / zoom_;
+        }
+        else if(tX+tW > 1.)
+        {
+            centerX_ = 1. - tW + 0.5 / zoom_;
+        }
+
+        // handle centerY, clamping it if necessary
+        if(tY < 0.)
+        {
+            centerY_ = 0.5 / zoom_;
+        }
+        else if(tY+tH > 1.)
+        {
+            centerY_ = 1. - tH + 0.5 / zoom_;
+        }
+
+        setCenter(centerX_, centerY_);
+    }
 
     if(source == NULL || dynamic_cast<ContentWindowManager *>(this) != NULL)
     {
