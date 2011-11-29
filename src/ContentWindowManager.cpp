@@ -1,9 +1,9 @@
-#include "ContentWindow.h"
+#include "ContentWindowManager.h"
 #include "Content.h"
 #include "DisplayGroupManager.h"
 #include "main.h"
 
-ContentWindow::ContentWindow(boost::shared_ptr<Content> content)
+ContentWindowManager::ContentWindowManager(boost::shared_ptr<Content> content)
 {
     // content dimensions
     content->getDimensions(contentWidth_, contentHeight_);
@@ -29,17 +29,17 @@ ContentWindow::ContentWindow(boost::shared_ptr<Content> content)
     connect(content.get(), SIGNAL(dimensionsChanged(int, int)), this, SLOT(setContentDimensions(int, int)));
 }
 
-boost::shared_ptr<Content> ContentWindow::getContent()
+boost::shared_ptr<Content> ContentWindowManager::getContent()
 {
     return content_;
 }
 
-boost::shared_ptr<DisplayGroupManager> ContentWindow::getDisplayGroupManager()
+boost::shared_ptr<DisplayGroupManager> ContentWindowManager::getDisplayGroupManager()
 {
     return displayGroupManager_.lock();
 }
 
-void ContentWindow::setDisplayGroupManager(boost::shared_ptr<DisplayGroupManager> displayGroupManager)
+void ContentWindowManager::setDisplayGroupManager(boost::shared_ptr<DisplayGroupManager> displayGroupManager)
 {
     // disconnect any existing signals to previous DisplayGroupManager
     boost::shared_ptr<DisplayGroupManager> oldDisplayGroupManager = getDisplayGroupManager();
@@ -67,27 +67,27 @@ void ContentWindow::setDisplayGroupManager(boost::shared_ptr<DisplayGroupManager
     }
 }
 
-void ContentWindow::moveToFront(ContentWindowInterface * source)
+void ContentWindowManager::moveToFront(ContentWindowInterface * source)
 {
     ContentWindowInterface::moveToFront(source);
 
     if(source != this)
     {
-        getDisplayGroupManager()->moveContentWindowToFront(shared_from_this());
+        getDisplayGroupManager()->moveContentWindowManagerToFront(shared_from_this());
     }
 }
 
-void ContentWindow::close(ContentWindowInterface * source)
+void ContentWindowManager::close(ContentWindowInterface * source)
 {
     ContentWindowInterface::close(source);
 
     if(source != this)
     {
-        getDisplayGroupManager()->removeContentWindow(shared_from_this());
+        getDisplayGroupManager()->removeContentWindowManager(shared_from_this());
     }
 }
 
-void ContentWindow::render()
+void ContentWindowManager::render()
 {
     content_->render(shared_from_this());
 
@@ -199,7 +199,7 @@ void ContentWindow::render()
     glPopAttrib();
 }
 
-void ContentWindow::getButtonDimensions(float &width, float &height)
+void ContentWindowManager::getButtonDimensions(float &width, float &height)
 {
     float sceneHeightFraction = 0.125;
     double screenAspect = (double)g_configuration->getTotalWidth() / (double)g_configuration->getTotalHeight();

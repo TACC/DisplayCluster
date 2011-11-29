@@ -2,7 +2,7 @@
 #include "main.h"
 #include "DynamicTexture.h"
 
-void DynamicTextureContent::advance(boost::shared_ptr<ContentWindow> window)
+void DynamicTextureContent::advance(boost::shared_ptr<ContentWindowManager> window)
 {
     // recall that advance() is called after rendering and before g_frameCount is incremented for the current frame
     g_mainWindow->getGLWindow()->getDynamicTextureFactory().getObject(getURI())->clearOldChildren(g_frameCount);

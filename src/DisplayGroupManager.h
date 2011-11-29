@@ -11,7 +11,7 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-class ContentWindow;
+class ContentWindowManager;
 
 enum MESSAGE_TYPE { MESSAGE_TYPE_CONTENTS, MESSAGE_TYPE_CONTENTS_DIMENSIONS, MESSAGE_TYPE_PIXELSTREAM, MESSAGE_TYPE_FRAME_CLOCK, MESSAGE_TYPE_QUIT };
 
@@ -34,9 +34,9 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         boost::shared_ptr<boost::posix_time::ptime> getTimestamp();
 
         // re-implemented DisplayGroupInterface slots
-        void addContentWindow(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source=NULL);
-        void removeContentWindow(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source=NULL);
-        void moveContentWindowToFront(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source=NULL);
+        void addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
+        void removeContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
+        void moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
 
     public slots:
 
@@ -60,7 +60,7 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         void serialize(Archive & ar, const unsigned int version)
         {
             ar & marker_;
-            ar & contentWindows_;
+            ar & contentWindowManagers_;
         }
 
         // marker

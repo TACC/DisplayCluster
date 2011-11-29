@@ -1,5 +1,5 @@
 #include "DisplayGroupManager.h"
-#include "ContentWindow.h"
+#include "ContentWindowManager.h"
 #include "Content.h"
 #include "main.h"
 #include "log.h"
@@ -16,7 +16,7 @@
 DisplayGroupManager::DisplayGroupManager()
 {
     // register types for use in signals/slots
-    qRegisterMetaType<boost::shared_ptr<ContentWindow> >("boost::shared_ptr<ContentWindow>");
+    qRegisterMetaType<boost::shared_ptr<ContentWindowManager> >("boost::shared_ptr<ContentWindowManager>");
 }
 
 Marker & DisplayGroupManager::getMarker()
@@ -29,14 +29,14 @@ boost::shared_ptr<boost::posix_time::ptime> DisplayGroupManager::getTimestamp()
     return timestamp_;
 }
 
-void DisplayGroupManager::addContentWindow(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source)
+void DisplayGroupManager::addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
 {
-    DisplayGroupInterface::addContentWindow(contentWindow, source);
+    DisplayGroupInterface::addContentWindowManager(contentWindowManager, source);
 
     if(source != this)
     {
-        // set display group in content window object
-        contentWindow->setDisplayGroupManager(shared_from_this());
+        // set display group in content window manager object
+        contentWindowManager->setDisplayGroupManager(shared_from_this());
 
         sendDisplayGroup();
 
@@ -45,22 +45,22 @@ void DisplayGroupManager::addContentWindow(boost::shared_ptr<ContentWindow> cont
     }
 }
 
-void DisplayGroupManager::removeContentWindow(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source)
+void DisplayGroupManager::removeContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
 {
-    DisplayGroupInterface::removeContentWindow(contentWindow, source);
+    DisplayGroupInterface::removeContentWindowManager(contentWindowManager, source);
 
     if(source != this)
     {
-        // set null display group in content window object
-        contentWindow->setDisplayGroupManager(boost::shared_ptr<DisplayGroupManager>());
+        // set null display group in content window manager object
+        contentWindowManager->setDisplayGroupManager(boost::shared_ptr<DisplayGroupManager>());
 
         sendDisplayGroup();
     }
 }
 
-void DisplayGroupManager::moveContentWindowToFront(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source)
+void DisplayGroupManager::moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
 {
-    DisplayGroupInterface::moveContentWindowToFront(contentWindow, source);
+    DisplayGroupInterface::moveContentWindowManagerToFront(contentWindowManager, source);
 
     if(source != this)
     {
@@ -72,7 +72,7 @@ void DisplayGroupManager::handleMessage(MessageHeader messageHeader, QByteArray 
 {
     if(messageHeader.type == MESSAGE_TYPE_PIXELSTREAM)
     {
-        // check to see if Content/ContentWindow exists for the URI
+        // check to see if Content/ContentWindowManager exists for the URI
         std::string uri = std::string(messageHeader.uri);
 
         if(hasContent(uri) == false)
@@ -80,9 +80,9 @@ void DisplayGroupManager::handleMessage(MessageHeader messageHeader, QByteArray 
             put_flog(LOG_DEBUG, "adding pixel stream: %s", uri.c_str());
 
             boost::shared_ptr<Content> c(new PixelStreamContent(uri));
-            boost::shared_ptr<ContentWindow> cw(new ContentWindow(c));
+            boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
 
-            addContentWindow(cw);
+            addContentWindowManager(cwm);
         }
 
         // update pixel stream source
@@ -226,13 +226,13 @@ void DisplayGroupManager::sendContentsDimensionsRequest()
     ia >> dimensions;
 
     // overwrite old dimensions
-    for(unsigned int i=0; i<dimensions.size() && i<contentWindows_.size(); i++)
+    for(unsigned int i=0; i<dimensions.size() && i<contentWindowManagers_.size(); i++)
     {
-        contentWindows_[i]->getContent()->setDimensions(dimensions[i].first, dimensions[i].second);
+        contentWindowManagers_[i]->getContent()->setDimensions(dimensions[i].first, dimensions[i].second);
 
         if(g_mainWindow->getConstrainAspectRatio() == true)
         {
-            contentWindows_[i]->fixAspectRatio();
+            contentWindowManagers_[i]->fixAspectRatio();
         }
     }
 
@@ -383,11 +383,11 @@ void DisplayGroupManager::sendQuit()
 
 void DisplayGroupManager::advanceContents()
 {
-    // note that if we have multiple ContentWindows corresponding to a single Content object,
+    // note that if we have multiple ContentWindowManagers corresponding to a single Content object,
     // we will call advance() multiple times per frame on that Content object...
-    for(unsigned int i=0; i<contentWindows_.size(); i++)
+    for(unsigned int i=0; i<contentWindowManagers_.size(); i++)
     {
-        contentWindows_[i]->getContent()->advance(contentWindows_[i]);
+        contentWindowManagers_[i]->getContent()->advance(contentWindowManagers_[i]);
     }
 }
 
@@ -425,15 +425,15 @@ void DisplayGroupManager::receiveContentsDimensionsRequest(MessageHeader message
 {
     if(g_mpiRank == 1)
     {
-        // get dimensions of Content objects associated with each ContentWindow
-        // note that we must use g_displayGroupManager to access content windows since earlier updates (in the same frame)
+        // get dimensions of Content objects associated with each ContentWindowManager
+        // note that we must use g_displayGroupManager to access content window managers since earlier updates (in the same frame)
         // of this display group may have occurred, and g_displayGroupManager would have then been replaced
         std::vector<std::pair<int, int> > dimensions;
 
-        for(unsigned int i=0; i<g_displayGroupManager->contentWindows_.size(); i++)
+        for(unsigned int i=0; i<g_displayGroupManager->contentWindowManagers_.size(); i++)
         {
             int w,h;
-            g_displayGroupManager->contentWindows_[i]->getContent()->getFactoryObjectDimensions(w, h);
+            g_displayGroupManager->contentWindowManagers_[i]->getContent()->getFactoryObjectDimensions(w, h);
 
             dimensions.push_back(std::pair<int,int>(w,h));
         }

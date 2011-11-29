@@ -1,5 +1,5 @@
-#ifndef CONTENT_WINDOW_H
-#define CONTENT_WINDOW_H
+#ifndef CONTENT_WINDOW_MANAGER_H
+#define CONTENT_WINDOW_MANAGER_H
 
 #include "ContentWindowInterface.h"
 #include <QtGui>
@@ -13,12 +13,12 @@
 class Content;
 class DisplayGroupManager;
 
-class ContentWindow : public ContentWindowInterface, public boost::enable_shared_from_this<ContentWindow> {
+class ContentWindowManager : public ContentWindowInterface, public boost::enable_shared_from_this<ContentWindowManager> {
 
     public:
 
-        ContentWindow() { } // no-argument constructor required for serialization
-        ContentWindow(boost::shared_ptr<Content> content);
+        ContentWindowManager() { } // no-argument constructor required for serialization
+        ContentWindowManager(boost::shared_ptr<Content> content);
 
         boost::shared_ptr<Content> getContent();
 

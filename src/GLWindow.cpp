@@ -1,7 +1,7 @@
 #include "GLWindow.h"
 #include "main.h"
 #include "Marker.h"
-#include "ContentWindow.h"
+#include "ContentWindowManager.h"
 #include <QtOpenGL>
 #include "log.h"
 
@@ -69,16 +69,16 @@ void GLWindow::paintGL()
     g_displayGroupManager->getMarker().render();
 
     // render content windows
-    std::vector<boost::shared_ptr<ContentWindow> > contentWindows = g_displayGroupManager->getContentWindows();
+    std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers = g_displayGroupManager->getContentWindowManagers();
 
-    for(unsigned int i=0; i<contentWindows.size(); i++)
+    for(unsigned int i=0; i<contentWindowManagers.size(); i++)
     {
         // manage depth order
-        // the visible depths seem to be in the range (-1,1); make the ContentWindow depths be in the range (-1,0)
+        // the visible depths seem to be in the range (-1,1); make the content window depths be in the range (-1,0)
         glPushMatrix();
-        glTranslatef(0.,0.,-((float)contentWindows.size() - (float)i) / ((float)contentWindows.size() + 1.));
+        glTranslatef(0.,0.,-((float)contentWindowManagers.size() - (float)i) / ((float)contentWindowManagers.size() + 1.));
 
-        contentWindows[i]->render();
+        contentWindowManagers[i]->render();
 
         glPopMatrix();
     }

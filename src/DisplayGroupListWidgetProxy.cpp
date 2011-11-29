@@ -1,5 +1,5 @@
 #include "DisplayGroupListWidgetProxy.h"
-#include "ContentWindow.h"
+#include "ContentWindowManager.h"
 #include "Content.h"
 
 DisplayGroupListWidgetProxy::DisplayGroupListWidgetProxy(boost::shared_ptr<DisplayGroupManager> displayGroupManager) : DisplayGroupInterface(displayGroupManager)
@@ -18,9 +18,9 @@ QListWidget * DisplayGroupListWidgetProxy::getListWidget()
     return listWidget_;
 }
 
-void DisplayGroupListWidgetProxy::addContentWindow(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source)
+void DisplayGroupListWidgetProxy::addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
 {
-    DisplayGroupInterface::addContentWindow(contentWindow, source);
+    DisplayGroupInterface::addContentWindowManager(contentWindowManager, source);
 
     if(source != this)
     {
@@ -30,9 +30,9 @@ void DisplayGroupListWidgetProxy::addContentWindow(boost::shared_ptr<ContentWind
     }
 }
 
-void DisplayGroupListWidgetProxy::removeContentWindow(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source)
+void DisplayGroupListWidgetProxy::removeContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
 {
-    DisplayGroupInterface::removeContentWindow(contentWindow, source);
+    DisplayGroupInterface::removeContentWindowManager(contentWindowManager, source);
 
     if(source != this)
     {
@@ -40,9 +40,9 @@ void DisplayGroupListWidgetProxy::removeContentWindow(boost::shared_ptr<ContentW
     }
 }
 
-void DisplayGroupListWidgetProxy::moveContentWindowToFront(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source)
+void DisplayGroupListWidgetProxy::moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
 {
-    DisplayGroupInterface::moveContentWindowToFront(contentWindow, source);
+    DisplayGroupInterface::moveContentWindowManagerToFront(contentWindowManager, source);
 
     if(source != this)
     {
@@ -55,10 +55,10 @@ void DisplayGroupListWidgetProxy::refreshListWidget()
     // clear list
     listWidget_->clear();
 
-    for(unsigned int i=0; i<contentWindows_.size(); i++)
+    for(unsigned int i=0; i<contentWindowManagers_.size(); i++)
     {
         // add to list view
         QListWidgetItem * newItem = new QListWidgetItem(listWidget_);
-        newItem->setText(contentWindows_[i]->getContent()->getURI().c_str());
+        newItem->setText(contentWindowManagers_[i]->getContent()->getURI().c_str());
     }
 }

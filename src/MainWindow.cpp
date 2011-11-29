@@ -2,7 +2,7 @@
 #include "main.h"
 #include "PixelStreamContent.h"
 #include "PixelStreamSource.h"
-#include "ContentWindow.h"
+#include "ContentWindowManager.h"
 #include "log.h"
 #include "DisplayGroupGraphicsViewProxy.h"
 #include "DisplayGroupListWidgetProxy.h"
@@ -209,9 +209,9 @@ void MainWindow::openContent()
 
         if(c != NULL)
         {
-            boost::shared_ptr<ContentWindow> cw(new ContentWindow(c));
+            boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
 
-            g_displayGroupManager->addContentWindow(cw);
+            g_displayGroupManager->addContentWindowManager(cwm);
         }
         else
         {
@@ -248,14 +248,14 @@ void MainWindow::openContentsDirectory()
 
             if(c != NULL)
             {
-                boost::shared_ptr<ContentWindow> cw(new ContentWindow(c));
+                boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
 
-                g_displayGroupManager->addContentWindow(cw);
+                g_displayGroupManager->addContentWindowManager(cwm);
 
                 int x = contentIndex % gridX;
                 int y = contentIndex / gridX;
 
-                cw->setCoordinates(x*w, y*h, w, h);
+                cwm->setCoordinates(x*w, y*h, w, h);
 
                 contentIndex++;
 
@@ -271,7 +271,7 @@ void MainWindow::openContentsDirectory()
 
 void MainWindow::clearContents()
 {
-    g_displayGroupManager->setContentWindows(std::vector<boost::shared_ptr<ContentWindow> >());
+    g_displayGroupManager->setContentWindowManagers(std::vector<boost::shared_ptr<ContentWindowManager> >());
 }
 
 void MainWindow::saveContents()
@@ -281,7 +281,7 @@ void MainWindow::saveContents()
     if(!filename.isEmpty())
     {
         // get contents vector
-        std::vector<boost::shared_ptr<ContentWindow> > contentWindows = g_displayGroupManager->getContentWindows();
+        std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers = g_displayGroupManager->getContentWindowManagers();
 
         // serialize state
         std::ofstream ofs(filename.toStdString().c_str());
@@ -289,7 +289,7 @@ void MainWindow::saveContents()
         // brace this so destructor is called on archive before we use the stream
         {
             boost::archive::binary_oarchive oa(ofs);
-            oa << contentWindows;
+            oa << contentWindowManagers;
         }
     }
 }
@@ -301,7 +301,7 @@ void MainWindow::loadContents()
     if(!filename.isEmpty())
     {
         // new contents vector
-        std::vector<boost::shared_ptr<ContentWindow> > contentWindows;
+        std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers;
 
         // serialize state
         std::ifstream ifs(filename.toStdString().c_str());
@@ -309,11 +309,11 @@ void MainWindow::loadContents()
         // brace this so destructor is called on archive before we use the stream
         {
             boost::archive::binary_iarchive ia(ifs);
-            ia >> contentWindows;
+            ia >> contentWindowManagers;
         }
 
         // assign new contents vector to display group
-        g_displayGroupManager->setContentWindows(contentWindows);
+        g_displayGroupManager->setContentWindowManagers(contentWindowManagers);
     }
 }
 
@@ -325,13 +325,13 @@ void MainWindow::shareDesktop(bool set)
         shareDesktopWidth_ = QInputDialog::getInt(this, "Width", "Width");
         shareDesktopHeight_ = QInputDialog::getInt(this, "Height", "Height");
 
-        // add the content window if we don't already have one
+        // add the content window manager if we don't already have one
         if(g_displayGroupManager->hasContent("desktop") != true)
         {
             boost::shared_ptr<Content> c(new PixelStreamContent("desktop"));
-            boost::shared_ptr<ContentWindow> cw(new ContentWindow(c));
+            boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
 
-            g_displayGroupManager->addContentWindow(cw);
+            g_displayGroupManager->addContentWindowManager(cwm);
         }
 
         // setup timer to repeatedly update the shared desktop image
@@ -372,11 +372,11 @@ void MainWindow::constrainAspectRatio(bool set)
 
     if(constrainAspectRatio_ == true)
     {
-        std::vector<boost::shared_ptr<ContentWindow> > contentWindows = g_displayGroupManager->getContentWindows();
+        std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers = g_displayGroupManager->getContentWindowManagers();
 
-        for(unsigned int i=0; i<contentWindows.size(); i++)
+        for(unsigned int i=0; i<contentWindowManagers.size(); i++)
         {
-            contentWindows[i]->fixAspectRatio();
+            contentWindowManagers[i]->fixAspectRatio();
         }
 
         // force a display group synchronization

@@ -22,7 +22,7 @@ class DynamicTextureContent : public Content {
             ar & boost::serialization::base_object<Content>(*this);
         }
 
-        void advance(boost::shared_ptr<ContentWindow> window);
+        void advance(boost::shared_ptr<ContentWindowManager> window);
 
         void renderFactoryObject(float tX, float tY, float tW, float tH);
 };
