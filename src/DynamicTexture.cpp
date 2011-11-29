@@ -227,7 +227,7 @@ void DynamicTexture::getDimensions(int &width, int &height)
 
 void DynamicTexture::render(float tX, float tY, float tW, float tH, bool computeOnDemand, bool considerChildren)
 {
-    if(considerChildren == true && getProjectedPixelArea() > TEXTURE_SIZE*TEXTURE_SIZE && (getRoot()->imageWidth_ / pow(2,depth_) > TEXTURE_SIZE || getRoot()->imageHeight_ / pow(2,depth_) > TEXTURE_SIZE)) // todo: need to scale projected pixel area by shown texture width and height (clamped to 0->1)!
+    if(considerChildren == true && getProjectedPixelArea(true) > 0. && getProjectedPixelArea(false) > TEXTURE_SIZE*TEXTURE_SIZE && (getRoot()->imageWidth_ / pow(2,depth_) > TEXTURE_SIZE || getRoot()->imageHeight_ / pow(2,depth_) > TEXTURE_SIZE))
     {
         // mark this object as having rendered children in this frame
         renderChildrenFrameCount_ = g_frameCount;
@@ -306,8 +306,8 @@ void DynamicTexture::render(float tX, float tY, float tW, float tH, bool compute
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
             // on zoom-out, clamp to border (instead of showing the texture tiled / repeated)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
             glBegin(GL_QUADS);
 
@@ -603,7 +603,7 @@ void DynamicTexture::renderChildren(float tX, float tY, float tW, float tH)
     }
 }
 
-double DynamicTexture::getProjectedPixelArea()
+double DynamicTexture::getProjectedPixelArea(bool onScreenOnly)
 {
     // get four corners in object space (recall we're in normalized 0->1 dimensions)
     double x[4][3];
@@ -640,18 +640,21 @@ double DynamicTexture::getProjectedPixelArea()
     {
         gluProject(x[i][0], x[i][1], x[i][2], modelview, projection, viewport, &xWin[i][0], &xWin[i][1], &xWin[i][2]);
 
-        // clamp to on-screen portion
-        if(xWin[i][0] < 0.)
-            xWin[i][0] = 0.;
+        if(onScreenOnly == true)
+        {
+            // clamp to on-screen portion
+            if(xWin[i][0] < 0.)
+                xWin[i][0] = 0.;
 
-        if(xWin[i][0] > (double)g_mainWindow->getGLWindow()->width())
-            xWin[i][0] = (double)g_mainWindow->getGLWindow()->width();
+            if(xWin[i][0] > (double)g_mainWindow->getGLWindow()->width())
+                xWin[i][0] = (double)g_mainWindow->getGLWindow()->width();
 
-        if(xWin[i][1] < 0.)
-            xWin[i][1] = 0.;
+            if(xWin[i][1] < 0.)
+                xWin[i][1] = 0.;
 
-        if(xWin[i][1] > (double)g_mainWindow->getGLWindow()->height())
-            xWin[i][1] = (double)g_mainWindow->getGLWindow()->height();
+            if(xWin[i][1] > (double)g_mainWindow->getGLWindow()->height())
+                xWin[i][1] = (double)g_mainWindow->getGLWindow()->height();
+        }
     }
 
     // get area from two triangles
