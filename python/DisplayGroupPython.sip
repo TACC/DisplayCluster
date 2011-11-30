@@ -18,6 +18,9 @@ class pyDisplayGroupPython
     void addContentWindow(const pyContentWindow&);
     void removeContentWindow(const pyContentWindow&);
 
+    int size();
+    pyContentWindow getPyContentWindow(int);
+
 };
 
 

@@ -75,9 +75,11 @@ class pyContentWindow
 {
 public:
   pyContentWindow(pyContent content) { ptr = boost::shared_ptr<ContentWindow>(new ContentWindow(content.get())); }
+  pyContentWindow(pContentWindow cw) { ptr = cw; }
   ~pyContentWindow() {}
 
   boost::shared_ptr<ContentWindow> get() const {return ptr;}
+  pyContent getPyContent() { return pyContent(get()->getContent()); }
 
 private:
   boost::shared_ptr<ContentWindow> ptr;

@@ -34,6 +34,9 @@ class pyDisplayGroupPython
 
         boost::shared_ptr<DisplayGroupPython> get() const {return ptr_;}
 
+	int size() {return get()->getContentWindows().size();}
+ 	pyContentWindow getPyContentWindow(int indx) { return pyContentWindow(get()->getContentWindows()[indx]); }
+
     private:
 
         boost::shared_ptr<DisplayGroupPython> ptr_;

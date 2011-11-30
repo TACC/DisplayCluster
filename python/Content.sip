@@ -14,4 +14,6 @@ class pyContent
   public:
     pyContent(const char *str);
     pContent get();
+
+    const char *getURI();
 };

@@ -15,6 +15,8 @@ class pyContentWindow
     pyContentWindow(pyContent);
     pContentWindow get();
 
+    pyContent getPyContent();
+
     void getLocation();
 %MethodCode
 	pContentWindow win = sipCpp->get();

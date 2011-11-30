@@ -219,6 +219,8 @@ PythonTypeIn::executeLine(bool storeOnly)
       emit python_command(emittedString);
       _currentMultiLineCode = "";
     }
+    else
+      prompt(true);
   }
 }
 

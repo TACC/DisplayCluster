@@ -75,7 +75,7 @@ class PythonConsole : public QMainWindow
 
 public:
     static PythonConsole *self();
-   static void init();
+    static void init();
 
 protected:
     PythonConsole();
