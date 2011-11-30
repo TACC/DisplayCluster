@@ -1,5 +1,5 @@
 #include "Content.h"
-#include "ContentWindow.h"
+#include "ContentWindowManager.h"
 #include "TextureContent.h"
 #include "DynamicTextureContent.h"
 #include "MovieContent.h"
@@ -31,7 +31,7 @@ void Content::setDimensions(int width, int height)
     emit(dimensionsChanged(width_, height_));
 }
 
-void Content::render(boost::shared_ptr<ContentWindow> window)
+void Content::render(boost::shared_ptr<ContentWindowManager> window)
 {
     // get parameters from window
     double x, y, w, h;

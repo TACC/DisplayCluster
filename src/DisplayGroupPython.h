@@ -5,7 +5,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 
-#include "ContentWindow.h"
+#include "ContentWindowManager.h"
 #include "DisplayGroupInterface.h"
 
 class DisplayGroupPython : public DisplayGroupInterface, public boost::enable_shared_from_this<DisplayGroupPython> {
@@ -28,14 +28,14 @@ class pyDisplayGroupPython
 
         ~pyDisplayGroupPython() {}
 
-        void addContentWindow(pyContentWindow pcw) { get()->addContentWindow(pcw.get()); }
-        void removeContentWindow(pyContentWindow pcw) { get()->removeContentWindow(pcw.get()); }
-        void moveContentWindowToFront(pyContentWindow pcw) { get()->moveContentWindowToFront(pcw.get()); }
+        void addContentWindowManager(pyContentWindowManager pcw) { get()->addContentWindowManager(pcw.get()); }
+        void removeContentWindowManager(pyContentWindowManager pcw) { get()->removeContentWindowManager(pcw.get()); }
+        void moveContentWindowManagerToFront(pyContentWindowManager pcw) { get()->moveContentWindowManagerToFront(pcw.get()); }
 
         boost::shared_ptr<DisplayGroupPython> get() const {return ptr_;}
 
-	int size() {return get()->getContentWindows().size();}
- 	pyContentWindow getPyContentWindow(int indx) { return pyContentWindow(get()->getContentWindows()[indx]); }
+	int size() {return get()->getContentWindowManagers().size();}
+ 	pyContentWindowManager getPyContentWindowManager(int indx) { return pyContentWindowManager(get()->getContentWindowManagers()[indx]); }
 
     private:
 

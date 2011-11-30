@@ -1,6 +1,6 @@
 #include "DisplayGroupGraphicsViewProxy.h"
 #include "DisplayGroupGraphicsView.h"
-#include "ContentWindow.h"
+#include "ContentWindowManager.h"
 #include "ContentWindowGraphicsItem.h"
 
 DisplayGroupGraphicsViewProxy::DisplayGroupGraphicsViewProxy(boost::shared_ptr<DisplayGroupManager> displayGroupManager) : DisplayGroupInterface(displayGroupManager)
@@ -20,24 +20,24 @@ DisplayGroupGraphicsView * DisplayGroupGraphicsViewProxy::getGraphicsView()
     return graphicsView_;
 }
 
-void DisplayGroupGraphicsViewProxy::addContentWindow(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source)
+void DisplayGroupGraphicsViewProxy::addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
 {
-    DisplayGroupInterface::addContentWindow(contentWindow, source);
+    DisplayGroupInterface::addContentWindowManager(contentWindowManager, source);
 
     if(source != this)
     {
-        ContentWindowGraphicsItem * cwgi = new ContentWindowGraphicsItem(contentWindow);
+        ContentWindowGraphicsItem * cwgi = new ContentWindowGraphicsItem(contentWindowManager);
         graphicsView_->scene()->addItem((QGraphicsItem *)cwgi);
     }
 }
 
-void DisplayGroupGraphicsViewProxy::removeContentWindow(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source)
+void DisplayGroupGraphicsViewProxy::removeContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
 {
-    DisplayGroupInterface::removeContentWindow(contentWindow, source);
+    DisplayGroupInterface::removeContentWindowManager(contentWindowManager, source);
 
     if(source != this)
     {
-        // find ContentWindowGraphicsItem associated with contentWindow
+        // find ContentWindowGraphicsItem associated with contentWindowManager
         QList<QGraphicsItem *> itemsList = graphicsView_->scene()->items();
 
         for(int i=0; i<itemsList.size(); i++)
@@ -45,7 +45,7 @@ void DisplayGroupGraphicsViewProxy::removeContentWindow(boost::shared_ptr<Conten
             // need dynamic cast to make sure this is actually a CWGI
             ContentWindowGraphicsItem * cwgi = dynamic_cast<ContentWindowGraphicsItem *>(itemsList.at(i));
 
-            if(cwgi != NULL && cwgi->getContentWindow() == contentWindow)
+            if(cwgi != NULL && cwgi->getContentWindowManager() == contentWindowManager)
             {
                 graphicsView_->scene()->removeItem(itemsList.at(i));
             }
@@ -53,13 +53,13 @@ void DisplayGroupGraphicsViewProxy::removeContentWindow(boost::shared_ptr<Conten
     }
 }
 
-void DisplayGroupGraphicsViewProxy::moveContentWindowToFront(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source)
+void DisplayGroupGraphicsViewProxy::moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
 {
-    DisplayGroupInterface::moveContentWindowToFront(contentWindow, source);
+    DisplayGroupInterface::moveContentWindowManagerToFront(contentWindowManager, source);
 
     if(source != this)
     {
-        // find ContentWindowGraphicsItem associated with contentWindow
+        // find ContentWindowGraphicsItem associated with contentWindowManager
         QList<QGraphicsItem *> itemsList = graphicsView_->scene()->items();
 
         for(int i=0; i<itemsList.size(); i++)
@@ -67,7 +67,7 @@ void DisplayGroupGraphicsViewProxy::moveContentWindowToFront(boost::shared_ptr<C
             // need dynamic cast to make sure this is actually a CWGI
             ContentWindowGraphicsItem * cwgi = dynamic_cast<ContentWindowGraphicsItem *>(itemsList.at(i));
 
-            if(cwgi != NULL && cwgi->getContentWindow() == contentWindow)
+            if(cwgi != NULL && cwgi->getContentWindowManager() == contentWindowManager)
             {
                 // don't call cwgi->moveToFront() here or that'll lead to infinite recursion!
                 cwgi->setZToFront();

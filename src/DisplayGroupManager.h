@@ -11,7 +11,7 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-#include "ContentWindow.h"
+#include "ContentWindowManager.h"
 
 enum MESSAGE_TYPE { MESSAGE_TYPE_CONTENTS, MESSAGE_TYPE_CONTENTS_DIMENSIONS, MESSAGE_TYPE_PIXELSTREAM, MESSAGE_TYPE_FRAME_CLOCK, MESSAGE_TYPE_QUIT };
 
@@ -34,18 +34,18 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         boost::shared_ptr<boost::posix_time::ptime> getTimestamp();
 
         // re-implemented DisplayGroupInterface slots
-        void addContentWindow(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source=NULL);
-        void removeContentWindow(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source=NULL);
-        void moveContentWindowToFront(boost::shared_ptr<ContentWindow> contentWindow, DisplayGroupInterface * source=NULL);
+        void addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
+        void removeContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
+        void moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
 
         void dump() 
         { 
-          if (contentWindows_.size()) 
+          if (contentWindowManagers_.size()) 
           { 
             std::cerr << "DisplayGroup: \n"; 
-            for(unsigned int i=0; i<contentWindows_.size(); i++) 
+            for(unsigned int i=0; i<contentWindowManagers_.size(); i++) 
             { 
-              boost::shared_ptr<ContentWindow> c = contentWindows_[i]; 
+              boost::shared_ptr<ContentWindowManager> c = contentWindowManagers_[i]; 
               c->dump(); 
             } 
           } 
@@ -73,7 +73,7 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         void serialize(Archive & ar, const unsigned int version)
         {
             ar & marker_;
-            ar & contentWindows_;
+            ar & contentWindowManagers_;
         }
 
         // marker

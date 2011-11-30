@@ -82,7 +82,7 @@ class DynamicTexture : public boost::enable_shared_from_this<DynamicTexture> {
         QImage getImageFromParent(float x, float y, float w, float h, DynamicTexture * start);
         void uploadTexture();
         void renderChildren(float tX, float tY, float tW, float tH);
-        double getProjectedPixelArea();
+        double getProjectedPixelArea(bool onScreenOnly);
         bool getThreadsDoneDescending();
         int getThreadCount();
         void incrementThreadCount();

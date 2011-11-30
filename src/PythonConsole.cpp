@@ -12,10 +12,10 @@ PythonConsole *PythonConsole::self() {return thePythonConsole;}
 void
 PythonConsole::init()
 {
+  PythonQt::init(PythonQt::IgnoreSiteModule | PythonQt::RedirectStdOut);
+
   thePythonQt = new MyPythonQt();
   thePythonConsole = new PythonConsole();
-
-  PythonQt::init(PythonQt::IgnoreSiteModule | PythonQt::RedirectStdOut);
 
   connect(PythonQt::self(), SIGNAL(pythonStdOut(const QString&)), thePythonQt, SLOT(pythonStdOut(const QString&)));
   connect(PythonQt::self(), SIGNAL(pythonStdErr(const QString&)), thePythonQt, SLOT(pythonStdErr(const QString&)));
@@ -56,6 +56,8 @@ MyPythonQt::evalString(QString *code)
 
 PythonConsole::PythonConsole()
 {
+  thePythonQt->evalString(new QString("import pydc"));
+
   pythonThread = new QThread;
   pythonThread->start();
   thePythonQt->moveToThread(pythonThread);

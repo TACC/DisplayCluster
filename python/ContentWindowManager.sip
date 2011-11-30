@@ -1,25 +1,25 @@
-class pContentWindow
+class pContentWindowManager
 {
 %TypeHeaderCode
-#include <ContentWindow.h>
+#include <ContentWindowManager.h>
 %End
 };
 
-class pyContentWindow
+class pyContentWindowManager
 {
 %TypeHeaderCode
-#include <ContentWindow.h>
+#include <ContentWindowManager.h>
 %End
 
   public:
-    pyContentWindow(pyContent);
-    pContentWindow get();
+    pyContentWindowManager(pyContent);
+    pContentWindowManager get();
 
     pyContent getPyContent();
 
     void getLocation();
 %MethodCode
-	pContentWindow win = sipCpp->get();
+	pContentWindowManager win = sipCpp->get();
 	double x, y, w, h;
 	win->getCoordinates(x, y, w, h);
 	return Py_BuildValue("(dd)", x, y);
@@ -27,7 +27,7 @@ class pyContentWindow
 
     void getSize();
 %MethodCode
-	pContentWindow win = sipCpp->get();
+	pContentWindowManager win = sipCpp->get();
 	double x, y, w, h;
 	win->getCoordinates(x, y, w, h);
 	return Py_BuildValue("(dd)", w, h);
@@ -35,7 +35,7 @@ class pyContentWindow
 
     void getCenter();
 %MethodCode
-	pContentWindow win = sipCpp->get();
+	pContentWindowManager win = sipCpp->get();
 	double x, y;
 	win->getCenter(x, y);
 	return Py_BuildValue("(dd)", x, y);
@@ -48,7 +48,7 @@ class pyContentWindow
 
    void setLocation(double i, double j);
 %MethodCode
-	pContentWindow win = sipCpp->get();
+	pContentWindowManager win = sipCpp->get();
 	double x, y, w, h;
 	win->getCoordinates(x, y, w, h);
 	win->setCoordinates(a0, a1, w, h);
@@ -56,7 +56,7 @@ class pyContentWindow
 
    void setSize(double i, double j);
 %MethodCode
-	pContentWindow win = sipCpp->get();
+	pContentWindowManager win = sipCpp->get();
 	double x, y, w, h;
 	win->getCoordinates(x, y, w, h);
 	win->setCoordinates(x, y, a0, a1);
@@ -64,13 +64,13 @@ class pyContentWindow
 
    void setCenter(double i, double j);
 %MethodCode
-	pContentWindow win = sipCpp->get();
+	pContentWindowManager win = sipCpp->get();
 	sipCpp->get()->setCenter(a0, a1);
 %End
 
    void setZoom(double z);
 %MethodCode
-	pContentWindow win = sipCpp->get();
+	pContentWindowManager win = sipCpp->get();
 	sipCpp->get()->setZoom(a0);
 %End
 };

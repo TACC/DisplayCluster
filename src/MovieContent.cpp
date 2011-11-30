@@ -1,19 +1,19 @@
 #include "MovieContent.h"
 #include "main.h"
 #include "Movie.h"
-#include "ContentWindow.h"
+#include "ContentWindowManager.h"
 
 void MovieContent::getFactoryObjectDimensions(int &width, int &height)
 {
     g_mainWindow->getGLWindow()->getMovieFactory().getObject(getURI())->getDimensions(width, height);
 }
 
-void MovieContent::advance(boost::shared_ptr<ContentWindow> window)
+void MovieContent::advance(boost::shared_ptr<ContentWindowManager> window)
 {
     // skip a frame if the Content rectangle is not visible in ANY windows; otherwise decode normally
     bool skip = true;
 
-    // Content window parameters
+    // window parameters
     double x, y, w, h;
     window->getCoordinates(x, y, w, h);
 

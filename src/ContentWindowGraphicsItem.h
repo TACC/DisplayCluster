@@ -5,13 +5,13 @@
 #include <QtGui>
 #include <boost/shared_ptr.hpp>
 
-class ContentWindow;
+class ContentWindowManager;
 
 class ContentWindowGraphicsItem : public QGraphicsRectItem, public ContentWindowInterface {
 
     public:
 
-        ContentWindowGraphicsItem(boost::shared_ptr<ContentWindow> contentWindow);
+        ContentWindowGraphicsItem(boost::shared_ptr<ContentWindowManager> contentWindowManager);
 
         // QGraphicsRectItem painting
         void paint(QPainter * painter, const QStyleOptionGraphicsItem * option, QWidget * widget=0);

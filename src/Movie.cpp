@@ -162,8 +162,8 @@ void Movie::render(float tX, float tY, float tW, float tH)
     glBindTexture(GL_TEXTURE_2D, textureId_);
 
     // on zoom-out, clamp to border (instead of showing the texture tiled / repeated)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
     glBegin(GL_QUADS);
 

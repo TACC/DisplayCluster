@@ -5,7 +5,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 
-class ContentWindow;
+class ContentWindowManager;
 
 class ContentWindowInterface : public QObject {
     Q_OBJECT
@@ -13,9 +13,9 @@ class ContentWindowInterface : public QObject {
     public:
 
         ContentWindowInterface() { }
-        ContentWindowInterface(boost::shared_ptr<ContentWindow> contentWindow);
+        ContentWindowInterface(boost::shared_ptr<ContentWindowManager> contentWindowManager);
 
-        boost::shared_ptr<ContentWindow> getContentWindow();
+        boost::shared_ptr<ContentWindowManager> getContentWindowManager();
 
         void getContentDimensions(int &contentWidth, int &contentHeight);
         void getCoordinates(double &x, double &y, double &w, double &h);
@@ -31,7 +31,7 @@ class ContentWindowInterface : public QObject {
     public slots:
 
         // these methods set the local copies of the state variables if source != this
-        // they will emit signals if source == NULL or if this is a ContentWindow object
+        // they will emit signals if source == NULL or if this is a ContentWindowManager object
         // the source argument should not be provided by users -- only by these functions
         virtual void setContentDimensions(int contentWidth, int contentHeight, ContentWindowInterface * source=NULL);
         virtual void setCoordinates(double x, double y, double w, double h, ContentWindowInterface * source=NULL);
@@ -45,8 +45,8 @@ class ContentWindowInterface : public QObject {
 
     signals:
 
-        // emitting these signals will trigger updates on the corresponding ContentWindow
-        // as well as all other ContentWindowInterfaces to that ContentWindow
+        // emitting these signals will trigger updates on the corresponding ContentWindowManager
+        // as well as all other ContentWindowInterfaces to that ContentWindowManager
         void contentDimensionsChanged(int contentWidth, int contentHeight, ContentWindowInterface * source);
         void coordinatesChanged(double x, double y, double w, double h, ContentWindowInterface * source);
         void positionChanged(double x, double y, ContentWindowInterface * source);
@@ -59,8 +59,8 @@ class ContentWindowInterface : public QObject {
 
     protected:
 
-        // optional: reference to ContentWindow for non-ContentWindow objects
-        boost::weak_ptr<ContentWindow> contentWindow_;
+        // optional: reference to ContentWindowManager for non-ContentWindowManager objects
+        boost::weak_ptr<ContentWindowManager> contentWindowManager_;
 
         // content dimensions
         int contentWidth_;

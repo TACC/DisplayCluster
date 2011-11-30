@@ -1,13 +1,13 @@
 #include "ContentWindowGraphicsItem.h"
 #include "Content.h"
-#include "ContentWindow.h"
+#include "ContentWindowManager.h"
 #include "DisplayGroupManager.h"
 #include "DisplayGroupGraphicsView.h"
 #include "main.h"
 
 qreal ContentWindowGraphicsItem::zCounter_ = 0;
 
-ContentWindowGraphicsItem::ContentWindowGraphicsItem(boost::shared_ptr<ContentWindow> contentWindow) : ContentWindowInterface(contentWindow)
+ContentWindowGraphicsItem::ContentWindowGraphicsItem(boost::shared_ptr<ContentWindowManager> contentWindowManager) : ContentWindowInterface(contentWindowManager)
 {
     // defaults
     resizing_ = false;
@@ -35,16 +35,16 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
 {
     QGraphicsRectItem::paint(painter, option, widget);
 
-    boost::shared_ptr<ContentWindow> contentWindow = getContentWindow();
+    boost::shared_ptr<ContentWindowManager> contentWindowManager = getContentWindowManager();
 
-    if(contentWindow != NULL)
+    if(contentWindowManager != NULL)
     {
         // default pen
         QPen pen;
 
         // button dimensions
         float buttonWidth, buttonHeight;
-        contentWindow->getButtonDimensions(buttonWidth, buttonHeight);
+        contentWindowManager->getButtonDimensions(buttonWidth, buttonHeight);
 
         // draw close button
         QRectF closeRect(rect().x() + rect().width() - buttonWidth, rect().y(), buttonWidth, buttonHeight);
@@ -84,7 +84,7 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
         QRectF textBoundingRect = QRectF(rect().x() / horizontalTextScale, rect().y() / verticalTextScale, rect().width() / horizontalTextScale, rect().height() / verticalTextScale);
 
         // get the label and render it
-        QString label(contentWindow->getContent()->getURI().c_str());
+        QString label(contentWindowManager->getContent()->getURI().c_str());
         QString labelSection = label.section("/", -1, -1).prepend(" ");
         painter->drawText(textBoundingRect, Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap, labelSection);
     }
@@ -226,13 +226,13 @@ void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
 
 void ContentWindowGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent * event)
 {
-    boost::shared_ptr<ContentWindow> contentWindow = getContentWindow();
+    boost::shared_ptr<ContentWindowManager> contentWindowManager = getContentWindowManager();
 
-    if(contentWindow != NULL)
+    if(contentWindowManager != NULL)
     {
         // button dimensions
         float buttonWidth, buttonHeight;
-        contentWindow->getButtonDimensions(buttonWidth, buttonHeight);
+        contentWindowManager->getButtonDimensions(buttonWidth, buttonHeight);
 
         // item rectangle and event position
         QRectF r = rect();

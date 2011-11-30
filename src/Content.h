@@ -8,7 +8,7 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/assume_abstract.hpp>
 
-class ContentWindow;
+class ContentWindowManager;
 
 class Content : public QObject {
     Q_OBJECT
@@ -22,11 +22,12 @@ class Content : public QObject {
         void getDimensions(int &width, int &height);
         void setDimensions(int width, int height);
         virtual void getFactoryObjectDimensions(int &width, int &height) = 0;
-        void render(boost::shared_ptr<ContentWindow>);
+
+        void render(boost::shared_ptr<ContentWindowManager>);
 
         // virtual method for implementing actions on advancing to a new frame
         // useful when a process has multiple GLWindows
-        virtual void advance(boost::shared_ptr<ContentWindow>) { }
+        virtual void advance(boost::shared_ptr<ContentWindowManager> ) { }
 
         // get a Content object of the appropriate derived type based on the URI given
         static boost::shared_ptr<Content> getContent(std::string uri);

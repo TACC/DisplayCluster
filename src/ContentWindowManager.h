@@ -1,5 +1,5 @@
-#ifndef CONTENT_WINDOW_H
-#define CONTENT_WINDOW_H
+#ifndef CONTENT_WINDOW_MANAGER_H
+#define CONTENT_WINDOW_MANAGER_H
 
 #include "ContentWindowInterface.h"
 #include <QtGui>
@@ -13,12 +13,12 @@
 #include "Content.h"
 class DisplayGroupManager;
 
-class ContentWindow : public ContentWindowInterface, public boost::enable_shared_from_this<ContentWindow> {
+class ContentWindowManager : public ContentWindowInterface, public boost::enable_shared_from_this<ContentWindowManager> {
 
     public:
 
-        ContentWindow() { } // no-argument constructor required for serialization
-        ContentWindow(boost::shared_ptr<Content> content);
+        ContentWindowManager() { } // no-argument constructor required for serialization
+        ContentWindowManager(boost::shared_ptr<Content> content);
 
         boost::shared_ptr<Content> getContent();
 
@@ -69,20 +69,20 @@ class ContentWindow : public ContentWindowInterface, public boost::enable_shared
         boost::weak_ptr<DisplayGroupManager> displayGroupManager_;
 };
 
-typedef boost::shared_ptr<ContentWindow> pContentWindow;
+typedef boost::shared_ptr<ContentWindowManager> pContentWindowManager;
 
-class pyContentWindow
+class pyContentWindowManager
 {
 public:
-  pyContentWindow(pyContent content) { ptr = boost::shared_ptr<ContentWindow>(new ContentWindow(content.get())); }
-  pyContentWindow(pContentWindow cw) { ptr = cw; }
-  ~pyContentWindow() {}
+  pyContentWindowManager(pyContent content) { ptr = boost::shared_ptr<ContentWindowManager>(new ContentWindowManager(content.get())); }
+  pyContentWindowManager(pContentWindowManager cw) { ptr = cw; }
+  ~pyContentWindowManager() {}
 
-  boost::shared_ptr<ContentWindow> get() const {return ptr;}
+  boost::shared_ptr<ContentWindowManager> get() const {return ptr;}
   pyContent getPyContent() { return pyContent(get()->getContent()); }
 
 private:
-  boost::shared_ptr<ContentWindow> ptr;
+  boost::shared_ptr<ContentWindowManager> ptr;
 
 };
 
