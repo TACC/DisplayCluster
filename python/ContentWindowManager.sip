@@ -47,7 +47,6 @@ class pyContentWindowManager
 %End
 
    void setLocation(double i, double j);
-%MethodCode
 	pContentWindowManager win = sipCpp->get();
 	double x, y, w, h;
 	win->getCoordinates(x, y, w, h);
