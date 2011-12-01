@@ -17,11 +17,19 @@ class pyContentWindowManager
 
     pyContent getPyContent();
 
-    void getLocation();
+    void getCoordinates();
 %MethodCode
 	pContentWindowManager win = sipCpp->get();
 	double x, y, w, h;
 	win->getCoordinates(x, y, w, h);
+	return Py_BuildValue("(dddd)", x, y, w, h);
+%End
+
+    void getPosition();
+%MethodCode
+	pContentWindowManager win = sipCpp->get();
+	double x, y;
+	win->getPosition(x, y);
 	return Py_BuildValue("(dd)", x, y);
 %End
 
@@ -46,19 +54,27 @@ class pyContentWindowManager
 	return Py_BuildValue("d", sipCpp->get()->getZoom());
 %End
 
-   void setLocation(double i, double j);
+    void getSelected();
+%MethodCode
+	return Py_BuildValue("d", sipCpp->get()->getSelected() ? 1 : 0);
+%End
+
+   void setCoordinates(double i, double j, double k, double l);
+%MethodCode
 	pContentWindowManager win = sipCpp->get();
-	double x, y, w, h;
-	win->getCoordinates(x, y, w, h);
-	win->setCoordinates(a0, a1, w, h);
+	win->setCoordinates(a0, a1, a2, a3);
+%End
+
+   void setPosition(double i, double j);
+%MethodCode
+	pContentWindowManager win = sipCpp->get();
+	win->setPosition(a0, a1);
 %End
 
    void setSize(double i, double j);
 %MethodCode
 	pContentWindowManager win = sipCpp->get();
-	double x, y, w, h;
-	win->getCoordinates(x, y, w, h);
-	win->setCoordinates(x, y, a0, a1);
+	win->setSize(a0, a1);
 %End
 
    void setCenter(double i, double j);
@@ -71,5 +87,17 @@ class pyContentWindowManager
 %MethodCode
 	pContentWindowManager win = sipCpp->get();
 	sipCpp->get()->setZoom(a0);
+%End
+
+   void setSelected(int s);
+%MethodCode
+	pContentWindowManager win = sipCpp->get();
+	sipCpp->get()->setSelected(a0 == 1 ? true : false);
+%End
+
+   void moveToFront();
+%MethodCode
+	pContentWindowManager win = sipCpp->get();
+	sipCpp->get()->moveToFront();
 %End
 };

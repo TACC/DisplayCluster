@@ -120,6 +120,7 @@ add_executable(displaycluster ${SRCS} ${MOC_OUTFILES})
 
 target_link_libraries(displaycluster ${LIBS})
 
+
 # DesktopStreamer app
 set(DESKTOP_STREAMER_SRCS ${DESKTOP_STREAMER_SRCS}
     src/log.cpp
