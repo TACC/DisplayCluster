@@ -102,7 +102,22 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
         // get the label and render it
         QString label(contentWindowManager->getContent()->getURI().c_str());
         QString labelSection = label.section("/", -1, -1).prepend(" ");
-        painter->drawText(textBoundingRect, Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap, labelSection);
+        painter->drawText(textBoundingRect, Qt::AlignLeft | Qt::AlignTop, labelSection);
+
+        // draw window info at smaller scale
+        verticalTextScale *= 0.5;
+        horizontalTextScale *= 0.5;
+
+        painter->scale(0.5, 0.5);
+
+        textBoundingRect = QRectF(rect().x() / horizontalTextScale, rect().y() / verticalTextScale, rect().width() / horizontalTextScale, rect().height() / verticalTextScale);
+
+        QString coordinatesLabel = QString(" (") + QString::number(x_, 'f', 2) + QString(" ,") + QString::number(y_, 'f', 2) + QString(", ") + QString::number(w_, 'f', 2) + QString(", ") + QString::number(h_, 'f', 2) + QString(")\n");
+        QString zoomCenterLabel = QString(" zoom = ") + QString::number(zoom_, 'f', 2) + QString(" @ (") + QString::number(centerX_, 'f', 2) + QString(", ") + QString::number(centerY_, 'f', 2) + QString(")");
+
+        QString windowInfoLabel = coordinatesLabel + zoomCenterLabel;
+        painter->drawText(textBoundingRect, Qt::AlignLeft | Qt::AlignBottom, windowInfoLabel);
+
     }
 }
 
@@ -237,6 +252,9 @@ void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
 
             setCenter(centerX, centerY);
         }
+
+        // force a redraw to update window info label
+        update();
     }
 }
 
