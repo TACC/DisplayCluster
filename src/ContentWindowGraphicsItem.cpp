@@ -76,8 +76,24 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
 
         // scale the text size down to the height of the graphics view
         // and, calculate the bounding rectangle for the text based on this scale
-        float verticalTextScale = 1. / (float)scene()->views()[0]->height();
-        float horizontalTextScale = (float)scene()->views()[0]->height() / (float)scene()->views()[0]->width() * verticalTextScale;
+        // the dimensions of the view need to be corrected for the tiled display aspect ratio
+        // recall the tiled display UI is only part of the graphics view since we show it at the correct aspect ratio
+        float viewWidth = (float)scene()->views()[0]->width();
+        float viewHeight = (float)scene()->views()[0]->height();
+
+        float tiledDisplayAspect = (float)g_configuration->getTotalWidth() / (float)g_configuration->getTotalHeight();
+
+        if(viewWidth / viewHeight > tiledDisplayAspect)
+        {
+            viewWidth = viewHeight * tiledDisplayAspect;
+        }
+        else if(viewWidth / viewHeight <= tiledDisplayAspect)
+        {
+            viewHeight = viewWidth / tiledDisplayAspect;
+        }
+
+        float verticalTextScale = 1. / viewHeight;
+        float horizontalTextScale = viewHeight / viewWidth * verticalTextScale;
 
         painter->scale(horizontalTextScale, verticalTextScale);
 
@@ -86,7 +102,22 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
         // get the label and render it
         QString label(contentWindowManager->getContent()->getURI().c_str());
         QString labelSection = label.section("/", -1, -1).prepend(" ");
-        painter->drawText(textBoundingRect, Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap, labelSection);
+        painter->drawText(textBoundingRect, Qt::AlignLeft | Qt::AlignTop, labelSection);
+
+        // draw window info at smaller scale
+        verticalTextScale *= 0.5;
+        horizontalTextScale *= 0.5;
+
+        painter->scale(0.5, 0.5);
+
+        textBoundingRect = QRectF(rect().x() / horizontalTextScale, rect().y() / verticalTextScale, rect().width() / horizontalTextScale, rect().height() / verticalTextScale);
+
+        QString coordinatesLabel = QString(" (") + QString::number(x_, 'f', 2) + QString(" ,") + QString::number(y_, 'f', 2) + QString(", ") + QString::number(w_, 'f', 2) + QString(", ") + QString::number(h_, 'f', 2) + QString(")\n");
+        QString zoomCenterLabel = QString(" zoom = ") + QString::number(zoom_, 'f', 2) + QString(" @ (") + QString::number(centerX_, 'f', 2) + QString(", ") + QString::number(centerY_, 'f', 2) + QString(")");
+
+        QString windowInfoLabel = coordinatesLabel + zoomCenterLabel;
+        painter->drawText(textBoundingRect, Qt::AlignLeft | Qt::AlignBottom, windowInfoLabel);
+
     }
 }
 
@@ -221,6 +252,9 @@ void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
 
             setCenter(centerX, centerY);
         }
+
+        // force a redraw to update window info label
+        update();
     }
 }
 
