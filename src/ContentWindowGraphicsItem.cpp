@@ -76,8 +76,24 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
 
         // scale the text size down to the height of the graphics view
         // and, calculate the bounding rectangle for the text based on this scale
-        float verticalTextScale = 1. / (float)scene()->views()[0]->height();
-        float horizontalTextScale = (float)scene()->views()[0]->height() / (float)scene()->views()[0]->width() * verticalTextScale;
+        // the dimensions of the view need to be corrected for the tiled display aspect ratio
+        // recall the tiled display UI is only part of the graphics view since we show it at the correct aspect ratio
+        float viewWidth = (float)scene()->views()[0]->width();
+        float viewHeight = (float)scene()->views()[0]->height();
+
+        float tiledDisplayAspect = (float)g_configuration->getTotalWidth() / (float)g_configuration->getTotalHeight();
+
+        if(viewWidth / viewHeight > tiledDisplayAspect)
+        {
+            viewWidth = viewHeight * tiledDisplayAspect;
+        }
+        else if(viewWidth / viewHeight <= tiledDisplayAspect)
+        {
+            viewHeight = viewWidth / tiledDisplayAspect;
+        }
+
+        float verticalTextScale = 1. / viewHeight;
+        float horizontalTextScale = viewHeight / viewWidth * verticalTextScale;
 
         painter->scale(horizontalTextScale, verticalTextScale);
 
