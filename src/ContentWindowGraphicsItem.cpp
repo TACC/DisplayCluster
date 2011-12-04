@@ -154,6 +154,28 @@ void ContentWindowGraphicsItem::setSize(double w, double h, ContentWindowInterfa
     }
 }
 
+void ContentWindowGraphicsItem::setCenter(double centerX, double centerY, ContentWindowInterface * source)
+{
+    ContentWindowInterface::setCenter(centerX, centerY, source);
+
+    if(source != this)
+    {
+        // force a redraw to update window info label
+        update();
+    }
+}
+
+void ContentWindowGraphicsItem::setZoom(double zoom, ContentWindowInterface * source)
+{
+    ContentWindowInterface::setZoom(zoom, source);
+
+    if(source != this)
+    {
+        // force a redraw to update window info label
+        update();
+    }
+}
+
 void ContentWindowGraphicsItem::setSelected(bool selected, ContentWindowInterface * source)
 {
     ContentWindowInterface::setSelected(selected, source);
