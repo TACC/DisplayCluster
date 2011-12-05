@@ -91,23 +91,39 @@ void ContentWindowManager::render()
 {
     content_->render(shared_from_this());
 
-    // render the border
-    double horizontalBorder = 5. / (double)g_configuration->getTotalHeight(); // 5 pixels
-    double verticalBorder = (double)g_configuration->getTotalHeight() / (double)g_configuration->getTotalWidth() * horizontalBorder;
+    // optionally render the border
+    bool showWindowBorders = true;
+
+    boost::shared_ptr<DisplayGroupManager> dgm = getDisplayGroupManager();
+
+    if(dgm != NULL)
+    {
+        showWindowBorders = dgm->getOptions()->getShowWindowBorders();
+    }
+
+    if(showWindowBorders == true)
+    {
+        double horizontalBorder = 5. / (double)g_configuration->getTotalHeight(); // 5 pixels
+        double verticalBorder = (double)g_configuration->getTotalHeight() / (double)g_configuration->getTotalWidth() * horizontalBorder;
+
+        glPushAttrib(GL_CURRENT_BIT);
+
+        // color the border based on window state
+        if(selected_ == true)
+        {
+            glColor4f(1,0,0,1);
+        }
+        else
+        {
+            glColor4f(1,1,1,1);
+        }
+
+        GLWindow::drawRectangle(x_-verticalBorder,y_-horizontalBorder,w_+2.*verticalBorder,h_+2.*horizontalBorder);
+
+        glPopAttrib();
+    }
 
     glPushAttrib(GL_CURRENT_BIT);
-
-    // color the border based on window state
-    if(selected_ == true)
-    {
-        glColor4f(1,0,0,1);
-    }
-    else
-    {
-        glColor4f(1,1,1,1);
-    }
-
-    GLWindow::drawRectangle(x_-verticalBorder,y_-horizontalBorder,w_+2.*verticalBorder,h_+2.*horizontalBorder);
 
     // render buttons if any of the markers are over the window
     bool markerOverWindow = false;

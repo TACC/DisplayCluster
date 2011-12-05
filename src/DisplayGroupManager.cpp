@@ -15,8 +15,20 @@
 
 DisplayGroupManager::DisplayGroupManager()
 {
+    // create new Options object
+    boost::shared_ptr<Options> options(new Options());
+    options_ = options;
+
+    // make Options trigger sendDisplayGroup() when it is updated
+    connect(options_.get(), SIGNAL(updated()), this, SLOT(sendDisplayGroup()), Qt::QueuedConnection);
+
     // register types for use in signals/slots
     qRegisterMetaType<boost::shared_ptr<ContentWindowManager> >("boost::shared_ptr<ContentWindowManager>");
+}
+
+boost::shared_ptr<Options> DisplayGroupManager::getOptions()
+{
+    return options_;
 }
 
 boost::shared_ptr<Marker> DisplayGroupManager::getNewMarker()

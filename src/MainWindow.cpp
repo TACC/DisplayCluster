@@ -81,6 +81,13 @@ MainWindow::MainWindow()
         constrainAspectRatioAction->setChecked(constrainAspectRatio_);
         connect(constrainAspectRatioAction, SIGNAL(toggled(bool)), this, SLOT(constrainAspectRatio(bool)));
 
+        // show window borders action
+        QAction * showWindowBordersAction = new QAction("Show Window Borders", this);
+        showWindowBordersAction->setStatusTip("Show window borders");
+        showWindowBordersAction->setCheckable(true);
+        showWindowBordersAction->setChecked(g_displayGroupManager->getOptions()->getShowWindowBorders());
+        connect(showWindowBordersAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowWindowBorders(bool)));
+
         // add actions to menus
         fileMenu->addAction(openContentAction);
         fileMenu->addAction(openContentsDirectoryAction);
@@ -91,6 +98,7 @@ MainWindow::MainWindow()
         fileMenu->addAction(computeImagePyramidAction);
         fileMenu->addAction(quitAction);
         viewMenu->addAction(constrainAspectRatioAction);
+        viewMenu->addAction(showWindowBordersAction);
 
         // add actions to toolbar
         toolbar->addAction(openContentAction);

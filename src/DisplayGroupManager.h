@@ -2,6 +2,7 @@
 #define DISPLAY_GROUP_MANAGER_H
 
 #include "DisplayGroupInterface.h"
+#include "Options.h"
 #include "Marker.h"
 #include <QtGui>
 #include <vector>
@@ -29,6 +30,8 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
     public:
 
         DisplayGroupManager();
+
+        boost::shared_ptr<Options> getOptions();
 
         boost::shared_ptr<Marker> getNewMarker();
         std::vector<boost::shared_ptr<Marker> > getMarkers();
@@ -61,9 +64,13 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         template<class Archive>
         void serialize(Archive & ar, const unsigned int version)
         {
+            ar & options_;
             ar & markers_;
             ar & contentWindowManagers_;
         }
+
+        // options
+        boost::shared_ptr<Options> options_;
 
         // marker
         std::vector<boost::shared_ptr<Marker> > markers_;

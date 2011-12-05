@@ -96,6 +96,7 @@ set(SRCS ${SRCS}
     src/MovieContent.cpp
     src/NetworkListener.cpp
     src/NetworkListenerThread.cpp
+    src/Options.cpp
     src/PixelStream.cpp
     src/PixelStreamContent.cpp
     src/PixelStreamSource.cpp
@@ -112,6 +113,7 @@ set(MOC_HEADERS ${MOC_HEADERS}
     src/Marker.h
     src/NetworkListener.h
     src/NetworkListenerThread.h
+    src/Options.h
 )
 
 qt4_wrap_cpp(MOC_OUTFILES ${MOC_HEADERS})
