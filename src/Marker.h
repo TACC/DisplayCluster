@@ -1,10 +1,12 @@
 #ifndef MARKER_H
 #define MARKER_H
 
+#include <QtGui>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 
-class Marker {
+class Marker : public QObject {
+    Q_OBJECT
 
     public:
 
@@ -14,6 +16,9 @@ class Marker {
         void getPosition(float &x, float &y);
 
         void render();
+
+    signals:
+        void positionChanged();
 
     private:
         friend class boost::serialization::access;

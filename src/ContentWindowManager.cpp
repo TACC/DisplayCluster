@@ -109,11 +109,24 @@ void ContentWindowManager::render()
 
     GLWindow::drawRectangle(x_-verticalBorder,y_-horizontalBorder,w_+2.*verticalBorder,h_+2.*horizontalBorder);
 
-    // render buttons if the marker is over the window
-    float markerX, markerY;
-    getDisplayGroupManager()->getMarker().getPosition(markerX, markerY);
+    // render buttons if any of the markers are over the window
+    bool markerOverWindow = false;
 
-    if(QRectF(x_, y_, w_, h_).contains(markerX, markerY) == true)
+    std::vector<boost::shared_ptr<Marker> > markers = getDisplayGroupManager()->getMarkers();
+
+    for(unsigned int i=0; i<markers.size(); i++)
+    {
+        float markerX, markerY;
+        markers[i]->getPosition(markerX, markerY);
+
+        if(QRectF(x_, y_, w_, h_).contains(markerX, markerY) == true)
+        {
+            markerOverWindow = true;
+            break;
+        }
+    }
+
+    if(markerOverWindow == true)
     {
         // we need this to be slightly in front of the rest of the window
         glPushMatrix();

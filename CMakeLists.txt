@@ -97,6 +97,7 @@ set(MOC_HEADERS
     src/DisplayGroupManager.h
     src/DisplayGroupInterface.h
     src/MainWindow.h
+    src/Marker.h
     src/NetworkListener.h
     src/NetworkListenerThread.h
 )

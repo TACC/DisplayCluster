@@ -30,7 +30,9 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
 
         DisplayGroupManager();
 
-        Marker & getMarker();
+        boost::shared_ptr<Marker> getNewMarker();
+        std::vector<boost::shared_ptr<Marker> > getMarkers();
+
         boost::shared_ptr<boost::posix_time::ptime> getTimestamp();
 
         // re-implemented DisplayGroupInterface slots
@@ -59,12 +61,12 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         template<class Archive>
         void serialize(Archive & ar, const unsigned int version)
         {
-            ar & marker_;
+            ar & markers_;
             ar & contentWindowManagers_;
         }
 
         // marker
-        Marker marker_;
+        std::vector<boost::shared_ptr<Marker> > markers_;
 
         // frame timing
         boost::shared_ptr<boost::posix_time::ptime> timestamp_;

@@ -19,9 +19,20 @@ DisplayGroupManager::DisplayGroupManager()
     qRegisterMetaType<boost::shared_ptr<ContentWindowManager> >("boost::shared_ptr<ContentWindowManager>");
 }
 
-Marker & DisplayGroupManager::getMarker()
+boost::shared_ptr<Marker> DisplayGroupManager::getNewMarker()
 {
-    return marker_;
+    boost::shared_ptr<Marker> marker(new Marker());
+    markers_.push_back(marker);
+
+    // make marker trigger sendDisplayGroup() when it is updated
+    connect(marker.get(), SIGNAL(positionChanged()), this, SLOT(sendDisplayGroup()), Qt::QueuedConnection);
+
+    return marker;
+}
+
+std::vector<boost::shared_ptr<Marker> > DisplayGroupManager::getMarkers()
+{
+    return markers_;
 }
 
 boost::shared_ptr<boost::posix_time::ptime> DisplayGroupManager::getTimestamp()
