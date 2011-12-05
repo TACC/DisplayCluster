@@ -117,7 +117,6 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
 
         QString windowInfoLabel = coordinatesLabel + zoomCenterLabel;
         painter->drawText(textBoundingRect, Qt::AlignLeft | Qt::AlignBottom, windowInfoLabel);
-
     }
 }
 
