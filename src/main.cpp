@@ -78,4 +78,6 @@ int main(int argc, char * argv[])
 
     // clean up the MPI environment after the Qt event loop exits
     MPI_Finalize();
+
+    return 0;
 }
