@@ -32,9 +32,6 @@ class ContentWindowManager : public ContentWindowInterface, public boost::enable
         // GLWindow rendering
         void render();
 
-        // button dimensions
-        void getButtonDimensions(float &width, float &height);
-
     protected:
         friend class boost::serialization::access;
 

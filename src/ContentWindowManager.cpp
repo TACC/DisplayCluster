@@ -198,23 +198,3 @@ void ContentWindowManager::render()
 
     glPopAttrib();
 }
-
-void ContentWindowManager::getButtonDimensions(float &width, float &height)
-{
-    float sceneHeightFraction = 0.125;
-    double screenAspect = (double)g_configuration->getTotalWidth() / (double)g_configuration->getTotalHeight();
-
-    width = sceneHeightFraction / screenAspect;
-    height = sceneHeightFraction;
-
-    // clamp to half rect dimensions
-    if(width > 0.5 * w_)
-    {
-        width = 0.49 * w_;
-    }
-
-    if(height > 0.5 * h_)
-    {
-        height = 0.49 * h_;
-    }
-}

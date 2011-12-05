@@ -25,6 +25,9 @@ class ContentWindowInterface : public QObject {
         double getZoom();
         bool getSelected();
 
+        // button dimensions
+        void getButtonDimensions(float &width, float &height);
+
         // aspect ratio correction
         void fixAspectRatio(ContentWindowInterface * source=NULL);
 
