@@ -12,6 +12,7 @@ set(CMAKE_CXX_FLAGS "-Wall")
 
 # build options
 option(ENABLE_TUIO_TOUCH_LISTENER "Enable TUIO touch listener for multi-touch events" OFF)
+option(ENABLE_JOYSTICK_SUPPORT "Enable joystick support" OFF)
 
 # path for additional modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
@@ -57,6 +58,17 @@ if(ENABLE_TUIO_TOUCH_LISTENER)
     set(LIBS ${LIBS} ${X11_LIBRARIES})
 endif()
 
+if(ENABLE_JOYSTICK_SUPPORT)
+    find_package(SDL REQUIRED)
+    include_directories(${SDL_INCLUDE_DIR})
+    set(LIBS ${LIBS} ${SDL_LIBRARY})
+
+    set(SRCS ${SRCS} src/JoystickThread.cpp)
+    set(SRCS ${SRCS} src/DisplayGroupJoystick.cpp)
+
+    set(MOC_HEADERS ${MOC_HEADERS} src/JoystickThread.h)
+endif()
+
 # process config file
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
@@ -91,7 +103,7 @@ set(SRCS ${SRCS}
     src/TextureContent.cpp
 )
 
-set(MOC_HEADERS
+set(MOC_HEADERS ${MOC_HEADERS}
     src/Content.h
     src/ContentWindowInterface.h
     src/DisplayGroupManager.h
