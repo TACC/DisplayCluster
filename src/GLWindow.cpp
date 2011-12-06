@@ -11,6 +11,9 @@ GLWindow::GLWindow(int tileIndex)
     viewInitialized_ = false;
 
     tileIndex_ = tileIndex;
+
+    // disable automatic buffer swapping
+    setAutoBufferSwap(false);
 }
 
 GLWindow::GLWindow(int tileIndex, QRect windowRect, QGLWidget * shareWidget) : QGLWidget(0, shareWidget)
@@ -27,6 +30,9 @@ GLWindow::GLWindow(int tileIndex, QRect windowRect, QGLWidget * shareWidget) : Q
         put_flog(LOG_FATAL, "failed to share OpenGL context");
         exit(-1);
     }
+
+    // disable automatic buffer swapping
+    setAutoBufferSwap(false);
 }
 
 GLWindow::~GLWindow()

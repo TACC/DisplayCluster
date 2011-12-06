@@ -420,8 +420,13 @@ void MainWindow::updateGLWindows()
     }
 
     // all render processes render simultaneously
-    // todo: sync swapbuffers
     MPI_Barrier(g_mpiRenderComm);
+
+    // swap buffers on all windows
+    for(unsigned int i=0; i<glWindows_.size(); i++)
+    {
+        glWindows_[i]->swapBuffers();
+    }
 
     // synchronize clock
     if(g_mpiRank == 1)
