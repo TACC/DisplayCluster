@@ -139,7 +139,10 @@ void JoystickThread::updateJoysticks()
             // elapsed time, clamping to a maximum of 0.1s
             float dt = std::min(0.1, ((float)tick2_ - (float)tick1_) / 1000.);
 
-            joystickMoveMarker(i, (float)axis0 / JOYSTICK_AXIS_SCALE * dt, (float)axis1 / JOYSTICK_AXIS_SCALE * dt);
+            // aspect ratio to scale movements correctly between left-right and up-down
+            float tiledDisplayAspect = (float)g_configuration->getTotalWidth() / (float)g_configuration->getTotalHeight();
+
+            joystickMoveMarker(i, (float)axis0 / JOYSTICK_AXIS_SCALE * dt, (float)axis1 / JOYSTICK_AXIS_SCALE * tiledDisplayAspect * dt);
         }
 
         // handle pan motion
@@ -236,8 +239,19 @@ void JoystickThread::joystickPan(int index, float dx, float dy)
         cwi->getCenter(centerX, centerY);
         zoom = cwi->getZoom();
 
+        // content aspect ratio, used to have a consistent left-right and up-down panning speed
+        float contentAspect = 1.;
+
+        int contentWidth, contentHeight;
+        cwi->getContentDimensions(contentWidth, contentHeight);
+
+        if(contentWidth != 0 && contentHeight != 0)
+        {
+            contentAspect = (float)contentWidth / (float)contentHeight;
+        }
+
         // move the center point, scaled by the zoom factor
-        cwi->setCenter(centerX + dx/zoom, centerY + dy/zoom);
+        cwi->setCenter(centerX + dx/zoom, centerY + dy/zoom * contentAspect);
     }
 }
 
