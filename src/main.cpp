@@ -8,6 +8,10 @@
     #include <X11/Xlib.h>
 #endif
 
+#if ENABLE_JOYSTICK_SUPPORT
+    #include "JoystickThread.h"
+#endif
+
 QApplication * g_app = NULL;
 int g_mpiRank = -1;
 int g_mpiSize = -1;
@@ -54,6 +58,15 @@ int main(int argc, char * argv[])
     }
 #endif
 
+#if ENABLE_JOYSTICK_SUPPORT
+    if(g_mpiRank == 0)
+    {
+        // create thread to monitor joystick events (all joysticks handled in same event queue)
+        JoystickThread * joystickThread = new JoystickThread();
+        joystickThread->start();
+    }
+#endif
+
     if(g_mpiRank == 0)
     {
         g_networkListener = new NetworkListener();
@@ -71,4 +84,6 @@ int main(int argc, char * argv[])
 
     // clean up the MPI environment after the Qt event loop exits
     MPI_Finalize();
+
+    return 0;
 }

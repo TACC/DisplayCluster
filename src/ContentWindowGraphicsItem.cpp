@@ -44,7 +44,7 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
 
         // button dimensions
         float buttonWidth, buttonHeight;
-        contentWindowManager->getButtonDimensions(buttonWidth, buttonHeight);
+        getButtonDimensions(buttonWidth, buttonHeight);
 
         // draw close button
         QRectF closeRect(rect().x() + rect().width() - buttonWidth, rect().y(), buttonWidth, buttonHeight);
@@ -117,7 +117,6 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
 
         QString windowInfoLabel = coordinatesLabel + zoomCenterLabel;
         painter->drawText(textBoundingRect, Qt::AlignLeft | Qt::AlignBottom, windowInfoLabel);
-
     }
 }
 
@@ -151,6 +150,28 @@ void ContentWindowGraphicsItem::setSize(double w, double h, ContentWindowInterfa
     {
         setPos(x_, y_);
         setRect(mapRectFromScene(x_, y_, w_, h_));
+    }
+}
+
+void ContentWindowGraphicsItem::setCenter(double centerX, double centerY, ContentWindowInterface * source)
+{
+    ContentWindowInterface::setCenter(centerX, centerY, source);
+
+    if(source != this)
+    {
+        // force a redraw to update window info label
+        update();
+    }
+}
+
+void ContentWindowGraphicsItem::setZoom(double zoom, ContentWindowInterface * source)
+{
+    ContentWindowInterface::setZoom(zoom, source);
+
+    if(source != this)
+    {
+        // force a redraw to update window info label
+        update();
     }
 }
 
@@ -260,31 +281,26 @@ void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
 
 void ContentWindowGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent * event)
 {
-    boost::shared_ptr<ContentWindowManager> contentWindowManager = getContentWindowManager();
+    // button dimensions
+    float buttonWidth, buttonHeight;
+    getButtonDimensions(buttonWidth, buttonHeight);
 
-    if(contentWindowManager != NULL)
+    // item rectangle and event position
+    QRectF r = rect();
+    QPointF eventPos = event->pos();
+
+    // check to see if user clicked on the close button
+    if(fabs((r.x()+r.width()) - eventPos.x()) <= buttonWidth && fabs((r.y()) - eventPos.y()) <= buttonHeight)
     {
-        // button dimensions
-        float buttonWidth, buttonHeight;
-        contentWindowManager->getButtonDimensions(buttonWidth, buttonHeight);
+        close();
 
-        // item rectangle and event position
-        QRectF r = rect();
-        QPointF eventPos = event->pos();
+        return;
+    }
 
-        // check to see if user clicked on the close button
-        if(fabs((r.x()+r.width()) - eventPos.x()) <= buttonWidth && fabs((r.y()) - eventPos.y()) <= buttonHeight)
-        {
-            close();
-
-            return;
-        }
-
-        // check to see if user clicked on the resize button
-        if(fabs((r.x()+r.width()) - eventPos.x()) <= buttonWidth && fabs((r.y()+r.height()) - eventPos.y()) <= buttonHeight)
-        {
-            resizing_ = true;
-        }
+    // check to see if user clicked on the resize button
+    if(fabs((r.x()+r.width()) - eventPos.x()) <= buttonWidth && fabs((r.y()+r.height()) - eventPos.y()) <= buttonHeight)
+    {
+        resizing_ = true;
     }
 
     // move to the front of the GUI display

@@ -50,31 +50,28 @@ DisplayGroupGraphicsScene::DisplayGroupGraphicsScene()
             addRect(left, bottom, right-left, top-bottom, pen, brush);
         }
     }
+
+    // get marker for this scene
+    marker_ = g_displayGroupManager->getNewMarker();
 }
 
 void DisplayGroupGraphicsScene::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
 {
-    updateMarker(event->scenePos().x(), event->scenePos().y());
+    marker_->setPosition(event->scenePos().x(), event->scenePos().y());
 
     QGraphicsScene::mouseMoveEvent(event);
 }
 
 void DisplayGroupGraphicsScene::mousePressEvent(QGraphicsSceneMouseEvent * event)
 {
-    updateMarker(event->scenePos().x(), event->scenePos().y());
+    marker_->setPosition(event->scenePos().x(), event->scenePos().y());
 
     QGraphicsScene::mousePressEvent(event);
 }
 
 void DisplayGroupGraphicsScene::mouseReleaseEvent(QGraphicsSceneMouseEvent * event)
 {
-    updateMarker(event->scenePos().x(), event->scenePos().y());
+    marker_->setPosition(event->scenePos().x(), event->scenePos().y());
 
     QGraphicsScene::mouseReleaseEvent(event);
-}
-
-void DisplayGroupGraphicsScene::updateMarker(float x, float y)
-{
-    g_displayGroupManager->getMarker().setPosition(x, y);
-    g_displayGroupManager->sendDisplayGroup();
 }

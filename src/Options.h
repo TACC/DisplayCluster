@@ -1,24 +1,23 @@
-#ifndef MARKER_H
-#define MARKER_H
+#ifndef OPTIONS_H
+#define OPTIONS_H
 
 #include <QtGui>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 
-class Marker : public QObject {
+class Options : public QObject {
     Q_OBJECT
 
     public:
+        Options();
 
-        Marker();
+        bool getShowWindowBorders();
 
-        void setPosition(float x, float y);
-        void getPosition(float &x, float &y);
-
-        void render();
+    public slots:
+        void setShowWindowBorders(bool set);
 
     signals:
-        void positionChanged();
+        void updated();
 
     private:
         friend class boost::serialization::access;
@@ -26,12 +25,10 @@ class Marker : public QObject {
         template<class Archive>
         void serialize(Archive & ar, const unsigned int version)
         {
-            ar & x_;
-            ar & y_;
+            ar & showWindowBorders_;
         }
 
-        float x_;
-        float y_;
+        bool showWindowBorders_;
 };
 
 #endif

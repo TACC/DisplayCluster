@@ -39,15 +39,6 @@ std::vector<boost::shared_ptr<ContentWindowManager> > DisplayGroupInterface::get
     return contentWindowManagers_;
 }
 
-void DisplayGroupInterface::dump()
-{
-    std::cerr << "DisplayGroupInterface: " << std::hex << ((long)this) << "\n";
-    for(unsigned int i=0; i<contentWindowManagers_.size(); i++)
-    {
-        contentWindowManagers_[i]->dump();
-    }
-}
-
 bool DisplayGroupInterface::hasContent(std::string uri)
 {
     for(unsigned int i=0; i<contentWindowManagers_.size(); i++)

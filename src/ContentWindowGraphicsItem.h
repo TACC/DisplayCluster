@@ -20,6 +20,8 @@ class ContentWindowGraphicsItem : public QGraphicsRectItem, public ContentWindow
         void setCoordinates(double x, double y, double w, double h, ContentWindowInterface * source=NULL);
         void setPosition(double x, double y, ContentWindowInterface * source=NULL);
         void setSize(double w, double h, ContentWindowInterface * source=NULL);
+        void setCenter(double centerX, double centerY, ContentWindowInterface * source=NULL);
+        void setZoom(double zoom, ContentWindowInterface * source=NULL);
         void setSelected(bool selected, ContentWindowInterface * source=NULL);
 
         // increment the Z value of this item

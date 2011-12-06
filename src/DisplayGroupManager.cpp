@@ -15,13 +15,36 @@
 
 DisplayGroupManager::DisplayGroupManager()
 {
+    // create new Options object
+    boost::shared_ptr<Options> options(new Options());
+    options_ = options;
+
+    // make Options trigger sendDisplayGroup() when it is updated
+    connect(options_.get(), SIGNAL(updated()), this, SLOT(sendDisplayGroup()), Qt::QueuedConnection);
+
     // register types for use in signals/slots
     qRegisterMetaType<boost::shared_ptr<ContentWindowManager> >("boost::shared_ptr<ContentWindowManager>");
 }
 
-Marker & DisplayGroupManager::getMarker()
+boost::shared_ptr<Options> DisplayGroupManager::getOptions()
 {
-    return marker_;
+    return options_;
+}
+
+boost::shared_ptr<Marker> DisplayGroupManager::getNewMarker()
+{
+    boost::shared_ptr<Marker> marker(new Marker());
+    markers_.push_back(marker);
+
+    // make marker trigger sendDisplayGroup() when it is updated
+    connect(marker.get(), SIGNAL(positionChanged()), this, SLOT(sendDisplayGroup()), Qt::QueuedConnection);
+
+    return marker;
+}
+
+std::vector<boost::shared_ptr<Marker> > DisplayGroupManager::getMarkers()
+{
+    return markers_;
 }
 
 boost::shared_ptr<boost::posix_time::ptime> DisplayGroupManager::getTimestamp()

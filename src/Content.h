@@ -66,9 +66,6 @@ public:
   const char *getURI() {return (const char *)get()->getURI().c_str(); }
   
   boost::shared_ptr<Content> get() {return ptr;}
-  void dump() {
-    std::cerr << "pyContent: " << ptr->getURI() << "\n";
-  }
 
 protected:
   boost::shared_ptr<Content> ptr;

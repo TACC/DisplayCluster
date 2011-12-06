@@ -10,6 +10,8 @@ void Marker::setPosition(float x, float y)
 {
     x_ = x;
     y_ = y;
+
+    emit(positionChanged());
 }
 
 void Marker::getPosition(float &x, float &y)

@@ -2,6 +2,9 @@
 #define DISPLAY_GROUP_GRAPHICS_SCENE_H
 
 #include <QtGui>
+#include <boost/shared_ptr.hpp>
+
+class Marker;
 
 class DisplayGroupGraphicsScene : public QGraphicsScene {
 
@@ -17,7 +20,7 @@ class DisplayGroupGraphicsScene : public QGraphicsScene {
 
     private:
 
-        void updateMarker(float x, float y);
+        boost::shared_ptr<Marker> marker_;
 };
 
 #endif

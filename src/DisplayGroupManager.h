@@ -2,6 +2,7 @@
 #define DISPLAY_GROUP_MANAGER_H
 
 #include "DisplayGroupInterface.h"
+#include "Options.h"
 #include "Marker.h"
 #include <QtGui>
 #include <vector>
@@ -30,26 +31,17 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
 
         DisplayGroupManager();
 
-        Marker & getMarker();
+        boost::shared_ptr<Options> getOptions();
+
+        boost::shared_ptr<Marker> getNewMarker();
+        std::vector<boost::shared_ptr<Marker> > getMarkers();
+
         boost::shared_ptr<boost::posix_time::ptime> getTimestamp();
 
         // re-implemented DisplayGroupInterface slots
         void addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
         void removeContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
         void moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
-
-        void dump() 
-        { 
-          if (contentWindowManagers_.size()) 
-          { 
-            std::cerr << "DisplayGroup: \n"; 
-            for(unsigned int i=0; i<contentWindowManagers_.size(); i++) 
-            { 
-              boost::shared_ptr<ContentWindowManager> c = contentWindowManagers_[i]; 
-              c->dump(); 
-            } 
-          } 
-        } 
 
     public slots:
 
@@ -72,12 +64,16 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         template<class Archive>
         void serialize(Archive & ar, const unsigned int version)
         {
-            ar & marker_;
+            ar & options_;
+            ar & markers_;
             ar & contentWindowManagers_;
         }
 
+        // options
+        boost::shared_ptr<Options> options_;
+
         // marker
-        Marker marker_;
+        std::vector<boost::shared_ptr<Marker> > markers_;
 
         // frame timing
         boost::shared_ptr<boost::posix_time::ptime> timestamp_;

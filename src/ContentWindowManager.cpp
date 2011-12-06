@@ -91,29 +91,58 @@ void ContentWindowManager::render()
 {
     content_->render(shared_from_this());
 
-    // render the border
-    double horizontalBorder = 5. / (double)g_configuration->getTotalHeight(); // 5 pixels
-    double verticalBorder = (double)g_configuration->getTotalHeight() / (double)g_configuration->getTotalWidth() * horizontalBorder;
+    // optionally render the border
+    bool showWindowBorders = true;
+
+    boost::shared_ptr<DisplayGroupManager> dgm = getDisplayGroupManager();
+
+    if(dgm != NULL)
+    {
+        showWindowBorders = dgm->getOptions()->getShowWindowBorders();
+    }
+
+    if(showWindowBorders == true)
+    {
+        double horizontalBorder = 5. / (double)g_configuration->getTotalHeight(); // 5 pixels
+        double verticalBorder = (double)g_configuration->getTotalHeight() / (double)g_configuration->getTotalWidth() * horizontalBorder;
+
+        glPushAttrib(GL_CURRENT_BIT);
+
+        // color the border based on window state
+        if(selected_ == true)
+        {
+            glColor4f(1,0,0,1);
+        }
+        else
+        {
+            glColor4f(1,1,1,1);
+        }
+
+        GLWindow::drawRectangle(x_-verticalBorder,y_-horizontalBorder,w_+2.*verticalBorder,h_+2.*horizontalBorder);
+
+        glPopAttrib();
+    }
 
     glPushAttrib(GL_CURRENT_BIT);
 
-    // color the border based on window state
-    if(selected_ == true)
+    // render buttons if any of the markers are over the window
+    bool markerOverWindow = false;
+
+    std::vector<boost::shared_ptr<Marker> > markers = getDisplayGroupManager()->getMarkers();
+
+    for(unsigned int i=0; i<markers.size(); i++)
     {
-        glColor4f(1,0,0,1);
+        float markerX, markerY;
+        markers[i]->getPosition(markerX, markerY);
+
+        if(QRectF(x_, y_, w_, h_).contains(markerX, markerY) == true)
+        {
+            markerOverWindow = true;
+            break;
+        }
     }
-    else
-    {
-        glColor4f(1,1,1,1);
-    }
 
-    GLWindow::drawRectangle(x_-verticalBorder,y_-horizontalBorder,w_+2.*verticalBorder,h_+2.*horizontalBorder);
-
-    // render buttons if the marker is over the window
-    float markerX, markerY;
-    getDisplayGroupManager()->getMarker().getPosition(markerX, markerY);
-
-    if(QRectF(x_, y_, w_, h_).contains(markerX, markerY) == true)
+    if(markerOverWindow == true)
     {
         // we need this to be slightly in front of the rest of the window
         glPushMatrix();
@@ -197,24 +226,4 @@ void ContentWindowManager::render()
     }
 
     glPopAttrib();
-}
-
-void ContentWindowManager::getButtonDimensions(float &width, float &height)
-{
-    float sceneHeightFraction = 0.125;
-    double screenAspect = (double)g_configuration->getTotalWidth() / (double)g_configuration->getTotalHeight();
-
-    width = sceneHeightFraction / screenAspect;
-    height = sceneHeightFraction;
-
-    // clamp to half rect dimensions
-    if(width > 0.5 * w_)
-    {
-        width = 0.49 * w_;
-    }
-
-    if(height > 0.5 * h_)
-    {
-        height = 0.49 * h_;
-    }
 }

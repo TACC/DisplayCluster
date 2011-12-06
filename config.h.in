@@ -2,5 +2,6 @@
 #define CONFIG_H
 
 #cmakedefine01 ENABLE_TUIO_TOUCH_LISTENER
+#cmakedefine01 ENABLE_JOYSTICK_SUPPORT
 
 #endif
