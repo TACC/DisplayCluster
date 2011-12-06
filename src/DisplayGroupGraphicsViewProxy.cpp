@@ -7,6 +7,7 @@ DisplayGroupGraphicsViewProxy::DisplayGroupGraphicsViewProxy(boost::shared_ptr<D
 {
     // create actual graphics view
     graphicsView_ = new DisplayGroupGraphicsView();
+
 }
 
 DisplayGroupGraphicsViewProxy::~DisplayGroupGraphicsViewProxy()

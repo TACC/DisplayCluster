@@ -10,7 +10,7 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/weak_ptr.hpp>
 
-class Content;
+#include "Content.h"
 class DisplayGroupManager;
 
 class ContentWindowManager : public ContentWindowInterface, public boost::enable_shared_from_this<ContentWindowManager> {
@@ -57,6 +57,23 @@ class ContentWindowManager : public ContentWindowInterface, public boost::enable
         boost::shared_ptr<Content> content_;
 
         boost::weak_ptr<DisplayGroupManager> displayGroupManager_;
+};
+
+typedef boost::shared_ptr<ContentWindowManager> pContentWindowManager;
+
+class pyContentWindowManager
+{
+public:
+  pyContentWindowManager(pyContent content) { ptr = boost::shared_ptr<ContentWindowManager>(new ContentWindowManager(content.get())); }
+  pyContentWindowManager(pContentWindowManager cw) { ptr = cw; }
+  ~pyContentWindowManager() {}
+
+  boost::shared_ptr<ContentWindowManager> get() const {return ptr;}
+  pyContent getPyContent() { return pyContent(get()->getContent()); }
+
+private:
+  boost::shared_ptr<ContentWindowManager> ptr;
+
 };
 
 #endif
