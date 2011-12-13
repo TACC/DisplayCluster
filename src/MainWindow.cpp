@@ -157,7 +157,7 @@ MainWindow::MainWindow()
         }
         else
         {
-            for(unsigned int i=0; i<g_configuration->getMyNumTiles(); i++)
+            for(int i=0; i<g_configuration->getMyNumTiles(); i++)
             {
                 QRect windowRect = QRect(g_configuration->getTileX(i), g_configuration->getTileY(i), g_configuration->getScreenWidth(), g_configuration->getScreenHeight());
 
