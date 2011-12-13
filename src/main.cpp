@@ -12,6 +12,10 @@
     #include "JoystickThread.h"
 #endif
 
+#if ENABLE_SKELETON_SUPPORT
+    #include "SkeletonThread.h"
+#endif
+
 QApplication * g_app = NULL;
 int g_mpiRank = -1;
 int g_mpiSize = -1;
@@ -58,6 +62,14 @@ int main(int argc, char * argv[])
         // create thread to monitor joystick events (all joysticks handled in same event queue)
         JoystickThread * joystickThread = new JoystickThread();
         joystickThread->start();
+    }
+#endif
+
+# if ENABLE_SKELETON_SUPPORT
+    if(g_mpiRank == 0)
+    {
+        SkeletonThread * skeletonThread = new SkeletonThread();
+        skeletonThread->start();
     }
 #endif
 
