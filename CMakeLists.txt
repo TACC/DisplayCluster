@@ -13,6 +13,7 @@ set(CMAKE_CXX_FLAGS "-Wall")
 # build options
 option(ENABLE_TUIO_TOUCH_LISTENER "Enable TUIO touch listener for multi-touch events" OFF)
 option(ENABLE_JOYSTICK_SUPPORT "Enable joystick support" OFF)
+option(ENABLE_SKELETON_SUPPORT "Enable skeleton tracking input support" OFF)
 
 # path for additional modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
@@ -67,6 +68,18 @@ if(ENABLE_JOYSTICK_SUPPORT)
     set(SRCS ${SRCS} src/DisplayGroupJoystick.cpp)
 
     set(MOC_HEADERS ${MOC_HEADERS} src/JoystickThread.h)
+endif()
+
+if(ENABLE_SKELETON_SUPPORT)
+    find_package(OPENNI REQUIRED)
+    include_directories(${OPENNI_INCLUDE_DIRS})
+    set(LIBS ${LIBS} ${OPENNI_LIBRARIES})
+
+    set(SRCS ${SRCS}
+        src/SkeletonThread.cpp
+        src/SkeletonSensor.cpp)
+
+    set(MOC_HEADERS ${MOC_HEADERS} src/SkeletonThread.h)
 endif()
 
 # process config file
