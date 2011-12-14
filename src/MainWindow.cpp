@@ -288,6 +288,13 @@ void MainWindow::saveContents()
 
     if(!filename.isEmpty())
     {
+        // make sure filename has .dcs extension
+        if(filename.endsWith(".dcs") != true)
+        {
+            put_flog(LOG_DEBUG, "appended .dcs filename extension");
+            filename.append(".dcs");
+        }
+
         // get contents vector
         std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers = g_displayGroupManager->getContentWindowManagers();
 
