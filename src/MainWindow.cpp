@@ -294,9 +294,14 @@ void MainWindow::saveContents()
         // serialize state
         std::ofstream ofs(filename.toStdString().c_str());
 
+        // version number
+        int version = CONTENTS_FILE_VERSION_NUMBER;
+
         // brace this so destructor is called on archive before we use the stream
         {
             boost::archive::binary_oarchive oa(ofs);
+
+            oa << version;
             oa << contentWindowManagers;
         }
     }
@@ -314,10 +319,35 @@ void MainWindow::loadContents()
         // serialize state
         std::ifstream ifs(filename.toStdString().c_str());
 
+        int version = -1;
+
         // brace this so destructor is called on archive before we use the stream
+        // also, catch exceptions that boost serialization may throw
+        try
         {
             boost::archive::binary_iarchive ia(ifs);
+
+            ia >> version;
+
+            put_flog(LOG_DEBUG, "state file version %i, current version %i", version, CONTENTS_FILE_VERSION_NUMBER);
+
+            // make sure we have a compatible state file
+            if(version != CONTENTS_FILE_VERSION_NUMBER)
+            {
+                QMessageBox::warning(this, "Error", "The state file you attempted to load is not compatible with this version of DisplayCluster.", QMessageBox::Ok, QMessageBox::Ok);
+
+                return;
+            }
+
             ia >> contentWindowManagers;
+        }
+        catch(...)
+        {
+            put_flog(LOG_DEBUG, "caught exception");
+
+            QMessageBox::warning(this, "Error", "The state file you attempted to load is not compatible with this version of DisplayCluster.", QMessageBox::Ok, QMessageBox::Ok);
+
+            return;
         }
 
         // assign new contents vector to display group

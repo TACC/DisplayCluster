@@ -1,6 +1,9 @@
 #ifndef MAIN_WINDOW_H
 #define MAIN_WINDOW_H
 
+// increment this whenever when serialized state information changes
+#define CONTENTS_FILE_VERSION_NUMBER 1
+
 #define SHARE_DESKTOP_UPDATE_DELAY 25
 
 #include "GLWindow.h"
