@@ -16,11 +16,13 @@ class NetworkListenerThread : public QThread {
 
     signals:
 
-        void newMessage(MessageHeader messageHeader, QByteArray byteArray);
+        void updatedPixelStreamSource();
 
     private:
 
         int socketDescriptor_;
+
+        void handleMessage(MessageHeader messageHeader, QByteArray byteArray);
 };
 
 #endif

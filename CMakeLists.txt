@@ -137,8 +137,19 @@ target_link_libraries(displaycluster ${LIBS})
 
 
 # DesktopStreamer app
+
+set(DESKTOP_STREAMER_LIBS ${QT_LIBRARIES})
+
+# libjpeg-turbo
+find_package(LibJpegTurbo REQUIRED)
+include_directories(${LibJpegTurbo_INCLUDE_DIRS})
+set(DESKTOP_STREAMER_LIBS ${DESKTOP_STREAMER_LIBS} ${LibJpegTurbo_LIBRARIES})
+
 set(DESKTOP_STREAMER_SRCS ${DESKTOP_STREAMER_SRCS}
     src/log.cpp
+    apps/DesktopStreamer/src/DesktopSelectionRectangle.cpp
+    apps/DesktopStreamer/src/DesktopSelectionWindow.cpp
+    apps/DesktopStreamer/src/DesktopSelectionView.cpp
     apps/DesktopStreamer/src/main.cpp
     apps/DesktopStreamer/src/MainWindow.cpp
 )
@@ -151,4 +162,4 @@ qt4_wrap_cpp(DESKTOP_STREAMER_MOC_OUTFILES ${DESKTOP_STREAMER_MOC_HEADERS})
 
 add_executable(desktopstreamer ${DESKTOP_STREAMER_SRCS} ${DESKTOP_STREAMER_MOC_OUTFILES})
 
-target_link_libraries(desktopstreamer ${QT_LIBRARIES})
+target_link_libraries(desktopstreamer ${DESKTOP_STREAMER_LIBS})

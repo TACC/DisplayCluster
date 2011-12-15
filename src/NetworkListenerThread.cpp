@@ -1,6 +1,7 @@
 #include "NetworkListenerThread.h"
 #include "main.h"
 #include "log.h"
+#include "PixelStreamSource.h"
 
 NetworkListenerThread::NetworkListenerThread(int socketDescriptor)
 {
@@ -11,7 +12,7 @@ NetworkListenerThread::NetworkListenerThread(int socketDescriptor)
     qRegisterMetaType<MessageHeader>("MessageHeader");
 
     // connect signals
-    connect(this, SIGNAL(newMessage(MessageHeader, QByteArray)), g_displayGroupManager.get(), SLOT(handleMessage(MessageHeader, QByteArray)), Qt::QueuedConnection);
+    connect(this, SIGNAL(updatedPixelStreamSource()), g_displayGroupManager.get(), SLOT(sendPixelStreams()), Qt::QueuedConnection);
 }
 
 void NetworkListenerThread::run()
@@ -56,10 +57,25 @@ void NetworkListenerThread::run()
         }
 
         // got the message
-        emit(newMessage(*mh, messageByteArray));
+        handleMessage(*mh, messageByteArray);
     }
 
     tcpSocket.disconnectFromHost();
 
     put_flog(LOG_DEBUG, "disconnected");
+}
+
+void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArray byteArray)
+{
+    if(messageHeader.type == MESSAGE_TYPE_PIXELSTREAM)
+    {
+        // update pixel stream source
+        // keep this in this thread so we can have pixel stream source updating and sendPixelStreams() happening in parallel
+        // sendPixelStreams() slot executions may still stack up, but they'll each grab only the latest pixel stream data
+        std::string uri(messageHeader.uri);
+
+        g_pixelStreamSourceFactory.getObject(uri)->setImageData(byteArray);
+
+        emit(updatedPixelStreamSource());
+    }
 }

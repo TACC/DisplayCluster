@@ -91,31 +91,6 @@ void DisplayGroupManager::moveContentWindowManagerToFront(boost::shared_ptr<Cont
     }
 }
 
-void DisplayGroupManager::handleMessage(MessageHeader messageHeader, QByteArray byteArray)
-{
-    if(messageHeader.type == MESSAGE_TYPE_PIXELSTREAM)
-    {
-        // check to see if Content/ContentWindowManager exists for the URI
-        std::string uri = std::string(messageHeader.uri);
-
-        if(hasContent(uri) == false)
-        {
-            put_flog(LOG_DEBUG, "adding pixel stream: %s", uri.c_str());
-
-            boost::shared_ptr<Content> c(new PixelStreamContent(uri));
-            boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
-
-            addContentWindowManager(cwm);
-        }
-
-        // update pixel stream source
-        g_pixelStreamSourceFactory.getObject(uri)->setImageData(byteArray);
-
-        // send updated pixelstream
-        sendPixelStreams();
-    }
-}
-
 void DisplayGroupManager::receiveMessages()
 {
     if(g_mpiRank == 0)
@@ -279,6 +254,20 @@ void DisplayGroupManager::sendPixelStreams()
 
         if(updated == true)
         {
+            // make sure Content/ContentWindowManager exists for the URI
+
+            // todo: this means as long as the pixel stream is updating, we'll have a window for it
+            // closing a window therefore will not terminate the pixel stream
+            if(hasContent(uri) == false)
+            {
+                put_flog(LOG_DEBUG, "adding pixel stream: %s", uri.c_str());
+
+                boost::shared_ptr<Content> c(new PixelStreamContent(uri));
+                boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
+
+                addContentWindowManager(cwm);
+            }
+
             int size = imageData.size();
 
             // send the header and the message

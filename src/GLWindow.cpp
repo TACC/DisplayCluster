@@ -71,14 +71,6 @@ void GLWindow::paintGL()
 {
     setView(width(), height());
 
-    // render the markers
-    std::vector<boost::shared_ptr<Marker> > markers = g_displayGroupManager->getMarkers();
-
-    for(unsigned int i=0; i<markers.size(); i++)
-    {
-        markers[i]->render();
-    }
-
     // render content windows
     std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers = g_displayGroupManager->getContentWindowManagers();
 
@@ -92,6 +84,15 @@ void GLWindow::paintGL()
         contentWindowManagers[i]->render();
 
         glPopMatrix();
+    }
+
+    // render the markers
+    // these should be rendered last since they're blended
+    std::vector<boost::shared_ptr<Marker> > markers = g_displayGroupManager->getMarkers();
+
+    for(unsigned int i=0; i<markers.size(); i++)
+    {
+        markers[i]->render();
     }
 }
 

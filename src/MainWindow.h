@@ -1,7 +1,8 @@
 #ifndef MAIN_WINDOW_H
 #define MAIN_WINDOW_H
 
-#define SHARE_DESKTOP_UPDATE_DELAY 25
+// increment this whenever when serialized state information changes
+#define CONTENTS_FILE_VERSION_NUMBER 1
 
 #include "GLWindow.h"
 #include <QtGui>
@@ -27,10 +28,8 @@ class MainWindow : public QMainWindow {
         void clearContents();
         void saveContents();
         void loadContents();
-        void shareDesktop(bool set);
         void computeImagePyramid();
         void constrainAspectRatio(bool set);
-        void shareDesktopUpdate();
 
         void updateGLWindows();
 
@@ -41,10 +40,6 @@ class MainWindow : public QMainWindow {
     private:
 
         std::vector<boost::shared_ptr<GLWindow> > glWindows_;
-
-        QTimer shareDesktopUpdateTimer_;
-        int shareDesktopWidth_;
-        int shareDesktopHeight_;
 
         bool constrainAspectRatio_;
 };
