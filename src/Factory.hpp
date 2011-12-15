@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 #include <boost/shared_ptr.hpp>
+#include <QtGui>
 
 template <class T>
 class Factory {
@@ -12,6 +13,8 @@ class Factory {
 
         boost::shared_ptr<T> getObject(std::string uri)
         {
+            QMutexLocker locker(&mapMutex_);
+
             // see if we need to create the object
             if(map_.count(uri) == 0)
             {
@@ -25,10 +28,15 @@ class Factory {
 
         std::map<std::string, boost::shared_ptr<T> > getMap()
         {
+            QMutexLocker locker(&mapMutex_);
+
             return map_;
         }
 
     private:
+
+        // mutex for thread-safe access to map
+        QMutex mapMutex_;
 
         // all existing objects
         std::map<std::string, boost::shared_ptr<T> > map_;

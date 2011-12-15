@@ -45,8 +45,6 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
 
     public slots:
 
-        void handleMessage(MessageHeader messageHeader, QByteArray byteArray);
-
         void receiveMessages();
 
         void sendDisplayGroup();
