@@ -12,9 +12,8 @@ ContentWindowGraphicsItem::ContentWindowGraphicsItem(boost::shared_ptr<ContentWi
     // defaults
     resizing_ = false;
 
-    // graphics items are movable and fire events on geometry changes
+    // graphics items are movable
     setFlag(QGraphicsItem::ItemIsMovable, true);
-    setFlag(QGraphicsItem::ItemSendsGeometryChanges, true);
 
     // default fill color / opacity
     setBrush(QBrush(QColor(0, 0, 0, 128)));

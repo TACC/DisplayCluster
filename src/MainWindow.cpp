@@ -1,7 +1,6 @@
 #include "MainWindow.h"
 #include "main.h"
-#include "PixelStreamContent.h"
-#include "PixelStreamSource.h"
+#include "Content.h"
 #include "ContentWindowManager.h"
 #include "log.h"
 #include "DisplayGroupGraphicsViewProxy.h"
@@ -57,13 +56,6 @@ MainWindow::MainWindow()
         loadContentsAction->setStatusTip("Load state");
         connect(loadContentsAction, SIGNAL(triggered()), this, SLOT(loadContents()));
 
-        // share desktop action
-        QAction * shareDesktopAction = new QAction("Share Desktop", this);
-        shareDesktopAction->setStatusTip("Share desktop");
-        shareDesktopAction->setCheckable(true);
-        shareDesktopAction->setChecked(false);
-        connect(shareDesktopAction, SIGNAL(toggled(bool)), this, SLOT(shareDesktop(bool)));
-
         // compute image pyramid action
         QAction * computeImagePyramidAction = new QAction("Compute Image Pyramid", this);
         computeImagePyramidAction->setStatusTip("Compute image pyramid");
@@ -94,7 +86,6 @@ MainWindow::MainWindow()
         fileMenu->addAction(clearContentsAction);
         fileMenu->addAction(saveContentsAction);
         fileMenu->addAction(loadContentsAction);
-        fileMenu->addAction(shareDesktopAction);
         fileMenu->addAction(computeImagePyramidAction);
         fileMenu->addAction(quitAction);
         viewMenu->addAction(constrainAspectRatioAction);
@@ -106,7 +97,6 @@ MainWindow::MainWindow()
         toolbar->addAction(clearContentsAction);
         toolbar->addAction(saveContentsAction);
         toolbar->addAction(loadContentsAction);
-        toolbar->addAction(shareDesktopAction);
         toolbar->addAction(computeImagePyramidAction);
 
         // main widget / layout area
@@ -288,15 +278,27 @@ void MainWindow::saveContents()
 
     if(!filename.isEmpty())
     {
+        // make sure filename has .dcs extension
+        if(filename.endsWith(".dcs") != true)
+        {
+            put_flog(LOG_DEBUG, "appended .dcs filename extension");
+            filename.append(".dcs");
+        }
+
         // get contents vector
         std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers = g_displayGroupManager->getContentWindowManagers();
 
         // serialize state
         std::ofstream ofs(filename.toStdString().c_str());
 
+        // version number
+        int version = CONTENTS_FILE_VERSION_NUMBER;
+
         // brace this so destructor is called on archive before we use the stream
         {
             boost::archive::binary_oarchive oa(ofs);
+
+            oa << version;
             oa << contentWindowManagers;
         }
     }
@@ -314,44 +316,40 @@ void MainWindow::loadContents()
         // serialize state
         std::ifstream ifs(filename.toStdString().c_str());
 
+        int version = -1;
+
         // brace this so destructor is called on archive before we use the stream
+        // also, catch exceptions that boost serialization may throw
+        try
         {
             boost::archive::binary_iarchive ia(ifs);
+
+            ia >> version;
+
+            put_flog(LOG_DEBUG, "state file version %i, current version %i", version, CONTENTS_FILE_VERSION_NUMBER);
+
+            // make sure we have a compatible state file
+            if(version != CONTENTS_FILE_VERSION_NUMBER)
+            {
+                QMessageBox::warning(this, "Error", "The state file you attempted to load is not compatible with this version of DisplayCluster.", QMessageBox::Ok, QMessageBox::Ok);
+
+                return;
+            }
+
             ia >> contentWindowManagers;
+        }
+        catch(...)
+        {
+            put_flog(LOG_DEBUG, "caught exception");
+
+            QMessageBox::warning(this, "Error", "The state file you attempted to load is not compatible with this version of DisplayCluster.", QMessageBox::Ok, QMessageBox::Ok);
+
+            return;
         }
 
         // assign new contents vector to display group
         g_displayGroupManager->setContentWindowManagers(contentWindowManagers);
     }
-}
-
-void MainWindow::shareDesktop(bool set)
-{
-    if(set == true)
-    {
-        // get width and height of area at top-left corner of desktop to share
-        shareDesktopWidth_ = QInputDialog::getInt(this, "Width", "Width");
-        shareDesktopHeight_ = QInputDialog::getInt(this, "Height", "Height");
-
-        // add the content window manager if we don't already have one
-        if(g_displayGroupManager->hasContent("desktop") != true)
-        {
-            boost::shared_ptr<Content> c(new PixelStreamContent("desktop"));
-            boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
-
-            g_displayGroupManager->addContentWindowManager(cwm);
-        }
-
-        // setup timer to repeatedly update the shared desktop image
-        connect(&shareDesktopUpdateTimer_, SIGNAL(timeout()), this, SLOT(shareDesktopUpdate()));
-        shareDesktopUpdateTimer_.start(SHARE_DESKTOP_UPDATE_DELAY);
-    }
-    else
-    {
-        shareDesktopUpdateTimer_.stop();
-    }
-
-    g_displayGroupManager->sendDisplayGroup();
 }
 
 void MainWindow::computeImagePyramid()
@@ -390,22 +388,6 @@ void MainWindow::constrainAspectRatio(bool set)
         // force a display group synchronization
         g_displayGroupManager->sendDisplayGroup();
     }
-}
-
-void MainWindow::shareDesktopUpdate()
-{
-    // take screenshot
-    QPixmap desktopPixmap = QPixmap::grabWindow(QApplication::desktop()->winId(), 0, 0, shareDesktopWidth_, shareDesktopHeight_);
-
-    // save it to buffer
-    QBuffer buffer;
-    desktopPixmap.save(&buffer, "JPEG");
-
-    // update pixel stream source
-    g_pixelStreamSourceFactory.getObject("desktop")->setImageData(buffer.data());
-
-    // send out updated pixel stream
-    g_displayGroupManager->sendPixelStreams();
 }
 
 void MainWindow::updateGLWindows()
