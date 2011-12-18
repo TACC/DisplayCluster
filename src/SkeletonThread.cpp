@@ -226,7 +226,14 @@ void SkeletonState::update(SkeletonRepresentation& skel)
             else
             {
                 scaling_ = FALSE;
-                activeWindow_->setPosition(normX, normY);
+
+                // find old marker position, find new marker position, move window by the difference
+                double dx,dy;
+                dx = oldX - normX;
+                dy = oldY - normY;
+                double oldCenterX, oldCenterY;
+                activeWindow_->getPosition(oldCenterX, oldCenterY);
+                activeWindow_->setPosition(oldCenterX - dx, oldCenterY - dy);
             }
         }
         
