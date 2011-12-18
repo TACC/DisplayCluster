@@ -78,6 +78,7 @@ if(ENABLE_SKELETON_SUPPORT)
     set(SRCS ${SRCS}
         src/SkeletonThread.cpp
         src/SkeletonSensor.cpp)
+    set(SRCS ${SRCS} src/DisplayGroupJoystick.cpp)
 
     set(MOC_HEADERS ${MOC_HEADERS} src/SkeletonThread.h)
 endif()
