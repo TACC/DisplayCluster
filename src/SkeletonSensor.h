@@ -1,23 +1,39 @@
-#ifndef _SKELETON_SENSOR_H
-#define _SKELETON_SENSOR_H
+#ifndef SKELETON_SENSOR_H
+#define SKELETON_SENSOR_H
 
 #include <XnCppWrapper.h>
 #include <string>
 #include <vector>
 
 // A 3D point with the confidence of the point's location. confidence_ > 0.5 is good
-struct Point
+struct SkeletonPoint
 {
     float x_, y_, z_, confidence_;
 };
 
+struct SkeletonRepresentation
+{
+    SkeletonPoint head_;
+    SkeletonPoint neck_;
+    SkeletonPoint rightShoulder_;
+    SkeletonPoint leftShoulder_;
+    SkeletonPoint rightElbow_;
+    SkeletonPoint leftElbow_;
+    SkeletonPoint rightHand_;
+    SkeletonPoint leftHand_;
+    SkeletonPoint rightHip_;
+    SkeletonPoint leftHip_;
+    SkeletonPoint rightKnee_;
+    SkeletonPoint leftKnee_;
+    SkeletonPoint rightFoot_;
+    SkeletonPoint leftFoot_;
+    SkeletonPoint torso_;
+};
 
-/*
- * SkeletonSensor: A wrapper for OpenNI Skeleton tracking devices
- * 
- * Requires the OpenNI + NITE framework installation and the device driver
- * Tracks users within the device FOV, and assists in collection of user joints data
- */
+// SkeletonSensor: A wrapper for OpenNI Skeleton tracking devices
+//  
+// Requires the OpenNI + NITE framework installation and the device driver
+// Tracks users within the device FOV, and assists in collection of user joints data
  
 class SkeletonSensor
 {
@@ -29,42 +45,43 @@ class SkeletonSensor
         // set up the device resolution and data generators
         int initialize();
         
-        // On user detection and calibration, call specified functions
+        // on user detection and calibration, call specified functions
         int setCalibrationPoseCallbacks();
         
         // non-blocking wait for new data on the device
         inline void waitForDeviceUpdateOnUser() { context_.WaitOneUpdateAll(userG_); }
         
-        /*
-         * Updates list of currently tracked users
-         * Returns TRUE if there is at least on user who's skeleton is being tracked
-         */
+        // updates list of currently tracked users
+        // returns TRUE if there is at least one user who's skeleton is being tracked
         bool isTracking();
         
         // stores the latest hand points in hands(preallocated):
         // hands[0] = left, hands[1] = right
-        void getHandPoints(const unsigned int i, Point* const hands);
+        void getHandPoints(const unsigned int i, SkeletonPoint* const hands);
         
         // stores the latest elbow points in elbows
         // same convention as getHandPoints()
-        void getElbowPoints(const unsigned int i, Point* const elbows);
+        void getElbowPoints(const unsigned int i, SkeletonPoint* const elbows);
         
         // stores the lastest arm points : hand, elbow, shoulder
         // 0 = l hand, 1 = r hand, 2 = left elbow....
-        void getArmPoints(const unsigned int i, Point* const arms);
+        void getArmPoints(const unsigned int i, SkeletonPoint* const arms);
         
         // stores head points in externally managed array
-        void getHeadPoint(const unsigned int i, Point* const head);
+        void getHeadPoint(const unsigned int i, SkeletonPoint* const head);
         
         // gets shoulder points
-        void getShoulderPoints(const unsigned int i, Point* const shoulders);
+        void getShoulderPoints(const unsigned int i, SkeletonPoint* const shoulders);
         
-        // returns unordered_map of points with keys of type <string>
-        void getAllAvailablePoints(){}
+        // returns skeleton of specified user
+        SkeletonRepresentation getAllAvailablePoints(const unsigned int i);
+        
+        // returns vector of skeletons for all users
+        std::vector<SkeletonRepresentation> getAllAvailablePoints();
         
         void setPointModeToProjective() { pointModeProjective_ = true; }
         void setPointModeToReal() { pointModeProjective_ = false; }
-        void convertXnJointToPoint(XnSkeletonJointPosition* const j, Point* const p, unsigned int numPoints);
+        void convertXnJointToPoint(XnSkeletonJointPosition* const j, SkeletonPoint* const p, unsigned int numPoints);
         
         // set the smoothing factor
         inline void setSmoothing(const float smoothingF)
@@ -83,6 +100,9 @@ class SkeletonSensor
         unsigned int getUID(int i) { return trackedUsers_[i]; }
         void addTrackedUser(const int uID) { trackedUsers_.push_back(uID); }
         void removeTrackedUser(const int uID);
+        
+        // return -1 if no users, otherwise returns UID of most proximal user
+        int getClosestTrackedUID();
         
         bool getNeedCalibrationPose() { return needCalibrationPose_; }
         const char* getPoseString() { return pose_.c_str(); }
@@ -103,15 +123,12 @@ class SkeletonSensor
         // in older installations, a pose is needed to calibration the skeleton
         bool needCalibrationPose_;
         
-        /*
-         * Static callback functions for user and skeleton calibration events
-         */
+        // callback functions for user and skeleton calibration events
         static void XN_CALLBACK_TYPE newUserCallback(xn::UserGenerator& generator, XnUserID nId, void* pCookie);
         static void XN_CALLBACK_TYPE lostUserCallback(xn::UserGenerator& generator, XnUserID nId, void* pCookie);
         static void XN_CALLBACK_TYPE calibrationStartCallback(xn::SkeletonCapability& capability, XnUserID nId, void* pCookie);
         static void XN_CALLBACK_TYPE calibrationCompleteCallback(xn::SkeletonCapability& capability, XnUserID nId, XnCalibrationStatus eStatus, void* pCookie);
         static void XN_CALLBACK_TYPE poseDetectedCallback(xn::PoseDetectionCapability& capability, const XnChar* strPose, XnUserID nId, void* pCookie);
-        
 };
 
 #endif

@@ -1,7 +1,6 @@
 #include "SkeletonSensor.h"
 #include "log.h"
 
-// Checks to make sure status is good, or prints error and returns error code
 inline int CHECK_RC(const unsigned int rc, const char* const description)
 {
     if (rc != XN_STATUS_OK)
@@ -14,7 +13,7 @@ inline int CHECK_RC(const unsigned int rc, const char* const description)
 SkeletonSensor::SkeletonSensor() :  context_(),
                                     depthG_(),
                                     userG_(),
-                                    pointModeProjective_(TRUE),
+                                    pointModeProjective_(FALSE),
                                     pose_("Psi"),
                                     trackedUsers_(),
                                     smoothingFactor_(0.8),
@@ -36,11 +35,11 @@ int SkeletonSensor::initialize()
     
     // create depth and user generators
     rc = depthG_.Create(context_);
-	if (CHECK_RC(rc, "Create depth generator") == -1)
-	    return -1;
+    if (CHECK_RC(rc, "Create depth generator") == -1)
+        return -1;
     rc = userG_.Create(context_);
-	if (CHECK_RC(rc, "Create user generator") == -1)
-	    return -1;
+    if (CHECK_RC(rc, "Create user generator") == -1)
+        return -1;
 	
 	depthG_.GetMapOutputMode(mapMode);
 	
@@ -69,7 +68,7 @@ int SkeletonSensor::initialize()
 }
 
 // converts the OpenNI positions to simple 3D points
-void SkeletonSensor::convertXnJointToPoint(XnSkeletonJointPosition* const joints, Point* const points, unsigned int numPoints)
+void SkeletonSensor::convertXnJointToPoint(XnSkeletonJointPosition* const joints, SkeletonPoint* const points, unsigned int numPoints)
 {
 
     XnPoint3D xpt;
@@ -86,7 +85,7 @@ void SkeletonSensor::convertXnJointToPoint(XnSkeletonJointPosition* const joints
     }
 }
         
-void SkeletonSensor::getHandPoints(const unsigned int i, Point* const hands)
+void SkeletonSensor::getHandPoints(const unsigned int i, SkeletonPoint* const hands)
 {
     XnSkeletonJointPosition joints[2];
     userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_LEFT_HAND, joints[0]);
@@ -95,7 +94,7 @@ void SkeletonSensor::getHandPoints(const unsigned int i, Point* const hands)
     convertXnJointToPoint(joints, hands, 2);
 }
 
-void SkeletonSensor::getElbowPoints(const unsigned int i, Point* const elbows)
+void SkeletonSensor::getElbowPoints(const unsigned int i, SkeletonPoint* const elbows)
 {
     XnSkeletonJointPosition joints[2];
     userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_LEFT_ELBOW, joints[0]);
@@ -104,7 +103,7 @@ void SkeletonSensor::getElbowPoints(const unsigned int i, Point* const elbows)
 
 }
 
-void SkeletonSensor::getArmPoints(const unsigned int i, Point* const arms)
+void SkeletonSensor::getArmPoints(const unsigned int i, SkeletonPoint* const arms)
 {
     getHandPoints(i, arms);
     getElbowPoints(i, arms+2);
@@ -115,7 +114,7 @@ void SkeletonSensor::getArmPoints(const unsigned int i, Point* const arms)
     convertXnJointToPoint(joints, arms, 2);
 }
 
-void SkeletonSensor::getShoulderPoints(const unsigned int i, Point* const shoulders)
+void SkeletonSensor::getShoulderPoints(const unsigned int i, SkeletonPoint* const shoulders)
 {
     XnSkeletonJointPosition joints[2];
     userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_LEFT_SHOULDER, joints[0]);
@@ -123,7 +122,7 @@ void SkeletonSensor::getShoulderPoints(const unsigned int i, Point* const should
     convertXnJointToPoint(joints, shoulders, 2);
 }
 
-void SkeletonSensor::getHeadPoint(const unsigned int i, Point* const head)
+void SkeletonSensor::getHeadPoint(const unsigned int i, SkeletonPoint* const head)
 {
     XnSkeletonJointPosition joints;
     userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_HEAD, joints);
@@ -190,6 +189,38 @@ void SkeletonSensor::printAvailablePoses()
     put_flog(LOG_DEBUG, "Number of poses: %d.\n", numPoses);
 }
 
+int SkeletonSensor::getClosestTrackedUID()
+{
+    XnPoint3D CoMTemp;
+    XnPoint3D closestCoM;
+    closestCoM.Z = -1.0; // a known default value
+    int nearestUID = -1; // a known default value
+    for(unsigned int i = 0; i < trackedUsers_.size(); i++)
+    {
+        // get user's CoM z component
+        // compare to any previous z, if lower save user for later
+        userG_.GetCoM(trackedUsers_[i], CoMTemp);
+        if(closestCoM.Z != -1.0)
+        {
+            // this user is closer to sensor than any previous tracked user
+            if(CoMTemp.Z < closestCoM.Z)
+            {
+                closestCoM.Z = CoMTemp.Z;
+                nearestUID = trackedUsers_[i];
+            }
+        }
+        
+        // first time through loop, first user is closest
+        else
+        {
+            closestCoM.Z = CoMTemp.Z;
+            nearestUID = trackedUsers_[i];
+        }
+        
+    }
+    return nearestUID;
+}
+
 void XN_CALLBACK_TYPE SkeletonSensor::newUserCallback(xn::UserGenerator& generator, XnUserID nId, void* pCookie)
 {
     SkeletonSensor* sensor = (SkeletonSensor*) pCookie;
@@ -249,4 +280,74 @@ void XN_CALLBACK_TYPE SkeletonSensor::poseDetectedCallback(xn::PoseDetectionCapa
     put_flog(LOG_DEBUG, "Pose %s detected for user %d\n", sensor->getPoseString(), nId);
     sensor->getUserGenerator()->GetPoseDetectionCap().StopPoseDetection(nId);
     sensor->getUserGenerator()->GetSkeletonCap().RequestCalibration(nId, TRUE);
+}
+
+SkeletonRepresentation SkeletonSensor::getAllAvailablePoints(const unsigned int UID)
+{
+    SkeletonRepresentation result;
+    // not tracking user
+    if(!userG_.GetSkeletonCap().IsTracking(UID))
+        return result;
+
+    // Array of available joints
+    const unsigned int nJoints = 15;
+    XnSkeletonJoint joints[nJoints] = 
+    {   XN_SKEL_HEAD,
+        XN_SKEL_NECK,
+        XN_SKEL_RIGHT_SHOULDER,
+        XN_SKEL_LEFT_SHOULDER,
+        XN_SKEL_RIGHT_ELBOW,
+        XN_SKEL_LEFT_ELBOW,
+        XN_SKEL_RIGHT_HAND,
+        XN_SKEL_LEFT_HAND,
+        XN_SKEL_RIGHT_HIP,
+        XN_SKEL_LEFT_HIP,
+        XN_SKEL_RIGHT_KNEE,
+        XN_SKEL_LEFT_KNEE,
+        XN_SKEL_RIGHT_FOOT,
+        XN_SKEL_LEFT_FOOT,
+        XN_SKEL_TORSO 
+    };
+
+    // holds the joint position components
+    XnSkeletonJointPosition positions[15];
+
+    for (unsigned int i = 0; i < nJoints; i++)
+    {
+        userG_.GetSkeletonCap().GetSkeletonJointPosition(UID, joints[i], *(positions+i));
+    }
+    
+    SkeletonPoint points[15];
+    convertXnJointToPoint(positions, points, 15);
+    
+    result.head_              = points[0];
+    result.neck_              = points[1];
+    result.rightShoulder_     = points[2];
+    result.leftShoulder_      = points[3];
+    result.rightElbow_        = points[4];
+    result.leftElbow_         = points[5];
+    result.rightHand_         = points[6];
+    result.leftHand_          = points[7];
+    result.rightHip_          = points[8];
+    result.leftHip_           = points[9];
+    result.rightKnee_         = points[10];
+    result.leftKnee_          = points[11];
+    result.rightFoot_         = points[12];
+    result.leftFoot_          = points[13];
+    result.torso_             = points[14];
+
+    return result;
+}
+
+std::vector<SkeletonRepresentation> SkeletonSensor::getAllAvailablePoints()
+{
+    std::vector<SkeletonRepresentation> skeletons;
+    
+    for(unsigned int i = 0; i < getNOTrackedUsers(); i++)
+    {
+        SkeletonRepresentation s = getAllAvailablePoints(trackedUsers_[i]);
+        skeletons.push_back(s);
+    }
+
+    return skeletons;
 }
