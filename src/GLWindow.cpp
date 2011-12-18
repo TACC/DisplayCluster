@@ -98,11 +98,11 @@ void GLWindow::paintGL()
 
 void GLWindow::resizeGL(int width, int height)
 {
-    glViewport (0, 0, width, height);
-    glMatrixMode (GL_PROJECTION);
-    glLoadIdentity ();
-    glMatrixMode (GL_MODELVIEW);
-    glLoadIdentity ();
+    glViewport(0, 0, width, height);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
 
     update();
 }
