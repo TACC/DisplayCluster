@@ -69,7 +69,7 @@ void GLWindow::initializeGL()
 
 void GLWindow::paintGL()
 {
-    setView(width(), height());
+    setOrthographicView();
 
     // render content windows
     std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers = g_displayGroupManager->getContentWindowManagers();
@@ -107,7 +107,7 @@ void GLWindow::resizeGL(int width, int height)
     update();
 }
 
-void GLWindow::setView(int width, int height)
+void GLWindow::setOrthographicView()
 {
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -166,6 +166,60 @@ void GLWindow::setView(int width, int height)
     glClearColor(0,0,0,0);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+void GLWindow::setPerspectiveView()
+{
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+
+    double near = 0.001;
+    double far = 10.;
+
+    double aspect = (double)g_configuration->getTotalHeight() / (double)g_configuration->getTotalWidth();
+
+    double winFovY = 45.0 * aspect;
+
+    double top = tan(0.5 * winFovY * M_PI/180.) * near;
+    double bottom = -top;
+    double left = 1./aspect * bottom;
+    double right = 1./aspect * top;
+
+    // this window's portion of the entire view above is bounded by (left_, right_) and (bottom_, top_)
+    glFrustum(left + left_ * (right-left), left + right_ * (right-left), top + top_ * (bottom-top), top + bottom_ * (bottom-top), near, far);
+
+    glPushMatrix();
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    // don't clear the GL_COLOR_BUFFER_BIT since this may be an overlay. only clear depth
+    glClear(GL_DEPTH_BUFFER_BIT);
+
+    // new lookat matrix
+    glLoadIdentity();
+
+    gluLookAt(0,0,1, 0,0,0, 0,1,0);
+
+    // setup lighting
+    GLfloat LightAmbient[] = { 0.01, 0.01, 0.01, 1.0 };
+    GLfloat LightDiffuse[] = { .99, .99, .99, 1.0 };
+    GLfloat LightSpecular[] = { .9,.9,.9, 1.0 };
+
+    GLfloat LightPosition[] = { 0,0,1, 1.0 };
+
+    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, LightAmbient);
+    glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, 1);
+
+    glLightfv(GL_LIGHT1, GL_AMBIENT, LightAmbient);
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, LightDiffuse);
+    glLightfv(GL_LIGHT1, GL_SPECULAR, LightSpecular);
+    glLightfv(GL_LIGHT1, GL_POSITION, LightPosition);
+
+    glEnable(GL_LIGHT1);
+
+    // glEnable(GL_LIGHTING) needs to be called to actually use lighting. ditto for depth testing.
+    // let other code enable / disable such settings so glPushAttrib() and glPopAttrib() can be used appropriately
 }
 
 bool GLWindow::isScreenRectangleVisible(double x, double y, double w, double h)
