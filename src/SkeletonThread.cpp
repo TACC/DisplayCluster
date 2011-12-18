@@ -109,8 +109,9 @@ float calculateDistance(SkeletonPoint& a, SkeletonPoint& b)
 SkeletonState::SkeletonState(): active_(FALSE),
                                 focusInteraction_(FALSE),
                                 deadCursor_(FALSE),
-                                scaling_(FALSE),
-                                neutralScaleDistance_(0.0),
+                                leftHandActive_(FALSE),
+                                rightHandActive_(FALSE),
+                                skeletonRep_(),
                                 hoverTime_(),
                                 focusTimeOut_(),
                                 deadCursorTimeOut_(),
@@ -121,6 +122,9 @@ SkeletonState::SkeletonState(): active_(FALSE),
 
 void SkeletonState::update(SkeletonRepresentation& skel)
 {
+    // copy the skeletonstate
+    skeletonRep_ = skel;
+    
     // the process:
     // 1. get hand locations
     // 2. find cursor position by normalizing hand positions to maximum reach
@@ -158,11 +162,19 @@ void SkeletonState::update(SkeletonRepresentation& skel)
         confidenceLeft = TRUE;
     if (skel.rightHand_.confidence_ > 0.5 && skel.rightElbow_.confidence_ > 0.5 && skel.rightShoulder_.confidence_ > 0.5)
         confidenceRight = TRUE;
+        
+    if ((skel.leftShoulder_.z_ - skel.leftHand_.z_) > depthThreshold && confidenceLeft)
+        leftHandActive_ = TRUE;
+    else leftHandActive_ = FALSE;
+    if((skel.rightShoulder_.z_ - skel.rightHand_.z_) > depthThreshold && confidenceRight)
+        rightHandActive_ = TRUE;
+    else rightHandActive_ = FALSE;
     
     // 3. draw active cursor if threshold reached
-    if((skel.rightShoulder_.z_ - skel.rightHand_.z_) > depthThreshold && confidenceRight)
+    if(rightHandActive_)
     {
         deadCursor_ = FALSE;
+        rightHandActive_ = TRUE;
         float oldX, oldY;
         
         // if we are not active, calculate hover time and move cursor (4)
@@ -217,16 +229,15 @@ void SkeletonState::update(SkeletonRepresentation& skel)
             }
             
             // left hand is active, scale window
-            else if ((skel.leftShoulder_.z_ - skel.leftHand_.z_) > depthThreshold && confidenceLeft)
+            else if (leftHandActive_)
             {
-                scaleWindow(skel.leftHand_, skel.rightHand_);
+                leftHandActive_ = TRUE;
+                scaleWindow(skel.leftHand_, skel.rightHand_, calculateDistance(skel.rightHand_, skel.rightElbow_));
             }
             
             // left hand not present, move window under cursor
             else
             {
-                scaling_ = FALSE;
-
                 // find old marker position, find new marker position, move window by the difference
                 double dx,dy;
                 dx = oldX - normX;
@@ -240,7 +251,6 @@ void SkeletonState::update(SkeletonRepresentation& skel)
         // active and focused
         else
         {
-            scaling_ = FALSE;
             // if pose detected and timeout reached, exit active mode
             int distanceHeadToLeftHand = calculateDistance(skel.leftHand_, skel.head_);
             int distanceElbowToShoulder = calculateDistance(skel.leftElbow_, skel.leftShoulder_);
@@ -255,7 +265,7 @@ void SkeletonState::update(SkeletonRepresentation& skel)
             
             // else update zoom/pan as necessary (7)
             // left hand is active, zoom content
-            else if ((skel.leftShoulder_.z_ - skel.leftHand_.z_) > depthThreshold && confidenceLeft)
+            else if (leftHandActive_)
             {
                 zoom(skel.leftHand_, skel.rightHand_);
             }
@@ -282,7 +292,7 @@ void SkeletonState::update(SkeletonRepresentation& skel)
             if (deadCursorTimeOut_.elapsed() > DEAD_CURSOR_TIME)
             {
                 hoverTime_.restart();
-                active_ = focusInteraction_ = scaling_ = FALSE;
+                active_ = focusInteraction_ = FALSE;
                 
                 // set active window to NULL
                 activeWindow_ = boost::shared_ptr<ContentWindowInterface>();
@@ -302,21 +312,12 @@ void SkeletonState::zoom(SkeletonPoint& lh, SkeletonPoint& rh)
 
 }
 
-void SkeletonState::scaleWindow(SkeletonPoint& lh, SkeletonPoint& rh)
+void SkeletonState::scaleWindow(SkeletonPoint& lh, SkeletonPoint& rh, float threshold)
 {
-    // we've entered the scale pose previously
-    if(scaling_)
-    {
-        float dd = neutralScaleDistance_ - calculateDistance(lh,rh);
-        double x,y;
-        activeWindow_->getSize(x, y);
-        activeWindow_->setSize(x + dd/neutralScaleDistance_*WINDOW_SCALING_FACTOR, y + dd/neutralScaleDistance_*WINDOW_SCALING_FACTOR);
-    }
-    
-    // we are in the scale pose for the first time
-    else
-    {
-        scaling_ = TRUE;
-        neutralScaleDistance_ = calculateDistance(lh, rh);
-    }
+
+    float dd = calculateDistance(lh, rh) - threshold;
+    double x,y;
+    activeWindow_->getSize(x,y);
+    activeWindow_->setSize(x + dd/threshold*WINDOW_SCALING_FACTOR, y + dd/threshold*WINDOW_SCALING_FACTOR);
+}
 }

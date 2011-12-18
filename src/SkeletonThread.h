@@ -7,11 +7,11 @@
 
 #include <boost/shared_ptr.hpp>
 
+#include "SkeletonSensor.h"
+
 class ContentWindowInterface;
 class DisplayGroupJoystick;
 class SkeletonSensor;
-class SkeletonRepresentation;
-class SkeletonPoint;
 
 // SkeletonState: keeps track of the current state of the tracked user
 // the skeleton can have 3 states:
@@ -28,7 +28,7 @@ class SkeletonState
         void update(SkeletonRepresentation& skel);
         void pan(SkeletonPoint& rhand);
         void zoom(SkeletonPoint& lhand, SkeletonPoint& rhand);
-        void scaleWindow(SkeletonPoint& lhand, SkeletonPoint& rhand);
+        void scaleWindow(SkeletonPoint& lhand, SkeletonPoint& rhand, float threshold);
         
     private:
     
@@ -41,11 +41,11 @@ class SkeletonState
         // deadCursor: no movement has been detected
         bool deadCursor_;
         
-        // are we scaling a window
-        bool scaling_;
+        // are hands exceeding depth threshold
+        bool leftHandActive_, rightHandActive_;
         
-        // the original distance between hands when scaling
-        float neutralScaleDistance_;
+        // the current point representation of the skeleton
+        SkeletonRepresentation skeletonRep_;
         
         // time spend hovering over inactive window
         QTime hoverTime_;
