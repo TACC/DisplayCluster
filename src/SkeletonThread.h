@@ -29,6 +29,9 @@ class SkeletonState
         void pan(SkeletonPoint& rhand);
         void zoom(SkeletonPoint& lhand, SkeletonPoint& rhand);
         void scaleWindow(SkeletonPoint& lhand, SkeletonPoint& rhand, float threshold);
+        void render();
+        void drawJoints();
+        void drawLimb(SkeletonPoint& p1, SkeletonPoint& p2);
         
     private:
     

@@ -320,4 +320,134 @@ void SkeletonState::scaleWindow(SkeletonPoint& lh, SkeletonPoint& rh, float thre
     activeWindow_->getSize(x,y);
     activeWindow_->setSize(x + dd/threshold*WINDOW_SCALING_FACTOR, y + dd/threshold*WINDOW_SCALING_FACTOR);
 }
+
+void SkeletonState::render()
+{
+    drawJoints();
+    
+    drawLimb(skeletonRep_.head_, skeletonRep_.neck_);
+    drawLimb(skeletonRep_.neck_, skeletonRep_.leftShoulder_);
+    drawLimb(skeletonRep_.leftShoulder_, skeletonRep_.leftElbow_);
+    drawLimb(skeletonRep_.leftElbow_, skeletonRep_.leftHand_);
+    drawLimb(skeletonRep_.neck_, skeletonRep_.rightShoulder_);
+    drawLimb(skeletonRep_.rightShoulder_, skeletonRep_.rightElbow_);
+    drawLimb(skeletonRep_.rightElbow_, skeletonRep_.rightHand_);
+    drawLimb(skeletonRep_.leftShoulder_, skeletonRep_.torso_);
+    drawLimb(skeletonRep_.rightShoulder_, skeletonRep_.torso_);
+    drawLimb(skeletonRep_.torso_, skeletonRep_.leftHip_);
+    drawLimb(skeletonRep_.leftHip_, skeletonRep_.leftKnee_);
+    drawLimb(skeletonRep_.leftKnee_, skeletonRep_.leftFoot_);
+    drawLimb(skeletonRep_.torso_, skeletonRep_.rightHip_);
+    drawLimb(skeletonRep_.rightHip_, skeletonRep_.rightKnee_);
+    drawLimb(skeletonRep_.rightKnee_, skeletonRep_.rightFoot_);
+    drawLimb(skeletonRep_.leftHip_, skeletonRep_.rightHip_);
+
+}
+
+void SkeletonState::drawJoints()
+{
+    std::vector<SkeletonPoint> joints;
+    joints.push_back(skeletonRep_.head_);
+    joints.push_back(skeletonRep_.neck_);
+    joints.push_back(skeletonRep_.leftShoulder_);
+    joints.push_back(skeletonRep_.leftElbow_);
+    joints.push_back(skeletonRep_.leftHand_);
+    joints.push_back(skeletonRep_.rightShoulder_);
+    joints.push_back(skeletonRep_.rightElbow_);
+    joints.push_back(skeletonRep_.rightHand_);
+    joints.push_back(skeletonRep_.torso_);
+    joints.push_back(skeletonRep_.leftHip_);
+    joints.push_back(skeletonRep_.rightHip_);
+    joints.push_back(skeletonRep_.leftKnee_);
+    joints.push_back(skeletonRep_.rightKnee_);
+    joints.push_back(skeletonRep_.leftFoot_);
+    joints.push_back(skeletonRep_.rightFoot_);
+    
+    // set up glu object
+    GLUquadricObj* quadobj;
+    quadobj = gluNewQuadric();
+    
+    glColor4f(0.2,0.4,0.9,1.0);
+
+    for(unsigned int i = 0; i < joints.size(); i++)
+    {
+        if (joints[i].confidence_ > 0.5)
+        {
+            // if it's the left hand and active
+            if(i == 4 && leftHandActive_)
+            {
+                // color the hand red and make it larger
+                glColor4f(1.0, 0.0, 0.0, 1);
+                glPushMatrix();
+                glTranslatef(joints[i].x_, joints[i].y_, joints[i].z_);
+                gluSphere(quadobj,25.,16.,16.);
+                glPopMatrix();
+                
+                // return to normal color
+                glColor4f(0.2,0.4,0.9,1.0);
+            }
+            
+            // if it's the right and hand active
+            else if(i == 7 && rightHandActive_)
+            {
+                // color the hand red and make it larger
+                glColor4f(1.0, 0.0, 0.0, 1);
+                glPushMatrix();
+                glTranslatef(joints[i].x_, joints[i].y_, joints[i].z_);
+                gluSphere(quadobj,25.,16.,16.);
+                glPopMatrix();
+                
+                // return to normal color
+                glColor4f(0.2,0.4,0.9,1.0);
+            }
+            
+            else
+            {
+                glPushMatrix();
+                glTranslatef(joints[i].x_, joints[i].y_, joints[i].z_);
+                gluSphere(quadobj,20.,16.,16.);
+                glPopMatrix();
+            }
+        }
+    }
+}
+void SkeletonState::drawLimb(SkeletonPoint& pt1, SkeletonPoint& pt2)
+{
+    
+    if(pt1.confidence_ <= 0.5 || pt2.confidence_ <= 0.5)
+        return;
+    
+    float a[3] = {pt1.x_, pt1.y_, pt1.z_};
+    float b[3] = {pt2.x_, pt2.y_, pt2.z_};
+    
+    // vector formed by the two joints
+    float c[3];
+    vectorSubtraction(a, b, c);
+    
+    // glu cylinder vector
+    float z[3] = {0,0,1};
+    
+    // r is axis of rotation about z
+    float r[3];
+    vectorCrossProduct(z, c, r);
+    
+    // get angle of rotation in degrees
+    float angle = 180/M_PI * acos((vectorDotProduct(z, c)/vectorMagnitude(c)));
+    
+    glPushMatrix();
+    
+    // translate to second joint
+    glTranslatef(pt2.x_, pt2.y_, pt2.z_);
+    glRotatef(angle, r[0], r[1], r[2]);
+    
+    // set up glu object
+    GLUquadricObj* quadobj;
+    quadobj = gluNewQuadric();
+    
+    gluCylinder(quadobj, 10, 10, vectorMagnitude(c), 10, 10);
+    
+    glPopMatrix();
+    
+    // delete used quadric
+    gluDeleteQuadric(quadobj);
 }
