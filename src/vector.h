@@ -18,6 +18,15 @@ template <class T> T vectorMagnitude(const T a[3])
 
 }
 
+template <class T> void vectorSubtraction(const T a[3], const T b[3], T c[3])
+{
+    c[0] = a[0] - b[0];
+    c[1] = a[1] - b[1];
+    c[2] = a[2] - b[2];
+    
+    return;
+}
+
 template <class T> void vectorNormalize(T a[3])
 {
     T magnitude = vectorMagnitude(a);
