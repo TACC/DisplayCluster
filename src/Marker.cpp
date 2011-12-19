@@ -28,6 +28,7 @@ void Marker::setPosition(float x, float y)
 {
     x_ = x;
     y_ = y;
+    updatedTimestamp_ = *(g_displayGroupManager->getTimestamp());
 
     emit(positionChanged());
 }
@@ -40,6 +41,12 @@ void Marker::getPosition(float &x, float &y)
 
 void Marker::render()
 {
+    // only render recently active markers
+    if((*(g_displayGroupManager->getTimestamp()) - updatedTimestamp_).total_seconds() > MARKER_TIMEOUT_SECONDS)
+    {
+        return;
+    }
+
     float markerWidth = MARKER_WIDTH;
 
     // marker height needs to be scaled by the tiled display aspect ratio
