@@ -14,6 +14,7 @@
 
 #if ENABLE_SKELETON_SUPPORT
     #include "SkeletonThread.h"
+    SkeletonThread * g_skeletonThread;
 #endif
 
 QApplication * g_app = NULL;
@@ -68,8 +69,8 @@ int main(int argc, char * argv[])
 # if ENABLE_SKELETON_SUPPORT
     if(g_mpiRank == 0)
     {
-        SkeletonThread * skeletonThread = new SkeletonThread();
-        skeletonThread->start();
+        g_skeletonThread = new SkeletonThread();
+        g_skeletonThread->start();
     }
 #endif
 

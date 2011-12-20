@@ -24,6 +24,11 @@ DisplayGroupManager::DisplayGroupManager()
 
     // register types for use in signals/slots
     qRegisterMetaType<boost::shared_ptr<ContentWindowManager> >("boost::shared_ptr<ContentWindowManager>");
+
+    // serialization support for the vector of skeleton states
+#if ENABLE_SKELETON_SUPPORT
+    qRegisterMetaType<std::vector<SkeletonState> >("std::vector<SkeletonState>");
+#endif
 }
 
 boost::shared_ptr<Options> DisplayGroupManager::getOptions()
@@ -33,8 +38,13 @@ boost::shared_ptr<Options> DisplayGroupManager::getOptions()
 
 boost::shared_ptr<Marker> DisplayGroupManager::getNewMarker()
 {
+    QMutexLocker locker(&markersMutex_);
+
     boost::shared_ptr<Marker> marker(new Marker());
     markers_.push_back(marker);
+
+    // the marker needs to be owned by the main thread for queued connections to work properly
+    marker->moveToThread(QApplication::instance()->thread());
 
     // make marker trigger sendDisplayGroup() when it is updated
     connect(marker.get(), SIGNAL(positionChanged()), this, SLOT(sendDisplayGroup()), Qt::QueuedConnection);
@@ -51,6 +61,13 @@ boost::shared_ptr<boost::posix_time::ptime> DisplayGroupManager::getTimestamp()
 {
     return timestamp_;
 }
+
+#if ENABLE_SKELETON_SUPPORT
+std::vector<SkeletonState> DisplayGroupManager::getSkeletons()
+{
+    return skeletons_;
+}
+#endif
 
 void DisplayGroupManager::addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
 {
@@ -138,6 +155,12 @@ void DisplayGroupManager::receiveMessages()
                 g_app->quit();
                 return;
             }
+#if ENABLE_SKELETON_SUPPORT
+            else if(mh.type == MESSAGE_TYPE_SKELETONS)
+            {
+                receiveSkeletons(mh);
+            }
+#endif
 
             // check to see if we have another message waiting, for this process and for all render processes
             MPI_Iprobe(0, 0, MPI_COMM_WORLD, &flag, &status);
@@ -150,6 +173,9 @@ void DisplayGroupManager::receiveMessages()
 
 void DisplayGroupManager::sendDisplayGroup()
 {
+
+    QMutexLocker locker(&markersMutex_);
+
     // serialize state
     std::ostringstream oss(std::ostringstream::binary);
 
@@ -393,6 +419,15 @@ void DisplayGroupManager::sendQuit()
     }
 }
 
+#if ENABLE_SKELETON_SUPPORT
+void DisplayGroupManager::setSkeletons(std::vector<SkeletonState> skeletons)
+{
+    skeletons_ = skeletons;
+
+    sendDisplayGroup();
+}
+#endif
+
 void DisplayGroupManager::advanceContents()
 {
     // note that if we have multiple ContentWindowManagers corresponding to a single Content object,
@@ -490,3 +525,37 @@ void DisplayGroupManager::receivePixelStreams(MessageHeader messageHeader)
     // free mpi buffer
     delete [] buf;
 }
+
+#if ENABLE_SKELETON_SUPPORT
+void DisplayGroupManager::receiveSkeletons(MessageHeader messageHeader)
+{
+    // receive serialized data
+    char * buf = new char[messageHeader.size];
+
+    // read message into the buffer
+    MPI_Bcast((void *)buf, messageHeader.size, MPI_BYTE, 0, MPI_COMM_WORLD);
+
+    // de-serialize...
+    std::istringstream iss(std::istringstream::binary);
+
+    if(iss.rdbuf()->pubsetbuf(buf, messageHeader.size) == NULL)
+    {
+        put_flog(LOG_FATAL, "rank %i: error setting stream buffer", g_mpiRank);
+        exit(-1);
+    }
+
+    // read to skeletons vector
+    std::vector<SkeletonState> skeletons;
+
+    boost::archive::binary_iarchive ia(iss);
+    ia >> skeletons_;
+
+    put_flog(LOG_DEBUG, "deserialized %i skeletons", skeletons_.size());
+
+    // overwrite old skeletons vector
+    ///////skeletons_ = skeletons;
+
+    // free mpi buffer
+    delete [] buf;
+}
+#endif

@@ -4,6 +4,7 @@
 #include "DisplayGroupInterface.h"
 #include "Options.h"
 #include "Marker.h"
+#include "config.h"
 #include <QtGui>
 #include <vector>
 #include <boost/shared_ptr.hpp>
@@ -12,9 +13,13 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
+#if ENABLE_SKELETON_SUPPORT
+#include "SkeletonThread.h"
+#endif
+
 class ContentWindowManager;
 
-enum MESSAGE_TYPE { MESSAGE_TYPE_CONTENTS, MESSAGE_TYPE_CONTENTS_DIMENSIONS, MESSAGE_TYPE_PIXELSTREAM, MESSAGE_TYPE_FRAME_CLOCK, MESSAGE_TYPE_QUIT };
+enum MESSAGE_TYPE { MESSAGE_TYPE_CONTENTS, MESSAGE_TYPE_CONTENTS_DIMENSIONS, MESSAGE_TYPE_PIXELSTREAM, MESSAGE_TYPE_FRAME_CLOCK, MESSAGE_TYPE_QUIT, MESSAGE_TYPE_SKELETONS };
 
 #define MESSAGE_HEADER_URI_LENGTH 64
 
@@ -38,6 +43,10 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
 
         boost::shared_ptr<boost::posix_time::ptime> getTimestamp();
 
+#if ENABLE_SKELETON_SUPPORT
+        std::vector<SkeletonState> getSkeletons();
+#endif
+
         // re-implemented DisplayGroupInterface slots
         void addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
         void removeContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
@@ -53,7 +62,9 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         void sendFrameClockUpdate();
         void receiveFrameClockUpdate();
         void sendQuit();
-
+#if ENABLE_SKELETON_SUPPORT
+        void setSkeletons(std::vector<SkeletonState> skeletons);
+#endif
         void advanceContents();
 
     private:
@@ -65,7 +76,12 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
             ar & options_;
             ar & markers_;
             ar & contentWindowManagers_;
+#if ENABLE_SKELETON_SUPPORT
+            ar & skeletons_;
+#endif
         }
+
+        QMutex markersMutex_;
 
         // options
         boost::shared_ptr<Options> options_;
@@ -76,9 +92,17 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         // frame timing
         boost::shared_ptr<boost::posix_time::ptime> timestamp_;
 
+#if ENABLE_SKELETON_SUPPORT
+        std::vector<SkeletonState> skeletons_;
+#endif
+
         void receiveDisplayGroup(MessageHeader messageHeader);
         void receiveContentsDimensionsRequest(MessageHeader messageHeader);
         void receivePixelStreams(MessageHeader messageHeader);
+
+#if ENABLE_SKELETON_SUPPORT
+        void receiveSkeletons(MessageHeader messageHeader);
+#endif
 };
 
 #endif
