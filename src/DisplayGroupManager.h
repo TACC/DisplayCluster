@@ -52,6 +52,9 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         void removeContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
         void moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
 
+        // find the offset between the rank 0 clock and the rank 1 clock. recall the rank 1 clock is used across rank 1 - n.
+        void calibrateTimestampOffset();
+
     public slots:
 
         void receiveMessages();
@@ -92,9 +95,13 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         // frame timing
         boost::shared_ptr<boost::posix_time::ptime> timestamp_;
 
+
 #if ENABLE_SKELETON_SUPPORT
         std::vector<SkeletonState> skeletons_;
 #endif
+
+        // rank 1 - rank 0 timestamp offset
+        boost::posix_time::time_duration timestampOffset_;
 
         void receiveDisplayGroup(MessageHeader messageHeader);
         void receiveContentsDimensionsRequest(MessageHeader messageHeader);
