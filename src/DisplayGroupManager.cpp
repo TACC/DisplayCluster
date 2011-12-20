@@ -59,7 +59,17 @@ std::vector<boost::shared_ptr<Marker> > DisplayGroupManager::getMarkers()
 
 boost::shared_ptr<boost::posix_time::ptime> DisplayGroupManager::getTimestamp()
 {
-    return timestamp_;
+    // rank 0 will return a timestamp calibrated to rank 1's clock
+    if(g_mpiRank == 0)
+    {
+        boost::shared_ptr<boost::posix_time::ptime> timestamp(new boost::posix_time::ptime(boost::posix_time::microsec_clock::universal_time() + timestampOffset_));
+
+        return timestamp;
+    }
+    else
+    {
+        return timestamp_;
+    }
 }
 
 #if ENABLE_SKELETON_SUPPORT
@@ -105,6 +115,83 @@ void DisplayGroupManager::moveContentWindowManagerToFront(boost::shared_ptr<Cont
     if(source != this)
     {
         sendDisplayGroup();
+    }
+}
+
+void DisplayGroupManager::calibrateTimestampOffset()
+{
+    // can't calibrate timestamps unless we have at least 2 processes
+    if(g_mpiSize < 2)
+    {
+        put_flog(LOG_DEBUG, "cannot calibrate with g_mpiSize == %i", g_mpiSize);
+        return;
+    }
+
+    // synchronize all processes
+    MPI_Barrier(g_mpiRenderComm);
+
+    // get current timestamp immediately after
+    boost::posix_time::ptime timestamp(boost::posix_time::microsec_clock::universal_time());
+
+    // rank 1: send timestamp to rank 0
+    if(g_mpiRank == 1)
+    {
+        // serialize state
+        std::ostringstream oss(std::ostringstream::binary);
+
+        // brace this so destructor is called on archive before we use the stream
+        {
+            boost::archive::binary_oarchive oa(oss);
+            oa << timestamp;
+        }
+
+        // serialized data to string
+        std::string serializedString = oss.str();
+        int size = serializedString.size();
+
+        // send the header and the message
+        MessageHeader mh;
+        mh.size = size;
+
+        MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, 0, 0, MPI_COMM_WORLD);
+        MPI_Send((void *)serializedString.data(), size, MPI_BYTE, 0, 0, MPI_COMM_WORLD);
+    }
+    // rank 0: receive timestamp from rank 1
+    else if(g_mpiRank == 0)
+    {
+        MessageHeader messageHeader;
+
+        MPI_Status status;
+        MPI_Recv((void *)&messageHeader, sizeof(MessageHeader), MPI_BYTE, 1, 0, MPI_COMM_WORLD, &status);
+
+        // receive serialized data
+        char * buf = new char[messageHeader.size];
+
+        // read message into the buffer
+        MPI_Recv((void *)buf, messageHeader.size, MPI_BYTE, 1, 0, MPI_COMM_WORLD, &status);
+
+        // de-serialize...
+        std::istringstream iss(std::istringstream::binary);
+
+        if(iss.rdbuf()->pubsetbuf(buf, messageHeader.size) == NULL)
+        {
+            put_flog(LOG_FATAL, "rank %i: error setting stream buffer", g_mpiRank);
+            exit(-1);
+        }
+
+        // read to a new timestamp
+        boost::posix_time::ptime rank1Timestamp;
+
+        boost::archive::binary_iarchive ia(iss);
+        ia >> rank1Timestamp;
+
+        // free mpi buffer
+        delete [] buf;
+
+        // now, calculate and store the timestamp offset
+        timestampOffset_ = rank1Timestamp - timestamp;
+
+        put_flog(LOG_DEBUG, "timestamp offset = %s", (boost::posix_time::to_simple_string(timestampOffset_)).c_str());
     }
 }
 
