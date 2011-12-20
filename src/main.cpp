@@ -48,6 +48,9 @@ int main(int argc, char * argv[])
     boost::shared_ptr<DisplayGroupManager> dgm(new DisplayGroupManager);
     g_displayGroupManager = dgm;
 
+    // calibrate timestamp offset between rank 0 and rank 1 clocks
+    g_displayGroupManager->calibrateTimestampOffset();
+
     g_mainWindow = new MainWindow();
 
 #if ENABLE_TUIO_TOUCH_LISTENER
