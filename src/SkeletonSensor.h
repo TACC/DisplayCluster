@@ -4,30 +4,69 @@
 #include <XnCppWrapper.h>
 #include <string>
 #include <vector>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
 
 // A 3D point with the confidence of the point's location. confidence_ > 0.5 is good
-struct SkeletonPoint
+class SkeletonPoint
 {
-    float x_, y_, z_, confidence_;
+    public:
+        float x_, y_, z_, confidence_;
+
+    protected:
+        friend class boost::serialization::access;
+
+        template<class Archive>
+        void serialize(Archive & ar, const unsigned int version)
+        {
+            ar & x_;
+            ar & y_;
+            ar & z_;
+            ar & confidence_;
+        }
 };
 
-struct SkeletonRepresentation
+class SkeletonRepresentation
 {
-    SkeletonPoint head_;
-    SkeletonPoint neck_;
-    SkeletonPoint rightShoulder_;
-    SkeletonPoint leftShoulder_;
-    SkeletonPoint rightElbow_;
-    SkeletonPoint leftElbow_;
-    SkeletonPoint rightHand_;
-    SkeletonPoint leftHand_;
-    SkeletonPoint rightHip_;
-    SkeletonPoint leftHip_;
-    SkeletonPoint rightKnee_;
-    SkeletonPoint leftKnee_;
-    SkeletonPoint rightFoot_;
-    SkeletonPoint leftFoot_;
-    SkeletonPoint torso_;
+    public:
+        SkeletonPoint head_;
+        SkeletonPoint neck_;
+        SkeletonPoint rightShoulder_;
+        SkeletonPoint leftShoulder_;
+        SkeletonPoint rightElbow_;
+        SkeletonPoint leftElbow_;
+        SkeletonPoint rightHand_;
+        SkeletonPoint leftHand_;
+        SkeletonPoint rightHip_;
+        SkeletonPoint leftHip_;
+        SkeletonPoint rightKnee_;
+        SkeletonPoint leftKnee_;
+        SkeletonPoint rightFoot_;
+        SkeletonPoint leftFoot_;
+        SkeletonPoint torso_;
+
+    protected:
+        friend class boost::serialization::access;
+
+        template<class Archive>
+        void serialize(Archive & ar, const unsigned int version)
+        {
+            ar & head_;
+            ar & neck_;
+            ar & rightShoulder_;
+            ar & leftShoulder_;
+            ar & rightElbow_;
+            ar & leftElbow_;
+            ar & rightHand_;
+            ar & leftHand_;
+            ar & rightHip_;
+            ar & leftHip_;
+            ar & rightKnee_;
+            ar & leftKnee_;
+            ar & rightFoot_;
+            ar & leftFoot_;
+            ar & torso_;
+        }
 };
 
 // SkeletonSensor: A wrapper for OpenNI Skeleton tracking devices

@@ -94,6 +94,30 @@ void GLWindow::paintGL()
     {
         markers[i]->render();
     }
+
+#if ENABLE_SKELETON_SUPPORT
+    // render perspective overlay for skeletons
+    setPerspectiveView();
+
+    glPushAttrib(GL_ENABLE_BIT);
+
+    // enable depth testing, lighting, and color tracking
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+    glEnable(GL_COLOR_MATERIAL);
+
+    // get and render skeletons
+    std::vector<SkeletonState> skeletons = g_displayGroupManager->getSkeletons();
+
+    for(unsigned int i=0; i<skeletons.size(); i++)
+    {
+        skeletons[i].render();
+    }
+
+    glPopAttrib();
+#endif
+
 }
 
 void GLWindow::resizeGL(int width, int height)
@@ -203,10 +227,10 @@ void GLWindow::setPerspectiveView()
 
     // setup lighting
     GLfloat LightAmbient[] = { 0.01, 0.01, 0.01, 1.0 };
-    GLfloat LightDiffuse[] = { .99, .99, .99, 1.0 };
+    GLfloat LightDiffuse[] = { .5, .5, .5, 1.0 };
     GLfloat LightSpecular[] = { .9,.9,.9, 1.0 };
 
-    GLfloat LightPosition[] = { 0,0,1, 1.0 };
+    GLfloat LightPosition[] = { 0,0,1000000, 1.0 };
 
     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, LightAmbient);
     glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, 1);

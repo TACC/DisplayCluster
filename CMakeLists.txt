@@ -77,7 +77,8 @@ if(ENABLE_SKELETON_SUPPORT)
 
     set(SRCS ${SRCS}
         src/SkeletonThread.cpp
-        src/SkeletonSensor.cpp)
+        src/SkeletonSensor.cpp
+        src/SkeletonState.cpp)
     set(SRCS ${SRCS} src/DisplayGroupJoystick.cpp)
 
     set(MOC_HEADERS ${MOC_HEADERS} src/SkeletonThread.h)
@@ -144,6 +145,11 @@ set(DESKTOP_STREAMER_LIBS ${QT_LIBRARIES})
 find_package(LibJpegTurbo REQUIRED)
 include_directories(${LibJpegTurbo_INCLUDE_DIRS})
 set(DESKTOP_STREAMER_LIBS ${DESKTOP_STREAMER_LIBS} ${LibJpegTurbo_LIBRARIES})
+
+# if skeleton support is enabled, desktopstreamer needs the OpenNI libs. todo: this shouldn't be the case.
+if(ENABLE_SKELETON_SUPPORT)
+    set(DESKTOP_STREAMER_LIBS ${DESKTOP_STREAMER_LIBS} ${OPENNI_LIBRARIES})
+endif()
 
 set(DESKTOP_STREAMER_SRCS ${DESKTOP_STREAMER_SRCS}
     src/log.cpp

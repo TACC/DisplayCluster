@@ -5,6 +5,7 @@
 #include "MainWindow.h"
 #include "DisplayGroupManager.h"
 #include "NetworkListener.h"
+#include "config.h"
 #include <boost/shared_ptr.hpp>
 #include <mpi.h>
 
@@ -17,5 +18,10 @@ extern boost::shared_ptr<DisplayGroupManager> g_displayGroupManager;
 extern MainWindow * g_mainWindow;
 extern NetworkListener * g_networkListener;
 extern long g_frameCount;
+
+#if ENABLE_SKELETON_SUPPORT
+    class SkeletonThread;
+    extern SkeletonThread * g_skeletonThread;
+#endif
 
 #endif
