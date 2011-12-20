@@ -2,6 +2,7 @@
 #include "main.h"
 #include "Content.h"
 #include "ContentWindowManager.h"
+#include "PythonConsole.h"
 #include "log.h"
 #include "DisplayGroupGraphicsViewProxy.h"
 #include "DisplayGroupListWidgetProxy.h"
@@ -21,12 +22,15 @@ MainWindow::MainWindow()
 
     if(g_mpiRank == 0)
     {
+	PythonConsole::self()->init();
+
         // rank 0 window setup
         resize(800,600);
 
         // create menus in menu bar
         QMenu * fileMenu = menuBar()->addMenu("&File");
         QMenu * viewMenu = menuBar()->addMenu("&View");
+	QMenu * windowMenu = menuBar()->addMenu("&Window"); 
 
         // create tool bar
         QToolBar * toolbar = addToolBar("toolbar");
@@ -65,6 +69,11 @@ MainWindow::MainWindow()
         QAction * quitAction = new QAction("Quit", this);
         quitAction->setStatusTip("Quit application");
         connect(quitAction, SIGNAL(triggered()), this, SLOT(close()));
+
+        QAction *pythonAction = new QAction("Open Python Console", this); 
+        pythonAction->setStatusTip("Open Python console"); 
+        connect(pythonAction, SIGNAL(triggered()), PythonConsole::self(), SLOT(show())); 
+        windowMenu->addAction(pythonAction); 
 
         // constrain aspect ratio action
         QAction * constrainAspectRatioAction = new QAction("Constrain Aspect Ratio", this);
