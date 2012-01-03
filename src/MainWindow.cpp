@@ -1,8 +1,8 @@
+#include "config.h"
 #include "MainWindow.h"
 #include "main.h"
 #include "Content.h"
 #include "ContentWindowManager.h"
-#include "PythonConsole.h"
 #include "log.h"
 #include "DisplayGroupGraphicsViewProxy.h"
 #include "DisplayGroupListWidgetProxy.h"
@@ -11,6 +11,10 @@
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/shared_ptr.hpp>
 #include <fstream>
+
+#if ENABLE_PYTHON_SUPPORT
+    #include "PythonConsole.h"
+#endif
 
 MainWindow::MainWindow()
 {
@@ -22,7 +26,9 @@ MainWindow::MainWindow()
 
     if(g_mpiRank == 0)
     {
-	PythonConsole::self()->init();
+#if ENABLE_PYTHON_SUPPORT
+        PythonConsole::self()->init();
+#endif
 
         // rank 0 window setup
         resize(800,600);
@@ -30,7 +36,10 @@ MainWindow::MainWindow()
         // create menus in menu bar
         QMenu * fileMenu = menuBar()->addMenu("&File");
         QMenu * viewMenu = menuBar()->addMenu("&View");
-	QMenu * windowMenu = menuBar()->addMenu("&Window"); 
+#if ENABLE_PYTHON_SUPPORT
+        // add Window menu for Python console. if we add any other entries to it we'll need to remove the #if
+        QMenu * windowMenu = menuBar()->addMenu("&Window");
+#endif
 
         // create tool bar
         QToolBar * toolbar = addToolBar("toolbar");
@@ -65,15 +74,17 @@ MainWindow::MainWindow()
         computeImagePyramidAction->setStatusTip("Compute image pyramid");
         connect(computeImagePyramidAction, SIGNAL(triggered()), this, SLOT(computeImagePyramid()));
 
+#if ENABLE_PYTHON_SUPPORT
+        // Python console action
+        QAction * pythonConsoleAction = new QAction("Open Python Console", this);
+        pythonConsoleAction->setStatusTip("Open Python console");
+        connect(pythonConsoleAction, SIGNAL(triggered()), PythonConsole::self(), SLOT(show()));
+#endif
+
         // quit action
         QAction * quitAction = new QAction("Quit", this);
         quitAction->setStatusTip("Quit application");
         connect(quitAction, SIGNAL(triggered()), this, SLOT(close()));
-
-        QAction *pythonAction = new QAction("Open Python Console", this); 
-        pythonAction->setStatusTip("Open Python console"); 
-        connect(pythonAction, SIGNAL(triggered()), PythonConsole::self(), SLOT(show())); 
-        windowMenu->addAction(pythonAction); 
 
         // constrain aspect ratio action
         QAction * constrainAspectRatioAction = new QAction("Constrain Aspect Ratio", this);
@@ -99,6 +110,9 @@ MainWindow::MainWindow()
         fileMenu->addAction(quitAction);
         viewMenu->addAction(constrainAspectRatioAction);
         viewMenu->addAction(showWindowBordersAction);
+#if ENABLE_PYTHON_SUPPORT
+        windowMenu->addAction(pythonConsoleAction);
+#endif
 
         // add actions to toolbar
         toolbar->addAction(openContentAction);
@@ -107,7 +121,9 @@ MainWindow::MainWindow()
         toolbar->addAction(saveContentsAction);
         toolbar->addAction(loadContentsAction);
         toolbar->addAction(computeImagePyramidAction);
-
+#if ENABLE_PYTHON_SUPPORT
+        toolbar->addAction(pythonConsoleAction);
+#endif
         // main widget / layout area
         QTabWidget * mainWidget = new QTabWidget();
         setCentralWidget(mainWidget);

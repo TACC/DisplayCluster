@@ -13,6 +13,7 @@ set(CMAKE_CXX_FLAGS "-Wall")
 # build options
 option(ENABLE_TUIO_TOUCH_LISTENER "Enable TUIO touch listener for multi-touch events" OFF)
 option(ENABLE_JOYSTICK_SUPPORT "Enable joystick support" OFF)
+option(ENABLE_PYTHON_SUPPORT "Enable Python support" OFF)
 
 # path for additional modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
@@ -40,16 +41,6 @@ set(LIBS ${LIBS} ${Boost_LIBRARIES})
 find_package(MPI REQUIRED)
 include_directories(${MPI_INCLUDE_PATH})
 set(LIBS ${LIBS} ${MPI_LIBRARIES})
-
-find_package(PythonLibs REQUIRED)
-include_directories(${PYTHON_INCLUDE_DIRS})
-set(LIBS ${LIBS} ${PYTHON_LIBRARIES})
-
-find_path(PYTHON_QT_HEADERS PythonQt.h ${CMAKE_SOURCE_DIR}/dependencies/PythonQt2.0.1/src)
-include_directories(${PYTHON_QT_HEADERS})
-
-find_library(PYTHON_QT_LIBRARIES PythonQt ${CMAKE_SOURCE_DIR}/dependencies/PythonQt2.0.1/lib)
-set(LIBS ${LIBS} ${PYTHON_QT_LIBRARIES})
 
 find_package(FFMPEG REQUIRED)
 include_directories(${FFMPEG_INCLUDE_DIR})
@@ -79,6 +70,22 @@ if(ENABLE_JOYSTICK_SUPPORT)
     set(MOC_HEADERS ${MOC_HEADERS} src/JoystickThread.h)
 endif()
 
+if(ENABLE_PYTHON_SUPPORT)
+    find_package(PythonLibs REQUIRED)
+    include_directories(${PYTHON_INCLUDE_DIRS})
+    set(LIBS ${LIBS} ${PYTHON_LIBRARIES})
+
+    find_package(PythonQt REQUIRED)
+    include_directories(${PythonQt_INCLUDE_DIRS})
+    set(LIBS ${LIBS} ${PythonQt_LIBRARIES})
+
+    set(SRCS ${SRCS} src/DisplayGroupPython.cpp)
+    set(SRCS ${SRCS} src/PythonConsole.cpp)
+
+    set(MOC_HEADERS ${MOC_HEADERS} src/DisplayGroupPython.h)
+    set(MOC_HEADERS ${MOC_HEADERS} src/PythonConsole.h)
+endif()
+
 # process config file
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
@@ -96,7 +103,6 @@ set(SRCS ${SRCS}
     src/DisplayGroupGraphicsViewProxy.cpp
     src/DisplayGroupGraphicsView.cpp
     src/DisplayGroupListWidgetProxy.cpp
-    src/DisplayGroupPython.cpp
     src/DynamicTexture.cpp
     src/DynamicTextureContent.cpp
     src/GLWindow.cpp
@@ -111,7 +117,6 @@ set(SRCS ${SRCS}
     src/PixelStream.cpp
     src/PixelStreamContent.cpp
     src/PixelStreamSource.cpp
-    src/PythonConsole.cpp
     src/Texture.cpp
     src/TextureContent.cpp
 )
@@ -121,12 +126,10 @@ set(MOC_HEADERS ${MOC_HEADERS}
     src/ContentWindowInterface.h
     src/DisplayGroupManager.h
     src/DisplayGroupInterface.h
-    src/DisplayGroupPython.h
     src/MainWindow.h
     src/Marker.h
     src/NetworkListener.h
     src/NetworkListenerThread.h
-    src/PythonConsole.h
     src/Options.h
 )
 
