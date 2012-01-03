@@ -41,8 +41,9 @@ find_package(MPI REQUIRED)
 include_directories(${MPI_INCLUDE_PATH})
 set(LIBS ${LIBS} ${MPI_LIBRARIES})
 
-find_path(PYTHON_HEADERS Python.h /usr/include/python2.6)
-include_directories(${PYTHON_HEADERS})
+find_package(PythonLibs REQUIRED)
+include_directories(${PYTHON_INCLUDE_DIRS})
+set(LIBS ${LIBS} ${PYTHON_LIBRARIES})
 
 find_path(PYTHON_QT_HEADERS PythonQt.h ${CMAKE_SOURCE_DIR}/dependencies/PythonQt2.0.1/src)
 include_directories(${PYTHON_QT_HEADERS})
