@@ -404,6 +404,17 @@ void MainWindow::updateGLWindows()
     // receive any waiting messages
     g_displayGroupManager->receiveMessages();
 
+    // synchronize clock
+    // do this right after receiving messages to ensure we have an accurate clock for rendering, etc. below
+    if(g_mpiRank == 1)
+    {
+        g_displayGroupManager->sendFrameClockUpdate();
+    }
+    else
+    {
+        g_displayGroupManager->receiveFrameClockUpdate();
+    }
+
     // render all GLWindows
     for(unsigned int i=0; i<glWindows_.size(); i++)
     {
@@ -417,16 +428,6 @@ void MainWindow::updateGLWindows()
     for(unsigned int i=0; i<glWindows_.size(); i++)
     {
         glWindows_[i]->swapBuffers();
-    }
-
-    // synchronize clock
-    if(g_mpiRank == 1)
-    {
-        g_displayGroupManager->sendFrameClockUpdate();
-    }
-    else
-    {
-        g_displayGroupManager->receiveFrameClockUpdate();
     }
 
     // advance all contents

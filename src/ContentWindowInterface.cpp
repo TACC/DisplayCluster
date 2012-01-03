@@ -190,8 +190,13 @@ void ContentWindowInterface::setCoordinates(double x, double y, double w, double
 
     x_ = x;
     y_ = y;
-    w_ = w;
-    h_ = h;
+
+    // don't allow negative width or height
+    if(w > 0. && h > 0.)
+    {
+        w_ = w;
+        h_ = h;
+    }
 
     fixAspectRatio(this);
 
@@ -234,8 +239,12 @@ void ContentWindowInterface::setSize(double w, double h, ContentWindowInterface 
         return;
     }
 
-    w_ = w;
-    h_ = h;
+    // don't allow negative width or height
+    if(w > 0. && h > 0.)
+    {
+        w_ = w;
+        h_ = h;
+    }
 
     fixAspectRatio(this);
 
