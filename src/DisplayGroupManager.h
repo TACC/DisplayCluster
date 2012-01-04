@@ -63,7 +63,7 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         friend class boost::serialization::access;
 
         template<class Archive>
-        void serialize(Archive & ar, const unsigned int version)
+        void serialize(Archive & ar, const unsigned int)
         {
             ar & options_;
             ar & markers_;
