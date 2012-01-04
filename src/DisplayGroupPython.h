@@ -22,8 +22,10 @@ class pyDisplayGroupPython
 {
     public:
         pyDisplayGroupPython() {
-          extern boost::shared_ptr<DisplayGroupManager> getTheDisplayGroupManager();
-          ptr_ = boost::shared_ptr<DisplayGroupPython>(new DisplayGroupPython(getTheDisplayGroupManager()));
+          // declared in main.cpp, but we don't want to bring in everything from main.h...
+          extern boost::shared_ptr<DisplayGroupManager> g_displayGroupManager;
+
+          ptr_ = boost::shared_ptr<DisplayGroupPython>(new DisplayGroupPython(g_displayGroupManager));
         }
 
         ~pyDisplayGroupPython() {}
