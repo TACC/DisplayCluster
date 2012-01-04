@@ -2,6 +2,7 @@
 #define CONTENT_WINDOW_MANAGER_H
 
 #include "ContentWindowInterface.h"
+#include "Content.h" // need pyContent for pyContentWindowManager
 #include <QtGui>
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
@@ -10,7 +11,6 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/weak_ptr.hpp>
 
-#include "Content.h"
 class DisplayGroupManager;
 
 class ContentWindowManager : public ContentWindowInterface, public boost::enable_shared_from_this<ContentWindowManager> {
