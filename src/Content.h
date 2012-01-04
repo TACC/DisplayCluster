@@ -23,7 +23,7 @@ class Content : public QObject {
         void setDimensions(int width, int height);
         virtual void getFactoryObjectDimensions(int &width, int &height) = 0;
 
-        void render(boost::shared_ptr<ContentWindowManager>);
+        void render(boost::shared_ptr<ContentWindowManager> window);
 
         // virtual method for implementing actions on advancing to a new frame
         // useful when a process has multiple GLWindows
