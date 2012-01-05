@@ -22,12 +22,11 @@ class Content : public QObject {
         void getDimensions(int &width, int &height);
         void setDimensions(int width, int height);
         virtual void getFactoryObjectDimensions(int &width, int &height) = 0;
-
         void render(boost::shared_ptr<ContentWindowManager> window);
 
         // virtual method for implementing actions on advancing to a new frame
         // useful when a process has multiple GLWindows
-        virtual void advance(boost::shared_ptr<ContentWindowManager> ) { }
+        virtual void advance(boost::shared_ptr<ContentWindowManager>) { }
 
         // get a Content object of the appropriate derived type based on the URI given
         static boost::shared_ptr<Content> getContent(std::string uri);
@@ -56,20 +55,37 @@ class Content : public QObject {
 
 BOOST_SERIALIZATION_ASSUME_ABSTRACT(Content)
 
+// typedef needed for SIP
 typedef boost::shared_ptr<Content> pContent;
 
 class pyContent {
-public:
-  pyContent(const char *str) { ptr = boost::shared_ptr<Content>(Content::getContent((std::string)str)); }
-  pyContent(boost::shared_ptr<Content> c) { ptr = c; }
 
-  const char *getURI() {return (const char *)get()->getURI().c_str(); }
-  
-  boost::shared_ptr<Content> get() {return ptr;}
+    public:
 
-protected:
-  boost::shared_ptr<Content> ptr;
+        pyContent(const char * str)
+        {
+            boost::shared_ptr<Content> c(Content::getContent(std::string(str)));
+            ptr_ = c;
+        }
+
+        pyContent(boost::shared_ptr<Content> c)
+        {
+            ptr_ = c;
+        }
+
+        boost::shared_ptr<Content> get()
+        {
+            return ptr_;
+        }
+
+        const char * getURI()
+        {
+            return (const char *)ptr_->getURI().c_str();
+        }
+
+    protected:
+
+        boost::shared_ptr<Content> ptr_;
 };
-
 
 #endif

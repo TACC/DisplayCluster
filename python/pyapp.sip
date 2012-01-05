@@ -5,5 +5,3 @@
 %Include Content.sip
 %Include ContentWindowManager.sip
 %Include DisplayGroupPython.sip
-
-

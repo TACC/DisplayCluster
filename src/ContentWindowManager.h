@@ -59,21 +59,37 @@ class ContentWindowManager : public ContentWindowInterface, public boost::enable
         boost::weak_ptr<DisplayGroupManager> displayGroupManager_;
 };
 
+// typedef needed for SIP
 typedef boost::shared_ptr<ContentWindowManager> pContentWindowManager;
 
 class pyContentWindowManager
 {
-public:
-  pyContentWindowManager(pyContent content) { ptr = boost::shared_ptr<ContentWindowManager>(new ContentWindowManager(content.get())); }
-  pyContentWindowManager(pContentWindowManager cw) { ptr = cw; }
-  ~pyContentWindowManager() {}
+    public:
 
-  boost::shared_ptr<ContentWindowManager> get() const {return ptr;}
-  pyContent getPyContent() { return pyContent(get()->getContent()); }
+        pyContentWindowManager(pyContent content)
+        {
+            boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(content.get()));
+            ptr_ = cwm;
+        }
 
-private:
-  boost::shared_ptr<ContentWindowManager> ptr;
+        pyContentWindowManager(boost::shared_ptr<ContentWindowManager> cwm)
+        {
+            ptr_ = cwm;
+        }
 
+        boost::shared_ptr<ContentWindowManager> get()
+        {
+            return ptr_;
+        }
+
+        pyContent getPyContent()
+        {
+            return pyContent(get()->getContent());
+        }
+
+    private:
+
+        boost::shared_ptr<ContentWindowManager> ptr_;
 };
 
 #endif

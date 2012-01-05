@@ -14,13 +14,12 @@ class pyDisplayGroupPython
   public:
     pyDisplayGroupPython();
 
-    void moveContentWindowManagerToFront(const pyContentWindowManager&);
-    void addContentWindowManager(const pyContentWindowManager&);
-    void removeContentWindowManager(const pyContentWindowManager&);
+    pDisplayGroupPython get();
 
-    int size();
+    void addContentWindowManager(const pyContentWindowManager &);
+    void removeContentWindowManager(const pyContentWindowManager &);
+    void moveContentWindowManagerToFront(const pyContentWindowManager &);
+
+    int getNumContentWindowManagers();
     pyContentWindowManager getPyContentWindowManager(int);
-
 };
-
-

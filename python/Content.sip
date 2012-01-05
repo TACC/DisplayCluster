@@ -12,8 +12,9 @@ class pyContent
 %End
 
   public:
-    pyContent(const char *str);
+    pyContent(const char * str);
+
     pContent get();
 
-    const char *getURI();
+    const char * getURI();
 };

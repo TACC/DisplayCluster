@@ -1,107 +1,110 @@
-#ifndef __PYTHON_CONSOLE_H__
-#define __PYTHON_CONSOLE_H__
+#ifndef PYTHON_CONSOLE_H
+#define PYTHON_CONSOLE_H
 
 #include <Python.h>
 #include <PythonQt.h>
 #include <QtGui>
-#include <QMainWindow>
-#include <QTextEdit>
-
-class QCompleter;
 
 class MyPythonQt : public QObject
 {
-   Q_OBJECT
+    Q_OBJECT
 
-public:
-   // void evalStringSynchronous(const QString& str);
+    signals:
 
-signals:
-   void eval_done();
-   void load_done();
-   void myPythonStdOut(const QString&);
-   void myPythonStdErr(const QString&);
+        void evalDone();
+        void loadDone();
+        void myPythonStdOut(const QString &);
+        void myPythonStdErr(const QString &);
 
-public slots:
-   void evalString(QString *str);
-   void loadFile(QString *str);
+    public slots:
 
-private slots:
-   void pythonStdOut(const QString&);
-   void pythonStdErr(const QString&);
+        void evalString(QString * str);
+        void loadFile(QString * str);
+
+    private slots:
+
+        void pythonStdOut(const QString&);
+        void pythonStdErr(const QString&);
 };
 
 class PythonTypeIn : public QTextEdit
 {
     Q_OBJECT
 
-public:
-    PythonTypeIn();
-    QString getContent() {return content;}
-    void clearContent() {content = "";}
-    void prompt(bool);
+    public:
 
-public slots:
-    void python_eval_finished();
-    void insertCompletion(const QString&);
+        PythonTypeIn();
+        QString getContent();
+        void clearContent();
+        void prompt(bool);
 
-signals:
-    void python_command(QString *);
+    signals:
 
-protected:
-    void handleTabCompletion();
-    void keyPressEvent(QKeyEvent *event);
-    int commandPromptPosition();
-    bool verifySelectionBeforeDeletion();
-    void executeLine(bool storeOnly);
-    void executeCode(const QString &);
-    void changeHistory();
+        void pythonCommand(QString *);
 
-private:
-    QCompleter *_completer;
-    QString _commandPrompt;
-    QString content;
-    QString _currentMultiLineCode;
-    int tail;
-    int indent;
-    QStringList _history;
-    int _historyPosition;
+    public slots:
 
-};      
+        void pythonEvalFinished();
+        void insertCompletion(const QString&);
+
+    protected:
+
+        void handleTabCompletion();
+        void keyPressEvent(QKeyEvent * event);
+        int commandPromptPosition();
+        bool verifySelectionBeforeDeletion();
+        void executeLine(bool storeOnly);
+        void changeHistory();
+
+    private:
+
+        QCompleter * completer_;
+        QString commandPrompt_;
+        QString content_;
+        QString currentMultiLineCode_;
+        int tail_;
+        QStringList history_;
+        int historyPosition_;
+};
 
 class PythonConsole : public QMainWindow
 {
     Q_OBJECT
 
-public:
-    static PythonConsole *self();
-    static void init();
+    public:
 
-protected:
-    PythonConsole();
-    ~PythonConsole();
+        static PythonConsole * self();
+        static void init();
 
-signals:
-    void python_file(QString *);
+    protected:
 
-public slots:
-    void selectPythonScript();
-    void python_load_finished();
-    void evalString(QString *);
-    void put_result(const QString& str);
-    void clear_input();
-    void clear_output();
-    void clear();
+        PythonConsole();
+        ~PythonConsole();
 
-private:
-    QMenu   *fileMenu;
-    QMenu   *editMenu;
-    QThread *pythonThread;
-    QString filename;
-    PythonTypeIn *typeIn;
-    QTextEdit *output;
+    signals:
 
-};      
+        void pythonFile(QString *);
 
-#endif  
+    public slots:
 
+        void selectPythonScript();
+        void pythonLoadFinished();
+        void evalString(QString *);
+        void putResult(const QString & str);
+        void clearInput();
+        void clearOutput();
+        void clear();
+
+    private:
+
+        static MyPythonQt * thePythonQt_;
+        static PythonConsole * thePythonConsole_;
+
+        QMenu * fileMenu_;
+        QMenu * editMenu_;
+        QThread * pythonThread_;
+        PythonTypeIn * typeIn_;
+        QTextEdit * output_;
+};
+
+#endif
