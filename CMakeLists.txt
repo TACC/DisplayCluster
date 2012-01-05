@@ -76,6 +76,7 @@ if(ENABLE_PYTHON_SUPPORT)
     set(LIBS ${LIBS} ${PYTHON_LIBRARIES})
 
     find_package(PythonQt REQUIRED)
+    include_directories(${PYTHON_INCLUDE_PATH}) # deprecated, but include for old CMake versions
     include_directories(${PythonQt_INCLUDE_DIRS})
     set(LIBS ${LIBS} ${PythonQt_LIBRARIES})
 
