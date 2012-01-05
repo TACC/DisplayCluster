@@ -1,4 +1,4 @@
-%Module pydc 0
+%Module(name=pydc, version=1)
 
 %Import QtGui/QtGuimod.sip
 
