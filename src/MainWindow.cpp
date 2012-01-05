@@ -27,7 +27,7 @@ MainWindow::MainWindow()
     if(g_mpiRank == 0)
     {
 #if ENABLE_PYTHON_SUPPORT
-        PythonConsole::self()->init();
+        PythonConsole::init();
 #endif
 
         // rank 0 window setup
