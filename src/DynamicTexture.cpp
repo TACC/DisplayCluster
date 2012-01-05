@@ -4,6 +4,7 @@
 #include "log.h"
 #include <algorithm>
 #include <fstream>
+#include <GL/glu.h>
 
 DynamicTexture::DynamicTexture(std::string uri, boost::shared_ptr<DynamicTexture> parent, float parentX, float parentY, float parentW, float parentH, int childIndex)
 {
