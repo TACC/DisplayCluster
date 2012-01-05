@@ -13,7 +13,11 @@ set(CMAKE_CXX_FLAGS "-Wall")
 # build options
 option(ENABLE_TUIO_TOUCH_LISTENER "Enable TUIO touch listener for multi-touch events" OFF)
 option(ENABLE_JOYSTICK_SUPPORT "Enable joystick support" OFF)
+<<<<<<< HEAD
 option(ENABLE_SKELETON_SUPPORT "Enable skeleton tracking input support" OFF)
+=======
+option(ENABLE_PYTHON_SUPPORT "Enable Python support" OFF)
+>>>>>>> upstream/master
 
 # path for additional modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
@@ -82,6 +86,23 @@ if(ENABLE_SKELETON_SUPPORT)
     set(SRCS ${SRCS} src/DisplayGroupJoystick.cpp)
 
     set(MOC_HEADERS ${MOC_HEADERS} src/SkeletonThread.h)
+endif()
+
+if(ENABLE_PYTHON_SUPPORT)
+    find_package(PythonLibs REQUIRED)
+    include_directories(${PYTHON_INCLUDE_DIRS})
+    set(LIBS ${LIBS} ${PYTHON_LIBRARIES})
+
+    find_package(PythonQt REQUIRED)
+    include_directories(${PYTHON_INCLUDE_PATH}) # deprecated, but include for old CMake versions
+    include_directories(${PythonQt_INCLUDE_DIRS})
+    set(LIBS ${LIBS} ${PythonQt_LIBRARIES})
+
+    set(SRCS ${SRCS} src/DisplayGroupPython.cpp)
+    set(SRCS ${SRCS} src/PythonConsole.cpp)
+
+    set(MOC_HEADERS ${MOC_HEADERS} src/DisplayGroupPython.h)
+    set(MOC_HEADERS ${MOC_HEADERS} src/PythonConsole.h)
 endif()
 
 # process config file

@@ -26,7 +26,7 @@ class Content : public QObject {
 
         // virtual method for implementing actions on advancing to a new frame
         // useful when a process has multiple GLWindows
-        virtual void advance(boost::shared_ptr<ContentWindowManager> window) { }
+        virtual void advance(boost::shared_ptr<ContentWindowManager>) { }
 
         // get a Content object of the appropriate derived type based on the URI given
         static boost::shared_ptr<Content> getContent(std::string uri);
@@ -39,7 +39,7 @@ class Content : public QObject {
         friend class boost::serialization::access;
 
         template<class Archive>
-        void serialize(Archive & ar, const unsigned int version)
+        void serialize(Archive & ar, const unsigned int)
         {
             ar & uri_;
             ar & width_;
@@ -54,5 +54,38 @@ class Content : public QObject {
 };
 
 BOOST_SERIALIZATION_ASSUME_ABSTRACT(Content)
+
+// typedef needed for SIP
+typedef boost::shared_ptr<Content> pContent;
+
+class pyContent {
+
+    public:
+
+        pyContent(const char * str)
+        {
+            boost::shared_ptr<Content> c(Content::getContent(std::string(str)));
+            ptr_ = c;
+        }
+
+        pyContent(boost::shared_ptr<Content> c)
+        {
+            ptr_ = c;
+        }
+
+        boost::shared_ptr<Content> get()
+        {
+            return ptr_;
+        }
+
+        const char * getURI()
+        {
+            return (const char *)ptr_->getURI().c_str();
+        }
+
+    protected:
+
+        boost::shared_ptr<Content> ptr_;
+};
 
 #endif
