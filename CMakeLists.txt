@@ -41,8 +41,9 @@ find_package(MPI REQUIRED)
 include_directories(${MPI_INCLUDE_PATH})
 set(LIBS ${LIBS} ${MPI_LIBRARIES})
 
-find_path(PYTHON_HEADERS Python.h /usr/include/python2.6)
-include_directories(${PYTHON_HEADERS})
+find_package(PythonLibs REQUIRED)
+include_directories(${PYTHON_INCLUDE_DIRS})
+set(LIBS ${LIBS} ${PYTHON_LIBRARIES})
 
 find_path(PYTHON_QT_HEADERS PythonQt.h ${CMAKE_SOURCE_DIR}/dependencies/PythonQt2.0.1/src)
 include_directories(${PYTHON_QT_HEADERS})
@@ -152,3 +153,9 @@ qt4_wrap_cpp(DESKTOP_STREAMER_MOC_OUTFILES ${DESKTOP_STREAMER_MOC_HEADERS})
 add_executable(desktopstreamer ${DESKTOP_STREAMER_SRCS} ${DESKTOP_STREAMER_MOC_OUTFILES})
 
 target_link_libraries(desktopstreamer ${QT_LIBRARIES})
+
+add_custom_command(TARGET displaycluster POST_BUILD 
+	WORKING_DIRECTORY python
+	COMMAND python configure.py -I ${Boost_INCLUDE_DIRS}
+	COMMAND make
+ 	COMMAND mv pydc.so ..)
