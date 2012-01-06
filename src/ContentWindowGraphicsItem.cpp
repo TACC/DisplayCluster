@@ -323,3 +323,25 @@ void ContentWindowGraphicsItem::mouseReleaseEvent(QGraphicsSceneMouseEvent * eve
 
     QGraphicsItem::mouseReleaseEvent(event);
 }
+
+void ContentWindowGraphicsItem::wheelEvent(QGraphicsSceneWheelEvent * event)
+{
+    // handle wheel movements differently depending on selected mode of item
+    if(selected_ == false)
+    {
+        // scale size based on wheel delta
+        // typical delta value is 120, so scale based on that
+        double factor = 1. + (double)event->delta() / (10. * 120.);
+
+        scaleSize(factor);
+    }
+    else
+    {
+        // change zoom based on wheel delta
+        // deltas are counted in 1/8 degrees. so, scale based on 180 degrees => delta = 180*8 = 1440
+        double zoomDelta = (double)event->delta() / 1440.;
+        double zoom = zoom_ * (1. + zoomDelta);
+
+        setZoom(zoom);
+    }
+}

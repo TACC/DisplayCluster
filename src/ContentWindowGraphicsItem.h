@@ -34,6 +34,7 @@ class ContentWindowGraphicsItem : public QGraphicsRectItem, public ContentWindow
         void mousePressEvent(QGraphicsSceneMouseEvent * event);
         void mouseDoubleClickEvent(QGraphicsSceneMouseEvent * event);
         void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
+        void wheelEvent(QGraphicsSceneWheelEvent * event);
 
     private:
 
