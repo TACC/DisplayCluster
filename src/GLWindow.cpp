@@ -4,7 +4,12 @@
 #include "ContentWindowManager.h"
 #include <QtOpenGL>
 #include "log.h"
-#include <GL/glu.h>
+
+#ifdef __APPLE__
+    #include <OpenGL/glu.h>
+#else
+    #include <GL/glu.h>
+#endif
 
 GLWindow::GLWindow(int tileIndex)
 {
