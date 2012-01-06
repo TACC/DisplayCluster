@@ -4,6 +4,7 @@
 #include "ContentWindowManager.h"
 #include <QtOpenGL>
 #include "log.h"
+#include <GL/glu.h>
 
 GLWindow::GLWindow(int tileIndex)
 {
