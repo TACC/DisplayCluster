@@ -106,6 +106,7 @@ void GLWindow::paintGL()
     glEnable(GL_LIGHTING);
     glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
     glEnable(GL_COLOR_MATERIAL);
+    glEnable(GL_NORMALIZE);
 
     // get and render skeletons
     std::vector<SkeletonState> skeletons = g_displayGroupManager->getSkeletons();

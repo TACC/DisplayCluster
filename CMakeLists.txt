@@ -13,11 +13,8 @@ set(CMAKE_CXX_FLAGS "-Wall")
 # build options
 option(ENABLE_TUIO_TOUCH_LISTENER "Enable TUIO touch listener for multi-touch events" OFF)
 option(ENABLE_JOYSTICK_SUPPORT "Enable joystick support" OFF)
-<<<<<<< HEAD
 option(ENABLE_SKELETON_SUPPORT "Enable skeleton tracking input support" OFF)
-=======
 option(ENABLE_PYTHON_SUPPORT "Enable Python support" OFF)
->>>>>>> upstream/master
 
 # path for additional modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
@@ -83,7 +80,7 @@ if(ENABLE_SKELETON_SUPPORT)
         src/SkeletonThread.cpp
         src/SkeletonSensor.cpp
         src/SkeletonState.cpp)
-    set(SRCS ${SRCS} src/DisplayGroupJoystick.cpp)
+    #set(SRCS ${SRCS} src/DisplayGroupJoystick.cpp)
 
     set(MOC_HEADERS ${MOC_HEADERS} src/SkeletonThread.h)
 endif()
