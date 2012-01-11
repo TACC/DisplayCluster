@@ -277,10 +277,11 @@ void SkeletonState::zoom(SkeletonPoint& lh, SkeletonPoint& rh)
 void SkeletonState::scaleWindow(SkeletonPoint& lh, SkeletonPoint& rh, float threshold)
 {
 
-    float dd = calculateDistance(lh, rh) - threshold;
-    double x,y;
-    activeWindow_->getSize(x,y);
-    activeWindow_->setSize(x + (dd/threshold)*WINDOW_SCALING_FACTOR, y + (dd/threshold)*WINDOW_SCALING_FACTOR);
+    //float differenceFromThreshold = calculateDistance(lh, rh) - threshold;
+    float scaleFactor = calculateDistance(lh, rh)/threshold;
+
+    // assumes that the following line is called 30FPS
+    scaleFactor > 1.0 ? activeWindow_->scaleSize(1.05) : activeWindow_->scaleSize(0.95);
 }
 
 void SkeletonState::render()
