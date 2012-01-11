@@ -12,9 +12,11 @@ class Options : public QObject {
         Options();
 
         bool getShowWindowBorders();
+        bool getShowTestPattern();
 
     public slots:
         void setShowWindowBorders(bool set);
+        void setShowTestPattern(bool set);
 
     signals:
         void updated();
@@ -26,9 +28,11 @@ class Options : public QObject {
         void serialize(Archive & ar, const unsigned int)
         {
             ar & showWindowBorders_;
+            ar & showTestPattern_;
         }
 
         bool showWindowBorders_;
+        bool showTestPattern_;
 };
 
 #endif

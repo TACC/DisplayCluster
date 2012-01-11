@@ -100,6 +100,13 @@ MainWindow::MainWindow()
         showWindowBordersAction->setChecked(g_displayGroupManager->getOptions()->getShowWindowBorders());
         connect(showWindowBordersAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowWindowBorders(bool)));
 
+        // show test pattern action
+        QAction * showTestPatternAction = new QAction("Show Test Pattern", this);
+        showTestPatternAction->setStatusTip("Show test pattern");
+        showTestPatternAction->setCheckable(true);
+        showTestPatternAction->setChecked(g_displayGroupManager->getOptions()->getShowTestPattern());
+        connect(showTestPatternAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowTestPattern(bool)));
+
         // add actions to menus
         fileMenu->addAction(openContentAction);
         fileMenu->addAction(openContentsDirectoryAction);
@@ -110,6 +117,7 @@ MainWindow::MainWindow()
         fileMenu->addAction(quitAction);
         viewMenu->addAction(constrainAspectRatioAction);
         viewMenu->addAction(showWindowBordersAction);
+        viewMenu->addAction(showTestPatternAction);
 #if ENABLE_PYTHON_SUPPORT
         windowMenu->addAction(pythonConsoleAction);
 #endif

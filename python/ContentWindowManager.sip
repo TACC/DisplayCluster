@@ -78,6 +78,12 @@ class pyContentWindowManager
     win->setSize(a0, a1);
 %End
 
+    void scaleSize(double f);
+%MethodCode
+    pContentWindowManager win = sipCpp->get();
+    win->scaleSize(a0);
+%End
+
     void setCenter(double i, double j);
 %MethodCode
     pContentWindowManager win = sipCpp->get();

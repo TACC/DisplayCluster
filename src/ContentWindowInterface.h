@@ -40,6 +40,7 @@ class ContentWindowInterface : public QObject {
         virtual void setCoordinates(double x, double y, double w, double h, ContentWindowInterface * source=NULL);
         virtual void setPosition(double x, double y, ContentWindowInterface * source=NULL);
         virtual void setSize(double w, double h, ContentWindowInterface * source=NULL);
+        virtual void scaleSize(double factor, ContentWindowInterface * source=NULL);
         virtual void setCenter(double centerX, double centerY, ContentWindowInterface * source=NULL);
         virtual void setZoom(double zoom, ContentWindowInterface * source=NULL);
         virtual void setSelected(bool selected, ContentWindowInterface * source=NULL);

@@ -155,6 +155,17 @@ add_executable(displaycluster ${SRCS} ${MOC_OUTFILES})
 
 target_link_libraries(displaycluster ${LIBS})
 
+# build Python module if Python support is enabled
+if(ENABLE_PYTHON_SUPPORT)
+    add_custom_command(TARGET displaycluster POST_BUILD
+        COMMENT "Building Python module"
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/python
+        COMMAND python configure.py -I ${Boost_INCLUDE_DIRS}
+        COMMAND make
+        COMMAND mv pydc.so ${CMAKE_BINARY_DIR})
+endif()
+
+
 # DesktopStreamer app
 
 set(DESKTOP_STREAMER_LIBS ${QT_LIBRARIES})

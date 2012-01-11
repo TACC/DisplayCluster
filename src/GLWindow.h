@@ -48,6 +48,8 @@ class GLWindow : public QGLWidget
         Factory<DynamicTexture> dynamicTextureFactory_;
         Factory<Movie> movieFactory_;
         Factory<PixelStream> pixelStreamFactory_;
+
+        void renderTestPattern();
 };
 
 #endif

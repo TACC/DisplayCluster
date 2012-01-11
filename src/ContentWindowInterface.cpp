@@ -259,6 +259,30 @@ void ContentWindowInterface::setSize(double w, double h, ContentWindowInterface 
     }
 }
 
+void ContentWindowInterface::scaleSize(double factor, ContentWindowInterface * source)
+{
+    if(source == this)
+    {
+        return;
+    }
+
+    // don't allow negative factor
+    if(factor < 0.)
+    {
+        return;
+    }
+
+    // calculate new coordinates
+    double x = x_ - (factor - 1.) * w_ / 2.;
+    double y = y_ - (factor - 1.) * h_ / 2.;
+    double w = w_ * factor;
+    double h = h_ * factor;
+
+    setCoordinates(x, y, w, h);
+
+    // we don't need to emit any signals since setCoordinates() takes care of this
+}
+
 void ContentWindowInterface::setCenter(double centerX, double centerY, ContentWindowInterface * source)
 {
     if(source == this)

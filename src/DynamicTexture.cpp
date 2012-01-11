@@ -5,6 +5,12 @@
 #include <algorithm>
 #include <fstream>
 
+#ifdef __APPLE__
+    #include <OpenGL/glu.h>
+#else
+    #include <GL/glu.h>
+#endif
+
 DynamicTexture::DynamicTexture(std::string uri, boost::shared_ptr<DynamicTexture> parent, float parentX, float parentY, float parentW, float parentH, int childIndex)
 {
     // defaults

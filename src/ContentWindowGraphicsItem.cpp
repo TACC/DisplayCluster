@@ -280,6 +280,16 @@ void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
 
 void ContentWindowGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent * event)
 {
+    // on Mac we've seen that mouse events can go to the wrong graphics item
+    // this is due to the bug: https://bugreports.qt.nokia.com/browse/QTBUG-20493
+    // here we ignore the event if it shouldn't have been sent to us, which ensures
+    // it will go to the correct item...
+    if(boundingRect().contains(event->pos()) == false)
+    {
+        event->ignore();
+        return;
+    }
+
     // button dimensions
     float buttonWidth, buttonHeight;
     getButtonDimensions(buttonWidth, buttonHeight);
@@ -310,6 +320,16 @@ void ContentWindowGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent * event
 
 void ContentWindowGraphicsItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent * event)
 {
+    // on Mac we've seen that mouse events can go to the wrong graphics item
+    // this is due to the bug: https://bugreports.qt.nokia.com/browse/QTBUG-20493
+    // here we ignore the event if it shouldn't have been sent to us, which ensures
+    // it will go to the correct item...
+    if(boundingRect().contains(event->pos()) == false)
+    {
+        event->ignore();
+        return;
+    }
+
     bool selected = !selected_;
 
     setSelected(selected);
@@ -322,4 +342,36 @@ void ContentWindowGraphicsItem::mouseReleaseEvent(QGraphicsSceneMouseEvent * eve
     resizing_ = false;
 
     QGraphicsItem::mouseReleaseEvent(event);
+}
+
+void ContentWindowGraphicsItem::wheelEvent(QGraphicsSceneWheelEvent * event)
+{
+    // on Mac we've seen that mouse events can go to the wrong graphics item
+    // this is due to the bug: https://bugreports.qt.nokia.com/browse/QTBUG-20493
+    // here we ignore the event if it shouldn't have been sent to us, which ensures
+    // it will go to the correct item...
+    if(boundingRect().contains(event->pos()) == false)
+    {
+        event->ignore();
+        return;
+    }
+
+    // handle wheel movements differently depending on selected mode of item
+    if(selected_ == false)
+    {
+        // scale size based on wheel delta
+        // typical delta value is 120, so scale based on that
+        double factor = 1. + (double)event->delta() / (10. * 120.);
+
+        scaleSize(factor);
+    }
+    else
+    {
+        // change zoom based on wheel delta
+        // deltas are counted in 1/8 degrees. so, scale based on 180 degrees => delta = 180*8 = 1440
+        double zoomDelta = (double)event->delta() / 1440.;
+        double zoom = zoom_ * (1. + zoomDelta);
+
+        setZoom(zoom);
+    }
 }

@@ -5,6 +5,12 @@
 #include <QtOpenGL>
 #include "log.h"
 
+#ifdef __APPLE__
+    #include <OpenGL/glu.h>
+#else
+    #include <GL/glu.h>
+#endif
+
 GLWindow::GLWindow(int tileIndex)
 {
     // defaults
@@ -70,6 +76,13 @@ void GLWindow::initializeGL()
 void GLWindow::paintGL()
 {
     setOrthographicView();
+
+    // if the show test pattern option is enabled, render the test pattern and return
+    if(g_displayGroupManager->getOptions()->getShowTestPattern() == true)
+    {
+        renderTestPattern();
+        return;
+    }
 
     // render content windows
     std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers = g_displayGroupManager->getContentWindowManagers();
@@ -331,4 +344,61 @@ void GLWindow::drawRectangle(double x, double y, double w, double h)
     glVertex2d(x,y+h);
 
     glEnd();
+}
+
+void GLWindow::renderTestPattern()
+{
+    glPushAttrib(GL_CURRENT_BIT | GL_LINE_BIT);
+    glPushMatrix();
+
+    // cross pattern
+    glLineWidth(10);
+
+    glBegin(GL_LINES);
+
+    for(double y=-1.; y<=2.; y+=0.1)
+    {
+        QColor color = QColor::fromHsvF((y + 1.)/3., 1., 1.);
+        glColor3f(color.redF(), color.greenF(), color.blueF());
+
+        glVertex2d(0., y);
+        glVertex2d(1., y+1.);
+
+        glVertex2d(0., y);
+        glVertex2d(1., y-1.);
+    }
+
+    glEnd();
+
+    // screen information in front of cross pattern
+    glTranslatef(0., 0., 0.1);
+
+    QString label1 = "Rank: " + QString::number(g_mpiRank);
+    QString label2 = "Tile coordinates: (" + QString::number(g_configuration->getTileI(tileIndex_)) + ", " + QString::number(g_configuration->getTileJ(tileIndex_)) + ")";
+    QString label3 = "Resolution: " + QString::number(g_configuration->getScreenWidth()) + " x " + QString::number(g_configuration->getScreenHeight());
+    QString label4 = "Fullscreen mode: ";
+
+    if(g_configuration->getFullscreen() == true)
+    {
+        label4 += "True";
+    }
+    else
+    {
+        label4 += "False";
+    }
+
+    int fontSize = 64;
+
+    QFont font;
+    font.setPixelSize(fontSize);
+
+    glColor3f(1.,1.,1.);
+
+    renderText(50, 1*fontSize, label1, font);
+    renderText(50, 2*fontSize, label2, font);
+    renderText(50, 3*fontSize, label3, font);
+    renderText(50, 4*fontSize, label4, font);
+
+    glPopMatrix();
+    glPopAttrib();
 }
