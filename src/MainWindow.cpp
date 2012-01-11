@@ -10,7 +10,9 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/shared_ptr.hpp>
+#include <boost/algorithm/string.hpp>
 #include <fstream>
+#include <QDomDocument>
 
 #if ENABLE_PYTHON_SUPPORT
     #include "PythonConsole.h"
@@ -307,81 +309,270 @@ void MainWindow::clearContents()
 
 void MainWindow::saveContents()
 {
-    QString filename = QFileDialog::getSaveFileName(this, "Save State", "", "State files (*.dcs)");
+    QString filename = QFileDialog::getSaveFileName(this, "Save State", "", "State files (*.dcx)");
 
     if(!filename.isEmpty())
     {
-        // make sure filename has .dcs extension
-        if(filename.endsWith(".dcs") != true)
+        // make sure filename has .dcx extension
+        if(filename.endsWith(".dcx") != true)
         {
-            put_flog(LOG_DEBUG, "appended .dcs filename extension");
-            filename.append(".dcs");
+            put_flog(LOG_DEBUG, "appended .dcx filename extension");
+            filename.append(".dcx");
         }
 
         // get contents vector
         std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers = g_displayGroupManager->getContentWindowManagers();
 
-        // serialize state
-        std::ofstream ofs(filename.toStdString().c_str());
+        // save as XML
+        QDomDocument doc("state");
+        QDomElement root = doc.createElement("state");
+        doc.appendChild(root);
 
         // version number
         int version = CONTENTS_FILE_VERSION_NUMBER;
 
-        // brace this so destructor is called on archive before we use the stream
-        {
-            boost::archive::binary_oarchive oa(ofs);
+        QDomElement v = doc.createElement("version");
+        v.appendChild(doc.createTextNode(QString::number(version)));
+        root.appendChild(v);
 
-            oa << version;
-            oa << contentWindowManagers;
+        for(unsigned int i=0; i<contentWindowManagers.size(); i++)
+        {
+            // get values
+            std::string uri = contentWindowManagers[i]->getContent()->getURI();
+
+            double x, y, w, h;
+            contentWindowManagers[i]->getCoordinates(x, y, w, h);
+
+            double centerX, centerY;
+            contentWindowManagers[i]->getCenter(centerX, centerY);
+
+            double zoom = contentWindowManagers[i]->getZoom();
+
+            bool selected = contentWindowManagers[i]->getSelected();
+
+            // add the XML node with these values
+            QDomElement cwmNode = doc.createElement("ContentWindow");
+            root.appendChild(cwmNode);
+
+            QDomElement n = doc.createElement("URI");
+            n.appendChild(doc.createTextNode(QString(uri.c_str())));
+            cwmNode.appendChild(n);
+
+            n = doc.createElement("x");
+            n.appendChild(doc.createTextNode(QString::number(x)));
+            cwmNode.appendChild(n);
+
+            n = doc.createElement("y");
+            n.appendChild(doc.createTextNode(QString::number(y)));
+            cwmNode.appendChild(n);
+
+            n = doc.createElement("w");
+            n.appendChild(doc.createTextNode(QString::number(w)));
+            cwmNode.appendChild(n);
+
+            n = doc.createElement("h");
+            n.appendChild(doc.createTextNode(QString::number(h)));
+            cwmNode.appendChild(n);
+
+            n = doc.createElement("centerX");
+            n.appendChild(doc.createTextNode(QString::number(centerX)));
+            cwmNode.appendChild(n);
+
+            n = doc.createElement("centerY");
+            n.appendChild(doc.createTextNode(QString::number(centerY)));
+            cwmNode.appendChild(n);
+
+            n = doc.createElement("zoom");
+            n.appendChild(doc.createTextNode(QString::number(zoom)));
+            cwmNode.appendChild(n);
+
+            n = doc.createElement("selected");
+            n.appendChild(doc.createTextNode(QString::number(selected)));
+            cwmNode.appendChild(n);
         }
+
+        QString xml = doc.toString();
+
+        std::ofstream ofs(filename.toStdString().c_str());
+
+        ofs << xml.toStdString();
     }
 }
 
 void MainWindow::loadContents()
 {
-    QString filename = QFileDialog::getOpenFileName(this, "Load State", "", "State files (*.dcs)");
+    QString filename = QFileDialog::getOpenFileName(this, "Load State", "", "State files (*.dcx)");
 
     if(!filename.isEmpty())
     {
+        QXmlQuery query;
+
+        if(query.setFocus(QUrl(filename)) == false)
+        {
+            put_flog(LOG_FATAL, "failed to load %s", filename.toStdString().c_str());
+            exit(-1);
+        }
+
+        // temp
+        QString qstring;
+
+        // get version; we don't do anything with it now but may in the future
+        int version = -1;
+        query.setQuery("string(/state/version)");
+
+        if(query.evaluateTo(&qstring) == true)
+        {
+            version = qstring.toInt();
+        }
+
+        // get number of content windows
+        int numContentWindows = 0;
+        query.setQuery("string(count(//state/ContentWindow))");
+
+        if(query.evaluateTo(&qstring) == true)
+        {
+            numContentWindows = qstring.toInt();
+        }
+
+        put_flog(LOG_INFO, "%i content windows", numContentWindows);
+
         // new contents vector
         std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers;
 
-        // serialize state
-        std::ifstream ifs(filename.toStdString().c_str());
-
-        int version = -1;
-
-        // brace this so destructor is called on archive before we use the stream
-        // also, catch exceptions that boost serialization may throw
-        try
+        for(int i=1; i<=numContentWindows; i++)
         {
-            boost::archive::binary_iarchive ia(ifs);
+            char string[1024];
 
-            ia >> version;
+            std::string uri;
+            sprintf(string, "string(//state/ContentWindow[%i]/URI)", i);
+            query.setQuery(string);
 
-            put_flog(LOG_DEBUG, "state file version %i, current version %i", version, CONTENTS_FILE_VERSION_NUMBER);
-
-            // make sure we have a compatible state file
-            if(version != CONTENTS_FILE_VERSION_NUMBER)
+            if(query.evaluateTo(&qstring) == true)
             {
-                QMessageBox::warning(this, "Error", "The state file you attempted to load is not compatible with this version of DisplayCluster.", QMessageBox::Ok, QMessageBox::Ok);
+                uri = qstring.toStdString();
 
-                return;
+                // remove any whitespace
+                boost::trim(uri);
+
+                put_flog(LOG_DEBUG, "found content window with URI %s", uri.c_str());
             }
 
-            ia >> contentWindowManagers;
+            double x, y, w, h, centerX, centerY, zoom;
+            x = y = w = h = centerX = centerY = zoom = -1.;
+
+            bool selected = false;
+
+            sprintf(string, "string(//state/ContentWindow[%i]/x)", i);
+            query.setQuery(string);
+
+            if(query.evaluateTo(&qstring) == true)
+            {
+                x = qstring.toDouble();
+            }
+
+            sprintf(string, "string(//state/ContentWindow[%i]/y)", i);
+            query.setQuery(string);
+
+            if(query.evaluateTo(&qstring) == true)
+            {
+                y = qstring.toDouble();
+            }
+
+            sprintf(string, "string(//state/ContentWindow[%i]/w)", i);
+            query.setQuery(string);
+
+            if(query.evaluateTo(&qstring) == true)
+            {
+                w = qstring.toDouble();
+            }
+
+            sprintf(string, "string(//state/ContentWindow[%i]/h)", i);
+            query.setQuery(string);
+
+            if(query.evaluateTo(&qstring) == true)
+            {
+                h = qstring.toDouble();
+            }
+
+            sprintf(string, "string(//state/ContentWindow[%i]/centerX)", i);
+            query.setQuery(string);
+
+            if(query.evaluateTo(&qstring) == true)
+            {
+                centerX = qstring.toDouble();
+            }
+
+            sprintf(string, "string(//state/ContentWindow[%i]/centerY)", i);
+            query.setQuery(string);
+
+            if(query.evaluateTo(&qstring) == true)
+            {
+                centerY = qstring.toDouble();
+            }
+
+            sprintf(string, "string(//state/ContentWindow[%i]/zoom)", i);
+            query.setQuery(string);
+
+            if(query.evaluateTo(&qstring) == true)
+            {
+                zoom = qstring.toDouble();
+            }
+
+            sprintf(string, "string(//state/ContentWindow[%i]/selected)", i);
+            query.setQuery(string);
+
+            if(query.evaluateTo(&qstring) == true)
+            {
+                selected = (bool)qstring.toInt();
+            }
+
+            // add the window if we have a valid URI
+            if(uri.empty() == false)
+            {
+                boost::shared_ptr<Content> c = Content::getContent(uri);
+
+                if(c != NULL)
+                {
+                    boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
+
+                    contentWindowManagers.push_back(cwm);
+
+                    // now, apply settings if we got them from the XML file
+                    if(x != -1. || y != -1.)
+                    {
+                        cwm->setPosition(x, y);
+                    }
+
+                    if(w != -1. || h != -1.)
+                    {
+                        cwm->setSize(w, h);
+                    }
+
+                    // zoom needs to be set before center because of clamping
+                    if(zoom != -1.)
+                    {
+                        cwm->setZoom(zoom);
+                    }
+
+                    if(centerX != -1. || centerY != -1.)
+                    {
+                        cwm->setCenter(centerX, centerY);
+                    }
+
+                    cwm->setSelected(selected);
+                }
+            }
         }
-        catch(...)
+
+        if(contentWindowManagers.size() > 0)
         {
-            put_flog(LOG_DEBUG, "caught exception");
-
-            QMessageBox::warning(this, "Error", "The state file you attempted to load is not compatible with this version of DisplayCluster.", QMessageBox::Ok, QMessageBox::Ok);
-
-            return;
+            // assign new contents vector to display group
+            g_displayGroupManager->setContentWindowManagers(contentWindowManagers);
         }
-
-        // assign new contents vector to display group
-        g_displayGroupManager->setContentWindowManagers(contentWindowManagers);
+        else
+        {
+            QMessageBox::warning(this, "Error", "No content windows specified in the state file.", QMessageBox::Ok, QMessageBox::Ok);
+        }
     }
 }
 
