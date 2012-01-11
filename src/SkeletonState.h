@@ -23,8 +23,7 @@ class SkeletonState
         ~SkeletonState(){};
 
         void update(SkeletonRepresentation& skel);
-        void pan(SkeletonPoint& rhand);
-        void zoom(SkeletonPoint& lhand, SkeletonPoint& rhand);
+        void zoom(SkeletonPoint& lhand, SkeletonPoint& rhand, float threshold);
         void scaleWindow(SkeletonPoint& lhand, SkeletonPoint& rhand, float threshold);
         void render();
         void drawJoints();

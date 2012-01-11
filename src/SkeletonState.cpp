@@ -12,7 +12,7 @@ const int FOCUS_TIME              = 2000;
 // timeout for no hand detected
 const int DEAD_CURSOR_TIME        = 500;
 // scale factor for window size scaling
-const float WINDOW_SCALING_FACTOR = 0.02;
+const float WINDOW_SCALING_FACTOR = 0.05;
 
 inline float calculateDistance(SkeletonPoint& a, SkeletonPoint& b)
 {
@@ -125,17 +125,17 @@ void SkeletonState::update(SkeletonRepresentation& skel)
 
                 // we have hovered long enough to make the window active and move it
                 if(hoverTime_.elapsed() > HOVER_TIME)
+                {
                     active_ = TRUE;
+                    activeWindow_->moveToFront();
+                }
             }
         }
 
         // else if we are active but not focused
         else if(!focusInteraction_ && active_)
         {
-            //update marker
-            displayGroup_->getMarker()->getPosition(oldX, oldY);
-            displayGroup_->getMarker()->setPosition(normX, normY);
-            
+ 
             // look for focus pose (6) - here raising left hand one neck length above head
             if(skel.leftHand_.y_ > (skel.head_.y_ + calculateDistance(skel.head_, skel.neck_)) 
                 && confidenceLeft
@@ -156,6 +156,10 @@ void SkeletonState::update(SkeletonRepresentation& skel)
             // left hand not present, move window under cursor
             else
             {
+                //update marker
+                displayGroup_->getMarker()->getPosition(oldX, oldY);
+                displayGroup_->getMarker()->setPosition(normX, normY);
+
                 // find old marker position, find new marker position, move window by the difference
                 double dx,dy;
                 dx = oldX - normX;
@@ -163,12 +167,18 @@ void SkeletonState::update(SkeletonRepresentation& skel)
                 double oldCenterX, oldCenterY;
                 activeWindow_->getPosition(oldCenterX, oldCenterY);
                 activeWindow_->setPosition(oldCenterX - dx, oldCenterY - dy);
+
             }
         }
 
         // active and focused
         else
         {
+
+            //update marker
+            displayGroup_->getMarker()->getPosition(oldX, oldY);
+            displayGroup_->getMarker()->setPosition(normX, normY);
+
             // if pose is detected and the focus timeout is exceeded, exit interaction mode
             if(skel.leftHand_.y_ > (skel.head_.y_ + calculateDistance(skel.head_, skel.neck_))
                 && confidenceLeft
@@ -177,27 +187,22 @@ void SkeletonState::update(SkeletonRepresentation& skel)
                 focusInteraction_ = false;
                 focusTimeOut_.restart();
             }
-            
+
             else if(leftHandActive_)
-                zoom(skel.leftHand_, skel.rightHand_);
-            else
-                pan(skel.rightHand_);
-            
-        /*
-
-            // else update zoom/pan as necessary (7)
-            // left hand is active, zoom content
-            else if (leftHandActive_)
             {
-                zoom(skel.leftHand_, skel.rightHand_);
+                zoom(skel.leftHand_, skel.rightHand_, 1.5 * calculateDistance(skel.rightHand_, skel.rightElbow_));
             }
 
-            // left hand not present, pan content
             else
-            {
-                pan(skel.rightHand_);
+            {   
+                // find old marker position, find new marker position, move center by the difference
+                double dx,dy;
+                dx = oldX - normX;
+                dy = oldY - normY;
+                double oldCenterX, oldCenterY;
+                activeWindow_->getCenter(oldCenterX, oldCenterY);
+                activeWindow_->setCenter(oldCenterX - dx, oldCenterY - dy);
             }
-        */
         }
     }
 
@@ -226,52 +231,19 @@ void SkeletonState::update(SkeletonRepresentation& skel)
     } 
 }
 
-void SkeletonState::pan(SkeletonPoint& rh)
-{
-    /*
-    // get ContentWindowInterface currently underneath the marker
-    boost::shared_ptr<ContentWindowInterface> cwi = displayGroupJoysticks_[index]->getContentWindowInterfaceUnderMarker();
-
-    if(cwi != NULL)
-    {
-        // current center and zoom
-        double centerX, centerY, zoom;
-        cwi->getCenter(centerX, centerY);
-        zoom = cwi->getZoom();
-
-        // content aspect ratio, used to have a consistent left-right and up-down panning speed
-        float contentAspect = 1.;
-
-        int contentWidth, contentHeight;
-        cwi->getContentDimensions(contentWidth, contentHeight);
-
-        if(contentWidth != 0 && contentHeight != 0)
-        {
-            contentAspect = (float)contentWidth / (float)contentHeight;
-        }
-
-        // move the center point, scaled by the zoom factor
-        cwi->setCenter(centerX + dx/zoom, centerY + dy/zoom * contentAspect);
-    }
-    */
-}
-
-void SkeletonState::zoom(SkeletonPoint& lh, SkeletonPoint& rh)
+void SkeletonState::zoom(SkeletonPoint& lh, SkeletonPoint& rh, float threshold)
 {
 
-    /*
-    // get ContentWindowInterface currently underneath the marker
-    boost::shared_ptr<ContentWindowInterface> cwi = displayGroupJoysticks_[index]->getContentWindowInterfaceUnderMarker();
+    float zoomFactor = calculateDistance(lh, rh)/threshold;
 
-    if(cwi != NULL)
+    if(zoomFactor > 1.0)
     {
-        // current zoom
-        double zoom;
-        zoom = cwi->getZoom();
-
-        cwi->setZoom(zoom * (1. - (double)dir * JOYSTICK_ZOOM_FACTOR));
+        zoomFactor = activeWindow_->getZoom() + (zoomFactor - 1)*WINDOW_SCALING_FACTOR;
     }
-    */
+    else
+        zoomFactor = activeWindow_->getZoom() - (1 - zoomFactor)*WINDOW_SCALING_FACTOR;
+        
+    activeWindow_->setZoom(zoomFactor);
 }
 
 void SkeletonState::scaleWindow(SkeletonPoint& lh, SkeletonPoint& rh, float threshold)
@@ -280,8 +252,15 @@ void SkeletonState::scaleWindow(SkeletonPoint& lh, SkeletonPoint& rh, float thre
     //float differenceFromThreshold = calculateDistance(lh, rh) - threshold;
     float scaleFactor = calculateDistance(lh, rh)/threshold;
 
-    // assumes that the following line is called 30FPS
-    scaleFactor > 1.0 ? activeWindow_->scaleSize(1.05) : activeWindow_->scaleSize(0.95);
+    // scale window by 10% of scale factor
+    if(scaleFactor > 1.0)
+    {
+        scaleFactor = 1 + (scaleFactor - 1)*WINDOW_SCALING_FACTOR;
+    }
+    else
+        scaleFactor = 1 - (1 - scaleFactor)*WINDOW_SCALING_FACTOR;
+
+    activeWindow_->scaleSize(scaleFactor);
 }
 
 void SkeletonState::render()
@@ -353,7 +332,7 @@ void SkeletonState::drawJoints()
             {
                 // color it if in interaction mode
                 if (focusInteraction_)
-                    glColor4f(255., 255., 0., 1.);
+                    glColor4f(220., 220., 0., 1.);
                 // make it larger
                 glPushMatrix();
                 glTranslatef(joints[i].x_, joints[i].y_, joints[i].z_);
