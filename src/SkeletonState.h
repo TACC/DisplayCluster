@@ -32,6 +32,9 @@ class SkeletonState
 
         // are hands exceeding depth threshold
         bool leftHandActive_, rightHandActive_;
+        
+        // are we interacting with a focused window?
+        bool focusInteraction_;
 
         // the current point representation of the skeleton
         SkeletonRepresentation skeletonRep_;
@@ -44,6 +47,7 @@ class SkeletonState
             {
                 ar & leftHandActive_;
                 ar & rightHandActive_;
+                ar & focusInteraction_;
                 ar & skeletonRep_;
             }
 
@@ -51,9 +55,6 @@ class SkeletonState
 
         // do we have an active window?
         bool active_;
-
-        // are we interacting with a focused window?
-        bool focusInteraction_;
 
         // deadCursor: no movement has been detected
         bool deadCursor_;
