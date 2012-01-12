@@ -5,6 +5,9 @@
 
 ContentWindowManager::ContentWindowManager(boost::shared_ptr<Content> content)
 {
+    // ContentWindowManagers must always belong to the main thread!
+    moveToThread(QApplication::instance()->thread());
+
     // content dimensions
     content->getDimensions(contentWidth_, contentHeight_);
 
