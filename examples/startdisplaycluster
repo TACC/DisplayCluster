@@ -10,7 +10,7 @@ import subprocess
 import shlex
 
 # DisplayCluster directory; this is the parent directory of this script
-dcPath = os.path.dirname(os.path.dirname(__file__))
+dcPath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # set an environment variable for the base DisplayCluster directory
 os.environ['DISPLAYCLUSTER_DIR'] = dcPath
