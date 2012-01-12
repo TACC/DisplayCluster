@@ -13,6 +13,8 @@ const int FOCUS_TIME              = 2000;
 const int DEAD_CURSOR_TIME        = 500;
 // scale factor for window size scaling
 const float WINDOW_SCALING_FACTOR = 0.05;
+// calse factor for panning content
+const float WINDOW_PAN_FACTOR = 0.005;
 
 inline float calculateDistance(SkeletonPoint& a, SkeletonPoint& b)
 {
@@ -60,7 +62,7 @@ void SkeletonState::update(SkeletonRepresentation& skel)
     // 6. if active state, check for interacting focus if not already enabled, if pose detected, enable focusing, otherwise update window position and size
     // 7. if interacting focus, process pan or zoom on content, if pose detected, disable active and focus
 
-    // depth threshold - factor time length of elbow to shoulder
+    // depth threshold - factor length of elbow to shoulder
     float depthThreshold = 1.2 * calculateDistance(skel.rightShoulder_, skel.rightElbow_);
 
     // 1. get normalized hand locations
@@ -193,15 +195,10 @@ void SkeletonState::update(SkeletonRepresentation& skel)
                 zoom(skel.leftHand_, skel.rightHand_, 1.5 * calculateDistance(skel.rightHand_, skel.rightElbow_));
             }
 
+            // pan window about current center
             else
             {   
-                // find old marker position, find new marker position, move center by the difference
-                double dx,dy;
-                dx = oldX - normX;
-                dy = oldY - normY;
-                double oldCenterX, oldCenterY;
-                activeWindow_->getCenter(oldCenterX, oldCenterY);
-                activeWindow_->setCenter(oldCenterX - dx, oldCenterY - dy);
+                pan(skel.rightHand_, skel.rightShoulder_, maxReach);
             }
         }
     }
@@ -242,8 +239,20 @@ void SkeletonState::zoom(SkeletonPoint& lh, SkeletonPoint& rh, float threshold)
     }
     else
         zoomFactor = activeWindow_->getZoom() - (1 - zoomFactor)*WINDOW_SCALING_FACTOR;
-        
+
     activeWindow_->setZoom(zoomFactor);
+}
+
+void SkeletonState::pan(SkeletonPoint& rh, SkeletonPoint& rs, float maxReach)
+{
+    //float normX = ((skel.rightHand_.x_ - skel.rightShoulder_.x_) + maxReach)/(2*maxReach);
+
+    float normX = (rh.x_ - rs.x_)/maxReach;
+    float normY = -1. * (rh.y_ - rs.y_)/maxReach;
+
+    double oldCenterX, oldCenterY;
+    activeWindow_->getCenter(oldCenterX, oldCenterY);
+    activeWindow_->setCenter(oldCenterX + normX*WINDOW_PAN_FACTOR, oldCenterY + normY*WINDOW_PAN_FACTOR);
 }
 
 void SkeletonState::scaleWindow(SkeletonPoint& lh, SkeletonPoint& rh, float threshold)
