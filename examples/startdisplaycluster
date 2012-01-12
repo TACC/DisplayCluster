@@ -1,0 +1,51 @@
+#!/usr/bin/python
+
+# example launcher for DisplayCluster
+# this should work for most cases, but can be modified for a particular
+# installation if necessary
+
+import os
+import xml.etree.ElementTree as ET
+import subprocess
+import shlex
+
+# DisplayCluster directory; this is the parent directory of this script
+dcPath = os.path.dirname(os.path.dirname(__file__))
+
+# set an environment variable for the base DisplayCluster directory
+os.environ['DISPLAYCLUSTER_DIR'] = dcPath
+
+# set the Python path so the pydc module can be found
+if 'PYTHONPATH' not in os.environ:
+    os.environ['PYTHONPATH'] = dcPath + '/python'
+else:
+    os.environ['PYTHONPATH'] += os.pathsep + dcPath + '/python'
+
+# form the MPI host list
+
+# rank 0 is always on localhost
+hostList = ['localhost']
+
+# configuration.xml gives the rest of the hosts
+try:
+    doc = ET.parse(dcPath + "/configuration.xml")
+
+    for elem in doc.findall('.//process'):
+        host = elem.get("host")
+
+        if host is None:
+            print 'Error, no host attribute in <process> tag.'
+            exit(-1)
+
+        hostList.append(host)
+except:
+    print 'Error processing configuration.xml. Make sure you have created a configuration.xml and put it in ' + dcPath + '/. An example is provided in the examples/ directory.'
+    exit(-2)
+
+hostListString = ",".join(hostList)
+
+startCommand = 'mpirun -x DISPLAYCLUSTER_DIR -x PYTHONPATH -host ' + hostListString + ' ' + dcPath + '/bin/displaycluster'
+
+print 'launching with command: ' + startCommand
+
+subprocess.call(shlex.split(startCommand))

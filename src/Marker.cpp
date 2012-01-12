@@ -12,11 +12,13 @@ Marker::Marker()
     if(g_mpiRank != 0 && textureId_ == 0 && g_mainWindow->getGLWindow() != NULL)
     {
         // load marker texture
-        QImage image(MARKER_IMAGE_FILENAME);
+        std::string markerImageFilename = std::string(g_displayClusterDir) + std::string("/data/") + std::string(MARKER_IMAGE_FILENAME);
+
+        QImage image(markerImageFilename.c_str());
 
         if(image.isNull() == true)
         {
-            put_flog(LOG_ERROR, "error loading marker texture %s", MARKER_IMAGE_FILENAME);
+            put_flog(LOG_ERROR, "error loading marker texture %s", markerImageFilename.c_str());
             return;
         }
 

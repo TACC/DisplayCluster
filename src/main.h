@@ -8,6 +8,7 @@
 #include <boost/shared_ptr.hpp>
 #include <mpi.h>
 
+extern std::string g_displayClusterDir;
 extern QApplication * g_app;
 extern int g_mpiRank;
 extern int g_mpiSize;

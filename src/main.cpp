@@ -12,6 +12,7 @@
     #include "JoystickThread.h"
 #endif
 
+std::string g_displayClusterDir;
 QApplication * g_app = NULL;
 int g_mpiRank = -1;
 int g_mpiSize = -1;
@@ -26,6 +27,17 @@ int main(int argc, char * argv[])
 {
     put_flog(LOG_INFO, "");
 
+    // get base directory
+    if(getenv("DISPLAYCLUSTER_DIR") == NULL)
+    {
+        put_flog(LOG_FATAL, "DISPLAYCLUSTER_DIR environment variable must be set");
+        return -1;
+    }
+
+    g_displayClusterDir = std::string(getenv("DISPLAYCLUSTER_DIR"));
+
+    put_flog(LOG_DEBUG, "base directory is %s", g_displayClusterDir.c_str());
+
 #if ENABLE_TUIO_TOUCH_LISTENER
     // we need X multithreading support if we're running the TouchListener thread and creating X events
     XInitThreads();
@@ -38,7 +50,7 @@ int main(int argc, char * argv[])
     MPI_Comm_size(MPI_COMM_WORLD, &g_mpiSize);
     MPI_Comm_split(MPI_COMM_WORLD, g_mpiRank != 0, g_mpiRank, &g_mpiRenderComm);
 
-    g_configuration = new Configuration("configuration.xml");
+    g_configuration = new Configuration((std::string(g_displayClusterDir) + std::string("/configuration.xml")).c_str());
 
     boost::shared_ptr<DisplayGroupManager> dgm(new DisplayGroupManager);
     g_displayGroupManager = dgm;

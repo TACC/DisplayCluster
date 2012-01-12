@@ -1,8 +1,7 @@
 #ifndef MARKER_H
 #define MARKER_H
 
-// todo: we need to bundle this with the application or find a better way of handling the path
-#define MARKER_IMAGE_FILENAME "./data/marker.png"
+#define MARKER_IMAGE_FILENAME "marker.png"
 
 // this is a fraction of the tiled display width of 1
 #define MARKER_WIDTH 0.0025

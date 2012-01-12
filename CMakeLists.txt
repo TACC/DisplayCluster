@@ -10,6 +10,9 @@ endif(COMMAND cmake_policy)
 # show all warnings
 set(CMAKE_CXX_FLAGS "-Wall")
 
+# keep the library path in installed executables
+SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
 # build options
 option(ENABLE_TUIO_TOUCH_LISTENER "Enable TUIO touch listener for multi-touch events" OFF)
 option(ENABLE_JOYSTICK_SUPPORT "Enable joystick support" OFF)
@@ -179,3 +182,23 @@ qt4_wrap_cpp(DESKTOP_STREAMER_MOC_OUTFILES ${DESKTOP_STREAMER_MOC_HEADERS})
 add_executable(desktopstreamer ${DESKTOP_STREAMER_SRCS} ${DESKTOP_STREAMER_MOC_OUTFILES})
 
 target_link_libraries(desktopstreamer ${DESKTOP_STREAMER_LIBS})
+
+
+# install executables
+INSTALL(TARGETS displaycluster desktopstreamer
+    RUNTIME DESTINATION bin
+)
+
+# install launcher
+INSTALL(PROGRAMS examples/startdisplaycluster DESTINATION bin)
+
+# install data files
+INSTALL(DIRECTORY data DESTINATION .)
+
+# install example files
+INSTALL(DIRECTORY examples DESTINATION .)
+
+# install Python module
+if(ENABLE_PYTHON_SUPPORT)
+    INSTALL(FILES ${CMAKE_BINARY_DIR}/pydc.so DESTINATION python)
+endif()
