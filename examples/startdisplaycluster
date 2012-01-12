@@ -18,8 +18,10 @@ os.environ['DISPLAYCLUSTER_DIR'] = dcPath
 # set the Python path so the pydc module can be found
 if 'PYTHONPATH' not in os.environ:
     os.environ['PYTHONPATH'] = dcPath + '/python'
+    os.environ['PYTHONPATH'] += os.pathsep + dcPath + '/examples'
 else:
     os.environ['PYTHONPATH'] += os.pathsep + dcPath + '/python'
+    os.environ['PYTHONPATH'] += os.pathsep + dcPath + '/examples'
 
 # form the MPI host list
 
