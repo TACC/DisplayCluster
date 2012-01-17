@@ -5,6 +5,7 @@
 # installation if necessary
 
 import os
+import sys
 import xml.etree.ElementTree as ET
 import subprocess
 import shlex
@@ -18,10 +19,15 @@ os.environ['DISPLAYCLUSTER_DIR'] = dcPath
 # set the Python path so the pydc module can be found
 if 'PYTHONPATH' not in os.environ:
     os.environ['PYTHONPATH'] = dcPath + '/python'
-    os.environ['PYTHONPATH'] += os.pathsep + dcPath + '/examples'
 else:
     os.environ['PYTHONPATH'] += os.pathsep + dcPath + '/python'
-    os.environ['PYTHONPATH'] += os.pathsep + dcPath + '/examples'
+
+# for example scripts
+os.environ['PYTHONPATH'] += os.pathsep + dcPath + '/examples'
+
+# add in the default Python path provided by the Python interpreter since it
+# is not provided in our GUI Python console
+os.environ['PYTHONPATH'] += os.pathsep + os.pathsep.join(sys.path)
 
 # form the MPI host list
 
