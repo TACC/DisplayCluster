@@ -189,8 +189,9 @@ INSTALL(TARGETS displaycluster desktopstreamer
     RUNTIME DESTINATION bin
 )
 
-# install launcher
+# install launchers
 INSTALL(PROGRAMS examples/startdisplaycluster DESTINATION bin)
+INSTALL(PROGRAMS examples/displaycluster.py DESTINATION bin)
 
 # install data files
 INSTALL(DIRECTORY data DESTINATION .)
