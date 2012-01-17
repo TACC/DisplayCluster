@@ -184,6 +184,23 @@ void JoystickThread::updateJoysticks()
         {
             joystickZoom(i, dir);
         }
+
+        // handle scaling
+        dir = 0;
+
+        if(SDL_JoystickGetButton(joysticks_[i], 6) == 1)
+        {
+            dir = -1;
+        }
+        else if(SDL_JoystickGetButton(joysticks_[i], 7) == 1)
+        {
+            dir = 1;
+        }
+
+        if(dir != 0)
+        {
+            joystickScaleSize(i, dir);
+        }
     }
 
     tick1_ = tick2_;
@@ -267,5 +284,16 @@ void JoystickThread::joystickZoom(int index, int dir)
         zoom = cwi->getZoom();
 
         cwi->setZoom(zoom * (1. - (double)dir * JOYSTICK_ZOOM_FACTOR));
+    }
+}
+
+void JoystickThread::joystickScaleSize(int index, int dir)
+{
+    // get ContentWindowInterface currently underneath the marker
+    boost::shared_ptr<ContentWindowInterface> cwi = displayGroupJoysticks_[index]->getContentWindowInterfaceUnderMarker();
+
+    if(cwi != NULL)
+    {
+        cwi->scaleSize(1. + (double)dir * JOYSTICK_SCALE_SIZE_FACTOR);
     }
 }

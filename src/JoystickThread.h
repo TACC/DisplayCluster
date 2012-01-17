@@ -3,8 +3,9 @@
 
 #define JOYSTICK_AXIS_THRESHHOLD 5000 // of max range 32768
 #define JOYSTICK_AXIS_SCALE (5.0 * 32768.0) // can move across the whole screen (left-right) in 5s
-#define JOYSTICK_ZOOM_FACTOR 0.015
-#define JOYSTICK_TIMER_INTERVAL 10
+#define JOYSTICK_ZOOM_FACTOR 0.02
+#define JOYSTICK_SCALE_SIZE_FACTOR 0.02
+#define JOYSTICK_TIMER_INTERVAL 33
 
 #include <QtGui>
 #include <QThread>
@@ -64,6 +65,7 @@ class JoystickThread : public QThread {
         void joystickMoveMarker(int index, float dx, float dy);
         void joystickPan(int index, float dx, float dy);
         void joystickZoom(int index, int dir);
+        void joystickScaleSize(int index, int dir);
 };
 
 #endif
