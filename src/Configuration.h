@@ -20,6 +20,9 @@ class Configuration {
         int getTotalWidth();
         int getTotalHeight();
 
+        std::string getMyHost();
+        std::string getMyDisplay();
+
         int getMyNumTiles();
         int getTileX(int i);
         int getTileY(int i);
@@ -37,6 +40,9 @@ class Configuration {
         int mullionWidth_;
         int mullionHeight_;
         int fullscreen_;
+
+        std::string host_;
+        std::string display_;
 
         int myNumTiles_;
         std::vector<int> tileX_;

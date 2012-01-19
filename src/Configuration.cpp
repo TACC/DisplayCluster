@@ -61,6 +61,25 @@ Configuration::Configuration(const char * filename)
     {
         int processIndex = g_mpiRank;
 
+        // get host
+        sprintf(string, "string(//process[%i]/@host)", processIndex);
+        query_.setQuery(string);
+        query_.evaluateTo(&qstring);
+        host_ = qstring.toStdString();
+
+        // get display (optional attribute)
+        sprintf(string, "string(//process[%i]/@display)", processIndex);
+        query_.setQuery(string);
+
+        if(query_.evaluateTo(&qstring) == true)
+        {
+            display_ = qstring.toStdString();
+        }
+        else
+        {
+            display_ = std::string("default (:0)"); // the default
+        }
+
         // get number of tiles for my process
         sprintf(string, "string(count(//process[%i]/screen))", processIndex);
         query_.setQuery(string);
@@ -141,6 +160,16 @@ int Configuration::getTotalWidth()
 int Configuration::getTotalHeight()
 {
     return numTilesHeight_ * screenHeight_ + (numTilesHeight_ - 1) * mullionHeight_;
+}
+
+std::string Configuration::getMyHost()
+{
+    return host_;
+}
+
+std::string Configuration::getMyDisplay()
+{
+    return display_;
 }
 
 int Configuration::getMyNumTiles()

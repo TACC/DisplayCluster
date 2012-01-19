@@ -349,17 +349,19 @@ void GLWindow::renderTestPattern()
     glTranslatef(0., 0., 0.1);
 
     QString label1 = "Rank: " + QString::number(g_mpiRank);
-    QString label2 = "Tile coordinates: (" + QString::number(g_configuration->getTileI(tileIndex_)) + ", " + QString::number(g_configuration->getTileJ(tileIndex_)) + ")";
-    QString label3 = "Resolution: " + QString::number(g_configuration->getScreenWidth()) + " x " + QString::number(g_configuration->getScreenHeight());
-    QString label4 = "Fullscreen mode: ";
+    QString label2 = "Host: " + QString(g_configuration->getMyHost().c_str());
+    QString label3 = "Display: " + QString(g_configuration->getMyDisplay().c_str());
+    QString label4 = "Tile coordinates: (" + QString::number(g_configuration->getTileI(tileIndex_)) + ", " + QString::number(g_configuration->getTileJ(tileIndex_)) + ")";
+    QString label5 = "Resolution: " + QString::number(g_configuration->getScreenWidth()) + " x " + QString::number(g_configuration->getScreenHeight());
+    QString label6 = "Fullscreen mode: ";
 
     if(g_configuration->getFullscreen() == true)
     {
-        label4 += "True";
+        label6 += "True";
     }
     else
     {
-        label4 += "False";
+        label6 += "False";
     }
 
     int fontSize = 64;
@@ -373,6 +375,8 @@ void GLWindow::renderTestPattern()
     renderText(50, 2*fontSize, label2, font);
     renderText(50, 3*fontSize, label3, font);
     renderText(50, 4*fontSize, label4, font);
+    renderText(50, 5*fontSize, label5, font);
+    renderText(50, 6*fontSize, label6, font);
 
     glPopMatrix();
     glPopAttrib();
