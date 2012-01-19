@@ -12,9 +12,6 @@ DesktopSelectionWindow::DesktopSelectionWindow()
     Qt::WindowFlags flags = windowFlags();
     setWindowFlags(flags | Qt::CustomizeWindowHint | Qt::WindowStaysOnTopHint);
 
-    // full screen window
-    showFullScreen();
-
     // add the view after showing the window to avoid shadow artifacts on Mac
     setCentralWidget(&desktopSelectionView_);
 

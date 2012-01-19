@@ -51,7 +51,7 @@ MainWindow::MainWindow()
     showDesktopSelectionWindowAction_ = new QAction("Show Rectangle", this);
     showDesktopSelectionWindowAction_->setStatusTip("Show desktop selection rectangle");
     showDesktopSelectionWindowAction_->setCheckable(true);
-    showDesktopSelectionWindowAction_->setChecked(true);
+    showDesktopSelectionWindowAction_->setChecked(false);
     connect(showDesktopSelectionWindowAction_, SIGNAL(toggled(bool)), this, SLOT(showDesktopSelectionWindow(bool)));
 
     // create toolbar
