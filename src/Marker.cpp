@@ -41,10 +41,22 @@ void Marker::getPosition(float &x, float &y)
     y = y_;
 }
 
+bool Marker::getActive()
+{
+    if((*(g_displayGroupManager->getTimestamp()) - updatedTimestamp_).total_seconds() > MARKER_TIMEOUT_SECONDS)
+    {
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
 void Marker::render()
 {
     // only render recently active markers
-    if((*(g_displayGroupManager->getTimestamp()) - updatedTimestamp_).total_seconds() > MARKER_TIMEOUT_SECONDS)
+    if(getActive() == false)
     {
         return;
     }

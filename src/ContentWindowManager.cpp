@@ -137,6 +137,12 @@ void ContentWindowManager::render()
 
     for(unsigned int i=0; i<markers.size(); i++)
     {
+        // don't consider inactive markers
+        if(markers[i]->getActive() == false)
+        {
+            continue;
+        }
+
         float markerX, markerY;
         markers[i]->getPosition(markerX, markerY);
 

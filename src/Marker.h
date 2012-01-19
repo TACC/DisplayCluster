@@ -26,6 +26,8 @@ class Marker : public QObject {
         void setPosition(float x, float y);
         void getPosition(float &x, float &y);
 
+        bool getActive();
+
         void render();
 
     signals:
