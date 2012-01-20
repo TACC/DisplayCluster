@@ -48,7 +48,7 @@ void PixelStreamSource::getDimensions(int &width, int &height, bool & updated)
 {
     QMutexLocker locker(&dimensionsMutex_);
 
-    // whether or not this is an updated image since the last call to getImageData()
+    // whether or not these are updated dimensions since the last call to getDimensions()
     if(dimensionsCount_ > getDimensionsCount_)
     {
         updated = true;
