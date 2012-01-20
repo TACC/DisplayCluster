@@ -7,6 +7,9 @@
 
 MainWindow::MainWindow()
 {
+    // defaults
+    updatedCoordinates_ = true;
+
     QWidget * widget = new QWidget();
     QFormLayout * layout = new QFormLayout();
     widget->setLayout(layout);
@@ -81,6 +84,8 @@ void MainWindow::setCoordinates(int x, int y, int width, int height)
     ySpinBox_.setValue(y);
     widthSpinBox_.setValue(width);
     heightSpinBox_.setValue(height);
+
+    updatedCoordinates_ = true;
 }
 
 void MainWindow::shareDesktop(bool set)
@@ -202,6 +207,28 @@ void MainWindow::shareDesktopUpdate()
 
         previousImageData_ = byteArray;
 
+        // check if we updated coordinates
+        if(updatedCoordinates_ == true)
+        {
+            MessageHeader mh;
+            mh.size = 0;
+            mh.type = MESSAGE_TYPE_PIXELSTREAM_DIMENSIONS_CHANGED;
+
+            // add the truncated URI to the header
+            size_t len = uri_.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
+            mh.uri[len] = '\0';
+
+            // send the header
+            int sent = tcpSocket_.write((const char *)&mh, sizeof(MessageHeader));
+
+            while(sent < (int)sizeof(MessageHeader))
+            {
+                sent += tcpSocket_.write((const char *)&mh + sent, sizeof(MessageHeader) - sent);
+            }
+
+            updatedCoordinates_ = false;
+        }
+
         // wait for data to be completely sent
         while(tcpSocket_.bytesToWrite() > 0 && tcpSocket_.waitForBytesWritten())
         {
@@ -222,4 +249,6 @@ void MainWindow::updateCoordinates()
     {
         g_desktopSelectionWindow->getDesktopSelectionView()->getDesktopSelectionRectangle()->setCoordinates(x_, y_, width_, height_);
     }
+
+    updatedCoordinates_ = true;
 }
