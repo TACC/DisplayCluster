@@ -8,7 +8,7 @@
 MainWindow::MainWindow()
 {
     // defaults
-    updatedCoordinates_ = true;
+    updatedDimensions_ = true;
 
     QWidget * widget = new QWidget();
     QFormLayout * layout = new QFormLayout();
@@ -80,12 +80,15 @@ void MainWindow::getCoordinates(int &x, int &y, int &width, int &height)
 
 void MainWindow::setCoordinates(int x, int y, int width, int height)
 {
+    if(width != width_ || height != height_)
+    {
+        updatedDimensions_ = true;
+    }
+
     xSpinBox_.setValue(x);
     ySpinBox_.setValue(y);
     widthSpinBox_.setValue(width);
     heightSpinBox_.setValue(height);
-
-    updatedCoordinates_ = true;
 }
 
 void MainWindow::shareDesktop(bool set)
@@ -108,7 +111,7 @@ void MainWindow::shareDesktop(bool set)
         }
 
         // make sure dimensions get updated
-        updatedCoordinates_ = true;
+        updatedDimensions_ = true;
 
         shareDesktopUpdateTimer_.start(SHARE_DESKTOP_UPDATE_DELAY);
     }
@@ -209,10 +212,18 @@ void MainWindow::shareDesktopUpdate()
         }
 
         previousImageData_ = byteArray;
+
+        // wait for acknowledgment
+        while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < 3)
+        {
+            usleep(10);
+        }
+
+        tcpSocket_.read(3);
     }
 
-    // check if we updated coordinates
-    if(updatedCoordinates_ == true)
+    // check if we updated dimensions
+    if(updatedDimensions_ == true)
     {
         // updated dimensions
         int dimensions[2];
@@ -246,18 +257,25 @@ void MainWindow::shareDesktopUpdate()
             sent += tcpSocket_.write((const char *)dimensions + sent, dimensionsSize - sent);
         }
 
-        updatedCoordinates_ = false;
+        updatedDimensions_ = false;
 
-        // wait for data to be completely sent
-        while(tcpSocket_.bytesToWrite() > 0 && tcpSocket_.waitForBytesWritten())
+        // wait for acknowledgment
+        while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < 3)
         {
             usleep(10);
         }
+
+        tcpSocket_.read(3);
     }
 }
 
 void MainWindow::updateCoordinates()
 {
+    if(widthSpinBox_.value() != width_ || heightSpinBox_.value() != height_)
+    {
+        updatedDimensions_ = true;
+    }
+
     x_ = xSpinBox_.value();
     y_ = ySpinBox_.value();
     width_ = widthSpinBox_.value();
@@ -268,6 +286,4 @@ void MainWindow::updateCoordinates()
     {
         g_desktopSelectionWindow->getDesktopSelectionView()->getDesktopSelectionRectangle()->setCoordinates(x_, y_, width_, height_);
     }
-
-    updatedCoordinates_ = true;
 }

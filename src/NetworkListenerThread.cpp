@@ -63,6 +63,9 @@ void NetworkListenerThread::run()
 
         // got the message
         handleMessage(*mh, messageByteArray);
+
+        // send acknowledgment
+        tcpSocket.write("ack", 3);
     }
 
     tcpSocket.disconnectFromHost();

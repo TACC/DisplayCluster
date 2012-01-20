@@ -26,7 +26,7 @@ class MainWindow : public QMainWindow {
 
     private:
 
-        bool updatedCoordinates_;
+        bool updatedDimensions_;
 
         QLineEdit hostnameLineEdit_;
         QLineEdit uriLineEdit_;
