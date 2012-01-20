@@ -314,11 +314,6 @@ void DisplayGroupManager::sendContentsDimensionsRequest()
     for(unsigned int i=0; i<dimensions.size() && i<contentWindowManagers_.size(); i++)
     {
         contentWindowManagers_[i]->getContent()->setDimensions(dimensions[i].first, dimensions[i].second);
-
-        if(g_mainWindow->getConstrainAspectRatio() == true)
-        {
-            contentWindowManagers_[i]->fixAspectRatio();
-        }
     }
 
     // free mpi buffer
