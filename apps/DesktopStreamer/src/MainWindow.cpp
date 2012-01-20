@@ -7,6 +7,9 @@
 
 MainWindow::MainWindow()
 {
+    // defaults
+    updatedCoordinates_ = true;
+
     QWidget * widget = new QWidget();
     QFormLayout * layout = new QFormLayout();
     widget->setLayout(layout);
@@ -81,6 +84,8 @@ void MainWindow::setCoordinates(int x, int y, int width, int height)
     ySpinBox_.setValue(y);
     widthSpinBox_.setValue(width);
     heightSpinBox_.setValue(height);
+
+    updatedCoordinates_ = true;
 }
 
 void MainWindow::shareDesktop(bool set)
@@ -101,6 +106,9 @@ void MainWindow::shareDesktop(bool set)
             shareDesktopAction_->setChecked(false);
             return;
         }
+
+        // make sure dimensions get updated
+        updatedCoordinates_ = true;
 
         shareDesktopUpdateTimer_.start(SHARE_DESKTOP_UPDATE_DELAY);
     }
@@ -201,6 +209,44 @@ void MainWindow::shareDesktopUpdate()
         }
 
         previousImageData_ = byteArray;
+    }
+
+    // check if we updated coordinates
+    if(updatedCoordinates_ == true)
+    {
+        // updated dimensions
+        int dimensions[2];
+        dimensions[0] = width_;
+        dimensions[1] = height_;
+
+        int dimensionsSize = 2 * sizeof(int);
+
+        // header
+        MessageHeader mh;
+        mh.size = dimensionsSize;
+        mh.type = MESSAGE_TYPE_PIXELSTREAM_DIMENSIONS_CHANGED;
+
+        // add the truncated URI to the header
+        size_t len = uri_.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
+        mh.uri[len] = '\0';
+
+        // send the header
+        int sent = tcpSocket_.write((const char *)&mh, sizeof(MessageHeader));
+
+        while(sent < (int)sizeof(MessageHeader))
+        {
+            sent += tcpSocket_.write((const char *)&mh + sent, sizeof(MessageHeader) - sent);
+        }
+
+        // send the message
+        sent = tcpSocket_.write((const char *)dimensions, dimensionsSize);
+
+        while(sent < dimensionsSize)
+        {
+            sent += tcpSocket_.write((const char *)dimensions + sent, dimensionsSize - sent);
+        }
+
+        updatedCoordinates_ = false;
 
         // wait for data to be completely sent
         while(tcpSocket_.bytesToWrite() > 0 && tcpSocket_.waitForBytesWritten())
@@ -222,4 +268,6 @@ void MainWindow::updateCoordinates()
     {
         g_desktopSelectionWindow->getDesktopSelectionView()->getDesktopSelectionRectangle()->setCoordinates(x_, y_, width_, height_);
     }
+
+    updatedCoordinates_ = true;
 }

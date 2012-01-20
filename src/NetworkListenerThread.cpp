@@ -47,13 +47,18 @@ void NetworkListenerThread::run()
         MessageHeader * mh = (MessageHeader *)byteArray.data();
 
         // next, read the actual message
-        QByteArray messageByteArray = tcpSocket.read(mh->size);
+        QByteArray messageByteArray;
 
-        while(messageByteArray.size() < mh->size)
+        if(mh->size > 0)
         {
-            tcpSocket.waitForReadyRead();
+            messageByteArray = tcpSocket.read(mh->size);
 
-            messageByteArray.append(tcpSocket.read(mh->size - messageByteArray.size()));
+            while(messageByteArray.size() < mh->size)
+            {
+                tcpSocket.waitForReadyRead();
+
+                messageByteArray.append(tcpSocket.read(mh->size - messageByteArray.size()));
+            }
         }
 
         // got the message
@@ -75,6 +80,16 @@ void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArra
         std::string uri(messageHeader.uri);
 
         g_pixelStreamSourceFactory.getObject(uri)->setImageData(byteArray);
+
+        emit(updatedPixelStreamSource());
+    }
+    else if(messageHeader.type == MESSAGE_TYPE_PIXELSTREAM_DIMENSIONS_CHANGED)
+    {
+        std::string uri(messageHeader.uri);
+
+        const int * dimensions = (const int *)byteArray.constData();
+
+        g_pixelStreamSourceFactory.getObject(uri)->setDimensions(dimensions[0], dimensions[1]);
 
         emit(updatedPixelStreamSource());
     }

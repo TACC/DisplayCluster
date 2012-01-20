@@ -52,6 +52,19 @@ bool DisplayGroupInterface::hasContent(std::string uri)
     return false;
 }
 
+boost::shared_ptr<ContentWindowManager> DisplayGroupInterface::getContentWindowManager(std::string uri)
+{
+    for(unsigned int i=0; i<contentWindowManagers_.size(); i++)
+    {
+        if(contentWindowManagers_[i]->getContent()->getURI() == uri)
+        {
+            return contentWindowManagers_[i];
+        }
+    }
+
+    return boost::shared_ptr<ContentWindowManager>();
+}
+
 void DisplayGroupInterface::setContentWindowManagers(std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers)
 {
     // remove existing content window managers

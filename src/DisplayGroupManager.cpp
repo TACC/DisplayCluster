@@ -375,6 +375,21 @@ void DisplayGroupManager::sendPixelStreams()
             // broadcast the message
             MPI_Bcast((void *)imageData.data(), size, MPI_BYTE, 0, MPI_COMM_WORLD);
         }
+
+        // check for updated dimensions
+        int pixelStreamWidth, pixelStreamHeight;
+
+        pixelStreamSource->getDimensions(pixelStreamWidth, pixelStreamHeight, updated);
+
+        if(updated == true)
+        {
+            if(hasContent(uri) == true)
+            {
+                boost::shared_ptr<Content> c = getContentWindowManager(uri)->getContent();
+
+                c->setDimensions(pixelStreamWidth, pixelStreamHeight);
+            }
+        }
     }
 }
 

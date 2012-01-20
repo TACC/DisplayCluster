@@ -13,6 +13,9 @@ class PixelStreamSource {
         QByteArray getImageData(bool & updated);
         void setImageData(QByteArray imageData);
 
+        void getDimensions(int &width, int &height, bool & updated);
+        void setDimensions(int width, int height);
+
     private:
 
         // pixel stream source identifier
@@ -25,6 +28,15 @@ class PixelStreamSource {
 
         // imageDataCount of last retrieval via getImageData()
         long getImageDataCount_;
+
+        // dimensions, mutex for accessing it, and counter for updates
+        QMutex dimensionsMutex_;
+        int width_;
+        int height_;
+        long dimensionsCount_;
+
+        // dimensionsCount of last retrieval via getDimensions()
+        long getDimensionsCount_;
 };
 
 // global pixel stream source factory
