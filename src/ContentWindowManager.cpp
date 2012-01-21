@@ -14,8 +14,8 @@ ContentWindowManager::ContentWindowManager(boost::shared_ptr<Content> content)
     // default position / size, assumes a 16/9 aspect ratio
     // the actual aspect ratio will be set after the content is loaded
     x_ = y_ = 0.01;
-    h_ = 0.2;
-    w_ = (double)g_configuration->getTotalHeight() / (double)g_configuration->getTotalWidth() * 9/16. * h_;
+    h_ = 0.3;
+    w_ = (double)g_configuration->getTotalHeight() / (double)g_configuration->getTotalWidth() * 16./9. * h_;
 
     // default to centered
     centerX_ = 0.5;
