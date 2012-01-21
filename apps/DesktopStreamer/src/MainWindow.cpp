@@ -1,7 +1,7 @@
 #include "MainWindow.h"
 #include "main.h"
 #include "../../../src/log.h"
-#include "../../../src/DisplayGroupManager.h" // for MessageHeader
+#include "../../../src/MessageHeader.h"
 #include "DesktopSelectionRectangle.h"
 #include <turbojpeg.h>
 
