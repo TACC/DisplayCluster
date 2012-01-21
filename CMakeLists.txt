@@ -34,10 +34,6 @@ find_package(OpenGL REQUIRED)
 include_directories(${OPENGL_INCLUDE_DIRS})
 set(LIBS ${LIBS} ${OPENGL_LIBRARIES})
 
-find_package(GLUT REQUIRED)
-include_directories(${GLUT_INCLUDE_DIRS})
-set(LIBS ${LIBS} ${GLUT_LIBRARIES})
-
 find_package(Boost REQUIRED COMPONENTS serialization date_time)
 include_directories(${Boost_INCLUDE_DIRS})
 set(LIBS ${LIBS} ${Boost_LIBRARIES})
