@@ -183,7 +183,7 @@ endif()
 
 # DesktopStreamer app
 if(BUILD_DESKTOPSTREAMER)
-    set(DESKTOP_STREAMER_LIBS ${QT_LIBRARIES})
+    set(DESKTOP_STREAMER_LIBS ${QT_QTCORE_LIBRARY} ${QT_QTGUI_LIBRARY} ${QT_QTNETWORK_LIBRARY})
 
     # libjpeg-turbo
     find_package(LibJpegTurbo REQUIRED)
