@@ -205,12 +205,53 @@ if(BUILD_DESKTOPSTREAMER)
 
     qt4_wrap_cpp(DESKTOP_STREAMER_MOC_OUTFILES ${DESKTOP_STREAMER_MOC_HEADERS})
 
-    add_executable(desktopstreamer ${DESKTOP_STREAMER_SRCS} ${DESKTOP_STREAMER_MOC_OUTFILES})
+    # on Apple platform set the icon
+    if(APPLE)
+        # set how it shows up in the Info.plist file
+        SET(MACOSX_BUNDLE_ICON_FILE desktopstreamer.icns)
+
+        # set where in the bundle to put the icns file
+        SET_SOURCE_FILES_PROPERTIES(apps/DesktopStreamer/desktopstreamer.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+
+        # include the icns file in the target
+        SET(DESKTOP_STREAMER_SRCS ${DESKTOP_STREAMER_SRCS} apps/DesktopStreamer/desktopstreamer.icns)
+    endif(APPLE)
+
+    add_executable(desktopstreamer MACOSX_BUNDLE
+        ${DESKTOP_STREAMER_SRCS} ${DESKTOP_STREAMER_MOC_OUTFILES})
 
     target_link_libraries(desktopstreamer ${DESKTOP_STREAMER_LIBS})
 
     # install executable
     INSTALL(TARGETS desktopstreamer
         RUNTIME DESTINATION bin
+        BUNDLE DESTINATION . COMPONENT Runtime
     )
+
+    # on Apple platform make the .app bundle
+    if(APPLE)
+        set(APPS "\${CMAKE_INSTALL_PREFIX}/desktopstreamer.app")
+
+        # Qt plugins and qt.conf required so we don't accidentally dynamically link against system-installed Qt libraries
+        SET(PLUGIN_DEST_DIR desktopstreamer.app/Contents/MacOS)
+        SET(QTCONF_DEST_DIR desktopstreamer.app/Contents/Resources)
+
+        INSTALL(DIRECTORY "${QT_PLUGINS_DIR}/imageformats" DESTINATION ${PLUGIN_DEST_DIR}/plugins COMPONENT Runtime)
+
+        INSTALL(CODE "
+            file(WRITE \"\${CMAKE_INSTALL_PREFIX}/${QTCONF_DEST_DIR}/qt.conf\" \"\")
+            " COMPONENT Runtime)
+
+        INSTALL(CODE "
+            file(GLOB_RECURSE QTPLUGINS \"\${CMAKE_INSTALL_PREFIX}/${PLUGIN_DEST_DIR}/plugins/*${CMAKE_SHARED_LIBRARY_SUFFIX}\")
+            include(BundleUtilities)
+            fixup_bundle(\"${APPS}\" \"\${QTPLUGINS}\" \"\")
+            " COMPONENT Runtime)
+
+        # to create a package, one can run "cpack -G DragNDrop CPackConfig.cmake"
+        # where CPackConfig.cmake is created by including CPack
+        set(CPACK_BINARY_DRAGNDROP ON)
+        include(CPack)
+    endif()
+
 endif()
