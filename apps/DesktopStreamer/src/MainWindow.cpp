@@ -35,6 +35,10 @@ MainWindow::MainWindow()
     widthSpinBox_.setValue(desktopRect.width() / 2);
     heightSpinBox_.setValue(desktopRect.height() / 2);
 
+    // frame rate limiting
+    frameRateSpinBox_.setRange(1, 60);
+    frameRateSpinBox_.setValue(24);
+
     // add widgets to UI
     layout->addRow("Hostname", &hostnameLineEdit_);
     layout->addRow("Stream name", &uriLineEdit_);
@@ -42,6 +46,7 @@ MainWindow::MainWindow()
     layout->addRow("Y", &ySpinBox_);
     layout->addRow("Width", &widthSpinBox_);
     layout->addRow("Height", &heightSpinBox_);
+    layout->addRow("Max frame rate", &frameRateSpinBox_);
 
     // share desktop action
     shareDesktopAction_ = new QAction("Share Desktop", this);
@@ -275,8 +280,10 @@ void MainWindow::shareDesktopUpdate()
     // elapsed time (milliseconds)
     int elapsedFrameTime = frameTime.elapsed();
 
-    // rate limit to 24 fps maximum
-    int desiredFrameTime = (int)(1000. * 1. / 24.);
+    // frame rate limiting
+    int maxFrameRate = frameRateSpinBox_.value();
+
+    int desiredFrameTime = (int)(1000. * 1. / (float)maxFrameRate);
 
     int sleepTime = desiredFrameTime - elapsedFrameTime;
 

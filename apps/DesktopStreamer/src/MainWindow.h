@@ -34,6 +34,7 @@ class MainWindow : public QMainWindow {
         QSpinBox ySpinBox_;
         QSpinBox widthSpinBox_;
         QSpinBox heightSpinBox_;
+        QSpinBox frameRateSpinBox_;
 
         QAction * shareDesktopAction_;
         QAction * showDesktopSelectionWindowAction_;
