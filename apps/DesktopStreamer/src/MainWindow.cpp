@@ -141,6 +141,10 @@ void MainWindow::showDesktopSelectionWindow(bool set)
 
 void MainWindow::shareDesktopUpdate()
 {
+    // time the frame
+    QTime frameTime;
+    frameTime.start();
+
     if(tcpSocket_.state() != QAbstractSocket::ConnectedState)
     {
         put_flog(LOG_ERROR, "socket is not connected");
@@ -266,6 +270,19 @@ void MainWindow::shareDesktopUpdate()
         }
 
         tcpSocket_.read(3);
+    }
+
+    // elapsed time (milliseconds)
+    int elapsedFrameTime = frameTime.elapsed();
+
+    // rate limit to 24 fps maximum
+    int desiredFrameTime = (int)(1000. * 1. / 24.);
+
+    int sleepTime = desiredFrameTime - elapsedFrameTime;
+
+    if(sleepTime > 0)
+    {
+        usleep(1000 * sleepTime);
     }
 }
 
