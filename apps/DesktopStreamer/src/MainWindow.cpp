@@ -4,6 +4,7 @@
 #include "../../../src/MessageHeader.h"
 #include "DesktopSelectionRectangle.h"
 #include <turbojpeg.h>
+#include <stdint.h>
 
 MainWindow::MainWindow()
 {
@@ -115,6 +116,26 @@ void MainWindow::shareDesktop(bool set)
             return;
         }
 
+		// handshake
+        while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < (int)sizeof(int32_t))
+        {
+            usleep(10);
+        }
+
+        int32_t protocolVersion = -1;
+        tcpSocket_.read((char *)&protocolVersion, sizeof(int32_t));
+
+        if(protocolVersion != SUPPORTED_NETWORK_PROTOCOL_VERSION)
+        {
+            tcpSocket_.disconnectFromHost();
+            shareDesktopAction_->setChecked(false);
+
+            put_flog(LOG_ERROR, "unsupported protocol version %i > %i", protocolVersion, SUPPORTED_NETWORK_PROTOCOL_VERSION);
+            QMessageBox::warning(this, "Error", "This version is incompatible with the DisplayCluster instance you connected to. (" + QString::number(protocolVersion) + " != " + QString::number(SUPPORTED_NETWORK_PROTOCOL_VERSION) + ")", QMessageBox::Ok, QMessageBox::Ok);
+
+            return;
+        }
+
         // make sure dimensions get updated
         updatedDimensions_ = true;
 
@@ -122,6 +143,8 @@ void MainWindow::shareDesktop(bool set)
     }
     else
     {
+        tcpSocket_.disconnectFromHost();
+
         shareDesktopUpdateTimer_.stop();
     }
 }
@@ -163,6 +186,7 @@ void MainWindow::shareDesktopUpdate()
     if(desktopPixmap.isNull() == true)
     {
         put_flog(LOG_ERROR, "got NULL desktop pixmap");
+        tcpSocket_.disconnectFromHost();
         shareDesktopAction_->setChecked(false);
         return;
     }
@@ -186,6 +210,7 @@ void MainWindow::shareDesktopUpdate()
     if(success != 0)
     {
         put_flog(LOG_ERROR, "libjpeg-turbo image conversion failure");
+        tcpSocket_.disconnectFromHost();
         shareDesktopAction_->setChecked(false);
         return;
     }

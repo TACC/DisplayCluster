@@ -2,6 +2,7 @@
 #include "main.h"
 #include "log.h"
 #include "PixelStreamSource.h"
+#include <stdint.h>
 
 NetworkListenerThread::NetworkListenerThread(int socketDescriptor)
 {
@@ -25,10 +26,9 @@ void NetworkListenerThread::run()
         return;
     }
 
-    QByteArray block;
-    QDataStream out(&block, QIODevice::WriteOnly);
-    out << "hello\n";
-    tcpSocket.write(block);
+    // handshake
+    int32_t protocolVersion = NETWORK_PROTOCOL_VERSION;
+    tcpSocket.write((char *)&protocolVersion, sizeof(int32_t));
 
     // read the pixel stream updates
     while(tcpSocket.waitForReadyRead() == true || tcpSocket.state() == QAbstractSocket::ConnectedState)

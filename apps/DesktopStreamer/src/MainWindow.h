@@ -1,6 +1,8 @@
 #ifndef MAIN_WINDOW_H
 #define MAIN_WINDOW_H
 
+#define SUPPORTED_NETWORK_PROTOCOL_VERSION 1
+
 #define SHARE_DESKTOP_UPDATE_DELAY 1
 
 #include <QtGui>
