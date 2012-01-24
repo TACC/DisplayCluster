@@ -1,6 +1,9 @@
 #ifndef NETWORK_LISTENER_THREAD_H
 #define NETWORK_LISTENER_THREAD_H
 
+// increment this every time the network protocol changes in a major way
+#define NETWORK_PROTOCOL_VERSION 1
+
 #include "DisplayGroupManager.h"
 #include <QThread>
 #include <QtNetwork/QTcpSocket>
