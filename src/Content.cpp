@@ -62,6 +62,9 @@ void Content::render(boost::shared_ptr<ContentWindowManager> window)
 
 boost::shared_ptr<Content> Content::getContent(std::string uri)
 {
+    // convert to lower case for case-insensitivity in determining file type
+    QString fileTypeString = QString::fromStdString(uri).toLower();
+
     // see if this is an image
     QImageReader imageReader(uri.c_str());
 
@@ -88,14 +91,14 @@ boost::shared_ptr<Content> Content::getContent(std::string uri)
     }
     // see if this is a movie
     // todo: need a better way to determine file type
-    else if(QString::fromStdString(uri).endsWith(".mov") || QString::fromStdString(uri).endsWith(".avi") || QString::fromStdString(uri).endsWith(".mp4") || QString::fromStdString(uri).endsWith(".mkv") || QString::fromStdString(uri).endsWith(".mpg") || QString::fromStdString(uri).endsWith(".flv"))
+    else if(fileTypeString.endsWith(".mov") || fileTypeString.endsWith(".avi") || fileTypeString.endsWith(".mp4") || fileTypeString.endsWith(".mkv") || fileTypeString.endsWith(".mpg") || fileTypeString.endsWith(".flv"))
     {
         boost::shared_ptr<Content> c(new MovieContent(uri));
 
         return c;
     }
     // see if this is an image pyramid
-    else if(QString::fromStdString(uri).endsWith(".pyr"))
+    else if(fileTypeString.endsWith(".pyr"))
     {
         boost::shared_ptr<Content> c(new DynamicTextureContent(uri));
 
