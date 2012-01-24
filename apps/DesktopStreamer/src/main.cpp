@@ -14,5 +14,5 @@ int main(int argc, char * argv[])
     g_desktopSelectionWindow = new DesktopSelectionWindow();
 
     // enter Qt event loop
-    app->exec();
+    return app->exec();
 }
