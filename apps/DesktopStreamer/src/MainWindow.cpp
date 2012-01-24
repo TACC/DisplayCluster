@@ -112,6 +112,8 @@ void MainWindow::shareDesktop(bool set)
         if(tcpSocket_.waitForConnected() != true)
         {
             put_flog(LOG_ERROR, "could not connect");
+            QMessageBox::warning(this, "Error", "Could not connect.", QMessageBox::Ok, QMessageBox::Ok);
+
             shareDesktopAction_->setChecked(false);
             return;
         }
@@ -176,6 +178,8 @@ void MainWindow::shareDesktopUpdate()
     if(tcpSocket_.state() != QAbstractSocket::ConnectedState)
     {
         put_flog(LOG_ERROR, "socket is not connected");
+        QMessageBox::warning(this, "Error", "Socket is not connected.", QMessageBox::Ok, QMessageBox::Ok);
+
         shareDesktopAction_->setChecked(false);
         return;
     }
@@ -186,6 +190,8 @@ void MainWindow::shareDesktopUpdate()
     if(desktopPixmap.isNull() == true)
     {
         put_flog(LOG_ERROR, "got NULL desktop pixmap");
+        QMessageBox::warning(this, "Error", "Got NULL desktop pixmap.", QMessageBox::Ok, QMessageBox::Ok);
+
         tcpSocket_.disconnectFromHost();
         shareDesktopAction_->setChecked(false);
         return;
@@ -210,6 +216,8 @@ void MainWindow::shareDesktopUpdate()
     if(success != 0)
     {
         put_flog(LOG_ERROR, "libjpeg-turbo image conversion failure");
+        QMessageBox::warning(this, "Error", "Image conversion failure.", QMessageBox::Ok, QMessageBox::Ok);
+
         tcpSocket_.disconnectFromHost();
         shareDesktopAction_->setChecked(false);
         return;
