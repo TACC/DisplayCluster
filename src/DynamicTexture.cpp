@@ -376,6 +376,24 @@ void DynamicTexture::computeImagePyramid(std::string imagePyramidPath)
 
         std::ofstream ofs(metadataFilename.c_str());
         ofs << imagePyramidPath << " " << imageWidth_ << " " << imageHeight_;
+
+        // write a more conveniently named metadata file in the same directory as the original image, if possible
+        // path ends with ".pyramid"; the new metadata file will end with ".pyr"
+        QString secondMetadataFilename = QString(imagePyramidPath.c_str());
+        int amidLastIndex = secondMetadataFilename.lastIndexOf("amid");
+
+        secondMetadataFilename.truncate(amidLastIndex);
+
+        std::ofstream secondOfs(secondMetadataFilename.toStdString().c_str());
+
+        if(secondOfs.good() == true)
+        {
+            secondOfs << imagePyramidPath << " " << imageWidth_ << " " << imageHeight_;
+        }
+        else
+        {
+            put_flog(LOG_WARN, "could not write second metadata file %s", secondMetadataFilename.toStdString().c_str());
+        }
     }
 
     // generate this object's image and write to disk
