@@ -3,6 +3,8 @@
 #include "Movie.h"
 #include "ContentWindowManager.h"
 
+BOOST_CLASS_EXPORT_GUID(MovieContent, "MovieContent")
+
 void MovieContent::getFactoryObjectDimensions(int &width, int &height)
 {
     g_mainWindow->getGLWindow()->getMovieFactory().getObject(getURI())->getDimensions(width, height);

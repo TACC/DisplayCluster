@@ -27,6 +27,4 @@ class MovieContent : public Content {
         void renderFactoryObject(float tX, float tY, float tW, float tH);
 };
 
-BOOST_CLASS_EXPORT_GUID(MovieContent, "MovieContent")
-
 #endif

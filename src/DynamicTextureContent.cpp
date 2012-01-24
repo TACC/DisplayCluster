@@ -2,6 +2,8 @@
 #include "main.h"
 #include "DynamicTexture.h"
 
+BOOST_CLASS_EXPORT_GUID(DynamicTextureContent, "DynamicTextureContent")
+
 void DynamicTextureContent::advance(boost::shared_ptr<ContentWindowManager> window)
 {
     // recall that advance() is called after rendering and before g_frameCount is incremented for the current frame
