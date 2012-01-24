@@ -25,6 +25,4 @@ class TextureContent : public Content {
         void renderFactoryObject(float tX, float tY, float tW, float tH);
 };
 
-BOOST_CLASS_EXPORT_GUID(TextureContent, "TextureContent")
-
 #endif
