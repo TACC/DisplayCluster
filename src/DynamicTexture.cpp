@@ -4,6 +4,8 @@
 #include "log.h"
 #include <algorithm>
 #include <fstream>
+#include <string>
+#include <boost/tokenizer.hpp>
 
 #ifdef __APPLE__
     #include <OpenGL/glu.h>
@@ -50,7 +52,31 @@ DynamicTexture::DynamicTexture(std::string uri, boost::shared_ptr<DynamicTexture
         if(uri.find(".pyr") != std::string::npos)
         {
             std::ifstream ifs(uri.c_str());
-            ifs >> imagePyramidPath_ >> imageWidth_ >> imageHeight_;
+
+            // read the whole line
+            std::string lineString;
+            getline(ifs, lineString);
+
+            // parse the arguments, allowing escaped characters, quotes, etc., and assign them to a vector
+            std::string separator1("\\"); // allow escaped characters
+            std::string separator2(" "); // split on spaces
+            std::string separator3("\"\'"); // allow quoted arguments
+
+            boost::escaped_list_separator<char> els(separator1, separator2, separator3);
+            boost::tokenizer<boost::escaped_list_separator<char> > tok(lineString, els);
+
+            std::vector<std::string> tokVector;
+            tokVector.assign(tok.begin(), tok.end());
+
+            if(tokVector.size() < 3)
+            {
+                put_flog(LOG_ERROR, "require 3 arguments, got %i", tokVector.size());
+                return;
+            }
+
+            imagePyramidPath_ = tokVector[0];
+            imageWidth_ = atoi(tokVector[1].c_str());
+            imageHeight_ = atoi(tokVector[2].c_str());
 
             useImagePyramid_ = true;
 
@@ -375,7 +401,7 @@ void DynamicTexture::computeImagePyramid(std::string imagePyramidPath)
         std::string metadataFilename = imagePyramidPath + "/pyramid.pyr";
 
         std::ofstream ofs(metadataFilename.c_str());
-        ofs << imagePyramidPath << " " << imageWidth_ << " " << imageHeight_;
+        ofs << "\"" << imagePyramidPath << "\" " << imageWidth_ << " " << imageHeight_;
 
         // write a more conveniently named metadata file in the same directory as the original image, if possible
         // path ends with ".pyramid"; the new metadata file will end with ".pyr"
@@ -388,7 +414,7 @@ void DynamicTexture::computeImagePyramid(std::string imagePyramidPath)
 
         if(secondOfs.good() == true)
         {
-            secondOfs << imagePyramidPath << " " << imageWidth_ << " " << imageHeight_;
+            secondOfs << "\"" << imagePyramidPath << "\" " << imageWidth_ << " " << imageHeight_;
         }
         else
         {
