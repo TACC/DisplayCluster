@@ -102,6 +102,13 @@ MainWindow::MainWindow()
         showTestPatternAction->setChecked(g_displayGroupManager->getOptions()->getShowTestPattern());
         connect(showTestPatternAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowTestPattern(bool)));
 
+        // enable mullion compensation action
+        QAction * enableMullionCompensationAction = new QAction("Enable Mullion Compensation", this);
+        enableMullionCompensationAction->setStatusTip("Enable mullion compensation");
+        enableMullionCompensationAction->setCheckable(true);
+        enableMullionCompensationAction->setChecked(g_displayGroupManager->getOptions()->getEnableMullionCompensation());
+        connect(enableMullionCompensationAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setEnableMullionCompensation(bool)));
+
         // add actions to menus
         fileMenu->addAction(openContentAction);
         fileMenu->addAction(openContentsDirectoryAction);
@@ -113,6 +120,8 @@ MainWindow::MainWindow()
         viewMenu->addAction(constrainAspectRatioAction);
         viewMenu->addAction(showWindowBordersAction);
         viewMenu->addAction(showTestPatternAction);
+        viewMenu->addAction(enableMullionCompensationAction);
+
 #if ENABLE_PYTHON_SUPPORT
         windowMenu->addAction(pythonConsoleAction);
 #endif

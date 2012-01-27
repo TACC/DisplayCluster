@@ -7,6 +7,7 @@
 class DisplayGroupGraphicsView;
 
 class DisplayGroupGraphicsViewProxy : public DisplayGroupInterface {
+    Q_OBJECT
 
     public:
 
@@ -19,6 +20,10 @@ class DisplayGroupGraphicsViewProxy : public DisplayGroupInterface {
         void addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
         void removeContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
         void moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
+
+    public slots:
+
+        void optionsUpdated();
 
     private:
 

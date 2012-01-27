@@ -13,9 +13,6 @@
 
 GLWindow::GLWindow(int tileIndex)
 {
-    // defaults
-    viewInitialized_ = false;
-
     tileIndex_ = tileIndex;
 
     // disable automatic buffer swapping
@@ -24,9 +21,6 @@ GLWindow::GLWindow(int tileIndex)
 
 GLWindow::GLWindow(int tileIndex, QRect windowRect, QGLWidget * shareWidget) : QGLWidget(0, shareWidget)
 {
-    // defaults
-    viewInitialized_ = false;
-
     tileIndex_ = tileIndex;
     setGeometry(windowRect);
 
@@ -128,46 +122,41 @@ void GLWindow::setOrthographicView()
     // invert y-axis to put origin at lower-left corner
     glScalef(1.,-1.,1.);
 
-    // compute view bounds if view has not been initialized
-    if(viewInitialized_ == false)
+    // compute view bounds
+    if(g_mpiRank == 0)
     {
-        if(g_mpiRank == 0)
-        {
-            left_ = 0.;
-            right_ = 1.;
-            bottom_ = 0.;
-            top_ = 1.;
-        }
-        else
-        {
-            // tiled display parameters
-            double tileI = (double)g_configuration->getTileI(tileIndex_);
-            double numTilesWidth = (double)g_configuration->getNumTilesWidth();
-            double screenWidth = (double)g_configuration->getScreenWidth();
-            double mullionWidth = (double)g_configuration->getMullionWidth();
+        left_ = 0.;
+        right_ = 1.;
+        bottom_ = 0.;
+        top_ = 1.;
+    }
+    else
+    {
+        // tiled display parameters
+        double tileI = (double)g_configuration->getTileI(tileIndex_);
+        double numTilesWidth = (double)g_configuration->getNumTilesWidth();
+        double screenWidth = (double)g_configuration->getScreenWidth();
+        double mullionWidth = (double)g_configuration->getMullionWidth();
 
-            double tileJ = (double)g_configuration->getTileJ(tileIndex_);
-            double numTilesHeight = (double)g_configuration->getNumTilesHeight();
-            double screenHeight = (double)g_configuration->getScreenHeight();
-            double mullionHeight = (double)g_configuration->getMullionHeight();
+        double tileJ = (double)g_configuration->getTileJ(tileIndex_);
+        double numTilesHeight = (double)g_configuration->getNumTilesHeight();
+        double screenHeight = (double)g_configuration->getScreenHeight();
+        double mullionHeight = (double)g_configuration->getMullionHeight();
 
-            // border calculations
-            left_ = tileI / numTilesWidth * ( numTilesWidth * screenWidth ) + tileI * mullionWidth;
-            right_ = left_ + screenWidth;
-            bottom_ = tileJ / numTilesHeight * ( numTilesHeight * screenHeight ) + tileJ * mullionHeight;
-            top_ = bottom_ + screenHeight;
+        // border calculations
+        left_ = tileI / numTilesWidth * ( numTilesWidth * screenWidth ) + tileI * mullionWidth;
+        right_ = left_ + screenWidth;
+        bottom_ = tileJ / numTilesHeight * ( numTilesHeight * screenHeight ) + tileJ * mullionHeight;
+        top_ = bottom_ + screenHeight;
 
-            // normalize to 0->1
-            double totalWidth = (double)g_configuration->getTotalWidth();
-            double totalHeight = (double)g_configuration->getTotalHeight();
+        // normalize to 0->1
+        double totalWidth = (double)g_configuration->getTotalWidth();
+        double totalHeight = (double)g_configuration->getTotalHeight();
 
-            left_ /= totalWidth;
-            right_ /= totalWidth;
-            bottom_ /= totalHeight;
-            top_ /= totalHeight;
-        }
-
-        viewInitialized_ = true;
+        left_ /= totalWidth;
+        right_ /= totalWidth;
+        bottom_ /= totalHeight;
+        top_ /= totalHeight;
     }
 
     gluOrtho2D(left_, right_, bottom_, top_);

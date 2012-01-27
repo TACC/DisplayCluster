@@ -139,12 +139,26 @@ int Configuration::getScreenHeight()
 
 int Configuration::getMullionWidth()
 {
-    return mullionWidth_;
+    if(g_displayGroupManager->getOptions()->getEnableMullionCompensation() == true)
+    {
+        return mullionWidth_;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 int Configuration::getMullionHeight()
 {
-    return mullionHeight_;
+    if(g_displayGroupManager->getOptions()->getEnableMullionCompensation() == true)
+    {
+        return mullionHeight_;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 bool Configuration::getFullscreen()
@@ -154,12 +168,12 @@ bool Configuration::getFullscreen()
 
 int Configuration::getTotalWidth()
 {
-    return numTilesWidth_ * screenWidth_ + (numTilesWidth_ - 1) * mullionWidth_;
+    return numTilesWidth_ * screenWidth_ + (numTilesWidth_ - 1) * getMullionWidth();
 }
 
 int Configuration::getTotalHeight()
 {
-    return numTilesHeight_ * screenHeight_ + (numTilesHeight_ - 1) * mullionHeight_;
+    return numTilesHeight_ * screenHeight_ + (numTilesHeight_ - 1) * getMullionHeight();
 }
 
 std::string Configuration::getMyHost()

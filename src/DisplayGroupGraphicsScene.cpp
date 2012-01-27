@@ -6,6 +6,18 @@ DisplayGroupGraphicsScene::DisplayGroupGraphicsScene()
 {
     setSceneRect(0., 0., 1., 1.);
 
+    // for the tiled display
+    addRect(0., 0., 1., 1.);
+
+    // add rectangles for the tiles
+    refreshTileRects();
+
+    // get marker for this scene
+    marker_ = g_displayGroupManager->getNewMarker();
+}
+
+void DisplayGroupGraphicsScene::refreshTileRects()
+{
     // add rectangles for tiled display and each monitor
 
     // tiled display parameters
@@ -29,7 +41,13 @@ DisplayGroupGraphicsScene::DisplayGroupGraphicsScene()
     // fill color / opacity
     QBrush brush = QBrush(QColor(0, 0, 0, 32));
 
-    addRect(0., 0., 1., 1., pen);
+    // clear existing tile rects
+    for(unsigned int i=0; i<tileRects_.size(); i++)
+    {
+        delete tileRects_[i];
+    }
+
+    tileRects_.clear();
 
     for(int i=0; i<numTilesWidth; i++)
     {
@@ -47,12 +65,9 @@ DisplayGroupGraphicsScene::DisplayGroupGraphicsScene()
             bottom /= (double)totalHeight;
             top /= (double)totalHeight;
 
-            addRect(left, bottom, right-left, top-bottom, pen, brush);
+            tileRects_.push_back(addRect(left, bottom, right-left, top-bottom, pen, brush));
         }
     }
-
-    // get marker for this scene
-    marker_ = g_displayGroupManager->getNewMarker();
 }
 
 void DisplayGroupGraphicsScene::mouseMoveEvent(QGraphicsSceneMouseEvent * event)

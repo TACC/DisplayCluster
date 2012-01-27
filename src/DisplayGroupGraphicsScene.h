@@ -3,6 +3,7 @@
 
 #include <QtGui>
 #include <boost/shared_ptr.hpp>
+#include <vector>
 
 class Marker;
 
@@ -11,6 +12,8 @@ class DisplayGroupGraphicsScene : public QGraphicsScene {
     public:
 
         DisplayGroupGraphicsScene();
+
+        void refreshTileRects();
 
     protected:
 
@@ -21,6 +24,8 @@ class DisplayGroupGraphicsScene : public QGraphicsScene {
     private:
 
         boost::shared_ptr<Marker> marker_;
+
+        std::vector<QGraphicsRectItem *> tileRects_;
 };
 
 #endif

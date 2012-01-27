@@ -1,5 +1,7 @@
 #include "DisplayGroupGraphicsViewProxy.h"
 #include "DisplayGroupGraphicsView.h"
+#include "DisplayGroupGraphicsScene.h"
+#include "DisplayGroupManager.h"
 #include "ContentWindowManager.h"
 #include "ContentWindowGraphicsItem.h"
 
@@ -7,6 +9,9 @@ DisplayGroupGraphicsViewProxy::DisplayGroupGraphicsViewProxy(boost::shared_ptr<D
 {
     // create actual graphics view
     graphicsView_ = new DisplayGroupGraphicsView();
+
+    // connect Options updated signal
+    connect(displayGroupManager->getOptions().get(), SIGNAL(updated()), this, SLOT(optionsUpdated()));
 }
 
 DisplayGroupGraphicsViewProxy::~DisplayGroupGraphicsViewProxy()
@@ -73,4 +78,10 @@ void DisplayGroupGraphicsViewProxy::moveContentWindowManagerToFront(boost::share
             }
         }
     }
+}
+
+void DisplayGroupGraphicsViewProxy::optionsUpdated()
+{
+    // mullion compensation may have been enabled or disabled, so refresh the tiled display rectangles
+    ((DisplayGroupGraphicsScene *)(graphicsView_->scene()))->refreshTileRects();
 }

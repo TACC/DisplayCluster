@@ -37,8 +37,6 @@ class GLWindow : public QGLWidget
 
         int tileIndex_;
 
-        bool viewInitialized_;
-
         double left_;
         double right_;
         double bottom_;

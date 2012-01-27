@@ -4,6 +4,7 @@ Options::Options()
 {
     showWindowBorders_ = true;
     showTestPattern_ = false;
+    enableMullionCompensation_ = true;
 }
 
 bool Options::getShowWindowBorders()
@@ -16,6 +17,11 @@ bool Options::getShowTestPattern()
     return showTestPattern_;
 }
 
+bool Options::getEnableMullionCompensation()
+{
+    return enableMullionCompensation_;
+}
+
 void Options::setShowWindowBorders(bool set)
 {
     showWindowBorders_ = set;
@@ -26,6 +32,13 @@ void Options::setShowWindowBorders(bool set)
 void Options::setShowTestPattern(bool set)
 {
     showTestPattern_ = set;
+
+    emit(updated());
+}
+
+bool Options::setEnableMullionCompensation(bool set)
+{
+    enableMullionCompensation_ = set;
 
     emit(updated());
 }

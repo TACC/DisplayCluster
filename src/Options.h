@@ -13,10 +13,12 @@ class Options : public QObject {
 
         bool getShowWindowBorders();
         bool getShowTestPattern();
+        bool getEnableMullionCompensation();
 
     public slots:
         void setShowWindowBorders(bool set);
         void setShowTestPattern(bool set);
+        bool setEnableMullionCompensation(bool set);
 
     signals:
         void updated();
@@ -29,10 +31,12 @@ class Options : public QObject {
         {
             ar & showWindowBorders_;
             ar & showTestPattern_;
+            ar & enableMullionCompensation_;
         }
 
         bool showWindowBorders_;
         bool showTestPattern_;
+        bool enableMullionCompensation_;
 };
 
 #endif

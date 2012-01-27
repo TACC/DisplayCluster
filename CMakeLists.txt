@@ -136,6 +136,7 @@ if(BUILD_DISPLAYCLUSTER)
         src/ContentWindowInterface.h
         src/DisplayGroupManager.h
         src/DisplayGroupInterface.h
+        src/DisplayGroupGraphicsViewProxy.h
         src/MainWindow.h
         src/Marker.h
         src/NetworkListener.h
