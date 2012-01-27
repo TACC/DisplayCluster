@@ -50,6 +50,20 @@ class pyDisplayGroupPython
             get()->moveContentWindowManagerToFront(pcwm.get());
         }
 
+        void saveState(const char * filename)
+        {
+            std::string filenameString(filename);
+
+            get()->saveState(filenameString);
+        }
+
+        void loadState(const char * filename)
+        {
+            std::string filenameString(filename);
+
+            get()->loadState(filenameString);
+        }
+
         int getNumContentWindowManagers()
         {
             return get()->getContentWindowManagers().size();

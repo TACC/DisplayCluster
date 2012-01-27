@@ -26,8 +26,8 @@ class MainWindow : public QMainWindow {
         void openContent();
         void openContentsDirectory();
         void clearContents();
-        void saveContents();
-        void loadContents();
+        void saveState();
+        void loadState();
         void computeImagePyramid();
         void constrainAspectRatio(bool set);
 

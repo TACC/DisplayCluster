@@ -19,6 +19,8 @@ class pyDisplayGroupPython
     void addContentWindowManager(const pyContentWindowManager &);
     void removeContentWindowManager(const pyContentWindowManager &);
     void moveContentWindowManagerToFront(const pyContentWindowManager &);
+    void saveState(const char * filename);
+    void loadState(const char * filename);
 
     int getNumContentWindowManagers();
     pyContentWindowManager getPyContentWindowManager(int);

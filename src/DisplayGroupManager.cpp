@@ -11,7 +11,10 @@
 #include <boost/serialization/shared_ptr.hpp>
 #include <boost/serialization/utility.hpp>
 #include <boost/date_time/posix_time/time_serialize.hpp>
+#include <boost/algorithm/string.hpp>
 #include <mpi.h>
+#include <QDomDocument>
+#include <fstream>
 
 DisplayGroupManager::DisplayGroupManager()
 {
@@ -176,6 +179,269 @@ void DisplayGroupManager::calibrateTimestampOffset()
 
         put_flog(LOG_DEBUG, "timestamp offset = %s", (boost::posix_time::to_simple_string(timestampOffset_)).c_str());
     }
+}
+
+bool DisplayGroupManager::saveStateXMLFile(std::string filename)
+{
+    // get contents vector
+    std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers = getContentWindowManagers();
+
+    // save as XML
+    QDomDocument doc("state");
+    QDomElement root = doc.createElement("state");
+    doc.appendChild(root);
+
+    // version number
+    int version = CONTENTS_FILE_VERSION_NUMBER;
+
+    QDomElement v = doc.createElement("version");
+    v.appendChild(doc.createTextNode(QString::number(version)));
+    root.appendChild(v);
+
+    for(unsigned int i=0; i<contentWindowManagers.size(); i++)
+    {
+        // get values
+        std::string uri = contentWindowManagers[i]->getContent()->getURI();
+
+        double x, y, w, h;
+        contentWindowManagers[i]->getCoordinates(x, y, w, h);
+
+        double centerX, centerY;
+        contentWindowManagers[i]->getCenter(centerX, centerY);
+
+        double zoom = contentWindowManagers[i]->getZoom();
+
+        bool selected = contentWindowManagers[i]->getSelected();
+
+        // add the XML node with these values
+        QDomElement cwmNode = doc.createElement("ContentWindow");
+        root.appendChild(cwmNode);
+
+        QDomElement n = doc.createElement("URI");
+        n.appendChild(doc.createTextNode(QString(uri.c_str())));
+        cwmNode.appendChild(n);
+
+        n = doc.createElement("x");
+        n.appendChild(doc.createTextNode(QString::number(x)));
+        cwmNode.appendChild(n);
+
+        n = doc.createElement("y");
+        n.appendChild(doc.createTextNode(QString::number(y)));
+        cwmNode.appendChild(n);
+
+        n = doc.createElement("w");
+        n.appendChild(doc.createTextNode(QString::number(w)));
+        cwmNode.appendChild(n);
+
+        n = doc.createElement("h");
+        n.appendChild(doc.createTextNode(QString::number(h)));
+        cwmNode.appendChild(n);
+
+        n = doc.createElement("centerX");
+        n.appendChild(doc.createTextNode(QString::number(centerX)));
+        cwmNode.appendChild(n);
+
+        n = doc.createElement("centerY");
+        n.appendChild(doc.createTextNode(QString::number(centerY)));
+        cwmNode.appendChild(n);
+
+        n = doc.createElement("zoom");
+        n.appendChild(doc.createTextNode(QString::number(zoom)));
+        cwmNode.appendChild(n);
+
+        n = doc.createElement("selected");
+        n.appendChild(doc.createTextNode(QString::number(selected)));
+        cwmNode.appendChild(n);
+    }
+
+    QString xml = doc.toString();
+
+    std::ofstream ofs(filename.c_str());
+
+    if(ofs.good() == true)
+    {
+        ofs << xml.toStdString();
+        return true;
+    }
+    else
+    {
+        put_flog(LOG_ERROR, "could not write state file");
+        return false;
+    }
+}
+
+bool DisplayGroupManager::loadStateXMLFile(std::string filename)
+{
+    QXmlQuery query;
+
+    if(query.setFocus(QUrl(filename.c_str())) == false)
+    {
+        put_flog(LOG_ERROR, "failed to load %s", filename.c_str());
+        return false;
+    }
+
+    // temp
+    QString qstring;
+
+    // get version; we don't do anything with it now but may in the future
+    int version = -1;
+    query.setQuery("string(/state/version)");
+
+    if(query.evaluateTo(&qstring) == true)
+    {
+        version = qstring.toInt();
+    }
+
+    // get number of content windows
+    int numContentWindows = 0;
+    query.setQuery("string(count(//state/ContentWindow))");
+
+    if(query.evaluateTo(&qstring) == true)
+    {
+        numContentWindows = qstring.toInt();
+    }
+
+    put_flog(LOG_INFO, "%i content windows", numContentWindows);
+
+    // new contents vector
+    std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers;
+
+    for(int i=1; i<=numContentWindows; i++)
+    {
+        char string[1024];
+
+        std::string uri;
+        sprintf(string, "string(//state/ContentWindow[%i]/URI)", i);
+        query.setQuery(string);
+
+        if(query.evaluateTo(&qstring) == true)
+        {
+            uri = qstring.toStdString();
+
+            // remove any whitespace
+            boost::trim(uri);
+
+            put_flog(LOG_DEBUG, "found content window with URI %s", uri.c_str());
+        }
+
+        double x, y, w, h, centerX, centerY, zoom;
+        x = y = w = h = centerX = centerY = zoom = -1.;
+
+        bool selected = false;
+
+        sprintf(string, "string(//state/ContentWindow[%i]/x)", i);
+        query.setQuery(string);
+
+        if(query.evaluateTo(&qstring) == true)
+        {
+            x = qstring.toDouble();
+        }
+
+        sprintf(string, "string(//state/ContentWindow[%i]/y)", i);
+        query.setQuery(string);
+
+        if(query.evaluateTo(&qstring) == true)
+        {
+            y = qstring.toDouble();
+        }
+
+        sprintf(string, "string(//state/ContentWindow[%i]/w)", i);
+        query.setQuery(string);
+
+        if(query.evaluateTo(&qstring) == true)
+        {
+            w = qstring.toDouble();
+        }
+
+        sprintf(string, "string(//state/ContentWindow[%i]/h)", i);
+        query.setQuery(string);
+
+        if(query.evaluateTo(&qstring) == true)
+        {
+            h = qstring.toDouble();
+        }
+
+        sprintf(string, "string(//state/ContentWindow[%i]/centerX)", i);
+        query.setQuery(string);
+
+        if(query.evaluateTo(&qstring) == true)
+        {
+            centerX = qstring.toDouble();
+        }
+
+        sprintf(string, "string(//state/ContentWindow[%i]/centerY)", i);
+        query.setQuery(string);
+
+        if(query.evaluateTo(&qstring) == true)
+        {
+            centerY = qstring.toDouble();
+        }
+
+        sprintf(string, "string(//state/ContentWindow[%i]/zoom)", i);
+        query.setQuery(string);
+
+        if(query.evaluateTo(&qstring) == true)
+        {
+            zoom = qstring.toDouble();
+        }
+
+        sprintf(string, "string(//state/ContentWindow[%i]/selected)", i);
+        query.setQuery(string);
+
+        if(query.evaluateTo(&qstring) == true)
+        {
+            selected = (bool)qstring.toInt();
+        }
+
+        // add the window if we have a valid URI
+        if(uri.empty() == false)
+        {
+            boost::shared_ptr<Content> c = Content::getContent(uri);
+
+            if(c != NULL)
+            {
+                boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
+
+                contentWindowManagers.push_back(cwm);
+
+                // now, apply settings if we got them from the XML file
+                if(x != -1. || y != -1.)
+                {
+                    cwm->setPosition(x, y);
+                }
+
+                if(w != -1. || h != -1.)
+                {
+                    cwm->setSize(w, h);
+                }
+
+                // zoom needs to be set before center because of clamping
+                if(zoom != -1.)
+                {
+                    cwm->setZoom(zoom);
+                }
+
+                if(centerX != -1. || centerY != -1.)
+                {
+                    cwm->setCenter(centerX, centerY);
+                }
+
+                cwm->setSelected(selected);
+            }
+        }
+    }
+
+    if(contentWindowManagers.size() > 0)
+    {
+        // assign new contents vector to display group
+        setContentWindowManagers(contentWindowManagers);
+    }
+    else
+    {
+        put_flog(LOG_WARN, "no content windows specified in the state file");
+    }
+
+    return true;
 }
 
 void DisplayGroupManager::receiveMessages()

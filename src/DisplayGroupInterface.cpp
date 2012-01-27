@@ -2,6 +2,7 @@
 #include "DisplayGroupManager.h"
 #include "ContentWindowManager.h"
 #include "Content.h"
+#include "main.h"
 
 DisplayGroupInterface::DisplayGroupInterface(boost::shared_ptr<DisplayGroupManager> displayGroupManager)
 {
@@ -13,17 +14,24 @@ DisplayGroupInterface::DisplayGroupInterface(boost::shared_ptr<DisplayGroupManag
         contentWindowManagers_ = displayGroupManager->contentWindowManagers_;
     }
 
+    // needed for state saving / loading signals and slots
+    qRegisterMetaType<std::string>("std::string");
+
     // connect signals from this to slots on the DisplayGroupManager
     // use queued connections for thread-safety
     connect(this, SIGNAL(contentWindowManagerAdded(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), displayGroupManager.get(), SLOT(addContentWindowManager(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), Qt::QueuedConnection);
     connect(this, SIGNAL(contentWindowManagerRemoved(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), displayGroupManager.get(), SLOT(removeContentWindowManager(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), Qt::QueuedConnection);
     connect(this, SIGNAL(contentWindowManagerMovedToFront(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), displayGroupManager.get(), SLOT(moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect(this, SIGNAL(stateSaved(std::string, DisplayGroupInterface *)), displayGroupManager.get(), SLOT(saveState(std::string, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect(this, SIGNAL(stateLoaded(std::string, DisplayGroupInterface *)), displayGroupManager.get(), SLOT(loadState(std::string, DisplayGroupInterface *)), Qt::QueuedConnection);
 
     // connect signals on the DisplayGroupManager to slots on this
     // use queued connections for thread-safety
     connect(displayGroupManager.get(), SIGNAL(contentWindowManagerAdded(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), this, SLOT(addContentWindowManager(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), Qt::QueuedConnection);
     connect(displayGroupManager.get(), SIGNAL(contentWindowManagerRemoved(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), this, SLOT(removeContentWindowManager(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), Qt::QueuedConnection);
     connect(displayGroupManager.get(), SIGNAL(contentWindowManagerMovedToFront(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), this, SLOT(moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect(displayGroupManager.get(), SIGNAL(stateSaved(std::string, DisplayGroupInterface *)), this, SLOT(saveState(std::string, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect(displayGroupManager.get(), SIGNAL(stateLoaded(std::string, DisplayGroupInterface *)), this, SLOT(loadState(std::string, DisplayGroupInterface *)), Qt::QueuedConnection);
 
     // destruction
     connect(displayGroupManager.get(), SIGNAL(destroyed(QObject *)), this, SLOT(deleteLater()));
@@ -158,5 +166,59 @@ void DisplayGroupInterface::moveContentWindowManagerToFront(boost::shared_ptr<Co
         }
 
         emit(contentWindowManagerMovedToFront(contentWindowManager, source));
+    }
+}
+
+void DisplayGroupInterface::saveState(std::string filename, DisplayGroupInterface * source)
+{
+    if(source == this)
+    {
+        return;
+    }
+
+    // only do the actual state saving if we're the DisplayGroupManager
+    // we'll let the other DisplayGroupInterfaces know about the signal anyway though
+    DisplayGroupManager * dgm = dynamic_cast<DisplayGroupManager *>(this);
+
+    if(dgm != NULL)
+    {
+        dgm->saveStateXMLFile(filename);
+    }
+
+    if(source == NULL || dynamic_cast<DisplayGroupManager *>(this) != NULL)
+    {
+        if(source == NULL)
+        {
+            source = this;
+        }
+
+        emit(stateSaved(filename, source));
+    }
+}
+
+void DisplayGroupInterface::loadState(std::string filename, DisplayGroupInterface * source)
+{
+    if(source == this)
+    {
+        return;
+    }
+
+    // only do the actual state loading if we're the DisplayGroupManager
+    // we'll let the other DisplayGroupInterfaces know about the signal anyway though
+    DisplayGroupManager * dgm = dynamic_cast<DisplayGroupManager *>(this);
+
+    if(dgm != NULL)
+    {
+        dgm->loadStateXMLFile(filename);
+    }
+
+    if(source == NULL || dynamic_cast<DisplayGroupManager *>(this) != NULL)
+    {
+        if(source == NULL)
+        {
+            source = this;
+        }
+
+        emit(stateLoaded(filename, source));
     }
 }

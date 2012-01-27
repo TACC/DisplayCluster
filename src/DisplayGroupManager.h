@@ -39,6 +39,9 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
 
     public slots:
 
+        bool saveStateXMLFile(std::string filename);
+        bool loadStateXMLFile(std::string filename);
+
         void receiveMessages();
 
         void sendDisplayGroup();
