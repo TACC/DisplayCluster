@@ -2,7 +2,7 @@ import os
 import time
 from pydc import *
 
-c = pyContent(os.environ['DISPLAYCLUSTER_DIR'] + "/examples/grandpa.jpg")
+c = pyContent(os.environ['DISPLAYCLUSTER_DIR'] + "/examples/pong.jpg")
 cw = pyContentWindowManager(c)
 dg = pyDisplayGroupPython()
 dg.addContentWindowManager(cw)
