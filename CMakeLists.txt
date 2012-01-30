@@ -175,6 +175,9 @@ if(BUILD_DISPLAYCLUSTER)
     # install example files
     INSTALL(DIRECTORY examples DESTINATION .)
 
+    # install doc files
+    INSTALL(DIRECTORY doc DESTINATION .)
+
     # install Python module
     if(ENABLE_PYTHON_SUPPORT)
         INSTALL(FILES ${CMAKE_BINARY_DIR}/pydc.so DESTINATION python)
