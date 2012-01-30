@@ -18,7 +18,7 @@ class Options : public QObject {
     public slots:
         void setShowWindowBorders(bool set);
         void setShowTestPattern(bool set);
-        bool setEnableMullionCompensation(bool set);
+        void setEnableMullionCompensation(bool set);
 
     signals:
         void updated();

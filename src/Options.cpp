@@ -36,7 +36,7 @@ void Options::setShowTestPattern(bool set)
     emit(updated());
 }
 
-bool Options::setEnableMullionCompensation(bool set)
+void Options::setEnableMullionCompensation(bool set)
 {
     enableMullionCompensation_ = set;
 
