@@ -39,7 +39,7 @@
 #ifndef JOYSTICK_THREAD_H
 #define JOYSTICK_THREAD_H
 
-#define JOYSTICK_AXIS_THRESHHOLD 5000 // of max range 32768
+#define JOYSTICK_AXIS_THRESHHOLD 10000 // of max range 32768
 #define JOYSTICK_AXIS_SCALE (5.0 * 32768.0) // can move across the whole screen (left-right) in 5s
 #define JOYSTICK_ZOOM_FACTOR 0.02
 #define JOYSTICK_SCALE_SIZE_FACTOR 0.02
@@ -63,13 +63,25 @@ struct JoystickState {
 
     void reset()
     {
+        supported = true;
         button1 = 0;
         clickedWindow = boost::shared_ptr<ContentWindowInterface>();
         resizing = false;
     }
 
+    // joystick name
+    QString name;
+
+    // whether this joystick is supported or not
+    bool supported;
+
+    // cursor click
     int button1;
+
+    // currently clicked window
     boost::shared_ptr<ContentWindowInterface> clickedWindow;
+
+    // resizing status of window
     bool resizing;
 };
 

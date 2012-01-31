@@ -105,89 +105,76 @@ void JoystickThread::updateJoysticks()
     // update state of all joysticks
     SDL_JoystickUpdate();
 
-    for(unsigned int i=0; i<joysticks_.size(); i++)
+    for(unsigned int index=0; index<joysticks_.size(); index++)
     {
-        // see if we clicked any buttons on the window
-        int button1 = SDL_JoystickGetButton(joysticks_[i], 0);
-
-        if(button1 == 1 && states_[i].button1 == 0)
+        // save name of joystick
+        if(states_[index].name.isEmpty() == true)
         {
-            // we have a click
-            states_[i].clickedWindow = displayGroupJoysticks_[i]->getContentWindowInterfaceUnderMarker();
-
-            if(states_[i].clickedWindow != NULL)
-            {
-                // button dimensions
-                float buttonWidth, buttonHeight;
-                states_[i].clickedWindow->getButtonDimensions(buttonWidth, buttonHeight);
-
-                // item rectangle and event position
-                double x,y,w,h;
-                states_[i].clickedWindow->getCoordinates(x,y,w,h);
-                QRectF r(x,y,w,h);
-
-                float markerX, markerY;
-                displayGroupJoysticks_[i]->getMarker()->getPosition(markerX, markerY);
-                QPointF markerPos(markerX, markerY);
-
-                // check to see if user clicked on the close button
-                if(fabs((r.x()+r.width()) - markerPos.x()) <= buttonWidth && fabs((r.y()) - markerPos.y()) <= buttonHeight)
-                {
-                    states_[i].clickedWindow->close();
-                    states_[i].reset();
-                    break;
-                }
-
-                // check to see if user clicked on the resize button
-                if(fabs((r.x()+r.width()) - markerPos.x()) <= buttonWidth && fabs((r.y()+r.height()) - markerPos.y()) <= buttonHeight)
-                {
-                    states_[i].resizing = true;
-                }
-
-                // move to the front
-                states_[i].clickedWindow->moveToFront();
-            }
-        }
-        else if(button1 == 0 && states_[i].button1 == 1)
-        {
-            // unclick, reset the state
-            states_[i].reset();
+            states_[index].name = QString(SDL_JoystickName(index));
         }
 
-        // save previous button state
-        states_[i].button1 = button1;
-
-        // handle motion of marker
-        int axis0 = SDL_JoystickGetAxis(joysticks_[i], 0);
-        int axis1 = SDL_JoystickGetAxis(joysticks_[i], 1);
-
-        // set to 0 if below threshhold
-        if(abs(axis0) < JOYSTICK_AXIS_THRESHHOLD)
+        // make sure we have a supported joystick
+        if(states_[index].supported == false)
         {
-            axis0 = 0;
+            break;
         }
 
+        // get updated state
+
+        // cursor movement up-down and left-right: axis1, axis2
+        // panning up-down and left-right: axis3, axis4
+        // cursor click: button1
+        // zoom out and in: button2, button3
+        // scale down and up: button4, button5
+        int axis1, axis2, axis3, axis4;
+        int button1, button2, button3, button4, button5;
+
+        if(states_[index].name.contains("Logitech") == true)
+        {
+            axis1 = SDL_JoystickGetAxis(joysticks_[index], 1);
+            axis2 = SDL_JoystickGetAxis(joysticks_[index], 0);
+
+            axis3 = SDL_JoystickGetAxis(joysticks_[index], 3);
+            axis4 = SDL_JoystickGetAxis(joysticks_[index], 2);
+
+            button1 = SDL_JoystickGetButton(joysticks_[index], 0);
+
+            button2 = SDL_JoystickGetButton(joysticks_[index], 4);
+            button3 = SDL_JoystickGetButton(joysticks_[index], 5);
+            button4 = SDL_JoystickGetButton(joysticks_[index], 6);
+            button5 = SDL_JoystickGetButton(joysticks_[index], 7);
+        }
+        else if(states_[index].name.contains("Xbox") == true)
+        {
+            axis1 = SDL_JoystickGetAxis(joysticks_[index], 1);
+            axis2 = SDL_JoystickGetAxis(joysticks_[index], 0);
+
+            axis3 = SDL_JoystickGetAxis(joysticks_[index], 4);
+            axis4 = SDL_JoystickGetAxis(joysticks_[index], 3);
+
+            button1 = SDL_JoystickGetButton(joysticks_[index], 2);
+
+            button2 = SDL_JoystickGetButton(joysticks_[index], 4);
+            button3 = SDL_JoystickGetButton(joysticks_[index], 5);
+
+            button4 = (SDL_JoystickGetAxis(joysticks_[index], 2) > JOYSTICK_AXIS_THRESHHOLD) ? 1 : 0;
+            button5 = (SDL_JoystickGetAxis(joysticks_[index], 5) > JOYSTICK_AXIS_THRESHHOLD) ? 1 : 0;
+        }
+        else
+        {
+            put_flog(LOG_ERROR, "unknown joystick type %s", states_[index].name.toStdString().c_str());
+
+            states_[index].supported = false;
+
+            break;
+        }
+
+        // axis threshholds
         if(abs(axis1) < JOYSTICK_AXIS_THRESHHOLD)
         {
             axis1 = 0;
         }
 
-        if(axis0 != 0 || axis1 != 0)
-        {
-            // elapsed time, clamping to a maximum of 0.1s
-            float dt = std::min(0.1, ((float)tick2_ - (float)tick1_) / 1000.);
-
-            // aspect ratio to scale movements correctly between left-right and up-down
-            float tiledDisplayAspect = (float)g_configuration->getTotalWidth() / (float)g_configuration->getTotalHeight();
-
-            joystickMoveMarker(i, (float)axis0 / JOYSTICK_AXIS_SCALE * dt, (float)axis1 / JOYSTICK_AXIS_SCALE * tiledDisplayAspect * dt);
-        }
-
-        // handle pan motion
-        int axis2 = SDL_JoystickGetAxis(joysticks_[i], 2);
-        int axis3 = SDL_JoystickGetAxis(joysticks_[i], 3);
-
-        // set to 0 if below threshhold
         if(abs(axis2) < JOYSTICK_AXIS_THRESHHOLD)
         {
             axis2 = 0;
@@ -198,46 +185,112 @@ void JoystickThread::updateJoysticks()
             axis3 = 0;
         }
 
-        if(axis2 != 0 || axis3 != 0)
+        if(abs(axis4) < JOYSTICK_AXIS_THRESHHOLD)
+        {
+            axis4 = 0;
+        }
+
+        // see if we clicked any buttons on the window
+        if(button1 == 1 && states_[index].button1 == 0)
+        {
+            // we have a click
+            states_[index].clickedWindow = displayGroupJoysticks_[index]->getContentWindowInterfaceUnderMarker();
+
+            if(states_[index].clickedWindow != NULL)
+            {
+                // button dimensions
+                float buttonWidth, buttonHeight;
+                states_[index].clickedWindow->getButtonDimensions(buttonWidth, buttonHeight);
+
+                // item rectangle and event position
+                double x,y,w,h;
+                states_[index].clickedWindow->getCoordinates(x,y,w,h);
+                QRectF r(x,y,w,h);
+
+                float markerX, markerY;
+                displayGroupJoysticks_[index]->getMarker()->getPosition(markerX, markerY);
+                QPointF markerPos(markerX, markerY);
+
+                // check to see if user clicked on the close button
+                if(fabs((r.x()+r.width()) - markerPos.x()) <= buttonWidth && fabs((r.y()) - markerPos.y()) <= buttonHeight)
+                {
+                    states_[index].clickedWindow->close();
+                    states_[index].reset();
+                    break;
+                }
+
+                // check to see if user clicked on the resize button
+                if(fabs((r.x()+r.width()) - markerPos.x()) <= buttonWidth && fabs((r.y()+r.height()) - markerPos.y()) <= buttonHeight)
+                {
+                    states_[index].resizing = true;
+                }
+
+                // move to the front
+                states_[index].clickedWindow->moveToFront();
+            }
+        }
+        else if(button1 == 0 && states_[index].button1 == 1)
+        {
+            // unclick, reset the state
+            states_[index].reset();
+        }
+
+        // save previous button state
+        states_[index].button1 = button1;
+
+        // handle motion of marker
+        if(axis1 != 0 || axis2 != 0)
         {
             // elapsed time, clamping to a maximum of 0.1s
             float dt = std::min(0.1, ((float)tick2_ - (float)tick1_) / 1000.);
 
-            joystickPan(i, (float)axis2 / JOYSTICK_AXIS_SCALE * dt, (float)axis3 / JOYSTICK_AXIS_SCALE * dt);
+            // aspect ratio to scale movements correctly between left-right and up-down
+            float tiledDisplayAspect = (float)g_configuration->getTotalWidth() / (float)g_configuration->getTotalHeight();
+
+            joystickMoveMarker(index, (float)axis2 / JOYSTICK_AXIS_SCALE * dt, (float)axis1 / JOYSTICK_AXIS_SCALE * tiledDisplayAspect * dt);
+        }
+
+        // handle pan motion
+        if(axis3 != 0 || axis4 != 0)
+        {
+            // elapsed time, clamping to a maximum of 0.1s
+            float dt = std::min(0.1, ((float)tick2_ - (float)tick1_) / 1000.);
+
+            joystickPan(index, (float)axis4 / JOYSTICK_AXIS_SCALE * dt, (float)axis3 / JOYSTICK_AXIS_SCALE * dt);
         }
 
         // handle zoom
         int dir = 0;
 
-        if(SDL_JoystickGetButton(joysticks_[i], 4) == 1)
+        if(button2 == 1)
         {
             dir = 1;
         }
-        else if(SDL_JoystickGetButton(joysticks_[i], 5) == 1)
+        else if(button3 == 1)
         {
             dir = -1;
         }
 
         if(dir != 0)
         {
-            joystickZoom(i, dir);
+            joystickZoom(index, dir);
         }
 
         // handle scaling
         dir = 0;
 
-        if(SDL_JoystickGetButton(joysticks_[i], 6) == 1)
+        if(button4 == 1)
         {
             dir = -1;
         }
-        else if(SDL_JoystickGetButton(joysticks_[i], 7) == 1)
+        else if(button5 == 1)
         {
             dir = 1;
         }
 
         if(dir != 0)
         {
-            joystickScaleSize(i, dir);
+            joystickScaleSize(index, dir);
         }
     }
 
