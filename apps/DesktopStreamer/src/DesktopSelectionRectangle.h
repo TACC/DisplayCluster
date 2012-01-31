@@ -1,12 +1,19 @@
 /*********************************************************************/
-/* Copyright 2011 - 2012  The University of Texas at Austin.         */
+/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
 /* All rights reserved.                                              */
 /*                                                                   */
-/* This is a pre-release version of DisplayCluster. All rights are   */
-/* reserved by the University of Texas at Austin. You may not modify */
-/* or distribute this software without permission from the authors.  */
-/* Refer to the LICENSE file distributed with the software for       */
-/* details.                                                          */
+/* Redistribution and use in source and binary forms, with or        */
+/* without modification, are permitted provided that the following   */
+/* conditions are met:                                               */
+/*                                                                   */
+/*   1. Redistributions of source code must retain the above         */
+/*      copyright notice, this list of conditions and the following  */
+/*      disclaimer.                                                  */
+/*                                                                   */
+/*   2. Redistributions in binary form must reproduce the above      */
+/*      copyright notice, this list of conditions and the following  */
+/*      disclaimer in the documentation and/or other materials       */
+/*      provided with the distribution.                              */
 /*                                                                   */
 /*    THIS  SOFTWARE IS PROVIDED  BY THE  UNIVERSITY OF  TEXAS AT    */
 /*    AUSTIN  ``AS IS''  AND ANY  EXPRESS OR  IMPLIED WARRANTIES,    */
