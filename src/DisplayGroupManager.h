@@ -58,16 +58,6 @@
 
 class ContentWindowManager;
 
-enum MESSAGE_TYPE { MESSAGE_TYPE_CONTENTS, MESSAGE_TYPE_CONTENTS_DIMENSIONS, MESSAGE_TYPE_PIXELSTREAM, MESSAGE_TYPE_FRAME_CLOCK, MESSAGE_TYPE_QUIT, MESSAGE_TYPE_SKELETONS };
-
-#define MESSAGE_HEADER_URI_LENGTH 64
-
-struct MessageHeader {
-    int size;
-    MESSAGE_TYPE type;
-    char uri[MESSAGE_HEADER_URI_LENGTH]; // optional URI related to message. needs to be a fixed size so sizeof(MessageHeader) is constant
-};
-
 class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_shared_from_this<DisplayGroupManager> {
     Q_OBJECT
 
