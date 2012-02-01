@@ -1,3 +1,41 @@
+/*********************************************************************/
+/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* All rights reserved.                                              */
+/*                                                                   */
+/* Redistribution and use in source and binary forms, with or        */
+/* without modification, are permitted provided that the following   */
+/* conditions are met:                                               */
+/*                                                                   */
+/*   1. Redistributions of source code must retain the above         */
+/*      copyright notice, this list of conditions and the following  */
+/*      disclaimer.                                                  */
+/*                                                                   */
+/*   2. Redistributions in binary form must reproduce the above      */
+/*      copyright notice, this list of conditions and the following  */
+/*      disclaimer in the documentation and/or other materials       */
+/*      provided with the distribution.                              */
+/*                                                                   */
+/*    THIS  SOFTWARE IS PROVIDED  BY THE  UNIVERSITY OF  TEXAS AT    */
+/*    AUSTIN  ``AS IS''  AND ANY  EXPRESS OR  IMPLIED WARRANTIES,    */
+/*    INCLUDING, BUT  NOT LIMITED  TO, THE IMPLIED  WARRANTIES OF    */
+/*    MERCHANTABILITY  AND FITNESS FOR  A PARTICULAR  PURPOSE ARE    */
+/*    DISCLAIMED.  IN  NO EVENT SHALL THE UNIVERSITY  OF TEXAS AT    */
+/*    AUSTIN OR CONTRIBUTORS BE  LIABLE FOR ANY DIRECT, INDIRECT,    */
+/*    INCIDENTAL,  SPECIAL, EXEMPLARY,  OR  CONSEQUENTIAL DAMAGES    */
+/*    (INCLUDING, BUT  NOT LIMITED TO,  PROCUREMENT OF SUBSTITUTE    */
+/*    GOODS  OR  SERVICES; LOSS  OF  USE,  DATA,  OR PROFITS;  OR    */
+/*    BUSINESS INTERRUPTION) HOWEVER CAUSED  AND ON ANY THEORY OF    */
+/*    LIABILITY, WHETHER  IN CONTRACT, STRICT  LIABILITY, OR TORT    */
+/*    (INCLUDING NEGLIGENCE OR OTHERWISE)  ARISING IN ANY WAY OUT    */
+/*    OF  THE  USE OF  THIS  SOFTWARE,  EVEN  IF ADVISED  OF  THE    */
+/*    POSSIBILITY OF SUCH DAMAGE.                                    */
+/*                                                                   */
+/* The views and conclusions contained in the software and           */
+/* documentation are those of the authors and should not be          */
+/* interpreted as representing official policies, either expressed   */
+/* or implied, of The University of Texas at Austin.                 */
+/*********************************************************************/
+
 #include "Content.h"
 #include "ContentWindowManager.h"
 #include "TextureContent.h"
@@ -62,6 +100,9 @@ void Content::render(boost::shared_ptr<ContentWindowManager> window)
 
 boost::shared_ptr<Content> Content::getContent(std::string uri)
 {
+    // convert to lower case for case-insensitivity in determining file type
+    QString fileTypeString = QString::fromStdString(uri).toLower();
+
     // see if this is an image
     QImageReader imageReader(uri.c_str());
 
@@ -88,14 +129,14 @@ boost::shared_ptr<Content> Content::getContent(std::string uri)
     }
     // see if this is a movie
     // todo: need a better way to determine file type
-    else if(QString::fromStdString(uri).endsWith(".mov") || QString::fromStdString(uri).endsWith(".avi") || QString::fromStdString(uri).endsWith(".mp4") || QString::fromStdString(uri).endsWith(".mkv") || QString::fromStdString(uri).endsWith(".mpg") || QString::fromStdString(uri).endsWith(".flv"))
+    else if(fileTypeString.endsWith(".mov") || fileTypeString.endsWith(".avi") || fileTypeString.endsWith(".mp4") || fileTypeString.endsWith(".mkv") || fileTypeString.endsWith(".mpg") || fileTypeString.endsWith(".flv"))
     {
         boost::shared_ptr<Content> c(new MovieContent(uri));
 
         return c;
     }
     // see if this is an image pyramid
-    else if(QString::fromStdString(uri).endsWith(".pyr"))
+    else if(fileTypeString.endsWith(".pyr"))
     {
         boost::shared_ptr<Content> c(new DynamicTextureContent(uri));
 

@@ -94,6 +94,9 @@ class SkeletonSensor
         // returns TRUE if there is at least one user who's skeleton is being tracked
         bool isTracking();
         
+        // return true if uid is among the tracked users
+        bool isTracking(const unsigned int uid);
+        
         // stores the latest hand points in hands(preallocated):
         // hands[0] = left, hands[1] = right
         void getHandPoints(const unsigned int i, SkeletonPoint* const hands);
@@ -155,7 +158,7 @@ class SkeletonSensor
         bool pointModeProjective_;
         std::string pose_;
         
-        std::vector<int> trackedUsers_;
+        std::vector<unsigned int> trackedUsers_;
         
         float smoothingFactor_;
         

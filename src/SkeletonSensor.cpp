@@ -149,7 +149,17 @@ bool SkeletonSensor::isTracking()
         return TRUE;
     else
         return FALSE;
-    
+}
+
+bool SkeletonSensor::isTracking(const unsigned int uid)
+{
+    for (int i = 0; i < trackedUsers_.size(); i++)
+    {
+        if(trackedUsers_[i] == uid)
+            return TRUE;
+    }
+
+    return FALSE;
 }
 
 // set device to look for calibration pose and supply callback functions for user events

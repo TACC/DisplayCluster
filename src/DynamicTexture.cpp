@@ -1,9 +1,49 @@
+/*********************************************************************/
+/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* All rights reserved.                                              */
+/*                                                                   */
+/* Redistribution and use in source and binary forms, with or        */
+/* without modification, are permitted provided that the following   */
+/* conditions are met:                                               */
+/*                                                                   */
+/*   1. Redistributions of source code must retain the above         */
+/*      copyright notice, this list of conditions and the following  */
+/*      disclaimer.                                                  */
+/*                                                                   */
+/*   2. Redistributions in binary form must reproduce the above      */
+/*      copyright notice, this list of conditions and the following  */
+/*      disclaimer in the documentation and/or other materials       */
+/*      provided with the distribution.                              */
+/*                                                                   */
+/*    THIS  SOFTWARE IS PROVIDED  BY THE  UNIVERSITY OF  TEXAS AT    */
+/*    AUSTIN  ``AS IS''  AND ANY  EXPRESS OR  IMPLIED WARRANTIES,    */
+/*    INCLUDING, BUT  NOT LIMITED  TO, THE IMPLIED  WARRANTIES OF    */
+/*    MERCHANTABILITY  AND FITNESS FOR  A PARTICULAR  PURPOSE ARE    */
+/*    DISCLAIMED.  IN  NO EVENT SHALL THE UNIVERSITY  OF TEXAS AT    */
+/*    AUSTIN OR CONTRIBUTORS BE  LIABLE FOR ANY DIRECT, INDIRECT,    */
+/*    INCIDENTAL,  SPECIAL, EXEMPLARY,  OR  CONSEQUENTIAL DAMAGES    */
+/*    (INCLUDING, BUT  NOT LIMITED TO,  PROCUREMENT OF SUBSTITUTE    */
+/*    GOODS  OR  SERVICES; LOSS  OF  USE,  DATA,  OR PROFITS;  OR    */
+/*    BUSINESS INTERRUPTION) HOWEVER CAUSED  AND ON ANY THEORY OF    */
+/*    LIABILITY, WHETHER  IN CONTRACT, STRICT  LIABILITY, OR TORT    */
+/*    (INCLUDING NEGLIGENCE OR OTHERWISE)  ARISING IN ANY WAY OUT    */
+/*    OF  THE  USE OF  THIS  SOFTWARE,  EVEN  IF ADVISED  OF  THE    */
+/*    POSSIBILITY OF SUCH DAMAGE.                                    */
+/*                                                                   */
+/* The views and conclusions contained in the software and           */
+/* documentation are those of the authors and should not be          */
+/* interpreted as representing official policies, either expressed   */
+/* or implied, of The University of Texas at Austin.                 */
+/*********************************************************************/
+
 #include "DynamicTexture.h"
 #include "main.h"
 #include "vector.h"
 #include "log.h"
 #include <algorithm>
 #include <fstream>
+#include <string>
+#include <boost/tokenizer.hpp>
 
 #ifdef __APPLE__
     #include <OpenGL/glu.h>
@@ -50,7 +90,31 @@ DynamicTexture::DynamicTexture(std::string uri, boost::shared_ptr<DynamicTexture
         if(uri.find(".pyr") != std::string::npos)
         {
             std::ifstream ifs(uri.c_str());
-            ifs >> imagePyramidPath_ >> imageWidth_ >> imageHeight_;
+
+            // read the whole line
+            std::string lineString;
+            getline(ifs, lineString);
+
+            // parse the arguments, allowing escaped characters, quotes, etc., and assign them to a vector
+            std::string separator1("\\"); // allow escaped characters
+            std::string separator2(" "); // split on spaces
+            std::string separator3("\"\'"); // allow quoted arguments
+
+            boost::escaped_list_separator<char> els(separator1, separator2, separator3);
+            boost::tokenizer<boost::escaped_list_separator<char> > tok(lineString, els);
+
+            std::vector<std::string> tokVector;
+            tokVector.assign(tok.begin(), tok.end());
+
+            if(tokVector.size() < 3)
+            {
+                put_flog(LOG_ERROR, "require 3 arguments, got %i", tokVector.size());
+                return;
+            }
+
+            imagePyramidPath_ = tokVector[0];
+            imageWidth_ = atoi(tokVector[1].c_str());
+            imageHeight_ = atoi(tokVector[2].c_str());
 
             useImagePyramid_ = true;
 
@@ -250,7 +314,8 @@ void DynamicTexture::render(float tX, float tY, float tW, float tH, bool compute
             // only start the thread if this DynamicTexture tree has one available
             // each DynamicTexture tree is limited to (maxThreads - 2) threads, where the max is determined by the global QThreadPool instance
             // we increase responsiveness / interactivity by not queuing up image loading
-            int maxThreads = std::max(QThreadPool::globalInstance()->maxThreadCount() - 2, 1);
+            // todo: this doesn't perform well with too many threads; restricting to 1 thread for now
+            int maxThreads = 1; // std::max(QThreadPool::globalInstance()->maxThreadCount() - 2, 1);
 
             if(getThreadCount() < maxThreads)
             {
@@ -375,7 +440,25 @@ void DynamicTexture::computeImagePyramid(std::string imagePyramidPath)
         std::string metadataFilename = imagePyramidPath + "/pyramid.pyr";
 
         std::ofstream ofs(metadataFilename.c_str());
-        ofs << imagePyramidPath << " " << imageWidth_ << " " << imageHeight_;
+        ofs << "\"" << imagePyramidPath << "\" " << imageWidth_ << " " << imageHeight_;
+
+        // write a more conveniently named metadata file in the same directory as the original image, if possible
+        // path ends with ".pyramid"; the new metadata file will end with ".pyr"
+        QString secondMetadataFilename = QString(imagePyramidPath.c_str());
+        int amidLastIndex = secondMetadataFilename.lastIndexOf("amid");
+
+        secondMetadataFilename.truncate(amidLastIndex);
+
+        std::ofstream secondOfs(secondMetadataFilename.toStdString().c_str());
+
+        if(secondOfs.good() == true)
+        {
+            secondOfs << "\"" << imagePyramidPath << "\" " << imageWidth_ << " " << imageHeight_;
+        }
+        else
+        {
+            put_flog(LOG_WARN, "could not write second metadata file %s", secondMetadataFilename.toStdString().c_str());
+        }
     }
 
     // generate this object's image and write to disk

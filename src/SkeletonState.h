@@ -22,7 +22,8 @@ class SkeletonState
         SkeletonState();
         ~SkeletonState(){};
 
-        void update(SkeletonRepresentation& skel);
+        int update(SkeletonRepresentation& skel);
+        void setInactive() { hasControl_ = FALSE; }
         void zoom(SkeletonPoint& lhand, SkeletonPoint& rhand, float threshold);
         void pan(SkeletonPoint& rh, SkeletonPoint& rs, float maxReach);
         void scaleWindow(SkeletonPoint& lhand, SkeletonPoint& rhand, float threshold);
@@ -38,6 +39,9 @@ class SkeletonState
 
         // the current point representation of the skeleton
         SkeletonRepresentation skeletonRep_;
+        
+        // are we the controlling user?
+        bool hasControl_;
 
     protected:
             friend class boost::serialization::access;
@@ -49,10 +53,11 @@ class SkeletonState
                 ar & rightHandActive_;
                 ar & focusInteraction_;
                 ar & skeletonRep_;
+                ar & hasControl_;
             }
 
     private:
-
+        
         // do we have an active window?
         bool active_;
 
@@ -64,6 +69,9 @@ class SkeletonState
 
         // timeout for focuse gesture
         QTime focusTimeOut_;
+
+        // timeout for gaining control gesture
+        QTime controllerTimeOut_;
 
         // dead cursor timeout
         QTime deadCursorTimeOut_;

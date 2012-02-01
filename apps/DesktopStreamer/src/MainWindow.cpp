@@ -1,12 +1,54 @@
+/*********************************************************************/
+/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* All rights reserved.                                              */
+/*                                                                   */
+/* Redistribution and use in source and binary forms, with or        */
+/* without modification, are permitted provided that the following   */
+/* conditions are met:                                               */
+/*                                                                   */
+/*   1. Redistributions of source code must retain the above         */
+/*      copyright notice, this list of conditions and the following  */
+/*      disclaimer.                                                  */
+/*                                                                   */
+/*   2. Redistributions in binary form must reproduce the above      */
+/*      copyright notice, this list of conditions and the following  */
+/*      disclaimer in the documentation and/or other materials       */
+/*      provided with the distribution.                              */
+/*                                                                   */
+/*    THIS  SOFTWARE IS PROVIDED  BY THE  UNIVERSITY OF  TEXAS AT    */
+/*    AUSTIN  ``AS IS''  AND ANY  EXPRESS OR  IMPLIED WARRANTIES,    */
+/*    INCLUDING, BUT  NOT LIMITED  TO, THE IMPLIED  WARRANTIES OF    */
+/*    MERCHANTABILITY  AND FITNESS FOR  A PARTICULAR  PURPOSE ARE    */
+/*    DISCLAIMED.  IN  NO EVENT SHALL THE UNIVERSITY  OF TEXAS AT    */
+/*    AUSTIN OR CONTRIBUTORS BE  LIABLE FOR ANY DIRECT, INDIRECT,    */
+/*    INCIDENTAL,  SPECIAL, EXEMPLARY,  OR  CONSEQUENTIAL DAMAGES    */
+/*    (INCLUDING, BUT  NOT LIMITED TO,  PROCUREMENT OF SUBSTITUTE    */
+/*    GOODS  OR  SERVICES; LOSS  OF  USE,  DATA,  OR PROFITS;  OR    */
+/*    BUSINESS INTERRUPTION) HOWEVER CAUSED  AND ON ANY THEORY OF    */
+/*    LIABILITY, WHETHER  IN CONTRACT, STRICT  LIABILITY, OR TORT    */
+/*    (INCLUDING NEGLIGENCE OR OTHERWISE)  ARISING IN ANY WAY OUT    */
+/*    OF  THE  USE OF  THIS  SOFTWARE,  EVEN  IF ADVISED  OF  THE    */
+/*    POSSIBILITY OF SUCH DAMAGE.                                    */
+/*                                                                   */
+/* The views and conclusions contained in the software and           */
+/* documentation are those of the authors and should not be          */
+/* interpreted as representing official policies, either expressed   */
+/* or implied, of The University of Texas at Austin.                 */
+/*********************************************************************/
+
 #include "MainWindow.h"
 #include "main.h"
 #include "../../../src/log.h"
-#include "../../../src/DisplayGroupManager.h" // for MessageHeader
+#include "../../../src/MessageHeader.h"
 #include "DesktopSelectionRectangle.h"
 #include <turbojpeg.h>
+#include <stdint.h>
 
 MainWindow::MainWindow()
 {
+    // defaults
+    updatedDimensions_ = true;
+
     QWidget * widget = new QWidget();
     QFormLayout * layout = new QFormLayout();
     widget->setLayout(layout);
@@ -32,6 +74,10 @@ MainWindow::MainWindow()
     widthSpinBox_.setValue(desktopRect.width() / 2);
     heightSpinBox_.setValue(desktopRect.height() / 2);
 
+    // frame rate limiting
+    frameRateSpinBox_.setRange(1, 60);
+    frameRateSpinBox_.setValue(24);
+
     // add widgets to UI
     layout->addRow("Hostname", &hostnameLineEdit_);
     layout->addRow("Stream name", &uriLineEdit_);
@@ -39,6 +85,7 @@ MainWindow::MainWindow()
     layout->addRow("Y", &ySpinBox_);
     layout->addRow("Width", &widthSpinBox_);
     layout->addRow("Height", &heightSpinBox_);
+    layout->addRow("Max frame rate", &frameRateSpinBox_);
 
     // share desktop action
     shareDesktopAction_ = new QAction("Share Desktop", this);
@@ -51,7 +98,7 @@ MainWindow::MainWindow()
     showDesktopSelectionWindowAction_ = new QAction("Show Rectangle", this);
     showDesktopSelectionWindowAction_->setStatusTip("Show desktop selection rectangle");
     showDesktopSelectionWindowAction_->setCheckable(true);
-    showDesktopSelectionWindowAction_->setChecked(true);
+    showDesktopSelectionWindowAction_->setChecked(false);
     connect(showDesktopSelectionWindowAction_, SIGNAL(toggled(bool)), this, SLOT(showDesktopSelectionWindow(bool)));
 
     // create toolbar
@@ -77,6 +124,11 @@ void MainWindow::getCoordinates(int &x, int &y, int &width, int &height)
 
 void MainWindow::setCoordinates(int x, int y, int width, int height)
 {
+    if(width != width_ || height != height_)
+    {
+        updatedDimensions_ = true;
+    }
+
     xSpinBox_.setValue(x);
     ySpinBox_.setValue(y);
     widthSpinBox_.setValue(width);
@@ -98,14 +150,41 @@ void MainWindow::shareDesktop(bool set)
         if(tcpSocket_.waitForConnected() != true)
         {
             put_flog(LOG_ERROR, "could not connect");
+            QMessageBox::warning(this, "Error", "Could not connect.", QMessageBox::Ok, QMessageBox::Ok);
+
             shareDesktopAction_->setChecked(false);
             return;
         }
+
+		// handshake
+        while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < (int)sizeof(int32_t))
+        {
+            usleep(10);
+        }
+
+        int32_t protocolVersion = -1;
+        tcpSocket_.read((char *)&protocolVersion, sizeof(int32_t));
+
+        if(protocolVersion != SUPPORTED_NETWORK_PROTOCOL_VERSION)
+        {
+            tcpSocket_.disconnectFromHost();
+            shareDesktopAction_->setChecked(false);
+
+            put_flog(LOG_ERROR, "unsupported protocol version %i > %i", protocolVersion, SUPPORTED_NETWORK_PROTOCOL_VERSION);
+            QMessageBox::warning(this, "Error", "This version is incompatible with the DisplayCluster instance you connected to. (" + QString::number(protocolVersion) + " != " + QString::number(SUPPORTED_NETWORK_PROTOCOL_VERSION) + ")", QMessageBox::Ok, QMessageBox::Ok);
+
+            return;
+        }
+
+        // make sure dimensions get updated
+        updatedDimensions_ = true;
 
         shareDesktopUpdateTimer_.start(SHARE_DESKTOP_UPDATE_DELAY);
     }
     else
     {
+        tcpSocket_.disconnectFromHost();
+
         shareDesktopUpdateTimer_.stop();
     }
 }
@@ -130,9 +209,15 @@ void MainWindow::showDesktopSelectionWindow(bool set)
 
 void MainWindow::shareDesktopUpdate()
 {
+    // time the frame
+    QTime frameTime;
+    frameTime.start();
+
     if(tcpSocket_.state() != QAbstractSocket::ConnectedState)
     {
         put_flog(LOG_ERROR, "socket is not connected");
+        QMessageBox::warning(this, "Error", "Socket is not connected.", QMessageBox::Ok, QMessageBox::Ok);
+
         shareDesktopAction_->setChecked(false);
         return;
     }
@@ -143,6 +228,9 @@ void MainWindow::shareDesktopUpdate()
     if(desktopPixmap.isNull() == true)
     {
         put_flog(LOG_ERROR, "got NULL desktop pixmap");
+        QMessageBox::warning(this, "Error", "Got NULL desktop pixmap.", QMessageBox::Ok, QMessageBox::Ok);
+
+        tcpSocket_.disconnectFromHost();
         shareDesktopAction_->setChecked(false);
         return;
     }
@@ -166,6 +254,9 @@ void MainWindow::shareDesktopUpdate()
     if(success != 0)
     {
         put_flog(LOG_ERROR, "libjpeg-turbo image conversion failure");
+        QMessageBox::warning(this, "Error", "Image conversion failure.", QMessageBox::Ok, QMessageBox::Ok);
+
+        tcpSocket_.disconnectFromHost();
         shareDesktopAction_->setChecked(false);
         return;
     }
@@ -202,16 +293,84 @@ void MainWindow::shareDesktopUpdate()
 
         previousImageData_ = byteArray;
 
-        // wait for data to be completely sent
-        while(tcpSocket_.bytesToWrite() > 0 && tcpSocket_.waitForBytesWritten())
+        // wait for acknowledgment
+        while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < 3)
         {
             usleep(10);
         }
+
+        tcpSocket_.read(3);
+    }
+
+    // check if we updated dimensions
+    if(updatedDimensions_ == true)
+    {
+        // updated dimensions
+        int dimensions[2];
+        dimensions[0] = width_;
+        dimensions[1] = height_;
+
+        int dimensionsSize = 2 * sizeof(int);
+
+        // header
+        MessageHeader mh;
+        mh.size = dimensionsSize;
+        mh.type = MESSAGE_TYPE_PIXELSTREAM_DIMENSIONS_CHANGED;
+
+        // add the truncated URI to the header
+        size_t len = uri_.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
+        mh.uri[len] = '\0';
+
+        // send the header
+        int sent = tcpSocket_.write((const char *)&mh, sizeof(MessageHeader));
+
+        while(sent < (int)sizeof(MessageHeader))
+        {
+            sent += tcpSocket_.write((const char *)&mh + sent, sizeof(MessageHeader) - sent);
+        }
+
+        // send the message
+        sent = tcpSocket_.write((const char *)dimensions, dimensionsSize);
+
+        while(sent < dimensionsSize)
+        {
+            sent += tcpSocket_.write((const char *)dimensions + sent, dimensionsSize - sent);
+        }
+
+        updatedDimensions_ = false;
+
+        // wait for acknowledgment
+        while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < 3)
+        {
+            usleep(10);
+        }
+
+        tcpSocket_.read(3);
+    }
+
+    // elapsed time (milliseconds)
+    int elapsedFrameTime = frameTime.elapsed();
+
+    // frame rate limiting
+    int maxFrameRate = frameRateSpinBox_.value();
+
+    int desiredFrameTime = (int)(1000. * 1. / (float)maxFrameRate);
+
+    int sleepTime = desiredFrameTime - elapsedFrameTime;
+
+    if(sleepTime > 0)
+    {
+        usleep(1000 * sleepTime);
     }
 }
 
 void MainWindow::updateCoordinates()
 {
+    if(widthSpinBox_.value() != width_ || heightSpinBox_.value() != height_)
+    {
+        updatedDimensions_ = true;
+    }
+
     x_ = xSpinBox_.value();
     y_ = ySpinBox_.value();
     width_ = widthSpinBox_.value();

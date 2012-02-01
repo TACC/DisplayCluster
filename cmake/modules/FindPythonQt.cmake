@@ -15,13 +15,13 @@ libfind_pkg_check_modules(PythonQt_PKGCONF PythonQt)
 # Include dir
 find_path(PythonQt_INCLUDE_DIR
   NAMES PythonQt.h
-  PATHS ${PythonQt_PKGCONF_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/dependencies/PythonQt2.0.1/src
+  PATHS ${PythonQt_PKGCONF_INCLUDE_DIRS}
 )
 
 # Finally the library itself
 find_library(PythonQt_LIBRARY
   NAMES PythonQt
-  PATHS ${PythonQt_PKGCONF_LIBRARY_DIRS} ${CMAKE_SOURCE_DIR}/dependencies/PythonQt2.0.1/lib
+  PATHS ${PythonQt_PKGCONF_LIBRARY_DIRS}
 )
 
 # Set the include dir variables and the libraries and let libfind_process do the rest.

@@ -1,3 +1,41 @@
+/*********************************************************************/
+/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* All rights reserved.                                              */
+/*                                                                   */
+/* Redistribution and use in source and binary forms, with or        */
+/* without modification, are permitted provided that the following   */
+/* conditions are met:                                               */
+/*                                                                   */
+/*   1. Redistributions of source code must retain the above         */
+/*      copyright notice, this list of conditions and the following  */
+/*      disclaimer.                                                  */
+/*                                                                   */
+/*   2. Redistributions in binary form must reproduce the above      */
+/*      copyright notice, this list of conditions and the following  */
+/*      disclaimer in the documentation and/or other materials       */
+/*      provided with the distribution.                              */
+/*                                                                   */
+/*    THIS  SOFTWARE IS PROVIDED  BY THE  UNIVERSITY OF  TEXAS AT    */
+/*    AUSTIN  ``AS IS''  AND ANY  EXPRESS OR  IMPLIED WARRANTIES,    */
+/*    INCLUDING, BUT  NOT LIMITED  TO, THE IMPLIED  WARRANTIES OF    */
+/*    MERCHANTABILITY  AND FITNESS FOR  A PARTICULAR  PURPOSE ARE    */
+/*    DISCLAIMED.  IN  NO EVENT SHALL THE UNIVERSITY  OF TEXAS AT    */
+/*    AUSTIN OR CONTRIBUTORS BE  LIABLE FOR ANY DIRECT, INDIRECT,    */
+/*    INCIDENTAL,  SPECIAL, EXEMPLARY,  OR  CONSEQUENTIAL DAMAGES    */
+/*    (INCLUDING, BUT  NOT LIMITED TO,  PROCUREMENT OF SUBSTITUTE    */
+/*    GOODS  OR  SERVICES; LOSS  OF  USE,  DATA,  OR PROFITS;  OR    */
+/*    BUSINESS INTERRUPTION) HOWEVER CAUSED  AND ON ANY THEORY OF    */
+/*    LIABILITY, WHETHER  IN CONTRACT, STRICT  LIABILITY, OR TORT    */
+/*    (INCLUDING NEGLIGENCE OR OTHERWISE)  ARISING IN ANY WAY OUT    */
+/*    OF  THE  USE OF  THIS  SOFTWARE,  EVEN  IF ADVISED  OF  THE    */
+/*    POSSIBILITY OF SUCH DAMAGE.                                    */
+/*                                                                   */
+/* The views and conclusions contained in the software and           */
+/* documentation are those of the authors and should not be          */
+/* interpreted as representing official policies, either expressed   */
+/* or implied, of The University of Texas at Austin.                 */
+/*********************************************************************/
+
 #include "GLWindow.h"
 #include "main.h"
 #include "Marker.h"
@@ -13,9 +51,6 @@
 
 GLWindow::GLWindow(int tileIndex)
 {
-    // defaults
-    viewInitialized_ = false;
-
     tileIndex_ = tileIndex;
 
     // disable automatic buffer swapping
@@ -24,9 +59,6 @@ GLWindow::GLWindow(int tileIndex)
 
 GLWindow::GLWindow(int tileIndex, QRect windowRect, QGLWidget * shareWidget) : QGLWidget(0, shareWidget)
 {
-    // defaults
-    viewInitialized_ = false;
-
     tileIndex_ = tileIndex;
     setGeometry(windowRect);
 
@@ -153,46 +185,41 @@ void GLWindow::setOrthographicView()
     // invert y-axis to put origin at lower-left corner
     glScalef(1.,-1.,1.);
 
-    // compute view bounds if view has not been initialized
-    if(viewInitialized_ == false)
+    // compute view bounds
+    if(g_mpiRank == 0)
     {
-        if(g_mpiRank == 0)
-        {
-            left_ = 0.;
-            right_ = 1.;
-            bottom_ = 0.;
-            top_ = 1.;
-        }
-        else
-        {
-            // tiled display parameters
-            double tileI = (double)g_configuration->getTileI(tileIndex_);
-            double numTilesWidth = (double)g_configuration->getNumTilesWidth();
-            double screenWidth = (double)g_configuration->getScreenWidth();
-            double mullionWidth = (double)g_configuration->getMullionWidth();
+        left_ = 0.;
+        right_ = 1.;
+        bottom_ = 0.;
+        top_ = 1.;
+    }
+    else
+    {
+        // tiled display parameters
+        double tileI = (double)g_configuration->getTileI(tileIndex_);
+        double numTilesWidth = (double)g_configuration->getNumTilesWidth();
+        double screenWidth = (double)g_configuration->getScreenWidth();
+        double mullionWidth = (double)g_configuration->getMullionWidth();
 
-            double tileJ = (double)g_configuration->getTileJ(tileIndex_);
-            double numTilesHeight = (double)g_configuration->getNumTilesHeight();
-            double screenHeight = (double)g_configuration->getScreenHeight();
-            double mullionHeight = (double)g_configuration->getMullionHeight();
+        double tileJ = (double)g_configuration->getTileJ(tileIndex_);
+        double numTilesHeight = (double)g_configuration->getNumTilesHeight();
+        double screenHeight = (double)g_configuration->getScreenHeight();
+        double mullionHeight = (double)g_configuration->getMullionHeight();
 
-            // border calculations
-            left_ = tileI / numTilesWidth * ( numTilesWidth * screenWidth ) + tileI * mullionWidth;
-            right_ = left_ + screenWidth;
-            bottom_ = tileJ / numTilesHeight * ( numTilesHeight * screenHeight ) + tileJ * mullionHeight;
-            top_ = bottom_ + screenHeight;
+        // border calculations
+        left_ = tileI / numTilesWidth * ( numTilesWidth * screenWidth ) + tileI * mullionWidth;
+        right_ = left_ + screenWidth;
+        bottom_ = tileJ / numTilesHeight * ( numTilesHeight * screenHeight ) + tileJ * mullionHeight;
+        top_ = bottom_ + screenHeight;
 
-            // normalize to 0->1
-            double totalWidth = (double)g_configuration->getTotalWidth();
-            double totalHeight = (double)g_configuration->getTotalHeight();
+        // normalize to 0->1
+        double totalWidth = (double)g_configuration->getTotalWidth();
+        double totalHeight = (double)g_configuration->getTotalHeight();
 
-            left_ /= totalWidth;
-            right_ /= totalWidth;
-            bottom_ /= totalHeight;
-            top_ /= totalHeight;
-        }
-
-        viewInitialized_ = true;
+        left_ /= totalWidth;
+        right_ /= totalWidth;
+        bottom_ /= totalHeight;
+        top_ /= totalHeight;
     }
 
     gluOrtho2D(left_, right_, bottom_, top_);
@@ -374,17 +401,19 @@ void GLWindow::renderTestPattern()
     glTranslatef(0., 0., 0.1);
 
     QString label1 = "Rank: " + QString::number(g_mpiRank);
-    QString label2 = "Tile coordinates: (" + QString::number(g_configuration->getTileI(tileIndex_)) + ", " + QString::number(g_configuration->getTileJ(tileIndex_)) + ")";
-    QString label3 = "Resolution: " + QString::number(g_configuration->getScreenWidth()) + " x " + QString::number(g_configuration->getScreenHeight());
-    QString label4 = "Fullscreen mode: ";
+    QString label2 = "Host: " + QString(g_configuration->getMyHost().c_str());
+    QString label3 = "Display: " + QString(g_configuration->getMyDisplay().c_str());
+    QString label4 = "Tile coordinates: (" + QString::number(g_configuration->getTileI(tileIndex_)) + ", " + QString::number(g_configuration->getTileJ(tileIndex_)) + ")";
+    QString label5 = "Resolution: " + QString::number(g_configuration->getScreenWidth()) + " x " + QString::number(g_configuration->getScreenHeight());
+    QString label6 = "Fullscreen mode: ";
 
     if(g_configuration->getFullscreen() == true)
     {
-        label4 += "True";
+        label6 += "True";
     }
     else
     {
-        label4 += "False";
+        label6 += "False";
     }
 
     int fontSize = 64;
@@ -398,6 +427,8 @@ void GLWindow::renderTestPattern()
     renderText(50, 2*fontSize, label2, font);
     renderText(50, 3*fontSize, label3, font);
     renderText(50, 4*fontSize, label4, font);
+    renderText(50, 5*fontSize, label5, font);
+    renderText(50, 6*fontSize, label6, font);
 
     glPopMatrix();
     glPopAttrib();

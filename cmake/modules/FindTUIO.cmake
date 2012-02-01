@@ -21,6 +21,9 @@ find_path(TUIO_INCLUDE_DIR
 # also add the TUIO/ directory to the include path
 SET(TUIO_INCLUDE_DIR_2 "${TUIO_INCLUDE_DIR}/TUIO")
 
+# also add the oscpack/ directory to the include path
+SET(TUIO_INCLUDE_DIR_3 "${TUIO_INCLUDE_DIR}/oscpack")
+
 # Finally the library itself
 find_library(TUIO_LIBRARY
   NAMES TUIO
@@ -29,6 +32,6 @@ find_library(TUIO_LIBRARY
 
 # Set the include dir variables and the libraries and let libfind_process do the rest.
 # NOTE: Singular variables for this library, plural for libraries this this lib depends on.
-set(TUIO_PROCESS_INCLUDES TUIO_INCLUDE_DIR TUIO_INCLUDE_DIR_2)
+set(TUIO_PROCESS_INCLUDES TUIO_INCLUDE_DIR TUIO_INCLUDE_DIR_2 TUIO_INCLUDE_DIR_3)
 set(TUIO_PROCESS_LIBS TUIO_LIBRARY)
 libfind_process(TUIO)

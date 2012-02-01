@@ -29,14 +29,16 @@ inline bool withinThreshold(const float p1, const float p2, const float threshol
     return abs(p2 - p1) > threshold;
 }
 
-SkeletonState::SkeletonState(): active_(FALSE),
-                                focusInteraction_(FALSE),
-                                deadCursor_(FALSE),
-                                leftHandActive_(FALSE),
+SkeletonState::SkeletonState(): leftHandActive_(FALSE),
                                 rightHandActive_(FALSE),
+                                focusInteraction_(FALSE),
                                 skeletonRep_(),
+                                hasControl_(FALSE),
+                                active_(FALSE),
+                                deadCursor_(FALSE),
                                 hoverTime_(),
                                 focusTimeOut_(0,0,2,0),
+                                controllerTimeOut_(0,0,2,0),
                                 deadCursorTimeOut_(),
                                 activeWindow_()
 {
@@ -48,7 +50,7 @@ SkeletonState::SkeletonState(): active_(FALSE),
 
 }
 
-void SkeletonState::update(SkeletonRepresentation& skel)
+int SkeletonState::update(SkeletonRepresentation& skel)
 {
     // copy the skeleton joints to member
     skeletonRep_ = skel;
@@ -92,6 +94,21 @@ void SkeletonState::update(SkeletonRepresentation& skel)
     if((skel.rightShoulder_.z_ - skel.rightHand_.z_) > depthThreshold && confidenceRight)
         rightHandActive_ = TRUE;
     else rightHandActive_ = FALSE;
+
+    // we are not the controlling user, so we should check for the signal
+    if(!hasControl_)
+    {
+        // look for signal - the raising of left hand one neck length above head
+        if(skel.leftHand_.y_ > (skel.head_.y_ + calculateDistance(skel.head_, skel.neck_)) 
+            && confidenceLeft)
+        {
+            hasControl_ = TRUE;
+            controllerTimeOut_.restart();
+            return 1;
+        }
+        
+        return 0;
+    }
 
     // 3. draw active cursor if threshold reached
     if(rightHandActive_)
@@ -141,7 +158,8 @@ void SkeletonState::update(SkeletonRepresentation& skel)
             // look for focus pose (6) - here raising left hand one neck length above head
             if(skel.leftHand_.y_ > (skel.head_.y_ + calculateDistance(skel.head_, skel.neck_)) 
                 && confidenceLeft
-                && focusTimeOut_.elapsed() > FOCUS_TIME)
+                && focusTimeOut_.elapsed() > FOCUS_TIME
+                && controllerTimeOut_.elapsed() > FOCUS_TIME)
             {
                 // set focused and start timeout for focused start
                 focusInteraction_ = TRUE;
@@ -225,7 +243,8 @@ void SkeletonState::update(SkeletonRepresentation& skel)
 
             }
         }
-    } 
+    }
+
 }
 
 void SkeletonState::zoom(SkeletonPoint& lh, SkeletonPoint& rh, float threshold)
@@ -332,6 +351,9 @@ void SkeletonState::drawJoints()
     {
         // default color for joints
         glColor4f(168./255.,187./255.,219./255.,1.);
+        
+        if(hasControl_)
+            glColor4f(70./255., 219./255., 147./255., 1.);
         
         if (joints[i].confidence_ > 0.5)
         {

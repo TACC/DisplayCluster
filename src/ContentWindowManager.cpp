@@ -1,3 +1,41 @@
+/*********************************************************************/
+/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* All rights reserved.                                              */
+/*                                                                   */
+/* Redistribution and use in source and binary forms, with or        */
+/* without modification, are permitted provided that the following   */
+/* conditions are met:                                               */
+/*                                                                   */
+/*   1. Redistributions of source code must retain the above         */
+/*      copyright notice, this list of conditions and the following  */
+/*      disclaimer.                                                  */
+/*                                                                   */
+/*   2. Redistributions in binary form must reproduce the above      */
+/*      copyright notice, this list of conditions and the following  */
+/*      disclaimer in the documentation and/or other materials       */
+/*      provided with the distribution.                              */
+/*                                                                   */
+/*    THIS  SOFTWARE IS PROVIDED  BY THE  UNIVERSITY OF  TEXAS AT    */
+/*    AUSTIN  ``AS IS''  AND ANY  EXPRESS OR  IMPLIED WARRANTIES,    */
+/*    INCLUDING, BUT  NOT LIMITED  TO, THE IMPLIED  WARRANTIES OF    */
+/*    MERCHANTABILITY  AND FITNESS FOR  A PARTICULAR  PURPOSE ARE    */
+/*    DISCLAIMED.  IN  NO EVENT SHALL THE UNIVERSITY  OF TEXAS AT    */
+/*    AUSTIN OR CONTRIBUTORS BE  LIABLE FOR ANY DIRECT, INDIRECT,    */
+/*    INCIDENTAL,  SPECIAL, EXEMPLARY,  OR  CONSEQUENTIAL DAMAGES    */
+/*    (INCLUDING, BUT  NOT LIMITED TO,  PROCUREMENT OF SUBSTITUTE    */
+/*    GOODS  OR  SERVICES; LOSS  OF  USE,  DATA,  OR PROFITS;  OR    */
+/*    BUSINESS INTERRUPTION) HOWEVER CAUSED  AND ON ANY THEORY OF    */
+/*    LIABILITY, WHETHER  IN CONTRACT, STRICT  LIABILITY, OR TORT    */
+/*    (INCLUDING NEGLIGENCE OR OTHERWISE)  ARISING IN ANY WAY OUT    */
+/*    OF  THE  USE OF  THIS  SOFTWARE,  EVEN  IF ADVISED  OF  THE    */
+/*    POSSIBILITY OF SUCH DAMAGE.                                    */
+/*                                                                   */
+/* The views and conclusions contained in the software and           */
+/* documentation are those of the authors and should not be          */
+/* interpreted as representing official policies, either expressed   */
+/* or implied, of The University of Texas at Austin.                 */
+/*********************************************************************/
+
 #include "ContentWindowManager.h"
 #include "Content.h"
 #include "DisplayGroupManager.h"
@@ -5,14 +43,17 @@
 
 ContentWindowManager::ContentWindowManager(boost::shared_ptr<Content> content)
 {
+    // ContentWindowManagers must always belong to the main thread!
+    moveToThread(QApplication::instance()->thread());
+
     // content dimensions
     content->getDimensions(contentWidth_, contentHeight_);
 
     // default position / size, assumes a 16/9 aspect ratio
     // the actual aspect ratio will be set after the content is loaded
     x_ = y_ = 0.01;
-    h_ = 0.2;
-    w_ = (double)g_configuration->getTotalHeight() / (double)g_configuration->getTotalWidth() * 9/16. * h_;
+    h_ = 0.3;
+    w_ = (double)g_configuration->getTotalHeight() / (double)g_configuration->getTotalWidth() * 16./9. * h_;
 
     // default to centered
     centerX_ = 0.5;
@@ -134,6 +175,12 @@ void ContentWindowManager::render()
 
     for(unsigned int i=0; i<markers.size(); i++)
     {
+        // don't consider inactive markers
+        if(markers[i]->getActive() == false)
+        {
+            continue;
+        }
+
         float markerX, markerY;
         markers[i]->getPosition(markerX, markerY);
 
