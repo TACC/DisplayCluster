@@ -90,6 +90,9 @@ class SkeletonSensor
         // non-blocking wait for new data on the device
         inline void waitForDeviceUpdateOnUser() { context_.WaitOneUpdateAll(userG_); }
         
+        // update vector of tracked users
+        bool updateTrackedUsers();
+        
         // updates list of currently tracked users
         // returns TRUE if there is at least one user who's skeleton is being tracked
         bool isTracking();

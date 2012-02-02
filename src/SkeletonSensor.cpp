@@ -16,7 +16,7 @@ SkeletonSensor::SkeletonSensor() :  context_(),
                                     pointModeProjective_(FALSE),
                                     pose_("Psi"),
                                     trackedUsers_(),
-                                    smoothingFactor_(0.8),
+                                    smoothingFactor_(0.9),
                                     needCalibrationPose_(FALSE)
 {}
 
@@ -129,14 +129,31 @@ void SkeletonSensor::getHeadPoint(const unsigned int i, SkeletonPoint* const hea
     convertXnJointToPoint(&joints, head, 1);
 }
 
+bool SkeletonSensor::updateTrackedUsers()
+{
+    XnUserID users[64];
+    XnUInt16 nUsers = userG_.GetNumberOfUsers();
+    trackedUsers_.clear();
+
+    userG_.GetUsers(users, nUsers);
+
+    for(int i = 0; i < nUsers; i++)
+    {
+        if(userG_.GetSkeletonCap().IsTracking(users[i]))
+        {
+            trackedUsers_.push_back(users[i]);
+        }
+    }    
+}
+
 bool SkeletonSensor::isTracking()
 {
     XnUserID users[64];
     XnUInt16 nUsers = userG_.GetNumberOfUsers();
     trackedUsers_.clear();
-    
+
     userG_.GetUsers(users, nUsers);
-        
+
     for(int i = 0; i < nUsers; i++)
     {
         if(userG_.GetSkeletonCap().IsTracking(users[i]))
@@ -144,7 +161,7 @@ bool SkeletonSensor::isTracking()
             trackedUsers_.push_back(users[i]);
         }
     }
-    
+
     if (!trackedUsers_.empty())
         return TRUE;
     else
@@ -153,13 +170,7 @@ bool SkeletonSensor::isTracking()
 
 bool SkeletonSensor::isTracking(const unsigned int uid)
 {
-    for (int i = 0; i < trackedUsers_.size(); i++)
-    {
-        if(trackedUsers_[i] == uid)
-            return TRUE;
-    }
-
-    return FALSE;
+    return userG_.GetSkeletonCap().IsTracking(uid);
 }
 
 // set device to look for calibration pose and supply callback functions for user events

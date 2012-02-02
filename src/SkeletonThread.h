@@ -22,7 +22,7 @@ class SkeletonThread : public QThread {
         SkeletonThread();
         ~SkeletonThread();
 
-        std::vector<SkeletonState> getSkeletons();
+        std::vector< boost::shared_ptr<SkeletonState> > getSkeletons();
 
     protected:
 
@@ -31,7 +31,7 @@ class SkeletonThread : public QThread {
     signals:
 
         void updateSkeletonsFinished();
-        void skeletonsUpdated(std::vector<SkeletonState> skeletons);
+        void skeletonsUpdated(std::vector< boost::shared_ptr<SkeletonState> > skeletons);
 
     public slots:
 
@@ -45,7 +45,7 @@ class SkeletonThread : public QThread {
         SkeletonSensor* sensor_;
 
         // the current state of each tracked user
-        std::map<unsigned int, SkeletonState> states_;
+        std::map<unsigned int, boost::shared_ptr<SkeletonState> > states_;
 
 };
 

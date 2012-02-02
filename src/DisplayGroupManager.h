@@ -73,7 +73,7 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         boost::shared_ptr<boost::posix_time::ptime> getTimestamp();
 
 #if ENABLE_SKELETON_SUPPORT
-        std::vector<SkeletonState> getSkeletons();
+        std::vector< boost::shared_ptr<SkeletonState> > getSkeletons();
 #endif
 
         // re-implemented DisplayGroupInterface slots
@@ -98,7 +98,7 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         void receiveFrameClockUpdate();
         void sendQuit();
 #if ENABLE_SKELETON_SUPPORT
-        void setSkeletons(std::vector<SkeletonState> skeletons);
+        void setSkeletons(std::vector< boost::shared_ptr<SkeletonState> > skeletons);
 #endif
         void advanceContents();
 
@@ -129,7 +129,7 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
 
 
 #if ENABLE_SKELETON_SUPPORT
-        std::vector<SkeletonState> skeletons_;
+        std::vector< boost::shared_ptr<SkeletonState> > skeletons_;
 #endif
 
         // rank 1 - rank 0 timestamp offset

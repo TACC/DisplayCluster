@@ -40,8 +40,10 @@
 #include "main.h"
 #include "Marker.h"
 #include "ContentWindowManager.h"
-#include <QtOpenGL>
 #include "log.h"
+
+#include <QtOpenGL>
+#include <boost/shared_ptr.hpp>
 
 #ifdef __APPLE__
     #include <OpenGL/glu.h>
@@ -154,11 +156,11 @@ void GLWindow::paintGL()
     glEnable(GL_NORMALIZE);
 
     // get and render skeletons
-    std::vector<SkeletonState> skeletons = g_displayGroupManager->getSkeletons();
+    std::vector< boost::shared_ptr<SkeletonState> > skeletons = g_displayGroupManager->getSkeletons();
 
-    for(unsigned int i=0; i<skeletons.size(); i++)
+    for(unsigned int i = 0; i < skeletons.size(); i++)
     {
-        skeletons[i].render();
+        skeletons[i]->render();
     }
 
     glPopAttrib();

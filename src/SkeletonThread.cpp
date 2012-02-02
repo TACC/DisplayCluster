@@ -8,9 +8,12 @@
 // set the timer to ping for new sensor data every 10 milliseconds
 const unsigned int SKELETON_TIMER_INTERVAL = 1000/60;
 
+// an identifier for a UID that is not applicable
+const unsigned int NA_UID = 9999;
+
 SkeletonThread::SkeletonThread()
 {
-    connect(this, SIGNAL(skeletonsUpdated(std::vector<SkeletonState>)), g_displayGroupManager.get(), SLOT(setSkeletons(std::vector<SkeletonState>)), Qt::QueuedConnection);
+    connect(this, SIGNAL(skeletonsUpdated(std::vector< boost::shared_ptr<SkeletonState> >)), g_displayGroupManager.get(), SLOT(setSkeletons(std::vector< boost::shared_ptr<SkeletonState> >)), Qt::QueuedConnection);
 }
 
 SkeletonThread::~SkeletonThread()
@@ -18,12 +21,12 @@ SkeletonThread::~SkeletonThread()
     delete sensor_;
 }
 
-std::vector<SkeletonState> SkeletonThread::getSkeletons()
+std::vector< boost::shared_ptr<SkeletonState> > SkeletonThread::getSkeletons()
 {
 
-    std::vector<SkeletonState> skeletons;
+    std::vector< boost::shared_ptr<SkeletonState> > skeletons;
 
-    std::map<unsigned int, SkeletonState>::iterator it;
+    std::map<unsigned int, boost::shared_ptr<SkeletonState> >::iterator it;
 
     for(it=states_.begin(); it != states_.end(); it++)
     {   
@@ -89,52 +92,51 @@ void SkeletonThread::updateSkeletons()
         states_[closestUID].update(skeletonRep);
     }
     */
-
-    // update number of tracked users
-    if (!sensor_->isTracking())
-    {
-        states_.clear();
-        return;
-    }
-
+    
+    // get new list of tracked users
+    sensor_->updateTrackedUsers();
+    
     bool newActive = FALSE; // we use this to keep track if there is a new active user
     unsigned int activeUID;
-
+    unsigned int previousActiveUID = NA_UID;
+    
     for (unsigned int i = 0; i < sensor_->getNOTrackedUsers(); i++)
     {
         // check if skeletonState exists for user and create if not
         if (states_.count(sensor_->getUID(i)) == 0)
         {
             SkeletonRepresentation skeletonRep = sensor_->getAllAvailablePoints(sensor_->getUID(i));
-            SkeletonState state = SkeletonState();
-            state.update(skeletonRep);
-            states_.insert(std::pair<unsigned int, SkeletonState>(sensor_->getUID(i), state));
+            boost::shared_ptr<SkeletonState> state(new SkeletonState());
+
+            state->update(skeletonRep);
+            states_.insert(std::pair<unsigned int, boost::shared_ptr<SkeletonState> >(sensor_->getUID(i), state));
         }
         else
         {
+            // determine if this skeleton has control currently
+            if (states_[sensor_->getUID(i)]->hasControl_)
+                previousActiveUID = sensor_->getUID(i);
+                
             SkeletonRepresentation skeletonRep = sensor_->getAllAvailablePoints(sensor_->getUID(i));
 
             // if this skeleton is active, save its index for later so we can set all others inactive
-            if (states_[sensor_->getUID(i)].update(skeletonRep) == 1)
+            if (states_[sensor_->getUID(i)]->update(skeletonRep) == 1)
             {
                 newActive = TRUE;
                 activeUID = sensor_->getUID(i);
             }
         }
     }
-
-    // iterate through users, marking all but newly active, inactive
-    std::map<unsigned int, SkeletonState>::iterator it;
+    
+    // make previous active user inactive if there is a new active user
     if(newActive)
     {
-        for(it = states_.begin(); it != states_.end(); it++)
-        {
-            if((*it).first != activeUID)
-                (*it).second.setInactive();
-        }
+        if (previousActiveUID != NA_UID)
+            states_[previousActiveUID]->hasControl_ = FALSE;
     }
-
-    // remove all untracked users and set the states correctly
+    
+    // iterate through skeletons, if the skeleton is not tracked, then delete it
+    std::map<unsigned int, boost::shared_ptr<SkeletonState> >::iterator it;
     for(it = states_.begin(); it != states_.end(); it++)
     {
         unsigned int uid = (*it).first;
@@ -144,7 +146,7 @@ void SkeletonThread::updateSkeletons()
             states_.erase(uid);
         }
     }
-
+    
     emit(skeletonsUpdated(getSkeletons()));
     emit(updateSkeletonsFinished());
 }

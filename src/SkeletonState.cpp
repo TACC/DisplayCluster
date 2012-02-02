@@ -14,7 +14,7 @@ const int DEAD_CURSOR_TIME        = 500;
 // scale factor for window size scaling
 const float WINDOW_SCALING_FACTOR = 0.05;
 // calse factor for panning content
-const float WINDOW_PAN_FACTOR = 0.005;
+const float WINDOW_PAN_FACTOR = 0.015;
 
 inline float calculateDistance(SkeletonPoint& a, SkeletonPoint& b)
 {
@@ -170,7 +170,11 @@ int SkeletonState::update(SkeletonRepresentation& skel)
             else if(leftHandActive_)
             {
                 leftHandActive_ = TRUE;
-                scaleWindow(skel.leftHand_, skel.rightHand_, 1.5 * calculateDistance(skel.rightHand_, skel.rightElbow_));
+                scaleWindow(skel.leftHand_, skel.rightHand_, 2.0 * calculateDistance(skel.rightHand_, skel.rightElbow_));
+                
+                //update marker
+                displayGroup_->getMarker()->getPosition(oldX, oldY);
+                displayGroup_->getMarker()->setPosition(normX, normY);
             }
 
             // left hand not present, move window under cursor
@@ -210,7 +214,7 @@ int SkeletonState::update(SkeletonRepresentation& skel)
 
             else if(leftHandActive_)
             {
-                zoom(skel.leftHand_, skel.rightHand_, 1.5 * calculateDistance(skel.rightHand_, skel.rightElbow_));
+                zoom(skel.leftHand_, skel.rightHand_, 2.0 * calculateDistance(skel.rightHand_, skel.rightElbow_));
             }
 
             // pan window about current center
@@ -244,22 +248,15 @@ int SkeletonState::update(SkeletonRepresentation& skel)
             }
         }
     }
-
 }
 
 void SkeletonState::zoom(SkeletonPoint& lh, SkeletonPoint& rh, float threshold)
 {
 
-    float zoomFactor = calculateDistance(lh, rh)/threshold;
+    float handDistance = calculateDistance(lh, rh) / threshold;
+    float zoomFactor = 1. + (handDistance - 1) / 50.;
 
-    if(zoomFactor > 1.0)
-    {
-        zoomFactor = activeWindow_->getZoom() + (zoomFactor - 1)*WINDOW_SCALING_FACTOR;
-    }
-    else
-        zoomFactor = activeWindow_->getZoom() - (1 - zoomFactor)*WINDOW_SCALING_FACTOR;
-
-    activeWindow_->setZoom(zoomFactor);
+    activeWindow_->setZoom(zoomFactor * activeWindow_->getZoom());
 }
 
 void SkeletonState::pan(SkeletonPoint& rh, SkeletonPoint& rs, float maxReach)
@@ -271,7 +268,7 @@ void SkeletonState::pan(SkeletonPoint& rh, SkeletonPoint& rs, float maxReach)
 
     double oldCenterX, oldCenterY;
     activeWindow_->getCenter(oldCenterX, oldCenterY);
-    activeWindow_->setCenter(oldCenterX + normX*WINDOW_PAN_FACTOR, oldCenterY + normY*WINDOW_PAN_FACTOR);
+    activeWindow_->setCenter(oldCenterX + normX*WINDOW_PAN_FACTOR/activeWindow_->getZoom(), oldCenterY + normY*WINDOW_PAN_FACTOR/activeWindow_->getZoom());
 }
 
 void SkeletonState::scaleWindow(SkeletonPoint& lh, SkeletonPoint& rh, float threshold)
@@ -363,7 +360,7 @@ void SkeletonState::drawJoints()
             {
                 // color it if in interaction mode
                 if (focusInteraction_)
-                    glColor4f(220., 220., 0., 1.);
+                    glColor4f(183./255., 105./255., 255./255., 1.);
                 // make it larger
                 glPushMatrix();
                 glTranslatef(joints[i].x_, joints[i].y_, joints[i].z_);

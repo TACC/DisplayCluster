@@ -68,7 +68,7 @@ DisplayGroupManager::DisplayGroupManager()
 
     // serialization support for the vector of skeleton states
 #if ENABLE_SKELETON_SUPPORT
-    qRegisterMetaType<std::vector<SkeletonState> >("std::vector<SkeletonState>");
+    qRegisterMetaType<std::vector< boost::shared_ptr<SkeletonState> > >("std::vector< boost::shared_ptr<SkeletonState> >");
 #endif
 }
 
@@ -114,7 +114,7 @@ boost::shared_ptr<boost::posix_time::ptime> DisplayGroupManager::getTimestamp()
 }
 
 #if ENABLE_SKELETON_SUPPORT
-std::vector<SkeletonState> DisplayGroupManager::getSkeletons()
+std::vector< boost::shared_ptr<SkeletonState> > DisplayGroupManager::getSkeletons()
 {
     return skeletons_;
 }
@@ -821,7 +821,7 @@ void DisplayGroupManager::sendQuit()
 }
 
 #if ENABLE_SKELETON_SUPPORT
-void DisplayGroupManager::setSkeletons(std::vector<SkeletonState> skeletons)
+void DisplayGroupManager::setSkeletons(std::vector< boost::shared_ptr<SkeletonState> > skeletons)
 {
     skeletons_ = skeletons;
 
@@ -946,7 +946,7 @@ void DisplayGroupManager::receiveSkeletons(MessageHeader messageHeader)
     }
 
     // read to skeletons vector
-    std::vector<SkeletonState> skeletons;
+    std::vector< boost::shared_ptr<SkeletonState> > skeletons;
 
     boost::archive::binary_iarchive ia(iss);
     ia >> skeletons_;
