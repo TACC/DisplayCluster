@@ -67,66 +67,32 @@ int SkeletonSensor::initialize()
     return 1;
 }
 
-// converts the OpenNI positions to simple 3D points
-void SkeletonSensor::convertXnJointToPoint(XnSkeletonJointPosition* const joints, SkeletonPoint* const points, unsigned int numPoints)
+// set device to look for calibration pose and supply callback functions for user events
+int SkeletonSensor::setCalibrationPoseCallbacks()
 {
+    XnCallbackHandle hUserCallbacks, hCalibrationStart, hCalibrationComplete, hPoseDetected;
+    XnStatus rc = XN_STATUS_OK;
 
-    XnPoint3D xpt;
-    for(unsigned int i = 0; i < numPoints; i++)
+    userG_.RegisterUserCallbacks(newUserCallback, lostUserCallback, this, hUserCallbacks);
+    userG_.GetSkeletonCap().RegisterToCalibrationStart(calibrationStartCallback, this, hCalibrationStart);
+    userG_.GetSkeletonCap().RegisterToCalibrationComplete(calibrationCompleteCallback, this, hCalibrationComplete);
+
+    if (needCalibrationPose_)
     {
-        xpt = joints[i].position;
-        if(pointModeProjective_)
-            depthG_.ConvertRealWorldToProjective(1, &xpt, &xpt);
-
-        points[i].confidence_ = joints[i].fConfidence;
-        points[i].x_ = xpt.X;
-        points[i].y_ = xpt.Y;
-        points[i].z_ = xpt.Z;
+        if (!userG_.IsCapabilitySupported(XN_CAPABILITY_POSE_DETECTION))
+        {
+            put_flog(LOG_ERROR, "Pose required, but not supported by device\n");
+            return -1;
+        }
+        rc = userG_.GetPoseDetectionCap().RegisterToPoseDetected(poseDetectedCallback, this, hPoseDetected);
+        CHECK_RC(rc, "Register to Pose Detected");
+        userG_.GetSkeletonCap().GetCalibrationPose((XnChar*) pose_.c_str());
     }
-}
-        
-void SkeletonSensor::getHandPoints(const unsigned int i, SkeletonPoint* const hands)
-{
-    XnSkeletonJointPosition joints[2];
-    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_LEFT_HAND, joints[0]);
-    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_RIGHT_HAND, joints[1]);
     
-    convertXnJointToPoint(joints, hands, 2);
-}
-
-void SkeletonSensor::getElbowPoints(const unsigned int i, SkeletonPoint* const elbows)
-{
-    XnSkeletonJointPosition joints[2];
-    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_LEFT_ELBOW, joints[0]);
-    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_RIGHT_ELBOW, joints[1]);
-    convertXnJointToPoint(joints, elbows, 2);
-
-}
-
-void SkeletonSensor::getArmPoints(const unsigned int i, SkeletonPoint* const arms)
-{
-    getHandPoints(i, arms);
-    getElbowPoints(i, arms+2);
+    // turn on tracking of all joints
+    userG_.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_ALL);
     
-    XnSkeletonJointPosition joints[2];
-    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_LEFT_ELBOW, joints[4]);
-    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_RIGHT_ELBOW, joints[5]);
-    convertXnJointToPoint(joints, arms, 2);
-}
-
-void SkeletonSensor::getShoulderPoints(const unsigned int i, SkeletonPoint* const shoulders)
-{
-    XnSkeletonJointPosition joints[2];
-    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_LEFT_SHOULDER, joints[0]);
-    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_RIGHT_SHOULDER, joints[1]);
-    convertXnJointToPoint(joints, shoulders, 2);
-}
-
-void SkeletonSensor::getHeadPoint(const unsigned int i, SkeletonPoint* const head)
-{
-    XnSkeletonJointPosition joints;
-    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_HEAD, joints);
-    convertXnJointToPoint(&joints, head, 1);
+    return 0;
 }
 
 bool SkeletonSensor::updateTrackedUsers()
@@ -173,41 +139,136 @@ bool SkeletonSensor::isTracking(const unsigned int uid)
     return userG_.GetSkeletonCap().IsTracking(uid);
 }
 
-// set device to look for calibration pose and supply callback functions for user events
-int SkeletonSensor::setCalibrationPoseCallbacks()
+void SkeletonSensor::getHandPoints(const unsigned int i, SkeletonPoint* const hands)
 {
-    XnCallbackHandle hUserCallbacks, hCalibrationStart, hCalibrationComplete, hPoseDetected;
-    XnStatus rc = XN_STATUS_OK;
-
-    userG_.RegisterUserCallbacks(newUserCallback, lostUserCallback, this, hUserCallbacks);
-    userG_.GetSkeletonCap().RegisterToCalibrationStart(calibrationStartCallback, this, hCalibrationStart);
-    userG_.GetSkeletonCap().RegisterToCalibrationComplete(calibrationCompleteCallback, this, hCalibrationComplete);
-
-    if (needCalibrationPose_)
-    {
-        if (!userG_.IsCapabilitySupported(XN_CAPABILITY_POSE_DETECTION))
-        {
-            put_flog(LOG_ERROR, "Pose required, but not supported by device\n");
-            return -1;
-        }
-        rc = userG_.GetPoseDetectionCap().RegisterToPoseDetected(poseDetectedCallback, this, hPoseDetected);
-        CHECK_RC(rc, "Register to Pose Detected");
-        userG_.GetSkeletonCap().GetCalibrationPose((XnChar*) pose_.c_str());
-    }
+    XnSkeletonJointPosition joints[2];
+    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_LEFT_HAND, joints[0]);
+    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_RIGHT_HAND, joints[1]);
     
-    // turn on tracking of all joints
-    userG_.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_ALL);
-    
-    return 0;
+    convertXnJointToPoint(joints, hands, 2);
 }
 
-// print the number of poses that the connected device supports
-// Kinect: 1 Pose: "Psi"
-void SkeletonSensor::printAvailablePoses()
+void SkeletonSensor::getElbowPoints(const unsigned int i, SkeletonPoint* const elbows)
 {
-    XnUInt32 numPoses = userG_.GetPoseDetectionCap().GetNumberOfPoses();
+    XnSkeletonJointPosition joints[2];
+    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_LEFT_ELBOW, joints[0]);
+    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_RIGHT_ELBOW, joints[1]);
+    convertXnJointToPoint(joints, elbows, 2);
+
+}
+
+void SkeletonSensor::getArmPoints(const unsigned int i, SkeletonPoint* const arms)
+{
+    getHandPoints(i, arms);
+    getElbowPoints(i, arms+2);
     
-    put_flog(LOG_DEBUG, "Number of poses: %d.\n", numPoses);
+    XnSkeletonJointPosition joints[2];
+    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_LEFT_ELBOW, joints[4]);
+    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_RIGHT_ELBOW, joints[5]);
+    convertXnJointToPoint(joints, arms, 2);
+}
+
+void SkeletonSensor::getShoulderPoints(const unsigned int i, SkeletonPoint* const shoulders)
+{
+    XnSkeletonJointPosition joints[2];
+    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_LEFT_SHOULDER, joints[0]);
+    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_RIGHT_SHOULDER, joints[1]);
+    convertXnJointToPoint(joints, shoulders, 2);
+}
+
+void SkeletonSensor::getHeadPoint(const unsigned int i, SkeletonPoint* const head)
+{
+    XnSkeletonJointPosition joints;
+    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_HEAD, joints);
+    convertXnJointToPoint(&joints, head, 1);
+}
+
+std::vector<SkeletonRepresentation> SkeletonSensor::getAllAvailablePoints()
+{
+    std::vector<SkeletonRepresentation> skeletons;
+    
+    for(unsigned int i = 0; i < getNOTrackedUsers(); i++)
+    {
+        SkeletonRepresentation s = getAllAvailablePoints(trackedUsers_[i]);
+        skeletons.push_back(s);
+    }
+
+    return skeletons;
+}
+
+// converts the OpenNI positions to simple 3D points
+void SkeletonSensor::convertXnJointToPoint(XnSkeletonJointPosition* const joints, SkeletonPoint* const points, unsigned int numPoints)
+{
+
+    XnPoint3D xpt;
+    for(unsigned int i = 0; i < numPoints; i++)
+    {
+        xpt = joints[i].position;
+        if(pointModeProjective_)
+            depthG_.ConvertRealWorldToProjective(1, &xpt, &xpt);
+
+        points[i].confidence_ = joints[i].fConfidence;
+        points[i].x_ = xpt.X;
+        points[i].y_ = xpt.Y;
+        points[i].z_ = xpt.Z;
+    }
+}
+
+SkeletonRepresentation SkeletonSensor::getAllAvailablePoints(const unsigned int UID)
+{
+    SkeletonRepresentation result;
+    // not tracking user
+    if(!userG_.GetSkeletonCap().IsTracking(UID))
+        return result;
+
+    // Array of available joints
+    const unsigned int nJoints = 15;
+    XnSkeletonJoint joints[nJoints] = 
+    {   XN_SKEL_HEAD,
+        XN_SKEL_NECK,
+        XN_SKEL_RIGHT_SHOULDER,
+        XN_SKEL_LEFT_SHOULDER,
+        XN_SKEL_RIGHT_ELBOW,
+        XN_SKEL_LEFT_ELBOW,
+        XN_SKEL_RIGHT_HAND,
+        XN_SKEL_LEFT_HAND,
+        XN_SKEL_RIGHT_HIP,
+        XN_SKEL_LEFT_HIP,
+        XN_SKEL_RIGHT_KNEE,
+        XN_SKEL_LEFT_KNEE,
+        XN_SKEL_RIGHT_FOOT,
+        XN_SKEL_LEFT_FOOT,
+        XN_SKEL_TORSO 
+    };
+
+    // holds the joint position components
+    XnSkeletonJointPosition positions[15];
+
+    for (unsigned int i = 0; i < nJoints; i++)
+    {
+        userG_.GetSkeletonCap().GetSkeletonJointPosition(UID, joints[i], *(positions+i));
+    }
+    
+    SkeletonPoint points[15];
+    convertXnJointToPoint(positions, points, 15);
+    
+    result.head_              = points[0];
+    result.neck_              = points[1];
+    result.rightShoulder_     = points[2];
+    result.leftShoulder_      = points[3];
+    result.rightElbow_        = points[4];
+    result.leftElbow_         = points[5];
+    result.rightHand_         = points[6];
+    result.leftHand_          = points[7];
+    result.rightHip_          = points[8];
+    result.leftHip_           = points[9];
+    result.rightKnee_         = points[10];
+    result.leftKnee_          = points[11];
+    result.rightFoot_         = points[12];
+    result.leftFoot_          = points[13];
+    result.torso_             = points[14];
+
+    return result;
 }
 
 int SkeletonSensor::getClosestTrackedUID()
@@ -240,6 +301,14 @@ int SkeletonSensor::getClosestTrackedUID()
         
     }
     return nearestUID;
+}
+
+// Kinect: 1 Pose: "Psi"
+void SkeletonSensor::printAvailablePoses()
+{
+    XnUInt32 numPoses = userG_.GetPoseDetectionCap().GetNumberOfPoses();
+    
+    put_flog(LOG_DEBUG, "Number of poses: %d.\n", numPoses);
 }
 
 void XN_CALLBACK_TYPE SkeletonSensor::newUserCallback(xn::UserGenerator& generator, XnUserID nId, void* pCookie)
@@ -301,74 +370,4 @@ void XN_CALLBACK_TYPE SkeletonSensor::poseDetectedCallback(xn::PoseDetectionCapa
     put_flog(LOG_DEBUG, "Pose %s detected for user %d\n", sensor->getPoseString(), nId);
     sensor->getUserGenerator()->GetPoseDetectionCap().StopPoseDetection(nId);
     sensor->getUserGenerator()->GetSkeletonCap().RequestCalibration(nId, TRUE);
-}
-
-SkeletonRepresentation SkeletonSensor::getAllAvailablePoints(const unsigned int UID)
-{
-    SkeletonRepresentation result;
-    // not tracking user
-    if(!userG_.GetSkeletonCap().IsTracking(UID))
-        return result;
-
-    // Array of available joints
-    const unsigned int nJoints = 15;
-    XnSkeletonJoint joints[nJoints] = 
-    {   XN_SKEL_HEAD,
-        XN_SKEL_NECK,
-        XN_SKEL_RIGHT_SHOULDER,
-        XN_SKEL_LEFT_SHOULDER,
-        XN_SKEL_RIGHT_ELBOW,
-        XN_SKEL_LEFT_ELBOW,
-        XN_SKEL_RIGHT_HAND,
-        XN_SKEL_LEFT_HAND,
-        XN_SKEL_RIGHT_HIP,
-        XN_SKEL_LEFT_HIP,
-        XN_SKEL_RIGHT_KNEE,
-        XN_SKEL_LEFT_KNEE,
-        XN_SKEL_RIGHT_FOOT,
-        XN_SKEL_LEFT_FOOT,
-        XN_SKEL_TORSO 
-    };
-
-    // holds the joint position components
-    XnSkeletonJointPosition positions[15];
-
-    for (unsigned int i = 0; i < nJoints; i++)
-    {
-        userG_.GetSkeletonCap().GetSkeletonJointPosition(UID, joints[i], *(positions+i));
-    }
-    
-    SkeletonPoint points[15];
-    convertXnJointToPoint(positions, points, 15);
-    
-    result.head_              = points[0];
-    result.neck_              = points[1];
-    result.rightShoulder_     = points[2];
-    result.leftShoulder_      = points[3];
-    result.rightElbow_        = points[4];
-    result.leftElbow_         = points[5];
-    result.rightHand_         = points[6];
-    result.leftHand_          = points[7];
-    result.rightHip_          = points[8];
-    result.leftHip_           = points[9];
-    result.rightKnee_         = points[10];
-    result.leftKnee_          = points[11];
-    result.rightFoot_         = points[12];
-    result.leftFoot_          = points[13];
-    result.torso_             = points[14];
-
-    return result;
-}
-
-std::vector<SkeletonRepresentation> SkeletonSensor::getAllAvailablePoints()
-{
-    std::vector<SkeletonRepresentation> skeletons;
-    
-    for(unsigned int i = 0; i < getNOTrackedUsers(); i++)
-    {
-        SkeletonRepresentation s = getAllAvailablePoints(trackedUsers_[i]);
-        skeletons.push_back(s);
-    }
-
-    return skeletons;
 }

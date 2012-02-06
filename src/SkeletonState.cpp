@@ -24,11 +24,6 @@ inline float calculateDistance(SkeletonPoint& a, SkeletonPoint& b)
     return result;
 }
 
-inline bool withinThreshold(const float p1, const float p2, const float threshold)
-{
-    return abs(p2 - p1) > threshold;
-}
-
 SkeletonState::SkeletonState(): leftHandActive_(FALSE),
                                 rightHandActive_(FALSE),
                                 focusInteraction_(FALSE),

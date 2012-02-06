@@ -144,7 +144,6 @@ class SkeletonSensor
         unsigned int getNOTrackedUsers() { return trackedUsers_.size(); }
         unsigned int getUID(int i) { return trackedUsers_[i]; }
         void addTrackedUser(const int uID) { trackedUsers_.push_back(uID); }
-        void removeTrackedUser(const int uID);
         
         // return -1 if no users, otherwise returns UID of most proximal user
         int getClosestTrackedUID();
