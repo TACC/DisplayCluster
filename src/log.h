@@ -51,6 +51,10 @@
 
 extern void put_log(int level, const char *format, ...);
 
-#define put_flog(l, fmt, ...) put_log(l, "%s: " fmt, __PRETTY_FUNCTION__, ##__VA_ARGS__)
+#ifdef _WIN32
+    #define put_flog(l, fmt, ...) put_log(l, "%s: " fmt, __FUNCTION__, ##__VA_ARGS__)
+#else
+    #define put_flog(l, fmt, ...) put_log(l, "%s: " fmt, __PRETTY_FUNCTION__, ##__VA_ARGS__)
+#endif
 
 #endif
