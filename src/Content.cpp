@@ -41,6 +41,8 @@
 #include "TextureContent.h"
 #include "DynamicTextureContent.h"
 #include "MovieContent.h"
+#include "main.h"
+#include "GLWindow.h"
 #include <QGLWidget>
 
 Content::Content(std::string uri)
@@ -94,6 +96,67 @@ void Content::render(boost::shared_ptr<ContentWindowManager> window)
 
     // render the factory object
     renderFactoryObject(tX, tY, tW, tH);
+
+    // render the context view
+    if(g_displayGroupManager->getOptions()->getShowZoomContext() == true && zoom > 1.)
+    {
+        float sizeFactor = 0.25;
+        float padding = 0.02;
+        float deltaZ = 0.001;
+        float alpha = 0.5;
+        float borderPixels = 5.;
+
+        glPushAttrib(GL_CURRENT_BIT | GL_ENABLE_BIT | GL_LINE_BIT);
+        glPushMatrix();
+
+        // position at lower left
+        glTranslatef(padding, 1. - sizeFactor - padding, deltaZ);
+        glScalef(sizeFactor, sizeFactor, 1.);
+
+        // render border rectangle
+        glColor4f(1,1,1,1);
+
+        glLineWidth(borderPixels);
+
+        glBegin(GL_LINE_LOOP);
+
+        glVertex2d(0., 0.);
+        glVertex2d(1., 0.);
+        glVertex2d(1., 1.);
+        glVertex2d(0., 1.);
+
+        glEnd();
+
+        // render the factory object (full view)
+        glTranslatef(0., 0., deltaZ);
+        renderFactoryObject(0., 0., 1., 1.);
+
+        // draw context rectangle border
+        glTranslatef(0., 0., deltaZ);
+
+        glLineWidth(borderPixels);
+
+        glBegin(GL_LINE_LOOP);
+
+        glVertex2d(tX, tY);
+        glVertex2d(tX + tW, tY);
+        glVertex2d(tX + tW, tY + tH);
+        glVertex2d(tX, tY + tH);
+
+        glEnd();
+
+        // draw context rectangle blended
+        glTranslatef(0., 0., deltaZ);
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        glColor4f(1.,1.,1., alpha);
+        GLWindow::drawRectangle(tX, tY, tW, tH);
+
+        glPopMatrix();
+        glPopAttrib();
+    }
 
     glPopMatrix();
 }

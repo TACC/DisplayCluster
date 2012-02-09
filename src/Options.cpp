@@ -43,6 +43,7 @@ Options::Options()
     showWindowBorders_ = true;
     showTestPattern_ = false;
     enableMullionCompensation_ = true;
+    showZoomContext_ = true;
 }
 
 bool Options::getShowWindowBorders()
@@ -58,6 +59,11 @@ bool Options::getShowTestPattern()
 bool Options::getEnableMullionCompensation()
 {
     return enableMullionCompensation_;
+}
+
+bool Options::getShowZoomContext()
+{
+    return showZoomContext_;
 }
 
 void Options::setShowWindowBorders(bool set)
@@ -77,6 +83,13 @@ void Options::setShowTestPattern(bool set)
 void Options::setEnableMullionCompensation(bool set)
 {
     enableMullionCompensation_ = set;
+
+    emit(updated());
+}
+
+void Options::setShowZoomContext(bool set)
+{
+    showZoomContext_ = set;
 
     emit(updated());
 }
