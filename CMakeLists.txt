@@ -92,9 +92,9 @@ if(BUILD_DISPLAYCLUSTER)
     endif()
     
     if(ENABLE_SKELETON_SUPPORT)
-        find_package(OPENNI REQUIRED)
-        include_directories(${OPENNI_INCLUDE_DIRS})
-        set(LIBS ${LIBS} ${OPENNI_LIBRARIES})
+        find_package(OpenNI REQUIRED)
+        include_directories(${OpenNI_INCLUDE_DIRS})
+        set(LIBS ${LIBS} ${OpenNI_LIBRARIES})
     
         set(SRCS ${SRCS}
             src/SkeletonThread.cpp
