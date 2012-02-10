@@ -42,7 +42,13 @@
 #include "../../../src/MessageHeader.h"
 #include "DesktopSelectionRectangle.h"
 #include <turbojpeg.h>
-#include <stdint.h>
+
+#ifdef _WIN32
+    typedef __int32 int32_t;
+    #include <windows.h>
+#else
+    #include <stdint.h>
+#endif
 
 MainWindow::MainWindow()
 {
@@ -156,10 +162,12 @@ void MainWindow::shareDesktop(bool set)
             return;
         }
 
-		// handshake
+        // handshake
         while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < (int)sizeof(int32_t))
         {
+#ifndef _WIN32
             usleep(10);
+#endif
         }
 
         int32_t protocolVersion = -1;
@@ -296,7 +304,9 @@ void MainWindow::shareDesktopUpdate()
         // wait for acknowledgment
         while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < 3)
         {
+#ifndef _WIN32
             usleep(10);
+#endif
         }
 
         tcpSocket_.read(3);
@@ -342,7 +352,9 @@ void MainWindow::shareDesktopUpdate()
         // wait for acknowledgment
         while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < 3)
         {
+#ifndef _WIN32
             usleep(10);
+#endif
         }
 
         tcpSocket_.read(3);
@@ -360,7 +372,11 @@ void MainWindow::shareDesktopUpdate()
 
     if(sleepTime > 0)
     {
+#ifdef _WIN32
+        Sleep(sleepTime);
+#else
         usleep(1000 * sleepTime);
+#endif
     }
 }
 

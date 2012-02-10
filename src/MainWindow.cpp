@@ -147,6 +147,13 @@ MainWindow::MainWindow()
         enableMullionCompensationAction->setChecked(g_displayGroupManager->getOptions()->getEnableMullionCompensation());
         connect(enableMullionCompensationAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setEnableMullionCompensation(bool)));
 
+        // show zoom context action
+        QAction * showZoomContextAction = new QAction("Show Zoom Context", this);
+        showZoomContextAction->setStatusTip("Show zoom context");
+        showZoomContextAction->setCheckable(true);
+        showZoomContextAction->setChecked(g_displayGroupManager->getOptions()->getShowZoomContext());
+        connect(showZoomContextAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowZoomContext(bool)));
+
         // add actions to menus
         fileMenu->addAction(openContentAction);
         fileMenu->addAction(openContentsDirectoryAction);
@@ -159,6 +166,7 @@ MainWindow::MainWindow()
         viewMenu->addAction(showWindowBordersAction);
         viewMenu->addAction(showTestPatternAction);
         viewMenu->addAction(enableMullionCompensationAction);
+        viewMenu->addAction(showZoomContextAction);
 
 #if ENABLE_PYTHON_SUPPORT
         windowMenu->addAction(pythonConsoleAction);

@@ -52,11 +52,13 @@ class Options : public QObject {
         bool getShowWindowBorders();
         bool getShowTestPattern();
         bool getEnableMullionCompensation();
+        bool getShowZoomContext();
 
     public slots:
         void setShowWindowBorders(bool set);
         void setShowTestPattern(bool set);
         void setEnableMullionCompensation(bool set);
+        void setShowZoomContext(bool set);
 
     signals:
         void updated();
@@ -70,11 +72,13 @@ class Options : public QObject {
             ar & showWindowBorders_;
             ar & showTestPattern_;
             ar & enableMullionCompensation_;
+            ar & showZoomContext_;
         }
 
         bool showWindowBorders_;
         bool showTestPattern_;
         bool enableMullionCompensation_;
+        bool showZoomContext_;
 };
 
 #endif
