@@ -25,7 +25,7 @@ option(BUILD_DESKTOPSTREAMER "Build DesktopStreamer application" OFF)
 if(BUILD_DISPLAYCLUSTER)
     option(ENABLE_TUIO_TOUCH_LISTENER "Enable TUIO touch listener for multi-touch events" OFF)
     option(ENABLE_JOYSTICK_SUPPORT "Enable joystick support" OFF)
-    option(ENABLE_SKELETON_SUPPORT "Enable skeleton tracking input support" OFF)
+    option(ENABLE_SKELETON_SUPPORT "EXPERIMENTAL: Enable skeleton tracking interface support" OFF)
     option(ENABLE_PYTHON_SUPPORT "Enable Python support" OFF)
 endif()
 
@@ -90,21 +90,21 @@ if(BUILD_DISPLAYCLUSTER)
 
         set(MOC_HEADERS ${MOC_HEADERS} src/JoystickThread.h)
     endif()
-    
+
     if(ENABLE_SKELETON_SUPPORT)
         find_package(OpenNI REQUIRED)
         include_directories(${OpenNI_INCLUDE_DIRS})
         set(LIBS ${LIBS} ${OpenNI_LIBRARIES})
-    
+
         set(SRCS ${SRCS}
             src/SkeletonThread.cpp
             src/SkeletonSensor.cpp
             src/SkeletonState.cpp)
 
-            if(NOT ENABLE_JOYSTICK_SUPPORT)
-                set(SRCS ${SRCS} src/DisplayGroupJoystick.cpp)
-            endif()
-    
+        if(NOT ENABLE_JOYSTICK_SUPPORT)
+            set(SRCS ${SRCS} src/DisplayGroupJoystick.cpp)
+        endif()
+
         set(MOC_HEADERS ${MOC_HEADERS} src/SkeletonThread.h)
     endif()
 
