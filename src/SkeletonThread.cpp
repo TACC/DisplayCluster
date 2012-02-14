@@ -185,5 +185,4 @@ void SkeletonThread::updateSkeletons()
     }
 
     emit(skeletonsUpdated(getSkeletons()));
-    emit(updateSkeletonsFinished());
 }

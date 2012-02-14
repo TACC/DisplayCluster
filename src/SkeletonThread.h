@@ -68,7 +68,6 @@ class SkeletonThread : public QThread {
 
     signals:
 
-        void updateSkeletonsFinished();
         void skeletonsUpdated(std::vector< boost::shared_ptr<SkeletonState> > skeletons);
 
     public slots:
