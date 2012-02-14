@@ -61,7 +61,6 @@ SkeletonThread::~SkeletonThread()
 
 std::vector< boost::shared_ptr<SkeletonState> > SkeletonThread::getSkeletons()
 {
-
     std::vector< boost::shared_ptr<SkeletonState> > skeletons;
 
     std::map<unsigned int, boost::shared_ptr<SkeletonState> >::iterator it;
@@ -79,13 +78,13 @@ void SkeletonThread::run()
 
     // Initialize the OpenNI sensor and start generating depth data
     sensor_ = new SkeletonSensor();
-    
+
     if(sensor_->initialize() != 1)
     {
         put_flog(LOG_ERROR, "Could not initialize skeleton sensor subsystem.");
         return;
     }
-    
+
     put_flog(LOG_DEBUG, "SkeletonSensor initialized.");
 
     sensor_->setCalibrationPoseCallbacks();
@@ -130,14 +129,14 @@ void SkeletonThread::updateSkeletons()
         states_[closestUID].update(skeletonRep);
     }
     */
-    
+
     // get new list of tracked users
     sensor_->updateTrackedUsers();
-    
+
     bool newActive = FALSE; // we use this to keep track if there is a new active user
     unsigned int activeUID;
     unsigned int previousActiveUID = NA_UID;
-    
+
     for (unsigned int i = 0; i < sensor_->getNOTrackedUsers(); i++)
     {
         // check if skeletonState exists for user and create if not
@@ -165,14 +164,14 @@ void SkeletonThread::updateSkeletons()
             }
         }
     }
-    
+
     // make previous active user inactive if there is a new active user
     if(newActive)
     {
         if (previousActiveUID != NA_UID)
             states_[previousActiveUID]->hasControl_ = FALSE;
     }
-    
+
     // iterate through skeletons, if the skeleton is not tracked, then delete it
     std::map<unsigned int, boost::shared_ptr<SkeletonState> >::iterator it;
     for(it = states_.begin(); it != states_.end(); it++)
@@ -184,7 +183,7 @@ void SkeletonThread::updateSkeletons()
             states_.erase(uid);
         }
     }
-    
+
     emit(skeletonsUpdated(getSkeletons()));
     emit(updateSkeletonsFinished());
 }

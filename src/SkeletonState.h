@@ -71,13 +71,13 @@ class SkeletonState
 
         // are hands exceeding depth threshold
         bool leftHandActive_, rightHandActive_;
-        
+
         // are we interacting with a focused window?
         bool focusInteraction_;
 
         // the current point representation of the skeleton
         SkeletonRepresentation skeletonRep_;
-        
+
         // are we the controlling user?
         bool hasControl_;
 
@@ -95,7 +95,7 @@ class SkeletonState
             }
 
     private:
-        
+
         // do we have an active window?
         bool active_;
 

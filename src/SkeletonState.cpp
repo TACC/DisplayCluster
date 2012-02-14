@@ -112,7 +112,7 @@ int SkeletonState::update(SkeletonRepresentation& skel)
     // 2. find cursor position (normalized)
     float normX = ((skel.rightHand_.x_ - skel.rightShoulder_.x_) + maxReach)/(2*maxReach);
     float normY = 1 - ((skel.rightHand_.y_ - skel.rightShoulder_.y_) + maxReach)/(2*maxReach);
-    
+
     // are we confident in relevant joint positions?
     bool confidenceLeft  = FALSE;
     bool confidenceRight = FALSE;
@@ -120,7 +120,7 @@ int SkeletonState::update(SkeletonRepresentation& skel)
         confidenceLeft = TRUE;
     if (skel.rightHand_.confidence_ > 0.5 && skel.rightElbow_.confidence_ > 0.5 && skel.rightShoulder_.confidence_ > 0.5)
         confidenceRight = TRUE;
-        
+
     if ((skel.leftShoulder_.z_ - skel.leftHand_.z_) > depthThreshold && confidenceLeft)
         leftHandActive_ = TRUE;
     else leftHandActive_ = FALSE;
@@ -139,7 +139,7 @@ int SkeletonState::update(SkeletonRepresentation& skel)
             controllerTimeOut_.restart();
             return 1;
         }
-        
+
         return 0;
     }
 
@@ -204,7 +204,7 @@ int SkeletonState::update(SkeletonRepresentation& skel)
             {
                 leftHandActive_ = TRUE;
                 scaleWindow(skel.leftHand_, skel.rightHand_, 2.0 * calculateDistance(skel.rightHand_, skel.rightElbow_));
-                
+
                 //update marker
                 displayGroup_->getMarker()->getPosition(oldX, oldY);
                 displayGroup_->getMarker()->setPosition(normX, normY);
@@ -231,7 +231,6 @@ int SkeletonState::update(SkeletonRepresentation& skel)
         // active and focused
         else
         {
-
             //update marker
             displayGroup_->getMarker()->getPosition(oldX, oldY);
             displayGroup_->getMarker()->setPosition(normX, normY);
@@ -252,7 +251,7 @@ int SkeletonState::update(SkeletonRepresentation& skel)
 
             // pan window about current center
             else
-            {   
+            {
                 pan(skel.rightHand_, skel.rightShoulder_, maxReach);
             }
         }
@@ -274,7 +273,7 @@ int SkeletonState::update(SkeletonRepresentation& skel)
             {
                 hoverTime_.restart();
                 active_ = focusInteraction_ = FALSE;
-                
+
                 // set active window to NULL
                 activeWindow_ = boost::shared_ptr<ContentWindowInterface>();
 
@@ -329,7 +328,7 @@ void SkeletonState::render()
     glScalef(1./20000., 1./20000., 1./20000.);
 
     drawJoints();
-    
+
     // color the limbs uniformly
     glColor4f(220./255.,220./255.,220./255.,1.);
 
@@ -372,7 +371,7 @@ void SkeletonState::drawJoints()
     joints.push_back(skeletonRep_.rightKnee_);
     joints.push_back(skeletonRep_.leftFoot_);
     joints.push_back(skeletonRep_.rightFoot_);
-    
+
     // set up glu object
     GLUquadricObj* quadobj;
     quadobj = gluNewQuadric();
@@ -381,13 +380,12 @@ void SkeletonState::drawJoints()
     {
         // default color for joints
         glColor4f(168./255.,187./255.,219./255.,1.);
-        
+
         if(hasControl_)
             glColor4f(70./255., 219./255., 147./255., 1.);
-        
+
         if (joints[i].confidence_ > 0.5)
         {
-        
             // if it's the head
             if(i == 0)
             {
@@ -400,7 +398,7 @@ void SkeletonState::drawJoints()
                 gluSphere(quadobj,60.,16.,16.);
                 glPopMatrix();
             }
-        
+
             // if it's the left hand and active
             if(i == 4 && leftHandActive_)
             {
@@ -436,7 +434,6 @@ void SkeletonState::drawJoints()
 
 void SkeletonState::drawLimb(SkeletonPoint& pt1, SkeletonPoint& pt2)
 {
-    
     if(pt1.confidence_ <= 0.5 || pt2.confidence_ <= 0.5)
         return;
 

@@ -66,11 +66,11 @@ SkeletonSensor::~SkeletonSensor()
 int SkeletonSensor::initialize()
 {
     context_.Init();
-    
+
     XnStatus rc = XN_STATUS_OK;
-    
+
     XnMapOutputMode mapMode;
-    
+
     // create depth and user generators
     rc = depthG_.Create(context_);
     if (CHECK_RC(rc, "Create depth generator") == -1)
@@ -78,15 +78,15 @@ int SkeletonSensor::initialize()
     rc = userG_.Create(context_);
     if (CHECK_RC(rc, "Create user generator") == -1)
         return -1;
-	
-	depthG_.GetMapOutputMode(mapMode);
-	
-	// for now, make output map VGA resolution at 30 FPS
-	mapMode.nXRes = XN_VGA_X_RES;
-	mapMode.nYRes = XN_VGA_Y_RES;
-	mapMode.nFPS  = 30;
-	
-	depthG_.SetMapOutputMode(mapMode);
+
+    depthG_.GetMapOutputMode(mapMode);
+
+    // for now, make output map VGA resolution at 30 FPS
+    mapMode.nXRes = XN_VGA_X_RES;
+    mapMode.nYRes = XN_VGA_Y_RES;
+    mapMode.nFPS  = 30;
+
+    depthG_.SetMapOutputMode(mapMode);
 
     // turn on device mirroring
     if(TRUE == depthG_.IsCapabilitySupported("Mirror"))
@@ -94,14 +94,14 @@ int SkeletonSensor::initialize()
         rc = depthG_.GetMirrorCap().SetMirror(TRUE);
         CHECK_RC(rc, "Setting Image Mirroring on depthG");
     }
-    
+
     // make sure the user points are reported from the POV of the depth generator
     userG_.GetAlternativeViewPointCap().SetViewPoint(depthG_);
     userG_.GetSkeletonCap().SetSmoothing(smoothingFactor_);
-    
+
     // start data streams
     context_.StartGeneratingAll();
-    
+
     return 1;
 }
 
@@ -126,10 +126,10 @@ int SkeletonSensor::setCalibrationPoseCallbacks()
         CHECK_RC(rc, "Register to Pose Detected");
         userG_.GetSkeletonCap().GetCalibrationPose((XnChar*) pose_.c_str());
     }
-    
+
     // turn on tracking of all joints
     userG_.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_ALL);
-    
+
     return 0;
 }
 
@@ -147,7 +147,7 @@ bool SkeletonSensor::updateTrackedUsers()
         {
             trackedUsers_.push_back(users[i]);
         }
-    }    
+    }
 }
 
 bool SkeletonSensor::isTracking()
@@ -182,7 +182,7 @@ void SkeletonSensor::getHandPoints(const unsigned int i, SkeletonPoint* const ha
     XnSkeletonJointPosition joints[2];
     userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_LEFT_HAND, joints[0]);
     userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_RIGHT_HAND, joints[1]);
-    
+
     convertXnJointToPoint(joints, hands, 2);
 }
 
@@ -192,14 +192,13 @@ void SkeletonSensor::getElbowPoints(const unsigned int i, SkeletonPoint* const e
     userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_LEFT_ELBOW, joints[0]);
     userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_RIGHT_ELBOW, joints[1]);
     convertXnJointToPoint(joints, elbows, 2);
-
 }
 
 void SkeletonSensor::getArmPoints(const unsigned int i, SkeletonPoint* const arms)
 {
     getHandPoints(i, arms);
     getElbowPoints(i, arms+2);
-    
+
     XnSkeletonJointPosition joints[2];
     userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_LEFT_ELBOW, joints[4]);
     userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_RIGHT_ELBOW, joints[5]);
@@ -286,10 +285,10 @@ SkeletonRepresentation SkeletonSensor::getAllAvailablePoints(const unsigned int 
     {
         userG_.GetSkeletonCap().GetSkeletonJointPosition(UID, joints[i], *(positions+i));
     }
-    
+
     SkeletonPoint points[15];
     convertXnJointToPoint(positions, points, 15);
-    
+
     result.head_              = points[0];
     result.neck_              = points[1];
     result.rightShoulder_     = points[2];
@@ -329,14 +328,13 @@ int SkeletonSensor::getClosestTrackedUID()
                 nearestUID = trackedUsers_[i];
             }
         }
-        
+
         // first time through loop, first user is closest
         else
         {
             closestCoM.Z = CoMTemp.Z;
             nearestUID = trackedUsers_[i];
         }
-        
     }
     return nearestUID;
 }
@@ -345,7 +343,7 @@ int SkeletonSensor::getClosestTrackedUID()
 void SkeletonSensor::printAvailablePoses()
 {
     XnUInt32 numPoses = userG_.GetPoseDetectionCap().GetNumberOfPoses();
-    
+
     put_flog(LOG_DEBUG, "Number of poses: %d.\n", numPoses);
 }
 
@@ -358,7 +356,7 @@ void XN_CALLBACK_TYPE SkeletonSensor::newUserCallback(xn::UserGenerator& generat
     {
         sensor->getUserGenerator()->GetPoseDetectionCap().StartPoseDetection(sensor->getPoseString(), nId);
     }
-    
+
     // auto-calibrate user
     else
     {
