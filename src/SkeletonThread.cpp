@@ -101,35 +101,6 @@ void SkeletonThread::updateSkeletons()
     // wait for new data from sensor
     sensor_->waitForDeviceUpdateOnUser();
 
-    /*
-     *
-     * This code is for tracking only the closest user
-     * ===============================================
-    // there are no users to be tracked
-    if (!sensor_->isTracking())
-    {
-        states_.clear();
-        return;
-    }
-
-    // get the closest user
-    unsigned int closestUID = sensor_->getClosestTrackedUID();
-
-    // if user was not tracked at last frame create new state
-    if (states_.count(closestUID) == 0)
-    {
-        SkeletonRepresentation skeletonRep = sensor_->getAllAvailablePoints(closestUID);
-        SkeletonState state = SkeletonState();
-        state.update(skeletonRep);
-        states_.insert(std::pair<unsigned int, SkeletonState>(closestUID, state));
-    }
-    else
-    {
-        SkeletonRepresentation skeletonRep = sensor_->getAllAvailablePoints(closestUID);
-        states_[closestUID].update(skeletonRep);
-    }
-    */
-
     // get new list of tracked users
     sensor_->updateTrackedUsers();
 
