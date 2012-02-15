@@ -150,28 +150,6 @@ bool SkeletonSensor::updateTrackedUsers()
     }
 }
 
-bool SkeletonSensor::isTracking()
-{
-    XnUserID users[64];
-    XnUInt16 nUsers = userG_.GetNumberOfUsers();
-    trackedUsers_.clear();
-
-    userG_.GetUsers(users, nUsers);
-
-    for(int i = 0; i < nUsers; i++)
-    {
-        if(userG_.GetSkeletonCap().IsTracking(users[i]))
-        {
-            trackedUsers_.push_back(users[i]);
-        }
-    }
-
-    if (!trackedUsers_.empty())
-        return TRUE;
-    else
-        return FALSE;
-}
-
 bool SkeletonSensor::isTracking(const unsigned int uid)
 {
     return userG_.GetSkeletonCap().IsTracking(uid);

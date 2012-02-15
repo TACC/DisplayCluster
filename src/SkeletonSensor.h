@@ -130,10 +130,6 @@ class SkeletonSensor
         // update vector of tracked users
         bool updateTrackedUsers();
 
-        // updates list of currently tracked users
-        // returns TRUE if there is at least one user who's skeleton is being tracked
-        bool isTracking();
-
         // return true if uid is among the tracked users
         bool isTracking(const unsigned int uid);
 
