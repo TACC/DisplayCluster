@@ -79,15 +79,13 @@ void SkeletonThread::run()
     // Initialize the OpenNI sensor and start generating depth data
     sensor_ = new SkeletonSensor();
 
-    if(sensor_->initialize() != 1)
+    if(sensor_->initialize() != 0)
     {
         put_flog(LOG_ERROR, "Could not initialize skeleton sensor subsystem.");
         return;
     }
 
     put_flog(LOG_DEBUG, "SkeletonSensor initialized.");
-
-    sensor_->setCalibrationPoseCallbacks();
 
     // setup timer to repeatedly update
     connect(&timer_, SIGNAL(timeout()), this, SLOT(updateSkeletons()));

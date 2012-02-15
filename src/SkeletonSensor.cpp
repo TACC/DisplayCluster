@@ -102,33 +102,7 @@ int SkeletonSensor::initialize()
     // start data streams
     context_.StartGeneratingAll();
 
-    return 1;
-}
-
-// set device to look for calibration pose and supply callback functions for user events
-int SkeletonSensor::setCalibrationPoseCallbacks()
-{
-    XnCallbackHandle hUserCallbacks, hCalibrationStart, hCalibrationComplete, hPoseDetected;
-    XnStatus rc = XN_STATUS_OK;
-
-    userG_.RegisterUserCallbacks(newUserCallback, lostUserCallback, this, hUserCallbacks);
-    userG_.GetSkeletonCap().RegisterToCalibrationStart(calibrationStartCallback, this, hCalibrationStart);
-    userG_.GetSkeletonCap().RegisterToCalibrationComplete(calibrationCompleteCallback, this, hCalibrationComplete);
-
-    if (needCalibrationPose_)
-    {
-        if (!userG_.IsCapabilitySupported(XN_CAPABILITY_POSE_DETECTION))
-        {
-            put_flog(LOG_ERROR, "Pose required, but not supported by device\n");
-            return -1;
-        }
-        rc = userG_.GetPoseDetectionCap().RegisterToPoseDetected(poseDetectedCallback, this, hPoseDetected);
-        CHECK_RC(rc, "Register to Pose Detected");
-        userG_.GetSkeletonCap().GetCalibrationPose((XnChar*) pose_.c_str());
-    }
-
-    // turn on tracking of all joints
-    userG_.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_ALL);
+    setCalibrationPoseCallbacks();
 
     return 0;
 }
@@ -280,6 +254,34 @@ void SkeletonSensor::printAvailablePoses()
     XnUInt32 numPoses = userG_.GetPoseDetectionCap().GetNumberOfPoses();
 
     put_flog(LOG_DEBUG, "Number of poses: %d.\n", numPoses);
+}
+
+// set device to look for calibration pose and supply callback functions for user events
+int SkeletonSensor::setCalibrationPoseCallbacks()
+{
+    XnCallbackHandle hUserCallbacks, hCalibrationStart, hCalibrationComplete, hPoseDetected;
+    XnStatus rc = XN_STATUS_OK;
+
+    userG_.RegisterUserCallbacks(newUserCallback, lostUserCallback, this, hUserCallbacks);
+    userG_.GetSkeletonCap().RegisterToCalibrationStart(calibrationStartCallback, this, hCalibrationStart);
+    userG_.GetSkeletonCap().RegisterToCalibrationComplete(calibrationCompleteCallback, this, hCalibrationComplete);
+
+    if (needCalibrationPose_)
+    {
+        if (!userG_.IsCapabilitySupported(XN_CAPABILITY_POSE_DETECTION))
+        {
+            put_flog(LOG_ERROR, "Pose required, but not supported by device\n");
+            return -1;
+        }
+        rc = userG_.GetPoseDetectionCap().RegisterToPoseDetected(poseDetectedCallback, this, hPoseDetected);
+        CHECK_RC(rc, "Register to Pose Detected");
+        userG_.GetSkeletonCap().GetCalibrationPose((XnChar*) pose_.c_str());
+    }
+
+    // turn on tracking of all joints
+    userG_.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_ALL);
+
+    return 0;
 }
 
 void XN_CALLBACK_TYPE SkeletonSensor::newUserCallback(xn::UserGenerator& generator, XnUserID nId, void* pCookie)

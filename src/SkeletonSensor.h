@@ -121,9 +121,6 @@ class SkeletonSensor
         // set up the device resolution and data generators
         int initialize();
 
-        // on user detection and calibration, call specified functions
-        int setCalibrationPoseCallbacks();
-
         // non-blocking wait for new data on the device
         inline void waitForDeviceUpdateOnUser() { context_.WaitOneUpdateAll(userG_); }
 
@@ -181,6 +178,9 @@ class SkeletonSensor
 
         // in older installations, a pose is needed to calibration the skeleton
         bool needCalibrationPose_;
+
+        // on user detection and calibration, call specified functions
+        int setCalibrationPoseCallbacks();
 
         // callback functions for user and skeleton calibration events
         static void XN_CALLBACK_TYPE newUserCallback(xn::UserGenerator& generator, XnUserID nId, void* pCookie);
