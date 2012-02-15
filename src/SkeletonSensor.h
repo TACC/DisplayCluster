@@ -55,7 +55,7 @@ class SkeletonPoint
         friend class boost::serialization::access;
 
         template<class Archive>
-        void serialize(Archive & ar, const unsigned int version)
+        void serialize(Archive & ar, const unsigned int)
         {
             ar & x_;
             ar & y_;
@@ -87,7 +87,7 @@ class Skeleton
         friend class boost::serialization::access;
 
         template<class Archive>
-        void serialize(Archive & ar, const unsigned int version)
+        void serialize(Archive & ar, const unsigned int)
         {
             ar & head_;
             ar & neck_;
