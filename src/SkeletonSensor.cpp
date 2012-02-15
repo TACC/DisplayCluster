@@ -139,7 +139,7 @@ std::vector<Skeleton> SkeletonSensor::getSkeletons()
 }
 
 // converts the OpenNI positions to simple 3D points
-void SkeletonSensor::convertXnJointToPoint(XnSkeletonJointPosition* const joints, SkeletonPoint* const points, unsigned int numPoints)
+void SkeletonSensor::convertXnJointsToPoints(XnSkeletonJointPosition* const joints, SkeletonPoint* const points, unsigned int numPoints)
 {
 
     XnPoint3D xpt;
@@ -184,7 +184,7 @@ Skeleton SkeletonSensor::getSkeleton(const unsigned int UID)
     };
 
     // holds the joint position components
-    XnSkeletonJointPosition positions[15];
+    XnSkeletonJointPosition positions[nJoints];
 
     for (unsigned int i = 0; i < nJoints; i++)
     {
@@ -192,7 +192,7 @@ Skeleton SkeletonSensor::getSkeleton(const unsigned int UID)
     }
 
     SkeletonPoint points[15];
-    convertXnJointToPoint(positions, points, 15);
+    convertXnJointsToPoints(positions, points, nJoints);
 
     result.head_              = points[0];
     result.neck_              = points[1];

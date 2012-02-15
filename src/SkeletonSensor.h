@@ -138,7 +138,7 @@ class SkeletonSensor
 
         void setPointModeToProjective() { pointModeProjective_ = true; }
         void setPointModeToReal() { pointModeProjective_ = false; }
-        void convertXnJointToPoint(XnSkeletonJointPosition* const j, SkeletonPoint* const p, unsigned int numPoints);
+        void convertXnJointsToPoints(XnSkeletonJointPosition* const j, SkeletonPoint* const p, unsigned int numPoints);
 
         // set the smoothing factor
         inline void setSmoothing(const float smoothingF)
