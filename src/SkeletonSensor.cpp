@@ -155,13 +155,13 @@ bool SkeletonSensor::isTracking(const unsigned int uid)
     return userG_.GetSkeletonCap().IsTracking(uid);
 }
 
-std::vector<Skeleton> SkeletonSensor::getAllAvailablePoints()
+std::vector<Skeleton> SkeletonSensor::getSkeletons()
 {
     std::vector<Skeleton> skeletons;
     
     for(unsigned int i = 0; i < getNOTrackedUsers(); i++)
     {
-        Skeleton s = getAllAvailablePoints(trackedUsers_[i]);
+        Skeleton s = getSkeleton(trackedUsers_[i]);
         skeletons.push_back(s);
     }
 
@@ -186,7 +186,7 @@ void SkeletonSensor::convertXnJointToPoint(XnSkeletonJointPosition* const joints
     }
 }
 
-Skeleton SkeletonSensor::getAllAvailablePoints(const unsigned int UID)
+Skeleton SkeletonSensor::getSkeleton(const unsigned int UID)
 {
     Skeleton result;
     // not tracking user

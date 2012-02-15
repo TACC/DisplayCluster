@@ -60,7 +60,7 @@ class SkeletonThread : public QThread {
         SkeletonThread();
         ~SkeletonThread();
 
-        std::vector< boost::shared_ptr<SkeletonState> > getSkeletons();
+        std::vector<boost::shared_ptr<SkeletonState> > getSkeletons();
 
     protected:
 

@@ -113,7 +113,7 @@ void SkeletonThread::updateSkeletons()
         // check if skeletonState exists for user and create if not
         if (states_.count(sensor_->getUID(i)) == 0)
         {
-            Skeleton skeleton = sensor_->getAllAvailablePoints(sensor_->getUID(i));
+            Skeleton skeleton = sensor_->getSkeleton(sensor_->getUID(i));
             boost::shared_ptr<SkeletonState> state(new SkeletonState());
 
             state->update(skeleton);
@@ -125,7 +125,7 @@ void SkeletonThread::updateSkeletons()
             if (states_[sensor_->getUID(i)]->hasControl_)
                 previousActiveUID = sensor_->getUID(i);
                 
-            Skeleton skeleton = sensor_->getAllAvailablePoints(sensor_->getUID(i));
+            Skeleton skeleton = sensor_->getSkeleton(sensor_->getUID(i));
 
             // if this skeleton is active, save its index for later so we can set all others inactive
             if (states_[sensor_->getUID(i)]->update(skeleton) == 1)
