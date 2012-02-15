@@ -137,24 +137,6 @@ class SkeletonSensor
         // return true if uid is among the tracked users
         bool isTracking(const unsigned int uid);
 
-        // stores the latest hand points in hands(preallocated):
-        // hands[0] = left, hands[1] = right
-        void getHandPoints(const unsigned int i, SkeletonPoint* const hands);
-
-        // stores the latest elbow points in elbows
-        // same convention as getHandPoints()
-        void getElbowPoints(const unsigned int i, SkeletonPoint* const elbows);
-
-        // stores the lastest arm points : hand, elbow, shoulder
-        // 0 = l hand, 1 = r hand, 2 = left elbow....
-        void getArmPoints(const unsigned int i, SkeletonPoint* const arms);
-
-        // stores head points in externally managed array
-        void getHeadPoint(const unsigned int i, SkeletonPoint* const head);
-
-        // gets shoulder points
-        void getShoulderPoints(const unsigned int i, SkeletonPoint* const shoulders);
-
         // returns skeleton of specified user
         SkeletonRepresentation getAllAvailablePoints(const unsigned int i);
 

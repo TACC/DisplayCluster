@@ -177,49 +177,6 @@ bool SkeletonSensor::isTracking(const unsigned int uid)
     return userG_.GetSkeletonCap().IsTracking(uid);
 }
 
-void SkeletonSensor::getHandPoints(const unsigned int i, SkeletonPoint* const hands)
-{
-    XnSkeletonJointPosition joints[2];
-    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_LEFT_HAND, joints[0]);
-    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_RIGHT_HAND, joints[1]);
-
-    convertXnJointToPoint(joints, hands, 2);
-}
-
-void SkeletonSensor::getElbowPoints(const unsigned int i, SkeletonPoint* const elbows)
-{
-    XnSkeletonJointPosition joints[2];
-    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_LEFT_ELBOW, joints[0]);
-    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_RIGHT_ELBOW, joints[1]);
-    convertXnJointToPoint(joints, elbows, 2);
-}
-
-void SkeletonSensor::getArmPoints(const unsigned int i, SkeletonPoint* const arms)
-{
-    getHandPoints(i, arms);
-    getElbowPoints(i, arms+2);
-
-    XnSkeletonJointPosition joints[2];
-    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_LEFT_ELBOW, joints[4]);
-    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_RIGHT_ELBOW, joints[5]);
-    convertXnJointToPoint(joints, arms, 2);
-}
-
-void SkeletonSensor::getShoulderPoints(const unsigned int i, SkeletonPoint* const shoulders)
-{
-    XnSkeletonJointPosition joints[2];
-    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_LEFT_SHOULDER, joints[0]);
-    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_RIGHT_SHOULDER, joints[1]);
-    convertXnJointToPoint(joints, shoulders, 2);
-}
-
-void SkeletonSensor::getHeadPoint(const unsigned int i, SkeletonPoint* const head)
-{
-    XnSkeletonJointPosition joints;
-    userG_.GetSkeletonCap().GetSkeletonJointPosition(trackedUsers_[i], XN_SKEL_HEAD, joints);
-    convertXnJointToPoint(&joints, head, 1);
-}
-
 std::vector<SkeletonRepresentation> SkeletonSensor::getAllAvailablePoints()
 {
     std::vector<SkeletonRepresentation> skeletons;
