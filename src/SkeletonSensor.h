@@ -160,7 +160,6 @@ class SkeletonSensor
         // return -1 if no users, otherwise returns UID of most proximal user
         int getClosestTrackedUID();
 
-        bool getNeedCalibrationPose() { return needCalibrationPose_; }
         const char* getPoseString() { return pose_.c_str(); }
         void printAvailablePoses();
 
@@ -175,9 +174,6 @@ class SkeletonSensor
         std::vector<unsigned int> trackedUsers_;
 
         float smoothingFactor_;
-
-        // in older installations, a pose is needed to calibration the skeleton
-        bool needCalibrationPose_;
 
         // on user detection and calibration, call specified functions
         int setCalibrationPoseCallbacks();

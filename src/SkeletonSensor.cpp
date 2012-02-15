@@ -54,8 +54,7 @@ SkeletonSensor::SkeletonSensor() :  context_(),
                                     pointModeProjective_(FALSE),
                                     pose_("Psi"),
                                     trackedUsers_(),
-                                    smoothingFactor_(0.9),
-                                    needCalibrationPose_(FALSE)
+                                    smoothingFactor_(0.9)
 {}
 
 SkeletonSensor::~SkeletonSensor()
@@ -266,18 +265,6 @@ int SkeletonSensor::setCalibrationPoseCallbacks()
     userG_.GetSkeletonCap().RegisterToCalibrationStart(calibrationStartCallback, this, hCalibrationStart);
     userG_.GetSkeletonCap().RegisterToCalibrationComplete(calibrationCompleteCallback, this, hCalibrationComplete);
 
-    if (needCalibrationPose_)
-    {
-        if (!userG_.IsCapabilitySupported(XN_CAPABILITY_POSE_DETECTION))
-        {
-            put_flog(LOG_ERROR, "Pose required, but not supported by device\n");
-            return -1;
-        }
-        rc = userG_.GetPoseDetectionCap().RegisterToPoseDetected(poseDetectedCallback, this, hPoseDetected);
-        CHECK_RC(rc, "Register to Pose Detected");
-        userG_.GetSkeletonCap().GetCalibrationPose((XnChar*) pose_.c_str());
-    }
-
     // turn on tracking of all joints
     userG_.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_ALL);
 
@@ -288,18 +275,10 @@ void XN_CALLBACK_TYPE SkeletonSensor::newUserCallback(xn::UserGenerator& generat
 {
     SkeletonSensor* sensor = (SkeletonSensor*) pCookie;
     put_flog(LOG_DEBUG, "New User %d\n", nId);
-    // New user found
-    if (sensor->getNeedCalibrationPose())
-    {
-        sensor->getUserGenerator()->GetPoseDetectionCap().StartPoseDetection(sensor->getPoseString(), nId);
-    }
 
     // auto-calibrate user
-    else
-    {
-        put_flog(LOG_DEBUG, "Auto-calibrating user %d.\n", nId);
-        sensor->getUserGenerator()->GetSkeletonCap().RequestCalibration(nId,TRUE);
-    }
+    put_flog(LOG_DEBUG, "Auto-calibrating user %d.\n", nId);
+    sensor->getUserGenerator()->GetSkeletonCap().RequestCalibration(nId,TRUE);
 }
 
 // Callback: An existing user was lost
@@ -325,15 +304,9 @@ void XN_CALLBACK_TYPE SkeletonSensor::calibrationCompleteCallback(xn::SkeletonCa
     else
     {
         // Calibration failed
-       put_flog(LOG_DEBUG, "Calibration failed for user %d\n", nId);
-        if (sensor->getNeedCalibrationPose())
-        {
-            sensor->getUserGenerator()->GetPoseDetectionCap().StartPoseDetection(sensor->getPoseString(), nId);
-        }
-        else
-        {
-            sensor->getUserGenerator()->GetSkeletonCap().RequestCalibration(nId, TRUE);
-        }
+        put_flog(LOG_DEBUG, "Calibration failed for user %d\n", nId);
+
+        sensor->getUserGenerator()->GetSkeletonCap().RequestCalibration(nId, TRUE);
     }
 }
 
