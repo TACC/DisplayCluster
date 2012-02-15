@@ -48,13 +48,11 @@ inline int CHECK_RC(const unsigned int rc, const char* const description)
     }
 }
 
-SkeletonSensor::SkeletonSensor() :  context_(),
-                                    depthG_(),
-                                    userG_(),
-                                    pointModeProjective_(FALSE),
-                                    trackedUsers_(),
-                                    smoothingFactor_(0.9)
-{}
+SkeletonSensor::SkeletonSensor()
+{
+    pointModeProjective_ = false;
+    smoothingFactor_ = 0.9;
+}
 
 SkeletonSensor::~SkeletonSensor()
 {
