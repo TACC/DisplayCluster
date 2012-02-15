@@ -52,7 +52,6 @@ SkeletonSensor::SkeletonSensor() :  context_(),
                                     depthG_(),
                                     userG_(),
                                     pointModeProjective_(FALSE),
-                                    pose_("Psi"),
                                     trackedUsers_(),
                                     smoothingFactor_(0.9)
 {}
@@ -216,45 +215,6 @@ Skeleton SkeletonSensor::getSkeleton(const unsigned int UID)
     return result;
 }
 
-int SkeletonSensor::getClosestTrackedUID()
-{
-    XnPoint3D CoMTemp;
-    XnPoint3D closestCoM;
-    closestCoM.Z = -1.0; // a known default value
-    int nearestUID = -1; // a known default value
-    for(unsigned int i = 0; i < trackedUsers_.size(); i++)
-    {
-        // get user's CoM z component
-        // compare to any previous z, if lower save user for later
-        userG_.GetCoM(trackedUsers_[i], CoMTemp);
-        if(closestCoM.Z != -1.0)
-        {
-            // this user is closer to sensor than any previous tracked user
-            if(CoMTemp.Z < closestCoM.Z)
-            {
-                closestCoM.Z = CoMTemp.Z;
-                nearestUID = trackedUsers_[i];
-            }
-        }
-
-        // first time through loop, first user is closest
-        else
-        {
-            closestCoM.Z = CoMTemp.Z;
-            nearestUID = trackedUsers_[i];
-        }
-    }
-    return nearestUID;
-}
-
-// Kinect: 1 Pose: "Psi"
-void SkeletonSensor::printAvailablePoses()
-{
-    XnUInt32 numPoses = userG_.GetPoseDetectionCap().GetNumberOfPoses();
-
-    put_flog(LOG_DEBUG, "Number of poses: %d.\n", numPoses);
-}
-
 // set device to look for calibration pose and supply callback functions for user events
 int SkeletonSensor::setCalibrationPoseCallbacks()
 {
@@ -278,7 +238,7 @@ void XN_CALLBACK_TYPE SkeletonSensor::newUserCallback(xn::UserGenerator& generat
 
     // auto-calibrate user
     put_flog(LOG_DEBUG, "Auto-calibrating user %d.\n", nId);
-    sensor->getUserGenerator()->GetSkeletonCap().RequestCalibration(nId,TRUE);
+    sensor->userG_.GetSkeletonCap().RequestCalibration(nId,TRUE);
 }
 
 // Callback: An existing user was lost
@@ -299,21 +259,21 @@ void XN_CALLBACK_TYPE SkeletonSensor::calibrationCompleteCallback(xn::SkeletonCa
     {
         // Calibration succeeded
         printf("Calibration completed: Start tracking user %d\n", nId);
-        sensor->getUserGenerator()->GetSkeletonCap().StartTracking(nId);
+        sensor->userG_.GetSkeletonCap().StartTracking(nId);
     }
     else
     {
         // Calibration failed
         put_flog(LOG_DEBUG, "Calibration failed for user %d\n", nId);
 
-        sensor->getUserGenerator()->GetSkeletonCap().RequestCalibration(nId, TRUE);
+        sensor->userG_.GetSkeletonCap().RequestCalibration(nId, TRUE);
     }
 }
 
 void XN_CALLBACK_TYPE SkeletonSensor::poseDetectedCallback(xn::PoseDetectionCapability& capability, const XnChar* strPose, XnUserID nId, void* pCookie)
 {
     SkeletonSensor* sensor = (SkeletonSensor*) pCookie;
-    put_flog(LOG_DEBUG, "Pose %s detected for user %d\n", sensor->getPoseString(), nId);
-    sensor->getUserGenerator()->GetPoseDetectionCap().StopPoseDetection(nId);
-    sensor->getUserGenerator()->GetSkeletonCap().RequestCalibration(nId, TRUE);
+    put_flog(LOG_DEBUG, "Pose detected for user %d\n", nId);
+    sensor->userG_.GetPoseDetectionCap().StopPoseDetection(nId);
+    sensor->userG_.GetSkeletonCap().RequestCalibration(nId, TRUE);
 }

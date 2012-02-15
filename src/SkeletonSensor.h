@@ -146,22 +146,8 @@ class SkeletonSensor
             smoothingFactor_ = smoothingF;
         }
 
-        void startGeneratingAll() { context_.StartGeneratingAll(); }
-
-        xn::UserGenerator* getUserGenerator() { return &userG_; }
-        xn::DepthGenerator* getDepthGenerator() { return &depthG_; }
-        void getDepthMetaData(xn::DepthMetaData& depthMD) { depthG_.GetMetaData(depthMD); }
-        void getDepthSceneMetaData(xn::SceneMetaData& sceneMD) { userG_.GetUserPixels(0, sceneMD); }
-
         unsigned int getNOTrackedUsers() { return trackedUsers_.size(); }
         unsigned int getUID(int i) { return trackedUsers_[i]; }
-        void addTrackedUser(const int uID) { trackedUsers_.push_back(uID); }
-
-        // return -1 if no users, otherwise returns UID of most proximal user
-        int getClosestTrackedUID();
-
-        const char* getPoseString() { return pose_.c_str(); }
-        void printAvailablePoses();
 
     private:
         xn::Context        context_;
@@ -169,7 +155,6 @@ class SkeletonSensor
         xn::UserGenerator  userG_;
 
         bool pointModeProjective_;
-        std::string pose_;
 
         std::vector<unsigned int> trackedUsers_;
 
