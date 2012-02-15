@@ -43,6 +43,12 @@
 #include "log.h"
 #include "vector.h"
 
+#ifdef __APPLE__
+    #include <OpenGL/glu.h>
+#else
+    #include <GL/glu.h>
+#endif
+
 // 2 second hovertime constant
 const int HOVER_TIME              = 2000;
 // timeout for focus gesture
