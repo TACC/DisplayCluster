@@ -113,10 +113,10 @@ void SkeletonThread::updateSkeletons()
         // check if skeletonState exists for user and create if not
         if (states_.count(sensor_->getUID(i)) == 0)
         {
-            SkeletonRepresentation skeletonRep = sensor_->getAllAvailablePoints(sensor_->getUID(i));
+            Skeleton skeleton = sensor_->getAllAvailablePoints(sensor_->getUID(i));
             boost::shared_ptr<SkeletonState> state(new SkeletonState());
 
-            state->update(skeletonRep);
+            state->update(skeleton);
             states_.insert(std::pair<unsigned int, boost::shared_ptr<SkeletonState> >(sensor_->getUID(i), state));
         }
         else
@@ -125,10 +125,10 @@ void SkeletonThread::updateSkeletons()
             if (states_[sensor_->getUID(i)]->hasControl_)
                 previousActiveUID = sensor_->getUID(i);
                 
-            SkeletonRepresentation skeletonRep = sensor_->getAllAvailablePoints(sensor_->getUID(i));
+            Skeleton skeleton = sensor_->getAllAvailablePoints(sensor_->getUID(i));
 
             // if this skeleton is active, save its index for later so we can set all others inactive
-            if (states_[sensor_->getUID(i)]->update(skeletonRep) == 1)
+            if (states_[sensor_->getUID(i)]->update(skeleton) == 1)
             {
                 newActive = TRUE;
                 activeUID = sensor_->getUID(i);

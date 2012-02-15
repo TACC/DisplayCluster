@@ -64,7 +64,7 @@ class SkeletonPoint
         }
 };
 
-class SkeletonRepresentation
+class Skeleton
 {
     public:
         SkeletonPoint head_;
@@ -134,10 +134,10 @@ class SkeletonSensor
         bool isTracking(const unsigned int uid);
 
         // returns skeleton of specified user
-        SkeletonRepresentation getAllAvailablePoints(const unsigned int i);
+        Skeleton getAllAvailablePoints(const unsigned int i);
 
         // returns vector of skeletons for all users
-        std::vector<SkeletonRepresentation> getAllAvailablePoints();
+        std::vector<Skeleton> getAllAvailablePoints();
 
         void setPointModeToProjective() { pointModeProjective_ = true; }
         void setPointModeToReal() { pointModeProjective_ = false; }

@@ -60,7 +60,7 @@ class SkeletonState
         SkeletonState();
         ~SkeletonState(){};
 
-        int update(SkeletonRepresentation& skel);
+        int update(Skeleton& skel);
         void setInactive() { hasControl_ = FALSE; }
         void zoom(SkeletonPoint& lhand, SkeletonPoint& rhand, float threshold);
         void pan(SkeletonPoint& rh, SkeletonPoint& rs, float maxReach);
@@ -76,7 +76,7 @@ class SkeletonState
         bool focusInteraction_;
 
         // the current point representation of the skeleton
-        SkeletonRepresentation skeletonRep_;
+        Skeleton skeleton_;
 
         // are we the controlling user?
         bool hasControl_;
@@ -90,7 +90,7 @@ class SkeletonState
                 ar & leftHandActive_;
                 ar & rightHandActive_;
                 ar & focusInteraction_;
-                ar & skeletonRep_;
+                ar & skeleton_;
                 ar & hasControl_;
             }
 

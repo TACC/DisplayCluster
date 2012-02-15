@@ -71,7 +71,7 @@ inline float calculateDistance(SkeletonPoint& a, SkeletonPoint& b)
 SkeletonState::SkeletonState(): leftHandActive_(FALSE),
                                 rightHandActive_(FALSE),
                                 focusInteraction_(FALSE),
-                                skeletonRep_(),
+                                skeleton_(),
                                 hasControl_(FALSE),
                                 active_(FALSE),
                                 deadCursor_(FALSE),
@@ -89,10 +89,10 @@ SkeletonState::SkeletonState(): leftHandActive_(FALSE),
 
 }
 
-int SkeletonState::update(SkeletonRepresentation& skel)
+int SkeletonState::update(Skeleton& skel)
 {
     // copy the skeleton joints to member
-    skeletonRep_ = skel;
+    skeleton_ = skel;
 
     // the process:
     // 1. get hand locations
@@ -338,23 +338,23 @@ void SkeletonState::render()
     // color the limbs uniformly
     glColor4f(220./255.,220./255.,220./255.,1.);
 
-    drawLimb(skeletonRep_.head_, skeletonRep_.neck_);
-    drawLimb(skeletonRep_.neck_, skeletonRep_.leftShoulder_);
-    drawLimb(skeletonRep_.leftShoulder_, skeletonRep_.leftElbow_);
-    drawLimb(skeletonRep_.leftElbow_, skeletonRep_.leftHand_);
-    drawLimb(skeletonRep_.neck_, skeletonRep_.rightShoulder_);
-    drawLimb(skeletonRep_.rightShoulder_, skeletonRep_.rightElbow_);
-    drawLimb(skeletonRep_.rightElbow_, skeletonRep_.rightHand_);
-    //drawLimb(skeletonRep_.leftShoulder_, skeletonRep_.torso_);
-    //drawLimb(skeletonRep_.rightShoulder_, skeletonRep_.torso_);
-    drawLimb(skeletonRep_.neck_, skeletonRep_.torso_);
-    drawLimb(skeletonRep_.torso_, skeletonRep_.leftHip_);
-    drawLimb(skeletonRep_.leftHip_, skeletonRep_.leftKnee_);
-    drawLimb(skeletonRep_.leftKnee_, skeletonRep_.leftFoot_);
-    drawLimb(skeletonRep_.torso_, skeletonRep_.rightHip_);
-    drawLimb(skeletonRep_.rightHip_, skeletonRep_.rightKnee_);
-    drawLimb(skeletonRep_.rightKnee_, skeletonRep_.rightFoot_);
-    drawLimb(skeletonRep_.leftHip_, skeletonRep_.rightHip_);
+    drawLimb(skeleton_.head_, skeleton_.neck_);
+    drawLimb(skeleton_.neck_, skeleton_.leftShoulder_);
+    drawLimb(skeleton_.leftShoulder_, skeleton_.leftElbow_);
+    drawLimb(skeleton_.leftElbow_, skeleton_.leftHand_);
+    drawLimb(skeleton_.neck_, skeleton_.rightShoulder_);
+    drawLimb(skeleton_.rightShoulder_, skeleton_.rightElbow_);
+    drawLimb(skeleton_.rightElbow_, skeleton_.rightHand_);
+    //drawLimb(skeleton_.leftShoulder_, skeleton_.torso_);
+    //drawLimb(skeleton_.rightShoulder_, skeleton_.torso_);
+    drawLimb(skeleton_.neck_, skeleton_.torso_);
+    drawLimb(skeleton_.torso_, skeleton_.leftHip_);
+    drawLimb(skeleton_.leftHip_, skeleton_.leftKnee_);
+    drawLimb(skeleton_.leftKnee_, skeleton_.leftFoot_);
+    drawLimb(skeleton_.torso_, skeleton_.rightHip_);
+    drawLimb(skeleton_.rightHip_, skeleton_.rightKnee_);
+    drawLimb(skeleton_.rightKnee_, skeleton_.rightFoot_);
+    drawLimb(skeleton_.leftHip_, skeleton_.rightHip_);
 
     glPopMatrix();
 }
@@ -362,21 +362,21 @@ void SkeletonState::render()
 void SkeletonState::drawJoints()
 {
     std::vector<SkeletonPoint> joints;
-    joints.push_back(skeletonRep_.head_);
-    joints.push_back(skeletonRep_.neck_);
-    joints.push_back(skeletonRep_.leftShoulder_);
-    joints.push_back(skeletonRep_.leftElbow_);
-    joints.push_back(skeletonRep_.leftHand_);
-    joints.push_back(skeletonRep_.rightShoulder_);
-    joints.push_back(skeletonRep_.rightElbow_);
-    joints.push_back(skeletonRep_.rightHand_);
-    joints.push_back(skeletonRep_.torso_);
-    joints.push_back(skeletonRep_.leftHip_);
-    joints.push_back(skeletonRep_.rightHip_);
-    joints.push_back(skeletonRep_.leftKnee_);
-    joints.push_back(skeletonRep_.rightKnee_);
-    joints.push_back(skeletonRep_.leftFoot_);
-    joints.push_back(skeletonRep_.rightFoot_);
+    joints.push_back(skeleton_.head_);
+    joints.push_back(skeleton_.neck_);
+    joints.push_back(skeleton_.leftShoulder_);
+    joints.push_back(skeleton_.leftElbow_);
+    joints.push_back(skeleton_.leftHand_);
+    joints.push_back(skeleton_.rightShoulder_);
+    joints.push_back(skeleton_.rightElbow_);
+    joints.push_back(skeleton_.rightHand_);
+    joints.push_back(skeleton_.torso_);
+    joints.push_back(skeleton_.leftHip_);
+    joints.push_back(skeleton_.rightHip_);
+    joints.push_back(skeleton_.leftKnee_);
+    joints.push_back(skeleton_.rightKnee_);
+    joints.push_back(skeleton_.leftFoot_);
+    joints.push_back(skeleton_.rightFoot_);
 
     // set up glu object
     GLUquadricObj* quadobj;
