@@ -58,10 +58,8 @@ class SkeletonState
 {
     public:
         SkeletonState();
-        ~SkeletonState(){};
 
         int update(Skeleton& skel);
-        void setInactive() { hasControl_ = FALSE; }
         void zoom(SkeletonPoint& lhand, SkeletonPoint& rhand, float threshold);
         void pan(SkeletonPoint& rh, SkeletonPoint& rs, float maxReach);
         void scaleWindow(SkeletonPoint& lhand, SkeletonPoint& rhand, float threshold);
