@@ -49,402 +49,335 @@
     #include <GL/glu.h>
 #endif
 
-// 2 second hovertime constant
-const int HOVER_TIME              = 2000;
-// timeout for focus gesture
-const int FOCUS_TIME              = 2000;
-// timeout for no hand detected
-const int DEAD_CURSOR_TIME        = 500;
-// scale factor for window size scaling
-const float WINDOW_SCALING_FACTOR = 0.05;
-// calse factor for panning content
-const float WINDOW_PAN_FACTOR = 0.015;
-
 inline float calculateDistance(SkeletonPoint& a, SkeletonPoint& b)
 {
-    float result = sqrt(pow(a.x_ - b.x_, 2) +
-                        pow(a.y_ - b.y_, 2) +
-                        pow(a.z_ - b.z_, 2));
+    float result = sqrtf(pow(a.x - b.x, 2) +
+                        pow(a.y - b.y, 2) +
+                        pow(a.z - b.z, 2));
     return result;
 }
 
-SkeletonState::SkeletonState(): leftHandActive_(FALSE),
-                                rightHandActive_(FALSE),
-                                focusInteraction_(FALSE),
-                                skeleton_(),
-                                hasControl_(FALSE),
-                                active_(FALSE),
-                                deadCursor_(FALSE),
-                                hoverTime_(),
-                                focusTimeOut_(0,0,2,0),
-                                controllerTimeOut_(0,0,2,0),
-                                deadCursorTimeOut_(),
-                                activeWindow_()
+SkeletonState::SkeletonState()
 {
     if(g_mpiRank == 0)
     {
+        // create display group interface
         boost::shared_ptr<DisplayGroupJoystick> dgj(new DisplayGroupJoystick(g_displayGroupManager));
         displayGroup_ = dgj;
-    }
 
+        // default mode is focused interaction
+        focusInteraction_ = true;
+
+        // not in control
+        control_ = false;
+
+        // hands inactive
+        leftHandActive_ = rightHandActive_ = false;
+
+        // don't have an active window
+        activeWindow_ = false;
+
+        // start timers
+        modeChangeTimeOut_.start();
+    }
 }
 
-int SkeletonState::update(Skeleton& skel)
+int SkeletonState::update(Skeleton skeleton)
 {
     // copy the skeleton joints to member
-    skeleton_ = skel;
+    skeleton_ = skeleton;
 
-    // the process:
-    // 1. get hand locations
-    // 2. find cursor position by normalizing hand positions to maximum reach
-    // 3. draw active cursor if depth threshold exceeded but no activity
-    // 4. updated state with new hover time and speed if applicable
-    // 5. if not active state and if hover time exceeds threshold, set active and activate window under cursor
-    // 6. if active state, check for interacting focus if not already enabled, if pose detected, enable focusing, otherwise update window position and size
-    // 7. if interacting focus, process pan or zoom on content, if pose detected, disable active and focus
+    // are we confident in joint positions?
+    bool confidentLeft  = false;
+    bool confidentRight = false;
 
-    // depth threshold - factor length of elbow to shoulder
-    float depthThreshold = 1.2 * calculateDistance(skel.rightShoulder_, skel.rightElbow_);
+    if(skeleton_.leftHand.confidence > 0.5 && skeleton_.leftElbow.confidence > 0.5 && skeleton_.leftShoulder.confidence > 0.5)
+        confidentLeft = true;
 
-    // 1. get normalized hand locations
+    if(skeleton_.rightHand.confidence > 0.5 && skeleton_.rightElbow.confidence > 0.5 && skeleton_.rightShoulder.confidence > 0.5)
+        confidentRight = true;
 
-    // magnitude of arm length
-    float armLength = calculateDistance(skel.rightHand_, skel.rightElbow_) +
-                      calculateDistance(skel.rightElbow_, skel.rightShoulder_);
-
-    // the maximum distance that can be reached by arm while crossing depth plane
-    float maxReach = sqrt(armLength*armLength - depthThreshold*depthThreshold);
-
-    // 2. find cursor position (normalized)
-    float normX = ((skel.rightHand_.x_ - skel.rightShoulder_.x_) + maxReach)/(2*maxReach);
-    float normY = 1 - ((skel.rightHand_.y_ - skel.rightShoulder_.y_) + maxReach)/(2*maxReach);
-
-    // are we confident in relevant joint positions?
-    bool confidenceLeft  = FALSE;
-    bool confidenceRight = FALSE;
-    if (skel.leftHand_.confidence_ > 0.5 && skel.leftElbow_.confidence_ > 0.5 && skel.leftShoulder_.confidence_ > 0.5)
-        confidenceLeft = TRUE;
-    if (skel.rightHand_.confidence_ > 0.5 && skel.rightElbow_.confidence_ > 0.5 && skel.rightShoulder_.confidence_ > 0.5)
-        confidenceRight = TRUE;
-
-    if ((skel.leftShoulder_.z_ - skel.leftHand_.z_) > depthThreshold && confidenceLeft)
-        leftHandActive_ = TRUE;
-    else leftHandActive_ = FALSE;
-    if((skel.rightShoulder_.z_ - skel.rightHand_.z_) > depthThreshold && confidenceRight)
-        rightHandActive_ = TRUE;
-    else rightHandActive_ = FALSE;
-
-    // we are not the controlling user, so we should check for the signal
-    if(!hasControl_)
+    // if we are not a controlling user, check for the signal and return
+    if(control_ == false)
     {
-        // look for signal - the raising of left hand one neck length above head
-        if(skel.leftHand_.y_ > (skel.head_.y_ + calculateDistance(skel.head_, skel.neck_)) 
-            && confidenceLeft)
+        // make sure hands are marked inactive
+        leftHandActive_ = rightHandActive_ = false;
+
+        // the raising of left hand above head
+        if(confidentLeft && skeleton_.leftHand.y > skeleton_.head.y)
         {
-            hasControl_ = TRUE;
-            controllerTimeOut_.restart();
+            control_ = true;
+
+            controlTimeOut_.restart();
+
             return 1;
         }
-
-        return 0;
+        else
+            return 0;
     }
 
-    // 3. draw active cursor if threshold reached
+    // depth threshold - factor length of elbow to shoulder
+    float depthThreshold = 1.2 * calculateDistance(skeleton_.rightShoulder, skeleton_.rightElbow);
+
+    // magnitude of arm length
+    float armLength = calculateDistance(skeleton_.rightHand, skeleton_.rightElbow) +
+                      calculateDistance(skeleton_.rightElbow, skeleton_.rightShoulder);
+
+    // the maximum distance that can be reached by arm while crossing depth plane
+    float maxReach = sqrtf(armLength*armLength - depthThreshold*depthThreshold);
+
+    // marker position (normalized)
+    float normX = ((skeleton_.rightHand.x - skeleton_.rightShoulder.x) + maxReach)/(2.*maxReach);
+    float normY = 1. - ((skeleton_.rightHand.y - skeleton_.rightShoulder.y) + maxReach)/(2.*maxReach);
+
+    // determine if hands are active
+    if(confidentLeft && (skeleton_.leftShoulder.z - skeleton_.leftHand.z) > depthThreshold)
+        leftHandActive_ = true;
+    else
+        leftHandActive_ = false;
+
+    if(confidentRight && (skeleton_.rightShoulder.z - skeleton_.rightHand.z) > depthThreshold)
+        rightHandActive_ = true;
+    else
+        rightHandActive_ = false;
+
+    // update marker if right hand is active
     if(rightHandActive_)
     {
-        deadCursor_ = FALSE;
-        rightHandActive_ = TRUE;
+        // restart marker timer
+        markerTimeOut_.restart();
+
+        // keep track of old position
         float oldX, oldY;
+        displayGroup_->getMarker()->getPosition(oldX, oldY);
 
-        // if we are not active, calculate hover time and move cursor (4)
-        if(!active_)
+        // set new position
+        displayGroup_->getMarker()->setPosition(normX, normY);
+
+        // if we do not have an active window
+        if(activeWindow_ == false)
         {
-            //update marker
-            displayGroup_->getMarker()->setPosition(normX, normY);
-
+            // see if we have a window under the marker
             boost::shared_ptr<ContentWindowInterface> cwi = displayGroup_->getContentWindowInterfaceUnderMarker();
 
-            // no window under cursor
-            if (cwi == NULL)
+            // no window under marker
+            if(cwi != NULL)
             {
-                hoverTime_.restart();
-
-                // set active window to NULL
-                activeWindow_ = boost::shared_ptr<ContentWindowInterface>();
-            }
-
-            else
-            {
-                // first time cursor is over window
-                if(activeWindow_ == NULL)
+                // first time marker is over window, or the window under marker has changed
+                if(hoverWindow_ == NULL || hoverWindow_ != cwi)
                 {
-                    activeWindow_ = cwi;
+                    hoverTime_.restart();
+                    hoverWindow_ = cwi;
                 }
 
-                // we have hovered long enough to make the window active and move it
+                // we have hovered long enough to make the window active and move it to front
                 if(hoverTime_.elapsed() > HOVER_TIME)
                 {
-                    active_ = TRUE;
-                    activeWindow_->moveToFront();
+                    activeWindow_ = true;
+                    hoverWindow_->moveToFront();
+
+                    // highlight the window
+                    hoverWindow_->highlight();
                 }
             }
         }
-
-        // else if we are active but not focused
-        else if(!focusInteraction_ && active_)
-        {
- 
-            // look for focus pose (6) - here raising left hand one neck length above head
-            if(skel.leftHand_.y_ > (skel.head_.y_ + calculateDistance(skel.head_, skel.neck_)) 
-                && confidenceLeft
-                && focusTimeOut_.elapsed() > FOCUS_TIME
-                && controllerTimeOut_.elapsed() > FOCUS_TIME)
-            {
-                // set focused and start timeout for focused start
-                focusInteraction_ = TRUE;
-                focusTimeOut_.restart();
-            }
-
-            // left hand is active, scale window
-            else if(leftHandActive_)
-            {
-                leftHandActive_ = TRUE;
-                scaleWindow(skel.leftHand_, skel.rightHand_, 2.0 * calculateDistance(skel.rightHand_, skel.rightElbow_));
-
-                //update marker
-                displayGroup_->getMarker()->getPosition(oldX, oldY);
-                displayGroup_->getMarker()->setPosition(normX, normY);
-            }
-
-            // left hand not present, move window under cursor
-            else
-            {
-                //update marker
-                displayGroup_->getMarker()->getPosition(oldX, oldY);
-                displayGroup_->getMarker()->setPosition(normX, normY);
-
-                // find old marker position, find new marker position, move window by the difference
-                double dx,dy;
-                dx = oldX - normX;
-                dy = oldY - normY;
-                double oldCenterX, oldCenterY;
-                activeWindow_->getPosition(oldCenterX, oldCenterY);
-                activeWindow_->setPosition(oldCenterX - dx, oldCenterY - dy);
-
-            }
-        }
-
-        // active and focused
         else
         {
-            //update marker
-            displayGroup_->getMarker()->getPosition(oldX, oldY);
-            displayGroup_->getMarker()->setPosition(normX, normY);
+            // we have an active window
 
-            // if pose is detected and the focus timeout is exceeded, exit interaction mode
-            if(skel.leftHand_.y_ > (skel.head_.y_ + calculateDistance(skel.head_, skel.neck_))
-                && confidenceLeft
-                && focusTimeOut_.elapsed() > FOCUS_TIME)
+            // look for mode change pose: hand over head
+            if(confidentLeft && skeleton_.leftHand.y > skeleton_.head.y && modeChangeTimeOut_.elapsed() > MODE_CHANGE_TIME && controlTimeOut_.elapsed() > MODE_CHANGE_TIME)
             {
-                focusInteraction_ = false;
-                focusTimeOut_.restart();
+                // change mode and reset timer
+                focusInteraction_ = !focusInteraction_;
+                modeChangeTimeOut_.restart();
             }
 
-            else if(leftHandActive_)
-            {
-                zoom(skel.leftHand_, skel.rightHand_, 2.0 * calculateDistance(skel.rightHand_, skel.rightElbow_));
-            }
+            // neutral distance for zooming, scaling
+            float neutralDistance = 2. * calculateDistance(skeleton_.rightHand, skeleton_.rightElbow);
 
-            // pan window about current center
+            if(focusInteraction_ == true)
+            {
+                // left hand is active, zoom in window
+                if(leftHandActive_)
+                {
+                    float zoomFactor = calculateDistance(skeleton_.leftHand, skeleton_.rightHand) / neutralDistance;
+
+                    zoomFactor = 1. + (zoomFactor - 1.)*WINDOW_ZOOM_FACTOR;
+
+                    hoverWindow_->setZoom(zoomFactor * hoverWindow_->getZoom());
+                }
+                else
+                {
+                    // left hand not present (but we do have right hand), pan in window
+                    double oldCenterX, oldCenterY;
+                    hoverWindow_->getCenter(oldCenterX, oldCenterY);
+
+                    hoverWindow_->setCenter(oldCenterX + (normX-0.5)*WINDOW_PAN_FACTOR/hoverWindow_->getZoom(), oldCenterY + (normY-0.5)*WINDOW_PAN_FACTOR/hoverWindow_->getZoom());
+                }
+            }
             else
             {
-                pan(skel.rightHand_, skel.rightShoulder_, maxReach);
+                // left hand is active, scale window
+                if(leftHandActive_)
+                {
+                    float scaleFactor = calculateDistance(skeleton_.leftHand, skeleton_.rightHand) / neutralDistance;
+
+                    scaleFactor = 1. + (scaleFactor - 1.)*WINDOW_SCALE_FACTOR;
+
+                    hoverWindow_->scaleSize(scaleFactor);
+                }
+                else
+                {
+                    // left hand not present (but we do have right hand), move window under marker
+                    double dx = normX - oldX;
+                    double dy = normY - oldY;
+
+                    double oldPositionX, oldPositionY;
+                    hoverWindow_->getPosition(oldPositionX, oldPositionY);
+
+                    hoverWindow_->setPosition(oldPositionX + dx, oldPositionY + dy);
+                }
             }
         }
     }
-
-    // sometimes the confidence is lost for a brief moment, so use timeout before making changes
     else
     {
-        // no cursors and this is first time it disappeared
-        if(!deadCursor_)
+        // right hand not active
+
+        // sometimes the confidence is lost for a brief moment, so use timeout before making changes
+        if(markerTimeOut_.elapsed() > DEAD_MARKER_TIME)
         {
-            deadCursor_ = TRUE;
-            deadCursorTimeOut_.restart();
-        }
+            // no longer have an active window; set hover window to NULL
+            activeWindow_ = false;
+            hoverWindow_ = boost::shared_ptr<ContentWindowInterface>();
 
-        else
-        {
-            if (deadCursorTimeOut_.elapsed() > DEAD_CURSOR_TIME)
-            {
-                hoverTime_.restart();
-                active_ = focusInteraction_ = FALSE;
-
-                // set active window to NULL
-                activeWindow_ = boost::shared_ptr<ContentWindowInterface>();
-
-            }
+            // the first mode should always be focus interaction
+            focusInteraction_ = true;
         }
     }
-}
-
-void SkeletonState::zoom(SkeletonPoint& lh, SkeletonPoint& rh, float threshold)
-{
-
-    float handDistance = calculateDistance(lh, rh) / threshold;
-    float zoomFactor = 1. + (handDistance - 1) / 50.;
-
-    activeWindow_->setZoom(zoomFactor * activeWindow_->getZoom());
-}
-
-void SkeletonState::pan(SkeletonPoint& rh, SkeletonPoint& rs, float maxReach)
-{
-    //float normX = ((skel.rightHand_.x_ - skel.rightShoulder_.x_) + maxReach)/(2*maxReach);
-
-    float normX = (rh.x_ - rs.x_)/maxReach;
-    float normY = -1. * (rh.y_ - rs.y_)/maxReach;
-
-    double oldCenterX, oldCenterY;
-    activeWindow_->getCenter(oldCenterX, oldCenterY);
-    activeWindow_->setCenter(oldCenterX + normX*WINDOW_PAN_FACTOR/activeWindow_->getZoom(), oldCenterY + normY*WINDOW_PAN_FACTOR/activeWindow_->getZoom());
-}
-
-void SkeletonState::scaleWindow(SkeletonPoint& lh, SkeletonPoint& rh, float threshold)
-{
-
-    //float differenceFromThreshold = calculateDistance(lh, rh) - threshold;
-    float scaleFactor = calculateDistance(lh, rh)/threshold;
-
-    // scale window by 10% of scale factor
-    if(scaleFactor > 1.0)
-    {
-        scaleFactor = 1 + (scaleFactor - 1)*WINDOW_SCALING_FACTOR;
-    }
-    else
-        scaleFactor = 1 - (1 - scaleFactor)*WINDOW_SCALING_FACTOR;
-
-    activeWindow_->scaleSize(scaleFactor);
 }
 
 void SkeletonState::render()
 {
-
+    glPushAttrib(GL_CURRENT_BIT);
     glPushMatrix();
 
+    // scale appropriately to fit in view
     glScalef(1./20000., 1./20000., 1./20000.);
 
-    drawJoints();
+    renderJoints();
 
-    // color the limbs uniformly
+    // color of the limbs
     glColor4f(220./255.,220./255.,220./255.,1.);
 
-    drawLimb(skeleton_.head_, skeleton_.neck_);
-    drawLimb(skeleton_.neck_, skeleton_.leftShoulder_);
-    drawLimb(skeleton_.leftShoulder_, skeleton_.leftElbow_);
-    drawLimb(skeleton_.leftElbow_, skeleton_.leftHand_);
-    drawLimb(skeleton_.neck_, skeleton_.rightShoulder_);
-    drawLimb(skeleton_.rightShoulder_, skeleton_.rightElbow_);
-    drawLimb(skeleton_.rightElbow_, skeleton_.rightHand_);
-    //drawLimb(skeleton_.leftShoulder_, skeleton_.torso_);
-    //drawLimb(skeleton_.rightShoulder_, skeleton_.torso_);
-    drawLimb(skeleton_.neck_, skeleton_.torso_);
-    drawLimb(skeleton_.torso_, skeleton_.leftHip_);
-    drawLimb(skeleton_.leftHip_, skeleton_.leftKnee_);
-    drawLimb(skeleton_.leftKnee_, skeleton_.leftFoot_);
-    drawLimb(skeleton_.torso_, skeleton_.rightHip_);
-    drawLimb(skeleton_.rightHip_, skeleton_.rightKnee_);
-    drawLimb(skeleton_.rightKnee_, skeleton_.rightFoot_);
-    drawLimb(skeleton_.leftHip_, skeleton_.rightHip_);
+    renderLimb(skeleton_.head, skeleton_.neck);
+    renderLimb(skeleton_.neck, skeleton_.leftShoulder);
+    renderLimb(skeleton_.leftShoulder, skeleton_.leftElbow);
+    renderLimb(skeleton_.leftElbow, skeleton_.leftHand);
+    renderLimb(skeleton_.neck, skeleton_.rightShoulder);
+    renderLimb(skeleton_.rightShoulder, skeleton_.rightElbow);
+    renderLimb(skeleton_.rightElbow, skeleton_.rightHand);
+    renderLimb(skeleton_.neck, skeleton_.torso);
+    renderLimb(skeleton_.torso, skeleton_.leftHip);
+    renderLimb(skeleton_.leftHip, skeleton_.leftKnee);
+    renderLimb(skeleton_.leftKnee, skeleton_.leftFoot);
+    renderLimb(skeleton_.torso, skeleton_.rightHip);
+    renderLimb(skeleton_.rightHip, skeleton_.rightKnee);
+    renderLimb(skeleton_.rightKnee, skeleton_.rightFoot);
+    renderLimb(skeleton_.leftHip, skeleton_.rightHip);
 
     glPopMatrix();
+    glPopAttrib();
 }
 
-void SkeletonState::drawJoints()
+bool SkeletonState::getControl()
+{
+    return control_;
+}
+
+void SkeletonState::setControl(bool control)
+{
+    control_ = control;
+}
+
+void SkeletonState::renderJoints()
 {
     std::vector<SkeletonPoint> joints;
-    joints.push_back(skeleton_.head_);
-    joints.push_back(skeleton_.neck_);
-    joints.push_back(skeleton_.leftShoulder_);
-    joints.push_back(skeleton_.leftElbow_);
-    joints.push_back(skeleton_.leftHand_);
-    joints.push_back(skeleton_.rightShoulder_);
-    joints.push_back(skeleton_.rightElbow_);
-    joints.push_back(skeleton_.rightHand_);
-    joints.push_back(skeleton_.torso_);
-    joints.push_back(skeleton_.leftHip_);
-    joints.push_back(skeleton_.rightHip_);
-    joints.push_back(skeleton_.leftKnee_);
-    joints.push_back(skeleton_.rightKnee_);
-    joints.push_back(skeleton_.leftFoot_);
-    joints.push_back(skeleton_.rightFoot_);
 
-    // set up glu object
-    GLUquadricObj* quadobj;
-    quadobj = gluNewQuadric();
+    joints.push_back(skeleton_.head);
+    joints.push_back(skeleton_.neck);
+    joints.push_back(skeleton_.leftShoulder);
+    joints.push_back(skeleton_.leftElbow);
+    joints.push_back(skeleton_.leftHand);
+    joints.push_back(skeleton_.rightShoulder);
+    joints.push_back(skeleton_.rightElbow);
+    joints.push_back(skeleton_.rightHand);
+    joints.push_back(skeleton_.torso);
+    joints.push_back(skeleton_.leftHip);
+    joints.push_back(skeleton_.rightHip);
+    joints.push_back(skeleton_.leftKnee);
+    joints.push_back(skeleton_.rightKnee);
+    joints.push_back(skeleton_.leftFoot);
+    joints.push_back(skeleton_.rightFoot);
+
+    // set up quadric object
+    GLUquadricObj * quadObj = gluNewQuadric();
 
     for(unsigned int i = 0; i < joints.size(); i++)
     {
+        glPushMatrix();
+        glTranslatef(joints[i].x, joints[i].y, joints[i].z);
+
         // default color for joints
         glColor4f(168./255.,187./255.,219./255.,1.);
 
-        if(hasControl_)
+        // default sphere radius
+        float radius = 30.;
+
+        // if we're in control, color green
+        if(control_)
             glColor4f(70./255., 219./255., 147./255., 1.);
 
-        if (joints[i].confidence_ > 0.5)
+        if(joints[i].confidence > 0.5)
         {
             // if it's the head
             if(i == 0)
             {
-                // color it if in interaction mode
-                if (focusInteraction_)
+                // color depending on mode
+                if(focusInteraction_ == false)
                     glColor4f(183./255., 105./255., 255./255., 1.);
-                // make it larger
-                glPushMatrix();
-                glTranslatef(joints[i].x_, joints[i].y_, joints[i].z_);
-                gluSphere(quadobj,60.,16.,16.);
-                glPopMatrix();
+
+                gluSphere(quadObj, 2.*radius, 16.,16.);
             }
 
-            // if it's the left hand and active
-            if(i == 4 && leftHandActive_)
+            // if it's the left or right hand and active
+            else if((i == 4 && leftHandActive_) || (i == 7 && rightHandActive_))
             {
                 // color the hand red and make it larger
                 glColor4f(1.0, 0.0, 0.0, 1);
-                glPushMatrix();
-                glTranslatef(joints[i].x_, joints[i].y_, joints[i].z_);
-                gluSphere(quadobj,50.,16.,16.);
-                glPopMatrix();
+                gluSphere(quadObj, 1.7*radius, 16.,16.);
             }
-
-            // if it's the right and hand active
-            else if(i == 7 && rightHandActive_)
-            {
-                // color the hand red and make it larger
-                glColor4f(1.0, 0.0, 0.0, 1);
-                glPushMatrix();
-                glTranslatef(joints[i].x_, joints[i].y_, joints[i].z_);
-                gluSphere(quadobj,50.,16.,16.);
-                glPopMatrix();
-            }
-
             else
             {
-                glPushMatrix();
-                glTranslatef(joints[i].x_, joints[i].y_, joints[i].z_);
-                gluSphere(quadobj,30.,16.,16.);
-                glPopMatrix();
+                gluSphere(quadObj, radius, 16.,16.);
             }
         }
+
+        glPopMatrix();
     }
+
+    // delete used quadric
+    gluDeleteQuadric(quadObj);
 }
 
-void SkeletonState::drawLimb(SkeletonPoint& pt1, SkeletonPoint& pt2)
+void SkeletonState::renderLimb(SkeletonPoint& pt1, SkeletonPoint& pt2)
 {
-    if(pt1.confidence_ <= 0.5 || pt2.confidence_ <= 0.5)
+    if(pt1.confidence <= 0.5 || pt2.confidence <= 0.5)
         return;
 
-    float a[3] = {pt1.x_, pt1.y_, pt1.z_};
-    float b[3] = {pt2.x_, pt2.y_, pt2.z_};
+    float a[3] = {pt1.x, pt1.y, pt1.z};
+    float b[3] = {pt2.x, pt2.y, pt2.z};
 
     // vector formed by the two joints
     float c[3];
@@ -458,22 +391,21 @@ void SkeletonState::drawLimb(SkeletonPoint& pt1, SkeletonPoint& pt2)
     vectorCrossProduct(z, c, r);
 
     // get angle of rotation in degrees
-    float angle = 180/M_PI * acos((vectorDotProduct(z, c)/vectorMagnitude(c)));
+    float angle = 180./M_PI * acos((vectorDotProduct(z, c)/vectorMagnitude(c)));
 
     glPushMatrix();
 
     // translate to second joint
-    glTranslatef(pt2.x_, pt2.y_, pt2.z_);
+    glTranslatef(pt2.x, pt2.y, pt2.z);
     glRotatef(angle, r[0], r[1], r[2]);
 
-    // set up glu object
-    GLUquadricObj* quadobj;
-    quadobj = gluNewQuadric();
+    // set up quadric object
+    GLUquadricObj* quadObj = gluNewQuadric();
 
-    gluCylinder(quadobj, 10, 10, vectorMagnitude(c), 10, 10);
+    gluCylinder(quadObj, 10, 10, vectorMagnitude(c), 10, 10);
 
     glPopMatrix();
 
     // delete used quadric
-    gluDeleteQuadric(quadobj);
+    gluDeleteQuadric(quadObj);
 }

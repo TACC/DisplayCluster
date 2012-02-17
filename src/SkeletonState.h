@@ -39,45 +39,46 @@
 #ifndef SKELETON_STATE_H
 #define SKELETON_STATE_H
 
+
+// timeout (milliseconds) for a missing marker to cause the window to become inactive
+#define DEAD_MARKER_TIME 500
+
+// timeout (milliseconds) for a hovering marker to cause the window to become active
+#define HOVER_TIME 2000
+
+// time required (milliseconds) between changing interaction modes
+#define MODE_CHANGE_TIME 2000
+
+// scale factor for zooming in window
+#define WINDOW_ZOOM_FACTOR 0.05
+
+// scale factor for panning in window
+#define WINDOW_PAN_FACTOR 0.015
+
+// scale factor for window size scaling
+#define WINDOW_SCALE_FACTOR 0.05
+
+#include "SkeletonSensor.h"
 #include <QtGui>
 #include <boost/shared_ptr.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 
-#include "SkeletonSensor.h"
-
 class ContentWindowInterface;
 class DisplayGroupJoystick;
 
 // SkeletonState: keeps track of the current state of the tracked user
-// the skeleton can have 3 states:
-// free movement: cursors are drawn, but no windows are active
-// active window: the active window is moved with the hand and resized with two hands
-// focused interaction: hand movement pans and zooms the content of active window
 class SkeletonState
 {
     public:
         SkeletonState();
 
-        int update(Skeleton& skel);
-        void zoom(SkeletonPoint& lhand, SkeletonPoint& rhand, float threshold);
-        void pan(SkeletonPoint& rh, SkeletonPoint& rs, float maxReach);
-        void scaleWindow(SkeletonPoint& lhand, SkeletonPoint& rhand, float threshold);
+        int update(Skeleton skeleton);
         void render();
-        void drawJoints();
-        void drawLimb(SkeletonPoint& p1, SkeletonPoint& p2);
 
-        // are hands exceeding depth threshold
-        bool leftHandActive_, rightHandActive_;
-
-        // are we interacting with a focused window?
-        bool focusInteraction_;
-
-        // the current point representation of the skeleton
-        Skeleton skeleton_;
-
-        // are we the controlling user?
-        bool hasControl_;
+        // get / set controlling status
+        bool getControl();
+        void setControl(bool control);
 
     protected:
             friend class boost::serialization::access;
@@ -85,39 +86,46 @@ class SkeletonState
             template<class Archive>
             void serialize(Archive & ar, const unsigned int)
             {
-                ar & leftHandActive_;
-                ar & rightHandActive_;
                 ar & focusInteraction_;
                 ar & skeleton_;
-                ar & hasControl_;
+                ar & control_;
+                ar & leftHandActive_;
+                ar & rightHandActive_;
             }
 
     private:
 
-        // do we have an active window?
-        bool active_;
-
-        // deadCursor: no movement has been detected
-        bool deadCursor_;
-
-        // time spend hovering over inactive window
-        QTime hoverTime_;
-
-        // timeout for focuse gesture
-        QTime focusTimeOut_;
-
-        // timeout for gaining control gesture
-        QTime controllerTimeOut_;
-
-        // dead cursor timeout
-        QTime deadCursorTimeOut_;
-
-        // window either being hovered over or active
-        boost::shared_ptr<ContentWindowInterface> activeWindow_;
-
-        // displayGroup for this skeleton
+        // display group interface for this skeleton
         boost::shared_ptr<DisplayGroupJoystick> displayGroup_;
 
+        // are we interacting with a focused window?
+        bool focusInteraction_;
+
+        // the current point representation of the skeleton
+        Skeleton skeleton_;
+
+        // control status and timer
+        bool control_;
+        QTime controlTimeOut_;
+
+        // are hands exceeding depth threshold
+        bool leftHandActive_, rightHandActive_;
+
+        // marker timeout
+        QTime markerTimeOut_;
+
+        // time spend hovering over a window
+        QTime hoverTime_;
+        boost::shared_ptr<ContentWindowInterface> hoverWindow_;
+
+        // if we have an active window or not
+        bool activeWindow_;
+
+        // timeout for changing modes
+        QTime modeChangeTimeOut_;
+
+        void renderJoints();
+        void renderLimb(SkeletonPoint& p1, SkeletonPoint& p2);
 };
 
 #endif

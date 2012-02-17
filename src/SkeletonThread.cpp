@@ -43,20 +43,12 @@
 #include "main.h"
 #include "log.h"
 
-// set the timer to ping for new sensor data every 10 milliseconds
-const unsigned int SKELETON_TIMER_INTERVAL = 1000/60;
-
 // an identifier for a UID that is not applicable
 const unsigned int NA_UID = 9999;
 
 SkeletonThread::SkeletonThread()
 {
-    connect(this, SIGNAL(skeletonsUpdated(std::vector< boost::shared_ptr<SkeletonState> >)), g_displayGroupManager.get(), SLOT(setSkeletons(std::vector< boost::shared_ptr<SkeletonState> >)), Qt::QueuedConnection);
-}
-
-SkeletonThread::~SkeletonThread()
-{
-    delete sensor_;
+    connect(this, SIGNAL(skeletonsUpdated(std::vector< boost::shared_ptr<SkeletonState> >)), g_displayGroupManager.get(), SLOT(setSkeletons(std::vector<boost::shared_ptr<SkeletonState> >)), Qt::QueuedConnection);
 }
 
 std::vector< boost::shared_ptr<SkeletonState> > SkeletonThread::getSkeletons()
@@ -75,9 +67,9 @@ std::vector< boost::shared_ptr<SkeletonState> > SkeletonThread::getSkeletons()
 
 void SkeletonThread::run()
 {
-
     // Initialize the OpenNI sensor and start generating depth data
-    sensor_ = new SkeletonSensor();
+    boost::shared_ptr<SkeletonSensor> sensor(new SkeletonSensor());
+    sensor_ = sensor;
 
     if(sensor_->initialize() != 0)
     {
@@ -102,52 +94,54 @@ void SkeletonThread::updateSkeletons()
     // get new list of tracked users
     sensor_->updateTrackedUsers();
 
-    bool newActive = FALSE; // we use this to keep track if there is a new active user
+    bool newActive = false; // we use this to keep track if there is a new active user
     unsigned int activeUID;
     unsigned int previousActiveUID = NA_UID;
 
-    for (unsigned int i = 0; i < sensor_->getNOTrackedUsers(); i++)
+    for(unsigned int i = 0; i < sensor_->getNumTrackedUsers(); i++)
     {
         // check if skeletonState exists for user and create if not
-        if (states_.count(sensor_->getUID(i)) == 0)
+        if(states_.count(sensor_->getUID(i)) == 0)
         {
             Skeleton skeleton = sensor_->getSkeleton(sensor_->getUID(i));
-            boost::shared_ptr<SkeletonState> state(new SkeletonState());
 
+            boost::shared_ptr<SkeletonState> state(new SkeletonState());
             state->update(skeleton);
+
             states_.insert(std::pair<unsigned int, boost::shared_ptr<SkeletonState> >(sensor_->getUID(i), state));
         }
         else
         {
             // determine if this skeleton has control currently
-            if (states_[sensor_->getUID(i)]->hasControl_)
+            if(states_[sensor_->getUID(i)]->getControl() == true)
                 previousActiveUID = sensor_->getUID(i);
-                
+
             Skeleton skeleton = sensor_->getSkeleton(sensor_->getUID(i));
 
             // if this skeleton is active, save its index for later so we can set all others inactive
-            if (states_[sensor_->getUID(i)]->update(skeleton) == 1)
+            if(states_[sensor_->getUID(i)]->update(skeleton) == 1)
             {
-                newActive = TRUE;
+                newActive = true;
                 activeUID = sensor_->getUID(i);
             }
         }
     }
 
     // make previous active user inactive if there is a new active user
-    if(newActive)
+    if(newActive == true)
     {
-        if (previousActiveUID != NA_UID)
-            states_[previousActiveUID]->hasControl_ = FALSE;
+        if(previousActiveUID != NA_UID)
+            states_[previousActiveUID]->setControl(false);
     }
 
     // iterate through skeletons, if the skeleton is not tracked, then delete it
     std::map<unsigned int, boost::shared_ptr<SkeletonState> >::iterator it;
+
     for(it = states_.begin(); it != states_.end(); it++)
     {
         unsigned int uid = (*it).first;
 
-        if(!sensor_->isTracking(uid))
+        if(sensor_->isTracking(uid) == false)
         {
             states_.erase(uid);
         }

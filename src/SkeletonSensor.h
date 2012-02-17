@@ -40,16 +40,14 @@
 #define SKELETON_SENSOR_H
 
 #include <XnCppWrapper.h>
-#include <string>
 #include <vector>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 
 // A 3D point with the confidence of the point's location. confidence_ > 0.5 is good
-class SkeletonPoint
+struct SkeletonPoint
 {
-    public:
-        float x_, y_, z_, confidence_;
+    float x, y, z, confidence;
 
     protected:
         friend class boost::serialization::access;
@@ -57,31 +55,30 @@ class SkeletonPoint
         template<class Archive>
         void serialize(Archive & ar, const unsigned int)
         {
-            ar & x_;
-            ar & y_;
-            ar & z_;
-            ar & confidence_;
+            ar & x;
+            ar & y;
+            ar & z;
+            ar & confidence;
         }
 };
 
-class Skeleton
+struct Skeleton
 {
-    public:
-        SkeletonPoint head_;
-        SkeletonPoint neck_;
-        SkeletonPoint rightShoulder_;
-        SkeletonPoint leftShoulder_;
-        SkeletonPoint rightElbow_;
-        SkeletonPoint leftElbow_;
-        SkeletonPoint rightHand_;
-        SkeletonPoint leftHand_;
-        SkeletonPoint rightHip_;
-        SkeletonPoint leftHip_;
-        SkeletonPoint rightKnee_;
-        SkeletonPoint leftKnee_;
-        SkeletonPoint rightFoot_;
-        SkeletonPoint leftFoot_;
-        SkeletonPoint torso_;
+    SkeletonPoint head;
+    SkeletonPoint neck;
+    SkeletonPoint rightShoulder;
+    SkeletonPoint leftShoulder;
+    SkeletonPoint rightElbow;
+    SkeletonPoint leftElbow;
+    SkeletonPoint rightHand;
+    SkeletonPoint leftHand;
+    SkeletonPoint rightHip;
+    SkeletonPoint leftHip;
+    SkeletonPoint rightKnee;
+    SkeletonPoint leftKnee;
+    SkeletonPoint rightFoot;
+    SkeletonPoint leftFoot;
+    SkeletonPoint torso;
 
     protected:
         friend class boost::serialization::access;
@@ -89,21 +86,21 @@ class Skeleton
         template<class Archive>
         void serialize(Archive & ar, const unsigned int)
         {
-            ar & head_;
-            ar & neck_;
-            ar & rightShoulder_;
-            ar & leftShoulder_;
-            ar & rightElbow_;
-            ar & leftElbow_;
-            ar & rightHand_;
-            ar & leftHand_;
-            ar & rightHip_;
-            ar & leftHip_;
-            ar & rightKnee_;
-            ar & leftKnee_;
-            ar & rightFoot_;
-            ar & leftFoot_;
-            ar & torso_;
+            ar & head;
+            ar & neck;
+            ar & rightShoulder;
+            ar & leftShoulder;
+            ar & rightElbow;
+            ar & leftElbow;
+            ar & rightHand;
+            ar & leftHand;
+            ar & rightHip;
+            ar & leftHip;
+            ar & rightKnee;
+            ar & leftKnee;
+            ar & rightFoot;
+            ar & leftFoot;
+            ar & torso;
         }
 };
 
@@ -111,7 +108,6 @@ class Skeleton
 //
 // Requires the OpenNI + NITE framework installation and the device driver
 // Tracks users within the device FOV, and assists in collection of user joints data
-
 class SkeletonSensor
 {
     public:
@@ -122,46 +118,44 @@ class SkeletonSensor
         int initialize();
 
         // non-blocking wait for new data on the device
-        inline void waitForDeviceUpdateOnUser() { context_.WaitOneUpdateAll(userG_); }
+        void waitForDeviceUpdateOnUser();
 
         // update vector of tracked users
         bool updateTrackedUsers();
 
-        // return true if uid is among the tracked users
+        // return true if UID is among the tracked users
         bool isTracking(const unsigned int uid);
 
         // returns skeleton of specified user
-        Skeleton getSkeleton(const unsigned int i);
+        Skeleton getSkeleton(const unsigned int uid);
 
         // returns vector of skeletons for all users
         std::vector<Skeleton> getSkeletons();
 
-        void setPointModeToProjective() { pointModeProjective_ = true; }
-        void setPointModeToReal() { pointModeProjective_ = false; }
-        void convertXnJointsToPoints(XnSkeletonJointPosition* const j, SkeletonPoint* const p, unsigned int numPoints);
+        // get number of tracked users
+        unsigned int getNumTrackedUsers();
 
-        // set the smoothing factor
-        inline void setSmoothing(const float smoothingF)
-        {
-            smoothingFactor_ = smoothingF;
-        }
+        // map tracked user index to UID
+        unsigned int getUID(const unsigned int index);
 
-        unsigned int getNOTrackedUsers() { return trackedUsers_.size(); }
-        unsigned int getUID(int i) { return trackedUsers_[i]; }
+        // change point mode
+        void setPointModeToProjective();
+        void setPointModeToReal();
 
     private:
-        xn::Context        context_;
+        xn::Context context_;
         xn::DepthGenerator depthG_;
-        xn::UserGenerator  userG_;
-
-        bool pointModeProjective_;
+        xn::UserGenerator userG_;
 
         std::vector<unsigned int> trackedUsers_;
 
-        float smoothingFactor_;
+        bool pointModeProjective_;
 
         // on user detection and calibration, call specified functions
         int setCalibrationPoseCallbacks();
+
+        // joint to point conversion, considers point mode
+        void convertXnJointsToPoints(XnSkeletonJointPosition* const j, SkeletonPoint* const p, unsigned int numPoints);
 
         // callback functions for user and skeleton calibration events
         static void XN_CALLBACK_TYPE newUserCallback(xn::UserGenerator& generator, XnUserID nId, void* pCookie);
