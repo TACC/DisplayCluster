@@ -53,7 +53,7 @@
 #define WINDOW_ZOOM_FACTOR 0.05
 
 // scale factor for panning in window
-#define WINDOW_PAN_FACTOR 0.015
+#define WINDOW_PAN_FACTOR 0.025
 
 // scale factor for window size scaling
 #define WINDOW_SCALE_FACTOR 0.05
