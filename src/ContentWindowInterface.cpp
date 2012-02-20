@@ -138,7 +138,9 @@ bool ContentWindowInterface::getSelected()
 
 bool ContentWindowInterface::getHighlighted()
 {
-    if((*(g_displayGroupManager->getTimestamp()) - highlightedTimestamp_).total_seconds() > HIGHLIGHT_TIMEOUT_SECONDS)
+    long dtMilliseconds = (*(g_displayGroupManager->getTimestamp()) - highlightedTimestamp_).total_milliseconds();
+
+    if(dtMilliseconds > HIGHLIGHT_TIMEOUT_MILLISECONDS || dtMilliseconds % (HIGHLIGHT_BLINK_INTERVAL*2) < HIGHLIGHT_BLINK_INTERVAL)
     {
         return false;
     }

@@ -39,7 +39,8 @@
 #ifndef CONTENT_WINDOW_INTERFACE_H
 #define CONTENT_WINDOW_INTERFACE_H
 
-#define HIGHLIGHT_TIMEOUT_SECONDS 2.0
+#define HIGHLIGHT_TIMEOUT_MILLISECONDS 1500
+#define HIGHLIGHT_BLINK_INTERVAL 250 // milliseconds
 
 #include <QtGui>
 #include <boost/shared_ptr.hpp>
