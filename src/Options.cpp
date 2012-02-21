@@ -44,6 +44,10 @@ Options::Options()
     showTestPattern_ = false;
     enableMullionCompensation_ = true;
     showZoomContext_ = true;
+
+#if ENABLE_SKELETON_SUPPORT
+    showSkeletons_ = true;
+#endif
 }
 
 bool Options::getShowWindowBorders()
@@ -65,6 +69,13 @@ bool Options::getShowZoomContext()
 {
     return showZoomContext_;
 }
+
+#if ENABLE_SKELETON_SUPPORT
+bool Options::getShowSkeletons()
+{
+    return showSkeletons_;
+}
+#endif
 
 void Options::setShowWindowBorders(bool set)
 {
@@ -93,3 +104,12 @@ void Options::setShowZoomContext(bool set)
 
     emit(updated());
 }
+
+#if ENABLE_SKELETON_SUPPORT
+void Options::setShowSkeletons(bool set)
+{
+    showSkeletons_ = set;
+
+    emit(updated());
+}
+#endif

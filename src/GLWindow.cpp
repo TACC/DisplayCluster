@@ -143,39 +143,38 @@ void GLWindow::paintGL()
     }
 
 #if ENABLE_SKELETON_SUPPORT
-    // render perspective overlay for skeletons
-
-    // setPersectiveView() may change the viewport!
-    glPushAttrib(GL_VIEWPORT_BIT);
-
-    // set the height of the skeleton view to a fraction of the total display height
-    // set the width to maintain a 16/9 aspect ratio
-    double skeletonViewHeight = 0.4;
-    double skeletonViewWidth = 16./9. * (double)g_configuration->getTotalHeight() / (double)g_configuration->getTotalWidth() * skeletonViewHeight;
-
-    // view at the center bottom
-    if(setPerspectiveView(0.5 * (1. - skeletonViewWidth), 1. - skeletonViewHeight, skeletonViewWidth, skeletonViewHeight) == true)
+    if(g_displayGroupManager->getOptions()->getShowSkeletons() == true)
     {
-        glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT);
+        // render perspective overlay for skeletons
 
-        // enable depth testing, lighting, color tracking, and normal normalization (since we're scaling)
-        glEnable(GL_DEPTH_TEST);
-        glEnable(GL_LIGHTING);
-        glEnable(GL_COLOR_MATERIAL);
-        glEnable(GL_NORMALIZE);
+        // setPersectiveView() may change the viewport!
+        glPushAttrib(GL_VIEWPORT_BIT | GL_ENABLE_BIT | GL_CURRENT_BIT);
 
-        // get and render skeletons
-        std::vector< boost::shared_ptr<SkeletonState> > skeletons = g_displayGroupManager->getSkeletons();
+        // set the height of the skeleton view to a fraction of the total display height
+        // set the width to maintain a 16/9 aspect ratio
+        double skeletonViewHeight = 0.4;
+        double skeletonViewWidth = 16./9. * (double)g_configuration->getTotalHeight() / (double)g_configuration->getTotalWidth() * skeletonViewHeight;
 
-        for(unsigned int i = 0; i < skeletons.size(); i++)
+        // view at the center bottom
+        if(setPerspectiveView(0.5 * (1. - skeletonViewWidth), 1. - skeletonViewHeight, skeletonViewWidth, skeletonViewHeight) == true)
         {
-            skeletons[i]->render();
+            // enable depth testing, lighting, color tracking, and normal normalization (since we're scaling)
+            glEnable(GL_DEPTH_TEST);
+            glEnable(GL_LIGHTING);
+            glEnable(GL_COLOR_MATERIAL);
+            glEnable(GL_NORMALIZE);
+
+            // get and render skeletons
+            std::vector< boost::shared_ptr<SkeletonState> > skeletons = g_displayGroupManager->getSkeletons();
+
+            for(unsigned int i = 0; i < skeletons.size(); i++)
+            {
+                skeletons[i]->render();
+            }
         }
 
         glPopAttrib();
     }
-
-    glPopAttrib();
 #endif
 }
 

@@ -74,6 +74,10 @@ MainWindow::MainWindow()
         QMenu * windowMenu = menuBar()->addMenu("&Window");
 #endif
 
+#if ENABLE_SKELETON_SUPPORT
+        QMenu * skeletonMenu = menuBar()->addMenu("&Skeleton Tracking");
+#endif
+
         // create tool bar
         QToolBar * toolbar = addToolBar("toolbar");
 
@@ -154,6 +158,15 @@ MainWindow::MainWindow()
         showZoomContextAction->setChecked(g_displayGroupManager->getOptions()->getShowZoomContext());
         connect(showZoomContextAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowZoomContext(bool)));
 
+#if ENABLE_SKELETON_SUPPORT
+        // show skeletons action
+        QAction * showSkeletonsAction = new QAction("Show Skeletons", this);
+        showSkeletonsAction->setStatusTip("Show skeletons");
+        showSkeletonsAction->setCheckable(true);
+        showSkeletonsAction->setChecked(g_displayGroupManager->getOptions()->getShowSkeletons());
+        connect(showSkeletonsAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowSkeletons(bool)));
+#endif
+
         // add actions to menus
         fileMenu->addAction(openContentAction);
         fileMenu->addAction(openContentsDirectoryAction);
@@ -170,6 +183,10 @@ MainWindow::MainWindow()
 
 #if ENABLE_PYTHON_SUPPORT
         windowMenu->addAction(pythonConsoleAction);
+#endif
+
+#if ENABLE_SKELETON_SUPPORT
+        skeletonMenu->addAction(showSkeletonsAction);
 #endif
 
         // add actions to toolbar

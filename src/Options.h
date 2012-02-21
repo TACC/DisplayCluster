@@ -39,6 +39,7 @@
 #ifndef OPTIONS_H
 #define OPTIONS_H
 
+#include "config.h"
 #include <QtGui>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
@@ -54,11 +55,19 @@ class Options : public QObject {
         bool getEnableMullionCompensation();
         bool getShowZoomContext();
 
+#if ENABLE_SKELETON_SUPPORT
+        bool getShowSkeletons();
+#endif
+
     public slots:
         void setShowWindowBorders(bool set);
         void setShowTestPattern(bool set);
         void setEnableMullionCompensation(bool set);
         void setShowZoomContext(bool set);
+
+#if ENABLE_SKELETON_SUPPORT
+        void setShowSkeletons(bool set);
+#endif
 
     signals:
         void updated();
@@ -73,12 +82,20 @@ class Options : public QObject {
             ar & showTestPattern_;
             ar & enableMullionCompensation_;
             ar & showZoomContext_;
+
+#if ENABLE_SKELETON_SUPPORT
+            ar & showSkeletons_;
+#endif
         }
 
         bool showWindowBorders_;
         bool showTestPattern_;
         bool enableMullionCompensation_;
         bool showZoomContext_;
+
+#if ENABLE_SKELETON_SUPPORT
+        bool showSkeletons_;
+#endif
 };
 
 #endif
