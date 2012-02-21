@@ -264,7 +264,7 @@ void SkeletonState::render()
     glPushMatrix();
 
     // scale appropriately to fit in view
-    glScalef(1./20000., 1./20000., 1./20000.);
+    glScalef(1./10000., 1./10000., 1./10000.);
 
     renderJoints();
 
