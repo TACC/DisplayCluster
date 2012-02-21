@@ -114,7 +114,7 @@ boost::shared_ptr<boost::posix_time::ptime> DisplayGroupManager::getTimestamp()
 }
 
 #if ENABLE_SKELETON_SUPPORT
-std::vector< boost::shared_ptr<SkeletonState> > DisplayGroupManager::getSkeletons()
+std::vector<boost::shared_ptr<SkeletonState> > DisplayGroupManager::getSkeletons()
 {
     return skeletons_;
 }
@@ -564,14 +564,13 @@ void DisplayGroupManager::receiveMessages()
 
 void DisplayGroupManager::sendDisplayGroup()
 {
-
-    QMutexLocker locker(&markersMutex_);
-
     // serialize state
     std::ostringstream oss(std::ostringstream::binary);
 
     // brace this so destructor is called on archive before we use the stream
     {
+        QMutexLocker locker(&markersMutex_);
+
         boost::shared_ptr<DisplayGroupManager> dgm = shared_from_this();
 
         boost::archive::binary_oarchive oa(oss);
@@ -820,15 +819,6 @@ void DisplayGroupManager::sendQuit()
     }
 }
 
-#if ENABLE_SKELETON_SUPPORT
-void DisplayGroupManager::setSkeletons(std::vector< boost::shared_ptr<SkeletonState> > skeletons)
-{
-    skeletons_ = skeletons;
-
-    sendDisplayGroup();
-}
-#endif
-
 void DisplayGroupManager::advanceContents()
 {
     // note that if we have multiple ContentWindowManagers corresponding to a single Content object,
@@ -838,6 +828,15 @@ void DisplayGroupManager::advanceContents()
         contentWindowManagers_[i]->getContent()->advance(contentWindowManagers_[i]);
     }
 }
+
+#if ENABLE_SKELETON_SUPPORT
+void DisplayGroupManager::setSkeletons(std::vector< boost::shared_ptr<SkeletonState> > skeletons)
+{
+    skeletons_ = skeletons;
+
+    sendDisplayGroup();
+}
+#endif
 
 void DisplayGroupManager::receiveDisplayGroup(MessageHeader messageHeader)
 {

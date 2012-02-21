@@ -53,7 +53,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 #if ENABLE_SKELETON_SUPPORT
-#include "SkeletonThread.h"
+    #include "SkeletonState.h"
 #endif
 
 class ContentWindowManager;
@@ -97,10 +97,12 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         void sendFrameClockUpdate();
         void receiveFrameClockUpdate();
         void sendQuit();
-#if ENABLE_SKELETON_SUPPORT
-        void setSkeletons(std::vector< boost::shared_ptr<SkeletonState> > skeletons);
-#endif
+
         void advanceContents();
+
+#if ENABLE_SKELETON_SUPPORT
+        void setSkeletons(std::vector<boost::shared_ptr<SkeletonState> > skeletons);
+#endif
 
     private:
         friend class boost::serialization::access;
@@ -111,25 +113,24 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
             ar & options_;
             ar & markers_;
             ar & contentWindowManagers_;
+
 #if ENABLE_SKELETON_SUPPORT
             ar & skeletons_;
 #endif
         }
 
-        QMutex markersMutex_;
-
         // options
         boost::shared_ptr<Options> options_;
 
-        // marker
+        // marker and mutex
+        QMutex markersMutex_;
         std::vector<boost::shared_ptr<Marker> > markers_;
 
         // frame timing
         boost::shared_ptr<boost::posix_time::ptime> timestamp_;
 
-
 #if ENABLE_SKELETON_SUPPORT
-        std::vector< boost::shared_ptr<SkeletonState> > skeletons_;
+        std::vector<boost::shared_ptr<SkeletonState> > skeletons_;
 #endif
 
         // rank 1 - rank 0 timestamp offset
