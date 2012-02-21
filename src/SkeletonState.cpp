@@ -337,19 +337,18 @@ void SkeletonState::renderJoints()
         // default sphere radius
         float radius = 30.;
 
-        // if we're in control, color green
-        if(control_)
+        // if we're in control and in focus interaction mode, color green
+        // if we're in control and not in focus interaction mode, color blue
+        if(control_ && focusInteraction_ == true)
             glColor4f(70./255., 219./255., 147./255., 1.);
+        else if(control_ && focusInteraction_ == false)
+            glColor4f(0.,0.,1.,1.);
 
         if(joints[i].confidence > 0.5)
         {
             // if it's the head
             if(i == 0)
             {
-                // color depending on mode
-                if(focusInteraction_ == false)
-                    glColor4f(183./255., 105./255., 255./255., 1.);
-
                 gluSphere(quadObj, 2.*radius, 16.,16.);
             }
 
