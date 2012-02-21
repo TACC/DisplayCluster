@@ -58,9 +58,4 @@ extern MainWindow * g_mainWindow;
 extern NetworkListener * g_networkListener;
 extern long g_frameCount;
 
-#if ENABLE_SKELETON_SUPPORT
-    class SkeletonThread;
-    extern SkeletonThread * g_skeletonThread;
-#endif
-
 #endif

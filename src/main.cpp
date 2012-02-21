@@ -52,7 +52,6 @@
 
 #if ENABLE_SKELETON_SUPPORT
     #include "SkeletonThread.h"
-    SkeletonThread * g_skeletonThread;
 #endif
 
 std::string g_displayClusterDir;
@@ -122,8 +121,8 @@ int main(int argc, char * argv[])
 #if ENABLE_SKELETON_SUPPORT
     if(g_mpiRank == 0)
     {
-        g_skeletonThread = new SkeletonThread();
-        g_skeletonThread->start();
+        SkeletonThread * skeletonThread = new SkeletonThread();
+        skeletonThread->start();
     }
 #endif
 
