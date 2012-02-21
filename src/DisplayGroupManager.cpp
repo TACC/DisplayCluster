@@ -546,12 +546,6 @@ void DisplayGroupManager::receiveMessages()
                 g_app->quit();
                 return;
             }
-#if ENABLE_SKELETON_SUPPORT
-            else if(mh.type == MESSAGE_TYPE_SKELETONS)
-            {
-                receiveSkeletons(mh);
-            }
-#endif
 
             // check to see if we have another message waiting, for this process and for all render processes
             MPI_Iprobe(0, 0, MPI_COMM_WORLD, &flag, &status);
@@ -925,37 +919,3 @@ void DisplayGroupManager::receivePixelStreams(MessageHeader messageHeader)
     // free mpi buffer
     delete [] buf;
 }
-
-#if ENABLE_SKELETON_SUPPORT
-void DisplayGroupManager::receiveSkeletons(MessageHeader messageHeader)
-{
-    // receive serialized data
-    char * buf = new char[messageHeader.size];
-
-    // read message into the buffer
-    MPI_Bcast((void *)buf, messageHeader.size, MPI_BYTE, 0, MPI_COMM_WORLD);
-
-    // de-serialize...
-    std::istringstream iss(std::istringstream::binary);
-
-    if(iss.rdbuf()->pubsetbuf(buf, messageHeader.size) == NULL)
-    {
-        put_flog(LOG_FATAL, "rank %i: error setting stream buffer", g_mpiRank);
-        exit(-1);
-    }
-
-    // read to skeletons vector
-    std::vector< boost::shared_ptr<SkeletonState> > skeletons;
-
-    boost::archive::binary_iarchive ia(iss);
-    ia >> skeletons_;
-
-    put_flog(LOG_DEBUG, "deserialized %i skeletons", skeletons_.size());
-
-    // overwrite old skeletons vector
-    ///////skeletons_ = skeletons;
-
-    // free mpi buffer
-    delete [] buf;
-}
-#endif

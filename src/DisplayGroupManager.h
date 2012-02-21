@@ -139,10 +139,6 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         void receiveDisplayGroup(MessageHeader messageHeader);
         void receiveContentsDimensionsRequest(MessageHeader messageHeader);
         void receivePixelStreams(MessageHeader messageHeader);
-
-#if ENABLE_SKELETON_SUPPORT
-        void receiveSkeletons(MessageHeader messageHeader);
-#endif
 };
 
 #endif
