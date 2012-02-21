@@ -64,7 +64,7 @@ if(BUILD_DISPLAYCLUSTER)
     set(LIBS ${LIBS} ${MPI_LIBRARIES})
 
     find_package(FFMPEG REQUIRED)
-    include_directories(${FFMPEG_INCLUDE_DIR})
+    include_directories(SYSTEM ${FFMPEG_INCLUDE_DIR}) # use SYSTEM to suppress FFMPEG compile warnings
     set(LIBS ${LIBS} ${FFMPEG_LIBRARIES})
 
     # handle build options
@@ -93,7 +93,7 @@ if(BUILD_DISPLAYCLUSTER)
 
     if(ENABLE_SKELETON_SUPPORT)
         find_package(OpenNI REQUIRED)
-        include_directories(${OpenNI_INCLUDE_DIRS})
+        include_directories(SYSTEM ${OpenNI_INCLUDE_DIRS}) # use SYSTEM to suppress OpenNI compile warnings
         set(LIBS ${LIBS} ${OpenNI_LIBRARIES})
 
         set(SRCS ${SRCS}
