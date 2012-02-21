@@ -48,6 +48,8 @@ const unsigned int NA_UID = 9999;
 
 SkeletonThread::SkeletonThread()
 {
+    moveToThread(this);
+
     connect(this, SIGNAL(skeletonsUpdated(std::vector< boost::shared_ptr<SkeletonState> >)), g_displayGroupManager.get(), SLOT(setSkeletons(std::vector<boost::shared_ptr<SkeletonState> >)), Qt::QueuedConnection);
 }
 
