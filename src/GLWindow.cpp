@@ -41,7 +41,6 @@
 #include "Marker.h"
 #include "ContentWindowManager.h"
 #include "log.h"
-
 #include <QtOpenGL>
 #include <boost/shared_ptr.hpp>
 
