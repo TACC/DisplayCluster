@@ -45,6 +45,13 @@
 DisplayGroupJoystick::DisplayGroupJoystick(boost::shared_ptr<DisplayGroupManager> displayGroupManager) : DisplayGroupInterface(displayGroupManager)
 {
     marker_ = displayGroupManager->getNewMarker();
+
+    // add ContentWindowInterfaces for existing ContentWindowManagers
+    for(unsigned int i=0; i<contentWindowManagers_.size(); i++)
+    {
+        boost::shared_ptr<ContentWindowInterface> cwi(new ContentWindowInterface(contentWindowManagers_[i]));
+        contentWindowInterfaces_.push_back(cwi);
+    }
 }
 
 void DisplayGroupJoystick::addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
@@ -56,6 +63,7 @@ void DisplayGroupJoystick::addContentWindowManager(boost::shared_ptr<ContentWind
         boost::shared_ptr<ContentWindowInterface> cwi(new ContentWindowInterface(contentWindowManager));
         contentWindowInterfaces_.push_back(cwi);
     }
+
 }
 
 void DisplayGroupJoystick::removeContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)

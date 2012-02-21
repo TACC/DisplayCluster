@@ -68,6 +68,7 @@ ContentWindowInterface::ContentWindowInterface(boost::shared_ptr<ContentWindowMa
     connect(this, SIGNAL(centerChanged(double, double, ContentWindowInterface *)), contentWindowManager.get(), SLOT(setCenter(double, double, ContentWindowInterface *)), Qt::QueuedConnection);
     connect(this, SIGNAL(zoomChanged(double, ContentWindowInterface *)), contentWindowManager.get(), SLOT(setZoom(double, ContentWindowInterface *)), Qt::QueuedConnection);
     connect(this, SIGNAL(selectedChanged(bool, ContentWindowInterface *)), contentWindowManager.get(), SLOT(setSelected(bool, ContentWindowInterface *)), Qt::QueuedConnection);
+    connect(this, SIGNAL(highlighted(ContentWindowInterface *)), contentWindowManager.get(), SLOT(highlight(ContentWindowInterface *)), Qt::QueuedConnection);
     connect(this, SIGNAL(movedToFront(ContentWindowInterface *)), contentWindowManager.get(), SLOT(moveToFront(ContentWindowInterface *)), Qt::QueuedConnection);
     connect(this, SIGNAL(closed(ContentWindowInterface *)), contentWindowManager.get(), SLOT(close(ContentWindowInterface *)), Qt::QueuedConnection);
 
@@ -80,6 +81,7 @@ ContentWindowInterface::ContentWindowInterface(boost::shared_ptr<ContentWindowMa
     connect(contentWindowManager.get(), SIGNAL(centerChanged(double, double, ContentWindowInterface *)), this, SLOT(setCenter(double, double, ContentWindowInterface *)), Qt::QueuedConnection);
     connect(contentWindowManager.get(), SIGNAL(zoomChanged(double, ContentWindowInterface *)), this, SLOT(setZoom(double, ContentWindowInterface *)), Qt::QueuedConnection);
     connect(contentWindowManager.get(), SIGNAL(selectedChanged(bool, ContentWindowInterface *)), this, SLOT(setSelected(bool, ContentWindowInterface *)), Qt::QueuedConnection);
+    connect(contentWindowManager.get(), SIGNAL(highlighted(ContentWindowInterface *)), this, SLOT(highlight(ContentWindowInterface *)), Qt::QueuedConnection);
     connect(contentWindowManager.get(), SIGNAL(movedToFront(ContentWindowInterface *)), this, SLOT(moveToFront(ContentWindowInterface *)), Qt::QueuedConnection);
     connect(contentWindowManager.get(), SIGNAL(closed(ContentWindowInterface *)), this, SLOT(close(ContentWindowInterface *)), Qt::QueuedConnection);
 
@@ -132,6 +134,20 @@ double ContentWindowInterface::getZoom()
 bool ContentWindowInterface::getSelected()
 {
     return selected_;
+}
+
+bool ContentWindowInterface::getHighlighted()
+{
+    long dtMilliseconds = (*(g_displayGroupManager->getTimestamp()) - highlightedTimestamp_).total_milliseconds();
+
+    if(dtMilliseconds > HIGHLIGHT_TIMEOUT_MILLISECONDS || dtMilliseconds % (HIGHLIGHT_BLINK_INTERVAL*2) < HIGHLIGHT_BLINK_INTERVAL)
+    {
+        return false;
+    }
+    else
+    {
+        return true;
+    }
 }
 
 void ContentWindowInterface::getButtonDimensions(float &width, float &height)
@@ -447,6 +463,27 @@ void ContentWindowInterface::setSelected(bool selected, ContentWindowInterface *
         }
 
         emit(selectedChanged(selected_, source));
+    }
+}
+
+void ContentWindowInterface::highlight(ContentWindowInterface * source)
+{
+    if(source == this)
+    {
+        return;
+    }
+
+    // set highlighted timestamp
+    highlightedTimestamp_ = *(g_displayGroupManager->getTimestamp());
+
+    if(source == NULL || dynamic_cast<ContentWindowManager *>(this) != NULL)
+    {
+        if(source == NULL)
+        {
+            source = this;
+        }
+
+        emit(highlighted(source));
     }
 }
 

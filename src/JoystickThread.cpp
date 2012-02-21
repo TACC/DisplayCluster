@@ -44,6 +44,8 @@
 
 JoystickThread::JoystickThread()
 {
+    moveToThread(this);
+
     tick1_ = tick2_ = 0;
 }
 

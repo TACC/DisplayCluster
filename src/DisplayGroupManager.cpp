@@ -65,6 +65,11 @@ DisplayGroupManager::DisplayGroupManager()
 
     // register types for use in signals/slots
     qRegisterMetaType<boost::shared_ptr<ContentWindowManager> >("boost::shared_ptr<ContentWindowManager>");
+
+    // serialization support for the vector of skeleton states
+#if ENABLE_SKELETON_SUPPORT
+    qRegisterMetaType<std::vector< boost::shared_ptr<SkeletonState> > >("std::vector< boost::shared_ptr<SkeletonState> >");
+#endif
 }
 
 boost::shared_ptr<Options> DisplayGroupManager::getOptions()
@@ -74,8 +79,13 @@ boost::shared_ptr<Options> DisplayGroupManager::getOptions()
 
 boost::shared_ptr<Marker> DisplayGroupManager::getNewMarker()
 {
+    QMutexLocker locker(&markersMutex_);
+
     boost::shared_ptr<Marker> marker(new Marker());
     markers_.push_back(marker);
+
+    // the marker needs to be owned by the main thread for queued connections to work properly
+    marker->moveToThread(QApplication::instance()->thread());
 
     // make marker trigger sendDisplayGroup() when it is updated
     connect(marker.get(), SIGNAL(positionChanged()), this, SLOT(sendDisplayGroup()), Qt::QueuedConnection);
@@ -102,6 +112,13 @@ boost::shared_ptr<boost::posix_time::ptime> DisplayGroupManager::getTimestamp()
         return timestamp_;
     }
 }
+
+#if ENABLE_SKELETON_SUPPORT
+std::vector<boost::shared_ptr<SkeletonState> > DisplayGroupManager::getSkeletons()
+{
+    return skeletons_;
+}
+#endif
 
 void DisplayGroupManager::addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
 {
@@ -546,6 +563,8 @@ void DisplayGroupManager::sendDisplayGroup()
 
     // brace this so destructor is called on archive before we use the stream
     {
+        QMutexLocker locker(&markersMutex_);
+
         boost::shared_ptr<DisplayGroupManager> dgm = shared_from_this();
 
         boost::archive::binary_oarchive oa(oss);
@@ -803,6 +822,15 @@ void DisplayGroupManager::advanceContents()
         contentWindowManagers_[i]->getContent()->advance(contentWindowManagers_[i]);
     }
 }
+
+#if ENABLE_SKELETON_SUPPORT
+void DisplayGroupManager::setSkeletons(std::vector< boost::shared_ptr<SkeletonState> > skeletons)
+{
+    skeletons_ = skeletons;
+
+    sendDisplayGroup();
+}
+#endif
 
 void DisplayGroupManager::receiveDisplayGroup(MessageHeader messageHeader)
 {

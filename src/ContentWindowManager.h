@@ -48,6 +48,7 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/weak_ptr.hpp>
+#include <boost/date_time/posix_time/time_serialize.hpp>
 
 class DisplayGroupManager;
 
@@ -88,6 +89,7 @@ class ContentWindowManager : public ContentWindowInterface, public boost::enable
             ar & centerY_;
             ar & zoom_;
             ar & selected_;
+            ar & highlightedTimestamp_;
         }
 
     private:

@@ -39,9 +39,13 @@
 #ifndef CONTENT_WINDOW_INTERFACE_H
 #define CONTENT_WINDOW_INTERFACE_H
 
+#define HIGHLIGHT_TIMEOUT_MILLISECONDS 1500
+#define HIGHLIGHT_BLINK_INTERVAL 250 // milliseconds
+
 #include <QtGui>
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 class ContentWindowManager;
 
@@ -62,6 +66,7 @@ class ContentWindowInterface : public QObject {
         void getCenter(double &centerX, double &centerY);
         double getZoom();
         bool getSelected();
+        bool getHighlighted();
 
         // button dimensions
         void getButtonDimensions(float &width, float &height);
@@ -82,6 +87,7 @@ class ContentWindowInterface : public QObject {
         virtual void setCenter(double centerX, double centerY, ContentWindowInterface * source=NULL);
         virtual void setZoom(double zoom, ContentWindowInterface * source=NULL);
         virtual void setSelected(bool selected, ContentWindowInterface * source=NULL);
+        virtual void highlight(ContentWindowInterface * source=NULL);
         virtual void moveToFront(ContentWindowInterface * source=NULL);
         virtual void close(ContentWindowInterface * source=NULL);
 
@@ -96,6 +102,7 @@ class ContentWindowInterface : public QObject {
         void centerChanged(double centerX, double centerY, ContentWindowInterface * source);
         void zoomChanged(double zoom, ContentWindowInterface * source);
         void selectedChanged(bool selected, ContentWindowInterface * source);
+        void highlighted(ContentWindowInterface * source);
         void movedToFront(ContentWindowInterface * source);
         void closed(ContentWindowInterface * source);
 
@@ -122,6 +129,9 @@ class ContentWindowInterface : public QObject {
 
         // window state
         bool selected_;
+
+        // highlighted timestamp
+        boost::posix_time::ptime highlightedTimestamp_;
 };
 
 #endif

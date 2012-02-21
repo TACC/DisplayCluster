@@ -64,7 +64,7 @@ class GLWindow : public QGLWidget
         void paintGL();
         void resizeGL(int width, int height);
         void setOrthographicView();
-        void setPerspectiveView();
+        bool setPerspectiveView(double x=0., double y=0., double w=1., double h=1.);
 
         bool isScreenRectangleVisible(double x, double y, double w, double h);
 

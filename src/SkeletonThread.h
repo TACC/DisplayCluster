@@ -36,66 +36,53 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef OPTIONS_H
-#define OPTIONS_H
+#ifndef SKELETON_THREAD_H
+#define SKELETON_THREAD_H
 
-#include "config.h"
+// set the timer to ping for new sensor data at 30Hz
+#define SKELETON_TIMER_INTERVAL 33
+
+#include "SkeletonState.h"
+#include "SkeletonSensor.h"
+#include <QThread>
 #include <QtGui>
+#include <map>
+#include <boost/shared_ptr.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 
-class Options : public QObject {
+// SkeletonThread: receives updates from the OpenNI device context,
+// and interprets the user skeletons detected within the device FOV
+class SkeletonThread : public QThread {
     Q_OBJECT
 
     public:
-        Options();
 
-        bool getShowWindowBorders();
-        bool getShowTestPattern();
-        bool getEnableMullionCompensation();
-        bool getShowZoomContext();
+        SkeletonThread();
 
-#if ENABLE_SKELETON_SUPPORT
-        bool getShowSkeletons();
-#endif
+        std::vector<boost::shared_ptr<SkeletonState> > getSkeletons();
 
-    public slots:
-        void setShowWindowBorders(bool set);
-        void setShowTestPattern(bool set);
-        void setEnableMullionCompensation(bool set);
-        void setShowZoomContext(bool set);
+    protected:
 
-#if ENABLE_SKELETON_SUPPORT
-        void setShowSkeletons(bool set);
-#endif
+        void run();
 
     signals:
-        void updated();
+
+        void skeletonsUpdated(std::vector< boost::shared_ptr<SkeletonState> > skeletons);
+
+    public slots:
+
+        void updateSkeletons();
 
     private:
-        friend class boost::serialization::access;
 
-        template<class Archive>
-        void serialize(Archive & ar, const unsigned int)
-        {
-            ar & showWindowBorders_;
-            ar & showTestPattern_;
-            ar & enableMullionCompensation_;
-            ar & showZoomContext_;
+        QTimer timer_;
 
-#if ENABLE_SKELETON_SUPPORT
-            ar & showSkeletons_;
-#endif
-        }
+        // the skeleton tracking sensor
+        boost::shared_ptr<SkeletonSensor> sensor_;
 
-        bool showWindowBorders_;
-        bool showTestPattern_;
-        bool enableMullionCompensation_;
-        bool showZoomContext_;
-
-#if ENABLE_SKELETON_SUPPORT
-        bool showSkeletons_;
-#endif
+        // the current state of each tracked user
+        std::map<unsigned int, boost::shared_ptr<SkeletonState> > states_;
 };
 
 #endif

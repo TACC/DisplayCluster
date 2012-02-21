@@ -36,66 +36,96 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef OPTIONS_H
-#define OPTIONS_H
+#ifndef SKELETON_STATE_H
+#define SKELETON_STATE_H
 
-#include "config.h"
+
+// timeout (milliseconds) for a missing marker to cause the window to become inactive
+#define DEAD_MARKER_TIME 500
+
+// timeout (milliseconds) for a hovering marker to cause the window to become active
+#define HOVER_TIME 2000
+
+// time required (milliseconds) between changing interaction modes
+#define MODE_CHANGE_TIME 2000
+
+// scale factor for zooming in window
+#define WINDOW_ZOOM_FACTOR 0.05
+
+// scale factor for panning in window
+#define WINDOW_PAN_FACTOR 0.025
+
+// scale factor for window size scaling
+#define WINDOW_SCALE_FACTOR 0.05
+
+#include "SkeletonSensor.h"
 #include <QtGui>
+#include <boost/shared_ptr.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 
-class Options : public QObject {
-    Q_OBJECT
+class ContentWindowInterface;
+class DisplayGroupJoystick;
 
+// SkeletonState: keeps track of the current state of the tracked user
+class SkeletonState
+{
     public:
-        Options();
+        SkeletonState();
 
-        bool getShowWindowBorders();
-        bool getShowTestPattern();
-        bool getEnableMullionCompensation();
-        bool getShowZoomContext();
+        int update(Skeleton skeleton);
+        void render();
 
-#if ENABLE_SKELETON_SUPPORT
-        bool getShowSkeletons();
-#endif
+        // get / set controlling status
+        bool getControl();
+        void setControl(bool control);
 
-    public slots:
-        void setShowWindowBorders(bool set);
-        void setShowTestPattern(bool set);
-        void setEnableMullionCompensation(bool set);
-        void setShowZoomContext(bool set);
+    protected:
+            friend class boost::serialization::access;
 
-#if ENABLE_SKELETON_SUPPORT
-        void setShowSkeletons(bool set);
-#endif
-
-    signals:
-        void updated();
+            template<class Archive>
+            void serialize(Archive & ar, const unsigned int)
+            {
+                ar & focusInteraction_;
+                ar & skeleton_;
+                ar & control_;
+                ar & leftHandActive_;
+                ar & rightHandActive_;
+            }
 
     private:
-        friend class boost::serialization::access;
 
-        template<class Archive>
-        void serialize(Archive & ar, const unsigned int)
-        {
-            ar & showWindowBorders_;
-            ar & showTestPattern_;
-            ar & enableMullionCompensation_;
-            ar & showZoomContext_;
+        // display group interface for this skeleton
+        boost::shared_ptr<DisplayGroupJoystick> displayGroup_;
 
-#if ENABLE_SKELETON_SUPPORT
-            ar & showSkeletons_;
-#endif
-        }
+        // are we interacting with a focused window?
+        bool focusInteraction_;
 
-        bool showWindowBorders_;
-        bool showTestPattern_;
-        bool enableMullionCompensation_;
-        bool showZoomContext_;
+        // the current point representation of the skeleton
+        Skeleton skeleton_;
 
-#if ENABLE_SKELETON_SUPPORT
-        bool showSkeletons_;
-#endif
+        // control status and timer
+        bool control_;
+        QTime controlTimeOut_;
+
+        // are hands exceeding depth threshold
+        bool leftHandActive_, rightHandActive_;
+
+        // marker timeout
+        QTime markerTimeOut_;
+
+        // time spend hovering over a window
+        QTime hoverTime_;
+        boost::shared_ptr<ContentWindowInterface> hoverWindow_;
+
+        // if we have an active window or not
+        bool activeWindow_;
+
+        // timeout for changing modes
+        QTime modeChangeTimeOut_;
+
+        void renderJoints();
+        void renderLimb(SkeletonPoint& p1, SkeletonPoint& p2);
 };
 
 #endif

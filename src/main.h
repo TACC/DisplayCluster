@@ -43,6 +43,7 @@
 #include "MainWindow.h"
 #include "DisplayGroupManager.h"
 #include "NetworkListener.h"
+#include "config.h"
 #include <boost/shared_ptr.hpp>
 #include <mpi.h>
 

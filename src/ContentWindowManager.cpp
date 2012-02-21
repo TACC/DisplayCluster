@@ -147,6 +147,13 @@ void ContentWindowManager::render()
     if(showWindowBorders == true)
     {
         double horizontalBorder = 5. / (double)g_configuration->getTotalHeight(); // 5 pixels
+
+        // enlarge the border if we're highlighted
+        if(getHighlighted() == true)
+        {
+            horizontalBorder *= 4.;
+        }
+
         double verticalBorder = (double)g_configuration->getTotalHeight() / (double)g_configuration->getTotalWidth() * horizontalBorder;
 
         glPushAttrib(GL_CURRENT_BIT);
