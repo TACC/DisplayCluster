@@ -121,7 +121,7 @@ class SkeletonSensor
         void waitForDeviceUpdateOnUser();
 
         // update vector of tracked users
-        bool updateTrackedUsers();
+        void updateTrackedUsers();
 
         // return true if UID is among the tracked users
         bool isTracking(const unsigned int uid);

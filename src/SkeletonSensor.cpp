@@ -41,11 +41,13 @@
 
 inline int CHECK_RC(const unsigned int rc, const char* const description)
 {
-    if (rc != XN_STATUS_OK)
+    if(rc != XN_STATUS_OK)
     {
         put_flog(LOG_ERROR, "%s failed: %s", description, xnGetStatusString(rc));
         return -1;
     }
+
+    return 0;
 }
 
 SkeletonSensor::SkeletonSensor()
@@ -112,7 +114,7 @@ void SkeletonSensor::waitForDeviceUpdateOnUser()
     context_.WaitOneUpdateAll(userG_);
 }
 
-bool SkeletonSensor::updateTrackedUsers()
+void SkeletonSensor::updateTrackedUsers()
 {
     XnUserID users[64];
     XnUInt16 nUsers = userG_.GetNumberOfUsers();
@@ -228,8 +230,7 @@ void SkeletonSensor::setPointModeToReal()
 
 int SkeletonSensor::setCalibrationPoseCallbacks()
 {
-    XnCallbackHandle hUserCallbacks, hCalibrationStart, hCalibrationComplete, hPoseDetected;
-    XnStatus rc = XN_STATUS_OK;
+    XnCallbackHandle hUserCallbacks, hCalibrationStart, hCalibrationComplete;
 
     userG_.RegisterUserCallbacks(newUserCallback, lostUserCallback, this, hUserCallbacks);
     userG_.GetSkeletonCap().RegisterToCalibrationStart(calibrationStartCallback, this, hCalibrationStart);

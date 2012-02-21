@@ -119,7 +119,7 @@ int main(int argc, char * argv[])
     }
 #endif
 
-# if ENABLE_SKELETON_SUPPORT
+#if ENABLE_SKELETON_SUPPORT
     if(g_mpiRank == 0)
     {
         g_skeletonThread = new SkeletonThread();

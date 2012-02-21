@@ -256,6 +256,8 @@ int SkeletonState::update(Skeleton skeleton)
             focusInteraction_ = true;
         }
     }
+
+    return 0;
 }
 
 void SkeletonState::render()
