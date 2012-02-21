@@ -51,7 +51,7 @@ NetworkListenerThread::NetworkListenerThread(int socketDescriptor)
     qRegisterMetaType<MessageHeader>("MessageHeader");
 
     // connect signals
-    connect(this, SIGNAL(updatedPixelStreamSource()), g_displayGroupManager.get(), SLOT(sendPixelStreams()), Qt::QueuedConnection);
+    connect(this, SIGNAL(updatedPixelStreamSource()), g_displayGroupManager.get(), SLOT(sendPixelStreams()), Qt::BlockingQueuedConnection);
 }
 
 void NetworkListenerThread::run()
