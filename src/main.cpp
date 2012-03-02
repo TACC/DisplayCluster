@@ -52,6 +52,8 @@
 
 #if ENABLE_SKELETON_SUPPORT
     #include "SkeletonThread.h"
+
+    SkeletonThread * g_skeletonThread = NULL;
 #endif
 
 std::string g_displayClusterDir;
@@ -100,8 +102,6 @@ int main(int argc, char * argv[])
     // calibrate timestamp offset between rank 0 and rank 1 clocks
     g_displayGroupManager->calibrateTimestampOffset();
 
-    g_mainWindow = new MainWindow();
-
 #if ENABLE_TUIO_TOUCH_LISTENER
     if(g_mpiRank == 0)
     {
@@ -121,8 +121,8 @@ int main(int argc, char * argv[])
 #if ENABLE_SKELETON_SUPPORT
     if(g_mpiRank == 0)
     {
-        SkeletonThread * skeletonThread = new SkeletonThread();
-        skeletonThread->start();
+        g_skeletonThread = new SkeletonThread();
+        g_skeletonThread->start();
     }
 #endif
 
@@ -130,6 +130,8 @@ int main(int argc, char * argv[])
     {
         g_networkListener = new NetworkListener();
     }
+
+    g_mainWindow = new MainWindow();
 
     // enter Qt event loop
     g_app->exec();

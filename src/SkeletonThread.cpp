@@ -83,9 +83,24 @@ void SkeletonThread::run()
 
     // setup timer to repeatedly update
     connect(&timer_, SIGNAL(timeout()), this, SLOT(updateSkeletons()));
-    timer_.start(SKELETON_TIMER_INTERVAL);
+
+    startTimer();
 
     exec();
+}
+
+void SkeletonThread::startTimer()
+{
+    put_flog(LOG_DEBUG, "");
+
+    timer_.start(SKELETON_TIMER_INTERVAL);
+}
+
+void SkeletonThread::stopTimer()
+{
+    put_flog(LOG_DEBUG, "");
+
+    timer_.stop();
 }
 
 void SkeletonThread::updateSkeletons()

@@ -36,7 +36,6 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "config.h"
 #include "MainWindow.h"
 #include "main.h"
 #include "Content.h"
@@ -47,6 +46,10 @@
 
 #if ENABLE_PYTHON_SUPPORT
     #include "PythonConsole.h"
+#endif
+
+#if ENABLE_SKELETON_SUPPORT
+    #include "SkeletonThread.h"
 #endif
 
 MainWindow::MainWindow()
@@ -159,6 +162,16 @@ MainWindow::MainWindow()
         connect(showZoomContextAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowZoomContext(bool)));
 
 #if ENABLE_SKELETON_SUPPORT
+        // enable skeleton tracking action
+        QAction * enableSkeletonTrackingAction = new QAction("Enable Skeleton Tracking", this);
+        enableSkeletonTrackingAction->setStatusTip("Enable skeleton tracking");
+        enableSkeletonTrackingAction->setCheckable(true);
+        enableSkeletonTrackingAction->setChecked(true); // timer is started by default
+        connect(enableSkeletonTrackingAction, SIGNAL(toggled(bool)), this, SLOT(setEnableSkeletonTracking(bool)));
+
+        connect(this, SIGNAL(enableSkeletonTracking()), g_skeletonThread, SLOT(startTimer()));
+        connect(this, SIGNAL(disableSkeletonTracking()), g_skeletonThread, SLOT(stopTimer()));
+
         // show skeletons action
         QAction * showSkeletonsAction = new QAction("Show Skeletons", this);
         showSkeletonsAction->setStatusTip("Show skeletons");
@@ -186,6 +199,7 @@ MainWindow::MainWindow()
 #endif
 
 #if ENABLE_SKELETON_SUPPORT
+        skeletonMenu->addAction(enableSkeletonTrackingAction);
         skeletonMenu->addAction(showSkeletonsAction);
 #endif
 
@@ -446,6 +460,20 @@ void MainWindow::constrainAspectRatio(bool set)
         g_displayGroupManager->sendDisplayGroup();
     }
 }
+
+#if ENABLE_SKELETON_SUPPORT
+void MainWindow::setEnableSkeletonTracking(bool enable)
+{
+    if(enable == true)
+    {
+        emit(enableSkeletonTracking());
+    }
+    else
+    {
+        emit(disableSkeletonTracking());
+    }
+}
+#endif
 
 void MainWindow::updateGLWindows()
 {

@@ -42,6 +42,7 @@
 // increment this whenever when serialized state information changes
 #define CONTENTS_FILE_VERSION_NUMBER 1
 
+#include "config.h"
 #include "GLWindow.h"
 #include <QtGui>
 #include <QGLWidget>
@@ -69,11 +70,20 @@ class MainWindow : public QMainWindow {
         void computeImagePyramid();
         void constrainAspectRatio(bool set);
 
+#if ENABLE_SKELETON_SUPPORT
+        void setEnableSkeletonTracking(bool enable);
+#endif
+
         void updateGLWindows();
 
     signals:
 
         void updateGLWindowsFinished();
+
+#if ENABLE_SKELETON_SUPPORT
+        void enableSkeletonTracking();
+        void disableSkeletonTracking();
+#endif
 
     private:
 
