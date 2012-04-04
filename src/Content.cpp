@@ -188,6 +188,12 @@ boost::shared_ptr<Content> Content::getContent(std::string uri)
             c = temp;
         }
 
+        // set the size if valid
+        if(size.isValid() == true)
+        {
+            c->setDimensions(size.width(), size.height());
+        }
+
         return c;
     }
     // see if this is a movie
