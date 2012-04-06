@@ -45,13 +45,14 @@
 // define this to show borders around image tiles
 #undef DYNAMIC_TEXTURE_SHOW_BORDER
 
+#include "FactoryObject.h"
 #include <QGLWidget>
 #include <QtConcurrentRun>
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 
-class DynamicTexture : public boost::enable_shared_from_this<DynamicTexture> {
+class DynamicTexture : public boost::enable_shared_from_this<DynamicTexture>, public FactoryObject {
 
     public:
 

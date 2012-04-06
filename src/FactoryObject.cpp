@@ -36,34 +36,22 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef TEXTURE_H
-#define TEXTURE_H
-
 #include "FactoryObject.h"
-#include <QGLWidget>
+#include "main.h"
+#include "log.h"
 
-class Texture : public FactoryObject {
+FactoryObject::~FactoryObject()
+{
+    put_flog(LOG_DEBUG, "");
+}
 
-    public:
+long FactoryObject::getRenderedFrameCount()
+{
+    return renderedFrameCount_;
+}
 
-        Texture(std::string uri);
-        ~Texture();
 
-        void getDimensions(int &width, int &height);
-        void render(float tX, float tY, float tW, float tH);
-
-    private:
-
-        // image location
-        std::string uri_;
-
-        // original image dimensions
-        int imageWidth_;
-        int imageHeight_;
-
-        // texture information
-        bool textureBound_;
-        GLuint textureId_;
-};
-
-#endif
+void FactoryObject::updateRenderedFrameCount()
+{
+    renderedFrameCount_ = g_frameCount;
+}

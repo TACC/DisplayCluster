@@ -509,6 +509,15 @@ void MainWindow::updateGLWindows()
     // advance all contents
     g_displayGroupManager->advanceContents();
 
+    // clear old factory objects
+    if(glWindows_.size() > 0)
+    {
+        glWindows_[0]->getTextureFactory().clearStaleObjects();
+        glWindows_[0]->getDynamicTextureFactory().clearStaleObjects();
+        glWindows_[0]->getMovieFactory().clearStaleObjects();
+        glWindows_[0]->getPixelStreamFactory().clearStaleObjects();
+    }
+
     // increment frame counter
     g_frameCount = g_frameCount + 1;
 

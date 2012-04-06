@@ -144,6 +144,7 @@ if(BUILD_DISPLAYCLUSTER)
         src/DisplayGroupListWidgetProxy.cpp
         src/DynamicTexture.cpp
         src/DynamicTextureContent.cpp
+        src/FactoryObject.cpp
         src/GLWindow.cpp
         src/log.cpp
         src/main.cpp

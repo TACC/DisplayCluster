@@ -297,6 +297,11 @@ void DynamicTexture::getDimensions(int &width, int &height)
 
 void DynamicTexture::render(float tX, float tY, float tW, float tH, bool computeOnDemand, bool considerChildren)
 {
+    if(depth_ == 0)
+    {
+        updateRenderedFrameCount();
+    }
+
     if(considerChildren == true && getProjectedPixelArea(true) > 0. && getProjectedPixelArea(false) > TEXTURE_SIZE*TEXTURE_SIZE && (getRoot()->imageWidth_ / pow(2,depth_) > TEXTURE_SIZE || getRoot()->imageHeight_ / pow(2,depth_) > TEXTURE_SIZE))
     {
         // mark this object as having rendered children in this frame

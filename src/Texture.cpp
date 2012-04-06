@@ -84,6 +84,8 @@ void Texture::getDimensions(int &width, int &height)
 
 void Texture::render(float tX, float tY, float tW, float tH)
 {
+    updateRenderedFrameCount();
+
     if(textureBound_ == true)
     {
         // draw the texture

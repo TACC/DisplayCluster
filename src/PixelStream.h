@@ -39,10 +39,11 @@
 #ifndef PIXEL_STREAM_H
 #define PIXEL_STREAM_H
 
+#include "FactoryObject.h"
 #include <QGLWidget>
 #include <QtConcurrentRun>
 
-class PixelStream {
+class PixelStream : public FactoryObject {
 
     public:
 

@@ -71,6 +71,8 @@ void PixelStream::getDimensions(int &width, int &height)
 
 void PixelStream::render(float tX, float tY, float tW, float tH)
 {
+    updateRenderedFrameCount();
+
     imageReadyMutex_.lock();
 
     if(imageReady_ == true)

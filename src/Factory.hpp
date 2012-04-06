@@ -44,6 +44,8 @@
 #include <boost/shared_ptr.hpp>
 #include <QtGui>
 
+extern long g_frameCount;
+
 template <class T>
 class Factory {
 
@@ -69,6 +71,25 @@ class Factory {
             QMutexLocker locker(&mapMutex_);
 
             return map_;
+        }
+
+        void clearStaleObjects()
+        {
+            QMutexLocker locker(&mapMutex_);
+
+            typename std::map<std::string, boost::shared_ptr<T> >::iterator it = map_.begin();
+
+            while(it != map_.end())
+            {
+                if(g_frameCount - it->second->getRenderedFrameCount() > 1)
+                {
+                    map_.erase(it++);  // note the post increment; increments the iterator but returns original value for erase
+                }
+                else
+                {
+                    it++;
+                }
+            }
         }
 
     private:

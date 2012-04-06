@@ -39,6 +39,7 @@
 #ifndef MOVIE_H
 #define MOVIE_H
 
+#include "FactoryObject.h"
 #include <QGLWidget>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
@@ -61,7 +62,7 @@ extern "C" {
     #include <libswscale/swscale.h>
 }
 
-class Movie {
+class Movie : public FactoryObject {
 
     public:
 
