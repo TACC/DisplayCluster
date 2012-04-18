@@ -85,24 +85,11 @@ std::vector<boost::shared_ptr<ContentWindowManager> > DisplayGroupInterface::get
     return contentWindowManagers_;
 }
 
-bool DisplayGroupInterface::hasContent(std::string uri)
+boost::shared_ptr<ContentWindowManager> DisplayGroupInterface::getContentWindowManager(std::string uri, CONTENT_TYPE contentType)
 {
     for(unsigned int i=0; i<contentWindowManagers_.size(); i++)
     {
-        if(contentWindowManagers_[i]->getContent()->getURI() == uri)
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-boost::shared_ptr<ContentWindowManager> DisplayGroupInterface::getContentWindowManager(std::string uri)
-{
-    for(unsigned int i=0; i<contentWindowManagers_.size(); i++)
-    {
-        if(contentWindowManagers_[i]->getContent()->getURI() == uri)
+        if(contentWindowManagers_[i]->getContent()->getURI() == uri && (contentType == CONTENT_TYPE_ANY || contentWindowManagers_[i]->getContent()->getType() == contentType))
         {
             return contentWindowManagers_[i];
         }

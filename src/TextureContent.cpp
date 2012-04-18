@@ -42,6 +42,11 @@
 
 BOOST_CLASS_EXPORT_GUID(TextureContent, "TextureContent")
 
+CONTENT_TYPE TextureContent::getType()
+{
+    return CONTENT_TYPE_TEXTURE;
+}
+
 void TextureContent::getFactoryObjectDimensions(int &width, int &height)
 {
     g_mainWindow->getGLWindow()->getTextureFactory().getObject(getURI())->getDimensions(width, height);

@@ -39,6 +39,7 @@
 #ifndef DISPLAY_GROUP_INTERFACE_H
 #define DISPLAY_GROUP_INTERFACE_H
 
+#include "Content.h"
 #include <QtGui>
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
@@ -57,8 +58,7 @@ class DisplayGroupInterface : public QObject {
         boost::shared_ptr<DisplayGroupManager> getDisplayGroupManager();
 
         std::vector<boost::shared_ptr<ContentWindowManager> > getContentWindowManagers();
-        bool hasContent(std::string uri);
-        boost::shared_ptr<ContentWindowManager> getContentWindowManager(std::string uri);
+        boost::shared_ptr<ContentWindowManager> getContentWindowManager(std::string uri, CONTENT_TYPE contentType=CONTENT_TYPE_ANY);
 
         // remove all current ContentWindowManagers and add the vector of provided ContentWindowManagers
         void setContentWindowManagers(std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers);

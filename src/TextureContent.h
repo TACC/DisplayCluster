@@ -48,6 +48,8 @@ class TextureContent : public Content {
     public:
         TextureContent(std::string uri = "") : Content(uri) { }
 
+        CONTENT_TYPE getType();
+
         void getFactoryObjectDimensions(int &width, int &height);
 
     private:

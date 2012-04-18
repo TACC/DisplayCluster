@@ -43,6 +43,11 @@
 
 BOOST_CLASS_EXPORT_GUID(MovieContent, "MovieContent")
 
+CONTENT_TYPE MovieContent::getType()
+{
+    return CONTENT_TYPE_MOVIE;
+}
+
 void MovieContent::getFactoryObjectDimensions(int &width, int &height)
 {
     g_mainWindow->getGLWindow()->getMovieFactory().getObject(getURI())->getDimensions(width, height);

@@ -663,7 +663,7 @@ void DisplayGroupManager::sendPixelStreams()
 
             // todo: this means as long as the pixel stream is updating, we'll have a window for it
             // closing a window therefore will not terminate the pixel stream
-            if(hasContent(uri) == false)
+            if(getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM) == NULL)
             {
                 put_flog(LOG_DEBUG, "adding pixel stream: %s", uri.c_str());
 
@@ -701,9 +701,11 @@ void DisplayGroupManager::sendPixelStreams()
 
         if(updated == true)
         {
-            if(hasContent(uri) == true)
+            boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
+
+            if(cwm != NULL)
             {
-                boost::shared_ptr<Content> c = getContentWindowManager(uri)->getContent();
+                boost::shared_ptr<Content> c = cwm->getContent();
 
                 c->setDimensions(pixelStreamWidth, pixelStreamHeight);
             }

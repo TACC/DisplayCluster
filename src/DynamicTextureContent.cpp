@@ -42,6 +42,11 @@
 
 BOOST_CLASS_EXPORT_GUID(DynamicTextureContent, "DynamicTextureContent")
 
+CONTENT_TYPE DynamicTextureContent::getType()
+{
+    return CONTENT_TYPE_DYNAMIC_TEXTURE;
+}
+
 void DynamicTextureContent::advance(boost::shared_ptr<ContentWindowManager> window)
 {
     // recall that advance() is called after rendering and before g_frameCount is incremented for the current frame

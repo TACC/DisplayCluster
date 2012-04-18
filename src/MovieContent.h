@@ -48,6 +48,8 @@ class MovieContent : public Content {
     public:
         MovieContent(std::string uri = "") : Content(uri) { }
 
+        CONTENT_TYPE getType();
+
         void getFactoryObjectDimensions(int &width, int &height);
 
     private:

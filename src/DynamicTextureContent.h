@@ -48,6 +48,8 @@ class DynamicTextureContent : public Content {
     public:
         DynamicTextureContent(std::string uri = "") : Content(uri) { }
 
+        CONTENT_TYPE getType();
+
         void getFactoryObjectDimensions(int &width, int &height);
 
     private:

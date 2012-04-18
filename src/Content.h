@@ -46,6 +46,8 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/assume_abstract.hpp>
 
+enum CONTENT_TYPE { CONTENT_TYPE_ANY, CONTENT_TYPE_DYNAMIC_TEXTURE, CONTENT_TYPE_MOVIE, CONTENT_TYPE_PIXEL_STREAM, CONTENT_TYPE_TEXTURE };
+
 class ContentWindowManager;
 
 class Content : public QObject {
@@ -56,6 +58,8 @@ class Content : public QObject {
         Content(std::string uri = "");
 
         std::string getURI();
+
+        virtual CONTENT_TYPE getType() = 0;
 
         void getDimensions(int &width, int &height);
         void setDimensions(int width, int height);

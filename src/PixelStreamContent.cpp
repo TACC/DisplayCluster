@@ -42,6 +42,11 @@
 
 BOOST_CLASS_EXPORT_GUID(PixelStreamContent, "PixelStreamContent")
 
+CONTENT_TYPE PixelStreamContent::getType()
+{
+    return CONTENT_TYPE_PIXEL_STREAM;
+}
+
 void PixelStreamContent::getFactoryObjectDimensions(int &width, int &height)
 {
     g_mainWindow->getGLWindow()->getPixelStreamFactory().getObject(getURI())->getDimensions(width, height);

@@ -48,6 +48,8 @@ class PixelStreamContent : public Content {
     public:
         PixelStreamContent(std::string uri = "") : Content(uri) { }
 
+        CONTENT_TYPE getType();
+
         void getFactoryObjectDimensions(int &width, int &height);
 
     private:
