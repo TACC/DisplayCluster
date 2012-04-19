@@ -99,6 +99,11 @@ Factory<PixelStream> & GLWindow::getPixelStreamFactory()
     return pixelStreamFactory_;
 }
 
+Factory<ParallelPixelStream> & GLWindow::getParallelPixelStreamFactory()
+{
+    return parallelPixelStreamFactory_;
+}
+
 void GLWindow::initializeGL()
 {
     // enable depth testing; disable lighting

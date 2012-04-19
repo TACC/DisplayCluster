@@ -36,23 +36,33 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MESSAGE_HEADER_H
-#define MESSAGE_HEADER_H
+#ifndef PARALLEL_PIXEL_STREAM_CONTENT_H
+#define PARALLEL_PIXEL_STREAM_CONTENT_H
 
-#ifdef _WIN32
-    typedef __int32 int32_t;
-#else
-    #include <stdint.h>
-#endif
+#include "Content.h"
+#include <boost/serialization/base_object.hpp>
+#include <boost/serialization/export.hpp>
 
-enum MESSAGE_TYPE { MESSAGE_TYPE_CONTENTS, MESSAGE_TYPE_CONTENTS_DIMENSIONS, MESSAGE_TYPE_PIXELSTREAM, MESSAGE_TYPE_PIXELSTREAM_DIMENSIONS_CHANGED, MESSAGE_TYPE_PARALLEL_PIXELSTREAM, MESSAGE_TYPE_FRAME_CLOCK, MESSAGE_TYPE_QUIT };
+class ParallelPixelStreamContent : public Content {
 
-#define MESSAGE_HEADER_URI_LENGTH 64
+    public:
+        ParallelPixelStreamContent(std::string uri = "") : Content(uri) { }
 
-struct MessageHeader {
-    int32_t size;
-    MESSAGE_TYPE type;
-    char uri[MESSAGE_HEADER_URI_LENGTH]; // optional URI related to message. needs to be a fixed size so sizeof(MessageHeader) is constant
+        CONTENT_TYPE getType();
+
+        void getFactoryObjectDimensions(int &width, int &height);
+
+    private:
+        friend class boost::serialization::access;
+
+        template<class Archive>
+        void serialize(Archive & ar, const unsigned int)
+        {
+            // serialize base class information
+            ar & boost::serialization::base_object<Content>(*this);
+        }
+
+        void renderFactoryObject(float tX, float tY, float tW, float tH);
 };
 
 #endif

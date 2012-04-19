@@ -154,6 +154,8 @@ if(BUILD_DISPLAYCLUSTER)
         src/NetworkListener.cpp
         src/NetworkListenerThread.cpp
         src/Options.cpp
+        src/ParallelPixelStream.cpp
+        src/ParallelPixelStreamContent.cpp
         src/PixelStream.cpp
         src/PixelStreamContent.cpp
         src/PixelStreamSource.cpp

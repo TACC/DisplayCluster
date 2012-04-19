@@ -36,23 +36,23 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MESSAGE_HEADER_H
-#define MESSAGE_HEADER_H
+#include "ParallelPixelStreamContent.h"
+#include "main.h"
+#include "ParallelPixelStream.h"
 
-#ifdef _WIN32
-    typedef __int32 int32_t;
-#else
-    #include <stdint.h>
-#endif
+BOOST_CLASS_EXPORT_GUID(ParallelPixelStreamContent, "ParallelPixelStreamContent")
 
-enum MESSAGE_TYPE { MESSAGE_TYPE_CONTENTS, MESSAGE_TYPE_CONTENTS_DIMENSIONS, MESSAGE_TYPE_PIXELSTREAM, MESSAGE_TYPE_PIXELSTREAM_DIMENSIONS_CHANGED, MESSAGE_TYPE_PARALLEL_PIXELSTREAM, MESSAGE_TYPE_FRAME_CLOCK, MESSAGE_TYPE_QUIT };
+CONTENT_TYPE ParallelPixelStreamContent::getType()
+{
+    return CONTENT_TYPE_PARALLEL_PIXEL_STREAM;
+}
 
-#define MESSAGE_HEADER_URI_LENGTH 64
+void ParallelPixelStreamContent::getFactoryObjectDimensions(int &width, int &height)
+{
+    g_mainWindow->getGLWindow()->getParallelPixelStreamFactory().getObject(getURI())->getDimensions(width, height);
+}
 
-struct MessageHeader {
-    int32_t size;
-    MESSAGE_TYPE type;
-    char uri[MESSAGE_HEADER_URI_LENGTH]; // optional URI related to message. needs to be a fixed size so sizeof(MessageHeader) is constant
-};
-
-#endif
+void ParallelPixelStreamContent::renderFactoryObject(float tX, float tY, float tW, float tH)
+{
+    g_mainWindow->getGLWindow()->getParallelPixelStreamFactory().getObject(getURI())->render(tX, tY, tW, tH);
+}

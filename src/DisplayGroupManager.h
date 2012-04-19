@@ -94,6 +94,7 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         void sendDisplayGroup();
         void sendContentsDimensionsRequest();
         void sendPixelStreams();
+        void sendParallelPixelStreams();
         void sendFrameClockUpdate();
         void receiveFrameClockUpdate();
         void sendQuit();
@@ -139,6 +140,7 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         void receiveDisplayGroup(MessageHeader messageHeader);
         void receiveContentsDimensionsRequest(MessageHeader messageHeader);
         void receivePixelStreams(MessageHeader messageHeader);
+        void receiveParallelPixelStreams(MessageHeader messageHeader);
 };
 
 #endif

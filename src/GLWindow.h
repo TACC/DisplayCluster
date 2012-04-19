@@ -44,6 +44,7 @@
 #include "DynamicTexture.h"
 #include "Movie.h"
 #include "PixelStream.h"
+#include "ParallelPixelStream.h"
 #include <QGLWidget>
 
 class GLWindow : public QGLWidget
@@ -59,6 +60,7 @@ class GLWindow : public QGLWidget
         Factory<DynamicTexture> & getDynamicTextureFactory();
         Factory<Movie> & getMovieFactory();
         Factory<PixelStream> & getPixelStreamFactory();
+        Factory<ParallelPixelStream> & getParallelPixelStreamFactory();
 
         void initializeGL();
         void paintGL();
@@ -84,6 +86,7 @@ class GLWindow : public QGLWidget
         Factory<DynamicTexture> dynamicTextureFactory_;
         Factory<Movie> movieFactory_;
         Factory<PixelStream> pixelStreamFactory_;
+        Factory<ParallelPixelStream> parallelPixelStreamFactory_;
 
         void renderTestPattern();
 };

@@ -40,6 +40,7 @@
 #include "main.h"
 #include "log.h"
 #include "PixelStreamSource.h"
+#include "ParallelPixelStream.h"
 #include <stdint.h>
 
 NetworkListenerThread::NetworkListenerThread(int socketDescriptor)
@@ -52,6 +53,7 @@ NetworkListenerThread::NetworkListenerThread(int socketDescriptor)
 
     // connect signals
     connect(this, SIGNAL(updatedPixelStreamSource()), g_displayGroupManager.get(), SLOT(sendPixelStreams()), Qt::BlockingQueuedConnection);
+    connect(this, SIGNAL(updatedParallelPixelStreamSource()), g_displayGroupManager.get(), SLOT(sendParallelPixelStreams()), Qt::BlockingQueuedConnection);
 }
 
 void NetworkListenerThread::run()
@@ -133,5 +135,26 @@ void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArra
         g_pixelStreamSourceFactory.getObject(uri)->setDimensions(dimensions[0], dimensions[1]);
 
         emit(updatedPixelStreamSource());
+    }
+    else if(messageHeader.type == MESSAGE_TYPE_PARALLEL_PIXELSTREAM)
+    {
+        // update parallel pixel stream source
+        // keep this in this thread so we can have parallel pixel stream source updating and sendParallelPixelStreams() happening in parallel
+        // sendParallelPixelStreams() slot executions may still stack up, but they'll each grab only the latest parallel pixel stream data
+        std::string uri(messageHeader.uri);
+
+        ParallelPixelStreamSegment segment;
+
+        // read parameters
+        ParallelPixelStreamSegmentParameters * parameters = (ParallelPixelStreamSegmentParameters *)(byteArray.data());
+        segment.parameters = *parameters;
+
+        // read image data
+        QByteArray imageData = byteArray.right(byteArray.size() - sizeof(ParallelPixelStreamSegmentParameters));
+        segment.imageData = imageData;
+
+        g_parallelPixelStreamSourceFactory.getObject(uri)->insertSegment(segment);
+
+        emit(updatedParallelPixelStreamSource());
     }
 }

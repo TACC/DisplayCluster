@@ -51,7 +51,7 @@ class PixelStream : public FactoryObject {
         ~PixelStream();
 
         void getDimensions(int &width, int &height);
-        void render(float tX, float tY, float tW, float tH);
+        bool render(float tX, float tY, float tW, float tH); // return true on successful render; false if no texture available
         void setImageData(QByteArray imageData);
         void imageReady(QImage image);
 

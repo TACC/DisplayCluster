@@ -69,7 +69,7 @@ void PixelStream::getDimensions(int &width, int &height)
     height = textureHeight_;
 }
 
-void PixelStream::render(float tX, float tY, float tW, float tH)
+bool PixelStream::render(float tX, float tY, float tW, float tH)
 {
     updateRenderedFrameCount();
 
@@ -85,7 +85,7 @@ void PixelStream::render(float tX, float tY, float tW, float tH)
 
     if(textureBound_ != true)
     {
-        return;
+        return false;
     }
 
     // draw the texture
@@ -115,6 +115,8 @@ void PixelStream::render(float tX, float tY, float tW, float tH)
     glEnd();
 
     glPopAttrib();
+
+    return true;
 }
 
 void PixelStream::setImageData(QByteArray imageData)
