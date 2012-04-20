@@ -43,9 +43,16 @@
 
 #define SHARE_DESKTOP_UPDATE_DELAY 1
 
+#define FRAME_RATE_AVERAGE_NUM_FRAMES 10
+
+#define JPEG_QUALITY 75
+
+#include "../../../src/ParallelPixelStream.h"
 #include <QtGui>
 #include <QtNetwork/QTcpSocket>
 #include <string>
+
+ParallelPixelStreamSegment computeSegmentJpeg(const ParallelPixelStreamSegment & segment);
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -57,10 +64,13 @@ class MainWindow : public QMainWindow {
         void getCoordinates(int &x, int &y, int &width, int &height);
         void setCoordinates(int x, int y, int width, int height);
 
+        QImage getImage();
+
     public slots:
 
         void shareDesktop(bool set);
         void showDesktopSelectionWindow(bool set);
+        void setParallelStreaming(bool set);
         void shareDesktopUpdate();
         void updateCoordinates();
 
@@ -75,6 +85,7 @@ class MainWindow : public QMainWindow {
         QSpinBox widthSpinBox_;
         QSpinBox heightSpinBox_;
         QSpinBox frameRateSpinBox_;
+        QLabel frameRateLabel_;
 
         QAction * shareDesktopAction_;
         QAction * showDesktopSelectionWindowAction_;
@@ -86,11 +97,26 @@ class MainWindow : public QMainWindow {
         int width_;
         int height_;
 
+        bool parallelStreaming_;
+
+        // full image
+        QImage image_;
+
+        // for regular pixel streaming
         QByteArray previousImageData_;
+
+        // for parallel pixel streaming
+        std::vector<ParallelPixelStreamSegment> segments_;
 
         QTimer shareDesktopUpdateTimer_;
 
+        // used for frame rate calculations
+        std::vector<QTime> frameSentTimes_;
+
         QTcpSocket tcpSocket_;
+
+        bool serialStream();
+        bool parallelStream();
 };
 
 #endif
