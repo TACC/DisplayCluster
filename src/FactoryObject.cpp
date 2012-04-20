@@ -38,12 +38,6 @@
 
 #include "FactoryObject.h"
 #include "main.h"
-#include "log.h"
-
-FactoryObject::~FactoryObject()
-{
-    put_flog(LOG_DEBUG, "");
-}
 
 long FactoryObject::getRenderedFrameCount()
 {

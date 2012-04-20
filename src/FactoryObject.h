@@ -43,8 +43,6 @@ class FactoryObject {
 
     public:
 
-        ~FactoryObject();
-
         long getRenderedFrameCount();
 
     protected:
