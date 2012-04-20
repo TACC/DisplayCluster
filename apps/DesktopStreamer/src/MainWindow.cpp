@@ -62,10 +62,10 @@ MainWindow::MainWindow()
     setCentralWidget(widget);
 
     // connect widget signals / slots
-    connect(&xSpinBox_, SIGNAL(valueChanged(int)), this, SLOT(updateCoordinates()));
-    connect(&ySpinBox_, SIGNAL(valueChanged(int)), this, SLOT(updateCoordinates()));
-    connect(&widthSpinBox_, SIGNAL(valueChanged(int)), this, SLOT(updateCoordinates()));
-    connect(&heightSpinBox_, SIGNAL(valueChanged(int)), this, SLOT(updateCoordinates()));
+    connect(&xSpinBox_, SIGNAL(editingFinished()), this, SLOT(updateCoordinates()));
+    connect(&ySpinBox_, SIGNAL(editingFinished()), this, SLOT(updateCoordinates()));
+    connect(&widthSpinBox_, SIGNAL(editingFinished()), this, SLOT(updateCoordinates()));
+    connect(&heightSpinBox_, SIGNAL(editingFinished()), this, SLOT(updateCoordinates()));
 
     // constrain valid range and default to a quarter of the desktop, centered
     QRect desktopRect = QApplication::desktop()->screenGeometry();
@@ -79,6 +79,9 @@ MainWindow::MainWindow()
     ySpinBox_.setValue(desktopRect.height() / 4);
     widthSpinBox_.setValue(desktopRect.width() / 2);
     heightSpinBox_.setValue(desktopRect.height() / 2);
+
+    // call updateCoordinates() to commit coordinates from the UI
+    updateCoordinates();
 
     // frame rate limiting
     frameRateSpinBox_.setRange(1, 60);
@@ -139,6 +142,9 @@ void MainWindow::setCoordinates(int x, int y, int width, int height)
     ySpinBox_.setValue(y);
     widthSpinBox_.setValue(width);
     heightSpinBox_.setValue(height);
+
+    // the spinboxes only update the UI; we must update the actual values too
+    updateCoordinates();
 }
 
 void MainWindow::shareDesktop(bool set)
