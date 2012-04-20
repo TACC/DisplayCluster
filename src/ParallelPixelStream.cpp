@@ -38,6 +38,7 @@
 
 #include "ParallelPixelStream.h"
 #include "main.h"
+#include "ContentWindowManager.h"
 
 ParallelPixelStream::ParallelPixelStream(std::string uri)
 {
@@ -120,6 +121,41 @@ void ParallelPixelStream::insertSegment(ParallelPixelStreamSegment segment)
     // URI doesn't matter here...
     if(g_mpiRank != 0)
     {
+        // make sure segment is visible; otherwise ignore it and return
+        boost::shared_ptr<ContentWindowManager> cwm = g_displayGroupManager->getContentWindowManager(uri_, CONTENT_TYPE_PARALLEL_PIXEL_STREAM);
+
+        if(cwm != NULL)
+        {
+            double x, y, w, h;
+            cwm->getCoordinates(x, y, w, h);
+
+            // coordinates of segment in tiled display space
+            double segmentX = x + (double)segment.parameters.x / (double) segment.parameters.totalWidth * w;
+            double segmentY = y + (double)segment.parameters.y / (double) segment.parameters.totalHeight * h;
+            double segmentW = (double)segment.parameters.width / (double) segment.parameters.totalWidth * w;
+            double segmentH = (double)segment.parameters.height / (double) segment.parameters.totalHeight * h;
+
+            bool segmentVisible = false;
+
+            std::vector<boost::shared_ptr<GLWindow> > glWindows = g_mainWindow->getGLWindows();
+
+            for(unsigned int i=0; i<glWindows.size(); i++)
+            {
+                if(glWindows[i]->isScreenRectangleVisible(segmentX, segmentY, segmentW, segmentH) == true)
+                {
+                    segmentVisible = true;
+                    break;
+                }
+            }
+
+            if(segmentVisible == false)
+            {
+                // drop the segment
+                return;
+            }
+        }
+
+        // segment must be visible... go ahead
         boost::shared_ptr<PixelStream> ps(new PixelStream("ParallelPixelStreamSegment"));
         ps->setImageData(segment.imageData);
 
