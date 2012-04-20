@@ -40,10 +40,11 @@
 #define PIXEL_STREAM_H
 
 #include "FactoryObject.h"
+#include <boost/enable_shared_from_this.hpp>
 #include <QGLWidget>
 #include <QtConcurrentRun>
 
-class PixelStream : public FactoryObject {
+class PixelStream : public boost::enable_shared_from_this<PixelStream>, public FactoryObject {
 
     public:
 
@@ -77,6 +78,6 @@ class PixelStream : public FactoryObject {
         void setImage(QImage & image);
 };
 
-extern void loadImageDataThread(PixelStream * pixelStream, QByteArray imageData);
+extern void loadImageDataThread(boost::shared_ptr<PixelStream> pixelStream, QByteArray imageData);
 
 #endif

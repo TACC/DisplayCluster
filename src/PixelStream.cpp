@@ -127,7 +127,7 @@ void PixelStream::setImageData(QByteArray imageData)
         return;
     }
 
-    loadImageDataThread_ = QtConcurrent::run(loadImageDataThread, this, imageData);
+    loadImageDataThread_ = QtConcurrent::run(loadImageDataThread, shared_from_this(), imageData);
 }
 
 void PixelStream::imageReady(QImage image)
@@ -174,7 +174,7 @@ void PixelStream::setImage(QImage & image)
     }
 }
 
-void loadImageDataThread(PixelStream * pixelStream, QByteArray imageData)
+void loadImageDataThread(boost::shared_ptr<PixelStream> pixelStream, QByteArray imageData)
 {
     QImage image;
     image.loadFromData(imageData, "JPEG");
