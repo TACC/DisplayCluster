@@ -177,7 +177,7 @@ void PixelStream::setImage(QImage & image)
 void loadImageDataThread(PixelStream * pixelStream, QByteArray imageData)
 {
     QImage image;
-    image.loadFromData((const uchar *)imageData.data(), imageData.size(), "JPEG");
+    image.loadFromData(imageData, "JPEG");
 
     pixelStream->imageReady(image);
 }
