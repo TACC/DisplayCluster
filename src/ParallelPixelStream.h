@@ -39,6 +39,7 @@
 #ifndef PARALLEL_PIXEL_STREAM_H
 #define PARALLEL_PIXEL_STREAM_H
 
+#include "ParallelPixelStreamSegmentParameters.h"
 #include "FactoryObject.h"
 #include "PixelStream.h"
 #include "Factory.hpp"
@@ -52,42 +53,25 @@
 #include <map>
 #include <vector>
 
-#ifdef _WIN32
-    typedef __int32 int32_t;
-#else
-    #include <stdint.h>
-#endif
+// define serialize method separately from ParallelPixelStreamSegmentParameters definition
+// so other (external) code can more easily include that header
+namespace boost {
+namespace serialization {
 
-struct ParallelPixelStreamSegmentParameters {
+template<class Archive>
+void serialize(Archive & ar, ParallelPixelStreamSegmentParameters & p, const unsigned int)
+{
+    ar & p.sourceIndex;
+    ar & p.x;
+    ar & p.y;
+    ar & p.width;
+    ar & p.height;
+    ar & p.totalWidth;
+    ar & p.totalHeight;
+}
 
-    // source identifier
-    int32_t sourceIndex;
-
-    // coordinates of segment (pixel coordinates)
-    int32_t x;
-    int32_t y;
-    int32_t width;
-    int32_t height;
-
-    // coordinates of total image
-    int32_t totalWidth;
-    int32_t totalHeight;
-
-    private:
-        friend class boost::serialization::access;
-
-        template<class Archive>
-        void serialize(Archive & ar, const unsigned int)
-        {
-            ar & sourceIndex;
-            ar & x;
-            ar & y;
-            ar & width;
-            ar & height;
-            ar & totalWidth;
-            ar & totalHeight;
-        }
-};
+} // namespace serialization
+} // namespace boost
 
 struct ParallelPixelStreamSegment {
 
