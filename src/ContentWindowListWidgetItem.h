@@ -36,38 +36,20 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DISPLAY_GROUP_LIST_WIDGET_PROXY_H
-#define DISPLAY_GROUP_LIST_WIDGET_PROXY_H
+#ifndef CONTENT_WINDOW_LIST_WIDGET_ITEM_H
+#define CONTENT_WINDOW_LIST_WIDGET_ITEM_H
 
-#include "DisplayGroupInterface.h"
+#include "ContentWindowInterface.h"
 #include <QtGui>
+#include <boost/shared_ptr.hpp>
 
-class DisplayGroupListWidgetProxy : public DisplayGroupInterface {
-    Q_OBJECT
+class ContentWindowManager;
+
+class ContentWindowListWidgetItem : public QListWidgetItem, public ContentWindowInterface {
 
     public:
 
-        DisplayGroupListWidgetProxy(boost::shared_ptr<DisplayGroupManager> displayGroupManager);
-        ~DisplayGroupListWidgetProxy();
-
-        QListWidget * getListWidget();
-
-        // re-implemented DisplayGroupInterface slots
-        void addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
-        void removeContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
-        void moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
-
-    private slots:
-
-        void moveListWidgetItemToFront(QListWidgetItem * item);
-
-    private:
-
-        // we make this a member since we can't have multiple inheritance of QObject and still use signals/slots
-        // see the "Diamond problem"
-        QListWidget * listWidget_;
-
-        void refreshListWidget();
+        ContentWindowListWidgetItem(boost::shared_ptr<ContentWindowManager> contentWindowManager);
 };
 
 #endif

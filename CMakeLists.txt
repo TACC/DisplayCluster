@@ -135,6 +135,7 @@ if(BUILD_DISPLAYCLUSTER)
         src/ContentWindowManager.cpp
         src/ContentWindowInterface.cpp
         src/ContentWindowGraphicsItem.cpp
+        src/ContentWindowListWidgetItem.cpp
         src/Marker.cpp
         src/DisplayGroupManager.cpp
         src/DisplayGroupInterface.cpp
@@ -169,6 +170,7 @@ if(BUILD_DISPLAYCLUSTER)
         src/DisplayGroupManager.h
         src/DisplayGroupInterface.h
         src/DisplayGroupGraphicsViewProxy.h
+        src/DisplayGroupListWidgetProxy.h
         src/MainWindow.h
         src/Marker.h
         src/NetworkListener.h

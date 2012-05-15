@@ -36,85 +36,10 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "DisplayGroupListWidgetProxy.h"
-#include "ContentWindowManager.h"
-#include "Content.h"
 #include "ContentWindowListWidgetItem.h"
+#include "ContentWindowManager.h"
 
-DisplayGroupListWidgetProxy::DisplayGroupListWidgetProxy(boost::shared_ptr<DisplayGroupManager> displayGroupManager) : DisplayGroupInterface(displayGroupManager)
+ContentWindowListWidgetItem::ContentWindowListWidgetItem(boost::shared_ptr<ContentWindowManager> contentWindowManager) : ContentWindowInterface(contentWindowManager)
 {
-    // create actual list widget
-    listWidget_ = new QListWidget();
 
-    connect(listWidget_, SIGNAL(itemClicked(QListWidgetItem * )), this, SLOT(moveListWidgetItemToFront(QListWidgetItem *)));
-}
-
-DisplayGroupListWidgetProxy::~DisplayGroupListWidgetProxy()
-{
-    delete listWidget_;
-}
-
-QListWidget * DisplayGroupListWidgetProxy::getListWidget()
-{
-    return listWidget_;
-}
-
-void DisplayGroupListWidgetProxy::addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
-{
-    DisplayGroupInterface::addContentWindowManager(contentWindowManager, source);
-
-    if(source != this)
-    {
-        // for now, just clear and refresh the entire list, since this is just a read-only interface
-        // later this could be modeled after DisplayGroupGraphicsViewProxy if we want to expand the interface
-        refreshListWidget();
-    }
-}
-
-void DisplayGroupListWidgetProxy::removeContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
-{
-    DisplayGroupInterface::removeContentWindowManager(contentWindowManager, source);
-
-    if(source != this)
-    {
-        refreshListWidget();
-    }
-}
-
-void DisplayGroupListWidgetProxy::moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
-{
-    DisplayGroupInterface::moveContentWindowManagerToFront(contentWindowManager, source);
-
-    if(source != this)
-    {
-        refreshListWidget();
-    }
-}
-
-void DisplayGroupListWidgetProxy::moveListWidgetItemToFront(QListWidgetItem * item)
-{
-    ContentWindowListWidgetItem * cwlwi = dynamic_cast<ContentWindowListWidgetItem *>(listWidget_->takeItem(listWidget_->currentRow()));
-
-    if(cwlwi != NULL)
-    {
-        cwlwi->moveToFront();
-
-        // just move the item to the top of the list, rather than refresh the entire list...
-        listWidget_->insertItem(0, cwlwi);
-    }
-}
-
-void DisplayGroupListWidgetProxy::refreshListWidget()
-{
-    // clear list
-    listWidget_->clear();
-
-    for(unsigned int i=0; i<contentWindowManagers_.size(); i++)
-    {
-        // add to list view
-        ContentWindowListWidgetItem * newItem = new ContentWindowListWidgetItem(contentWindowManagers_[i]);
-        newItem->setText(contentWindowManagers_[i]->getContent()->getURI().c_str());
-
-        listWidget_->insertItem(0, newItem);
-    }
 }
