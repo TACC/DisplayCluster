@@ -43,6 +43,7 @@
 #include <boost/enable_shared_from_this.hpp>
 #include <QGLWidget>
 #include <QtConcurrentRun>
+#include <turbojpeg.h>
 
 class PixelStream : public boost::enable_shared_from_this<PixelStream>, public FactoryObject {
 
@@ -53,7 +54,10 @@ class PixelStream : public boost::enable_shared_from_this<PixelStream>, public F
 
         void getDimensions(int &width, int &height);
         bool render(float tX, float tY, float tW, float tH); // return true on successful render; false if no texture available
-        void setImageData(QByteArray imageData);
+        bool setImageData(QByteArray imageData); // returns true if load image thread was spawned; false if frame was dropped
+
+        // for use by loadImageDataThread()
+        tjhandle getHandle();
         void imageReady(QImage image);
 
     private:
@@ -69,6 +73,9 @@ class PixelStream : public boost::enable_shared_from_this<PixelStream>, public F
 
         // thread for generating images from image data
         QFuture<void> loadImageDataThread_;
+
+        // libjpeg-turbo handle for decompression
+        tjhandle handle_;
 
         // image, mutex, and ready status
         QMutex imageReadyMutex_;

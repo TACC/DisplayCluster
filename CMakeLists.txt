@@ -48,6 +48,11 @@ if(BUILD_DISPLAYCLUSTER OR BUILD_DESKTOPSTREAMER)
 
     include(${QT_USE_FILE})
     set(LIBS ${LIBS} ${QT_LIBRARIES})
+
+    # libjpeg-turbo
+    find_package(LibJpegTurbo REQUIRED)
+    include_directories(${LibJpegTurbo_INCLUDE_DIRS})
+    set(LIBS ${LIBS} ${LibJpegTurbo_LIBRARIES})
 endif()
 
 if(BUILD_DISPLAYCLUSTER)
@@ -228,8 +233,6 @@ if(BUILD_DESKTOPSTREAMER)
     endif()
 
     # libjpeg-turbo
-    find_package(LibJpegTurbo REQUIRED)
-    include_directories(${LibJpegTurbo_INCLUDE_DIRS})
     set(DESKTOP_STREAMER_LIBS ${DESKTOP_STREAMER_LIBS} ${LibJpegTurbo_LIBRARIES})
 
     set(DESKTOP_STREAMER_SRCS ${DESKTOP_STREAMER_SRCS}

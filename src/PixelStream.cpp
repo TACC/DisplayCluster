@@ -51,6 +51,9 @@ PixelStream::PixelStream(std::string uri)
 
     // assign values
     uri_ = uri;
+
+    // initialize libjpeg-turbo handle
+    handle_ = tjInitDecompress();
 }
 
 PixelStream::~PixelStream()
@@ -61,6 +64,9 @@ PixelStream::~PixelStream()
         glDeleteTextures(1, &textureId_); // it appears deleteTexture() below is not actually deleting the texture from the GPU...
         g_mainWindow->getGLWindow()->deleteTexture(textureId_);
     }
+
+    // destroy libjpeg-turbo handle
+    tjDestroy(handle_);
 }
 
 void PixelStream::getDimensions(int &width, int &height)
@@ -119,15 +125,22 @@ bool PixelStream::render(float tX, float tY, float tW, float tH)
     return true;
 }
 
-void PixelStream::setImageData(QByteArray imageData)
+bool PixelStream::setImageData(QByteArray imageData)
 {
     // drop frames if we're currently processing
     if(loadImageDataThread_.isRunning() == true)
     {
-        return;
+        return false;
     }
 
     loadImageDataThread_ = QtConcurrent::run(loadImageDataThread, shared_from_this(), imageData);
+
+    return true;
+}
+
+tjhandle PixelStream::getHandle()
+{
+    return handle_;
 }
 
 void PixelStream::imageReady(QImage image)
@@ -176,8 +189,33 @@ void PixelStream::setImage(QImage & image)
 
 void loadImageDataThread(boost::shared_ptr<PixelStream> pixelStream, QByteArray imageData)
 {
-    QImage image;
-    image.loadFromData(imageData, "JPEG");
+    // use libjpeg-turbo for JPEG conversion
+    tjhandle handle = pixelStream->getHandle();
+
+    // get information from header
+    int width, height, jpegSubsamp;
+    int success =  tjDecompressHeader2(handle, (unsigned char *)imageData.data(), (unsigned long)imageData.size(), &width, &height, &jpegSubsamp);
+
+    if(success != 0)
+    {
+        put_flog(LOG_ERROR, "libjpeg-turbo header decompression failure");
+        return;
+    }
+
+    // decompress image data
+    int pixelFormat = TJPF_BGRX;
+    int pitch = width * tjPixelSize[pixelFormat];
+    int flags = TJ_FASTUPSAMPLE;
+
+    QImage image = QImage(width, height, QImage::Format_RGB32);
+
+    success = tjDecompress2(handle, (unsigned char *)imageData.data(), (unsigned long)imageData.size(), (unsigned char *)image.scanLine(0), width, pitch, height, pixelFormat, flags);
+
+    if(success != 0)
+    {
+        put_flog(LOG_ERROR, "libjpeg-turbo image decompression failure");
+        return;
+    }
 
     pixelStream->imageReady(image);
 }
