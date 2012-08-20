@@ -198,7 +198,7 @@ boost::shared_ptr<Content> Content::getContent(std::string uri)
     }
     // see if this is a movie
     // todo: need a better way to determine file type
-    else if(fileTypeString.endsWith(".mov") || fileTypeString.endsWith(".avi") || fileTypeString.endsWith(".mp4") || fileTypeString.endsWith(".mkv") || fileTypeString.endsWith(".mpg") || fileTypeString.endsWith(".flv"))
+    else if(fileTypeString.endsWith(".mov") || fileTypeString.endsWith(".avi") || fileTypeString.endsWith(".mp4") || fileTypeString.endsWith(".mkv") || fileTypeString.endsWith(".mpg") || fileTypeString.endsWith(".flv") || fileTypeString.endsWith(".wmv"))
     {
         boost::shared_ptr<Content> c(new MovieContent(uri));
 
