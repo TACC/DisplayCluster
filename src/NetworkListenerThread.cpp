@@ -105,7 +105,14 @@ void NetworkListenerThread::run()
         handleMessage(*mh, messageByteArray);
 
         // send acknowledgment
-        tcpSocket.write("ack", 3);
+        const char ack[] = "ack";
+
+        int sent = tcpSocket.write(ack, 3);
+
+        while(sent < 3)
+        {
+            sent += tcpSocket.write(ack + sent, 3 - sent);
+        }
     }
 
     tcpSocket.disconnectFromHost();
