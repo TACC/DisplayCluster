@@ -58,7 +58,6 @@ class NetworkListenerThread : public QThread {
     signals:
 
         void updatedPixelStreamSource();
-        void updatedParallelPixelStreamSource();
 
     private:
 

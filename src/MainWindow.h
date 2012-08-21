@@ -58,6 +58,7 @@ class MainWindow : public QMainWindow {
         bool getConstrainAspectRatio();
 
         boost::shared_ptr<GLWindow> getGLWindow(int index=0);
+        boost::shared_ptr<GLWindow> getActiveGLWindow();
         std::vector<boost::shared_ptr<GLWindow> > getGLWindows();
 
     public slots:
@@ -88,8 +89,12 @@ class MainWindow : public QMainWindow {
     private:
 
         std::vector<boost::shared_ptr<GLWindow> > glWindows_;
+        boost::shared_ptr<GLWindow> activeGLWindow_;
 
         bool constrainAspectRatio_;
+
+        // polling timer for updating parallel pixel streams
+        QTimer parallelPixelStreamTimer_;
 };
 
 #endif

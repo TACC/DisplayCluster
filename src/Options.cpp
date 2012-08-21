@@ -44,6 +44,8 @@ Options::Options()
     showTestPattern_ = false;
     enableMullionCompensation_ = true;
     showZoomContext_ = true;
+    showStreamingSegments_ = false;
+    showStreamingStatistics_ = false;
 
 #if ENABLE_SKELETON_SUPPORT
     showSkeletons_ = true;
@@ -68,6 +70,16 @@ bool Options::getEnableMullionCompensation()
 bool Options::getShowZoomContext()
 {
     return showZoomContext_;
+}
+
+bool Options::getShowStreamingSegments()
+{
+    return showStreamingSegments_;
+}
+
+bool Options::getShowStreamingStatistics()
+{
+    return showStreamingStatistics_;
 }
 
 #if ENABLE_SKELETON_SUPPORT
@@ -101,6 +113,20 @@ void Options::setEnableMullionCompensation(bool set)
 void Options::setShowZoomContext(bool set)
 {
     showZoomContext_ = set;
+
+    emit(updated());
+}
+
+void Options::setShowStreamingSegments(bool set)
+{
+    showStreamingSegments_ = set;
+
+    emit(updated());
+}
+
+void Options::setShowStreamingStatistics(bool set)
+{
+    showStreamingStatistics_ = set;
 
     emit(updated());
 }

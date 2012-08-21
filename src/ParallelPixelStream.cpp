@@ -39,6 +39,7 @@
 #include "ParallelPixelStream.h"
 #include "main.h"
 #include "ContentWindowManager.h"
+#include "log.h"
 
 ParallelPixelStream::ParallelPixelStream(std::string uri)
 {
@@ -62,104 +63,100 @@ void ParallelPixelStream::render(float tX, float tY, float tW, float tH)
 {
     updateRenderedFrameCount();
 
-    QMutexLocker locker(&segmentsMutex_);
-
-    // iterate through map, rendering the latest content available from each source
-    // later, this could be synchronized...
-    // for each source
-    for(std::map<int, std::vector<ParallelPixelStreamSegment> >::iterator  it=segments_.begin(); it != segments_.end(); it++)
+    for(std::map<int, boost::shared_ptr<PixelStream> >::iterator it=pixelStreams_.begin(); it != pixelStreams_.end(); it++)
     {
-        // for each frame
-        for(int i=(int)(*it).second.size() - 1; i>=0; i--)
+        int sourceIndex = (*it).first;
+        boost::shared_ptr<PixelStream> pixelStream = (*it).second;
+
+        // skip segments not visible
+        if(isSegmentVisible(pixelStreamParameters_[sourceIndex]) == false)
         {
-            // OpenGL transformation
+            // don't render, continue to next segment
+            continue;
+        }
+
+        // OpenGL transformation
+        glPushMatrix();
+
+        float x = (float)(pixelStreamParameters_[sourceIndex].x) / (float)width_;
+        float y = (float)(pixelStreamParameters_[sourceIndex].y) / (float)height_;
+        float width = (float)(pixelStreamParameters_[sourceIndex].width) / (float)width_;
+        float height = (float)(pixelStreamParameters_[sourceIndex].height) / (float)height_;
+
+        glTranslatef(x, y, 0.);
+        glScalef(width, height, 0.);
+
+        // todo: compute actual texture bounds to render considering zoom, pan
+
+        pixelStream->render(0.,0.,1.,1.);
+
+        bool showStreamingSegments = g_displayGroupManager->getOptions()->getShowStreamingSegments();
+        bool showStreamingStatistics = g_displayGroupManager->getOptions()->getShowStreamingStatistics();
+
+        if(showStreamingSegments == true || showStreamingStatistics == true)
+        {
+            glPushAttrib(GL_CURRENT_BIT | GL_LINE_BIT | GL_DEPTH_BUFFER_BIT);
+            glLineWidth(2);
+
             glPushMatrix();
+            glTranslatef(0.,0.,0.05);
 
-            float x = (float)((*it).second[i].parameters.x) / (float)width_;
-            float y = (float)((*it).second[i].parameters.y) / (float)height_;
-            float width = (float)((*it).second[i].parameters.width) / (float)width_;
-            float height = (float)((*it).second[i].parameters.height) / (float)height_;
-
-            glTranslatef(x, y, 0.);
-            glScalef(width, height, 0.);
-
-            // todo: compute actual texture bounds to render considering zoom, pan
-
-            bool rendered = false;
-
-            if((*it).second[i].pixelStream->render(0.,0.,1.,1.) == true)
+            // render segment borders
+            if(showStreamingSegments == true)
             {
-                // successful render of texture
-                // delete older segments and break
-                (*it).second.erase((*it).second.begin(), (*it).second.begin() + i);
+                glColor4f(1.,1.,1.,1.);
 
-                rendered = true;
+                glBegin(GL_LINE_LOOP);
+
+                glVertex2f(0.,0.);
+                glVertex2f(1.,0.);
+                glVertex2f(1.,1.);
+                glVertex2f(0.,1.);
+
+                glEnd();
+            }
+
+            // render segment statistics
+            if(showStreamingStatistics == true)
+            {
+                // render statistics
+                std::string statisticsString = getStatistics((*it).first);
+
+                QFont font;
+                font.setPixelSize(48);
+
+                glColor4f(1.,0.,0.,1.);
+                glDisable(GL_DEPTH_TEST);
+                g_mainWindow->getActiveGLWindow()->renderText(0.1, 0.95, 0., QString(statisticsString.c_str()), font);
             }
 
             glPopMatrix();
-
-            if(rendered == true)
-            {
-                break;
-            }
+            glPopAttrib();
         }
+
+        glPopMatrix();
     }
+
+    // get rid of old / stale pixel streams
+    clearStalePixelStreams();
 }
 
 void ParallelPixelStream::insertSegment(ParallelPixelStreamSegment segment)
 {
-    // todo: filter segment insertions based on visibility
-
     QMutexLocker locker(&segmentsMutex_);
 
     // update total dimensions
     width_ = segment.parameters.totalWidth;
     height_ = segment.parameters.totalHeight;
 
-    // create pixel stream object and give it image data (only for rank != 0)
-    // this will trigger the image loading thread to run
-    // URI doesn't matter here...
+    // filter out segments that are not visible (only for rank != 0)
     if(g_mpiRank != 0)
     {
-        // make sure segment is visible; otherwise ignore it and return
-        boost::shared_ptr<ContentWindowManager> cwm = g_displayGroupManager->getContentWindowManager(uri_, CONTENT_TYPE_PARALLEL_PIXEL_STREAM);
-
-        if(cwm != NULL)
+        if(isSegmentVisible(segment.parameters) == false)
         {
-            double x, y, w, h;
-            cwm->getCoordinates(x, y, w, h);
-
-            // coordinates of segment in tiled display space
-            double segmentX = x + (double)segment.parameters.x / (double) segment.parameters.totalWidth * w;
-            double segmentY = y + (double)segment.parameters.y / (double) segment.parameters.totalHeight * h;
-            double segmentW = (double)segment.parameters.width / (double) segment.parameters.totalWidth * w;
-            double segmentH = (double)segment.parameters.height / (double) segment.parameters.totalHeight * h;
-
-            bool segmentVisible = false;
-
-            std::vector<boost::shared_ptr<GLWindow> > glWindows = g_mainWindow->getGLWindows();
-
-            for(unsigned int i=0; i<glWindows.size(); i++)
-            {
-                if(glWindows[i]->isScreenRectangleVisible(segmentX, segmentY, segmentW, segmentH) == true)
-                {
-                    segmentVisible = true;
-                    break;
-                }
-            }
-
-            if(segmentVisible == false)
-            {
-                // drop the segment
-                return;
-            }
+            // drop the segment
+            return;
         }
-
-        // segment must be visible... go ahead
-        boost::shared_ptr<PixelStream> ps(new PixelStream("ParallelPixelStreamSegment"));
-        ps->setImageData(segment.imageData);
-
-        segment.pixelStream = ps;
     }
 
     segments_[(int)segment.parameters.sourceIndex].push_back(segment);
@@ -180,6 +177,119 @@ std::vector<ParallelPixelStreamSegment> ParallelPixelStream::getAndPopLatestSegm
     segments_.clear();
 
     return latestSegments;
+}
+
+void ParallelPixelStream::updatePixelStreams()
+{
+    std::vector<ParallelPixelStreamSegment> latestSegments = getAndPopLatestSegments();
+
+    for(unsigned int i=0; i<latestSegments.size(); i++)
+    {
+        int sourceIndex = latestSegments[i].parameters.sourceIndex;
+
+        if(pixelStreams_[sourceIndex] == NULL)
+        {
+            boost::shared_ptr<PixelStream> ps(new PixelStream("ParallelPixelStreamSegment"));
+            pixelStreams_[sourceIndex] = ps;
+        }
+
+        pixelStreamParameters_[sourceIndex] = latestSegments[i].parameters;
+        bool success = pixelStreams_[sourceIndex]->setImageData(latestSegments[i].imageData);
+
+        if(success == true)
+        {
+            frameUpdated(sourceIndex);
+        }
+    }
+}
+
+bool ParallelPixelStream::isSegmentVisible(ParallelPixelStreamSegmentParameters parameters)
+{
+    boost::shared_ptr<ContentWindowManager> cwm = g_displayGroupManager->getContentWindowManager(uri_, CONTENT_TYPE_PARALLEL_PIXEL_STREAM);
+
+    if(cwm != NULL)
+    {
+        // todo: also consider zoom / pan (texture coordinates!)
+
+        double x, y, w, h;
+        cwm->getCoordinates(x, y, w, h);
+
+        // coordinates of segment in tiled display space
+        double segmentX = x + (double)parameters.x / (double)parameters.totalWidth * w;
+        double segmentY = y + (double)parameters.y / (double)parameters.totalHeight * h;
+        double segmentW = (double)parameters.width / (double)parameters.totalWidth * w;
+        double segmentH = (double)parameters.height / (double)parameters.totalHeight * h;
+
+        bool segmentVisible = false;
+
+        std::vector<boost::shared_ptr<GLWindow> > glWindows = g_mainWindow->getGLWindows();
+
+        for(unsigned int i=0; i<glWindows.size(); i++)
+        {
+            if(glWindows[i]->isScreenRectangleVisible(segmentX, segmentY, segmentW, segmentH) == true)
+            {
+                segmentVisible = true;
+                break;
+            }
+        }
+
+        return segmentVisible;
+    }
+    else
+    {
+        // return true if we can't find a window
+        put_flog(LOG_WARN, "could not find window for segment");
+
+        return true;
+    }
+}
+
+void ParallelPixelStream::clearStalePixelStreams()
+{
+    std::map<int, boost::shared_ptr<PixelStream> >::iterator it = pixelStreams_.begin();
+
+    while(it != pixelStreams_.end())
+    {
+        boost::shared_ptr<PixelStream> pixelStream = (*it).second;
+
+        if(g_frameCount - pixelStream->getRenderedFrameCount() > 1)
+        {
+            put_flog(LOG_DEBUG, "erasing stale pixel stream");
+            pixelStreams_.erase(it++);  // note the post increment; increments the iterator but returns original value for erase
+        }
+        else
+        {
+            it++;
+        }
+    }
+}
+
+void ParallelPixelStream::frameUpdated(int sourceIndex)
+{
+    static unsigned int numHistory = 30;
+
+    segmentsRenderTimes_[sourceIndex].push_back(QTime::currentTime());
+
+    // see if we need to remove an entry
+    while(segmentsRenderTimes_[sourceIndex].size() > numHistory)
+    {
+        segmentsRenderTimes_[sourceIndex].erase(segmentsRenderTimes_[sourceIndex].begin());
+    }
+}
+
+std::string ParallelPixelStream::getStatistics(int sourceIndex)
+{
+    QString result;
+
+    if(segmentsRenderTimes_[sourceIndex].size() > 0)
+    {
+        float fps = (float)segmentsRenderTimes_[sourceIndex].size() / (float)segmentsRenderTimes_[sourceIndex].front().msecsTo(segmentsRenderTimes_[sourceIndex].back()) * 1000.;
+
+        result += QString::number(fps, 'g', 4);
+        result += " fps";
+    }
+
+    return result.toStdString();
 }
 
 Factory<ParallelPixelStream> g_parallelPixelStreamSourceFactory;

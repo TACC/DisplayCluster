@@ -54,6 +54,8 @@ class Options : public QObject {
         bool getShowTestPattern();
         bool getEnableMullionCompensation();
         bool getShowZoomContext();
+        bool getShowStreamingSegments();
+        bool getShowStreamingStatistics();
 
 #if ENABLE_SKELETON_SUPPORT
         bool getShowSkeletons();
@@ -64,6 +66,8 @@ class Options : public QObject {
         void setShowTestPattern(bool set);
         void setEnableMullionCompensation(bool set);
         void setShowZoomContext(bool set);
+        void setShowStreamingSegments(bool set);
+        void setShowStreamingStatistics(bool set);
 
 #if ENABLE_SKELETON_SUPPORT
         void setShowSkeletons(bool set);
@@ -82,6 +86,8 @@ class Options : public QObject {
             ar & showTestPattern_;
             ar & enableMullionCompensation_;
             ar & showZoomContext_;
+            ar & showStreamingSegments_;
+            ar & showStreamingStatistics_;
 
 #if ENABLE_SKELETON_SUPPORT
             ar & showSkeletons_;
@@ -92,6 +98,8 @@ class Options : public QObject {
         bool showTestPattern_;
         bool enableMullionCompensation_;
         bool showZoomContext_;
+        bool showStreamingSegments_;
+        bool showStreamingStatistics_;
 
 #if ENABLE_SKELETON_SUPPORT
         bool showSkeletons_;

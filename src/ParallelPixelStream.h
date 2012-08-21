@@ -81,10 +81,6 @@ struct ParallelPixelStreamSegment {
     // image data for segment
     QByteArray imageData;
 
-    // pointer for pixel stream (may not be used)
-    // does not get serialized
-    boost::shared_ptr<PixelStream> pixelStream;
-
     private:
         friend class boost::serialization::access;
 
@@ -128,6 +124,9 @@ class ParallelPixelStream : public FactoryObject {
         // retrieve latest segments and remove them (and older segments) from the map
         std::vector<ParallelPixelStreamSegment> getAndPopLatestSegments();
 
+        // update pixel streams corresponding to latest segments
+        void updatePixelStreams();
+
     private:
 
         // parallel pixel stream identifier
@@ -141,7 +140,24 @@ class ParallelPixelStream : public FactoryObject {
         QMutex segmentsMutex_;
 
         // for each source, vector of pixel stream segments
+        // use a vector here since it may allow for easier frame synchronization later
         std::map<int, std::vector<ParallelPixelStreamSegment> > segments_;
+
+        // for each source, pixel stream object for image decoding and parameters
+        std::map<int, boost::shared_ptr<PixelStream> > pixelStreams_;
+        std::map<int, ParallelPixelStreamSegmentParameters> pixelStreamParameters_;
+
+        // determine if segment is visible on any of the screens of this process
+        bool isSegmentVisible(ParallelPixelStreamSegmentParameters parameters);
+
+        // clear old / stale pixel streams from map
+        void clearStalePixelStreams();
+
+        // statistics
+        std::map<int, std::vector<QTime> > segmentsRenderTimes_;
+
+        void frameUpdated(int sourceIndex);
+        std::string getStatistics(int sourceIndex);
 };
 
 // global parallel pixel stream source factory

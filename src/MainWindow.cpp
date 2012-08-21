@@ -72,6 +72,7 @@ MainWindow::MainWindow()
         // create menus in menu bar
         QMenu * fileMenu = menuBar()->addMenu("&File");
         QMenu * viewMenu = menuBar()->addMenu("&View");
+        QMenu * viewStreamingMenu = viewMenu->addMenu("&Streaming");
 #if ENABLE_PYTHON_SUPPORT
         // add Window menu for Python console. if we add any other entries to it we'll need to remove the #if
         QMenu * windowMenu = menuBar()->addMenu("&Window");
@@ -161,6 +162,20 @@ MainWindow::MainWindow()
         showZoomContextAction->setChecked(g_displayGroupManager->getOptions()->getShowZoomContext());
         connect(showZoomContextAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowZoomContext(bool)));
 
+        // show streaming segments action
+        QAction * showStreamingSegmentsAction = new QAction("Show Segments", this);
+        showStreamingSegmentsAction->setStatusTip("Show segments");
+        showStreamingSegmentsAction->setCheckable(true);
+        showStreamingSegmentsAction->setChecked(g_displayGroupManager->getOptions()->getShowStreamingSegments());
+        connect(showStreamingSegmentsAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowStreamingSegments(bool)));
+
+        // show streaming statistics action
+        QAction * showStreamingStatisticsAction = new QAction("Show Statistics", this);
+        showStreamingStatisticsAction->setStatusTip("Show statistics");
+        showStreamingStatisticsAction->setCheckable(true);
+        showStreamingStatisticsAction->setChecked(g_displayGroupManager->getOptions()->getShowStreamingStatistics());
+        connect(showStreamingStatisticsAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowStreamingStatistics(bool)));
+
 #if ENABLE_SKELETON_SUPPORT
         // enable skeleton tracking action
         QAction * enableSkeletonTrackingAction = new QAction("Enable Skeleton Tracking", this);
@@ -193,6 +208,8 @@ MainWindow::MainWindow()
         viewMenu->addAction(showTestPatternAction);
         viewMenu->addAction(enableMullionCompensationAction);
         viewMenu->addAction(showZoomContextAction);
+        viewStreamingMenu->addAction(showStreamingSegmentsAction);
+        viewStreamingMenu->addAction(showStreamingStatisticsAction);
 
 #if ENABLE_PYTHON_SUPPORT
         windowMenu->addAction(pythonConsoleAction);
@@ -232,6 +249,12 @@ MainWindow::MainWindow()
         // add the list widget
         DisplayGroupListWidgetProxy * dglwp = new DisplayGroupListWidgetProxy(g_displayGroupManager);
         contentsLayout->addWidget(dglwp->getListWidget());
+
+        // timer will trigger polling of ParallelPixelStreams
+        connect(&parallelPixelStreamTimer_, SIGNAL(timeout()), g_displayGroupManager.get(), SLOT(sendParallelPixelStreams()));
+
+        // start the timer
+        parallelPixelStreamTimer_.start(1000 / 30); // 30 fps
 
         show();
     }
@@ -304,6 +327,11 @@ bool MainWindow::getConstrainAspectRatio()
 boost::shared_ptr<GLWindow> MainWindow::getGLWindow(int index)
 {
     return glWindows_[index];
+}
+
+boost::shared_ptr<GLWindow> MainWindow::getActiveGLWindow()
+{
+    return activeGLWindow_;
 }
 
 std::vector<boost::shared_ptr<GLWindow> > MainWindow::getGLWindows()
@@ -494,6 +522,7 @@ void MainWindow::updateGLWindows()
     // render all GLWindows
     for(unsigned int i=0; i<glWindows_.size(); i++)
     {
+        activeGLWindow_ = glWindows_[i];
         glWindows_[i]->updateGL();
     }
 

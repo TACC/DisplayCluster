@@ -1041,6 +1041,9 @@ void DisplayGroupManager::receiveParallelPixelStreams(MessageHeader messageHeade
         g_mainWindow->getGLWindow()->getParallelPixelStreamFactory().getObject(uri)->insertSegment(latestSegments[i]);
     }
 
+    // update pixel streams corresponding to new segments
+    g_mainWindow->getGLWindow()->getParallelPixelStreamFactory().getObject(uri)->updatePixelStreams();
+
     // free mpi buffer
     delete [] buf;
 }

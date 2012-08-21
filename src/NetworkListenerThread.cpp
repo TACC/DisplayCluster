@@ -53,7 +53,6 @@ NetworkListenerThread::NetworkListenerThread(int socketDescriptor)
 
     // connect signals
     connect(this, SIGNAL(updatedPixelStreamSource()), g_displayGroupManager.get(), SLOT(sendPixelStreams()), Qt::BlockingQueuedConnection);
-    connect(this, SIGNAL(updatedParallelPixelStreamSource()), g_displayGroupManager.get(), SLOT(sendParallelPixelStreams()), Qt::BlockingQueuedConnection);
 }
 
 void NetworkListenerThread::run()
@@ -147,7 +146,7 @@ void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArra
     {
         // update parallel pixel stream source
         // keep this in this thread so we can have parallel pixel stream source updating and sendParallelPixelStreams() happening in parallel
-        // sendParallelPixelStreams() slot executions may still stack up, but they'll each grab only the latest parallel pixel stream data
+        // sendParallelPixelStreams() runs in a polling loop on the main thread
         std::string uri(messageHeader.uri);
 
         ParallelPixelStreamSegment segment;
@@ -162,6 +161,6 @@ void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArra
 
         g_parallelPixelStreamSourceFactory.getObject(uri)->insertSegment(segment);
 
-        emit(updatedParallelPixelStreamSource());
+        // no need to emit any signals since there's a polling loop in the main thread
     }
 }
