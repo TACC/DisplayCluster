@@ -20,6 +20,7 @@ SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # build options
 option(BUILD_DISPLAYCLUSTER "Build main DisplayCluster application" OFF)
+option(BUILD_DISPLAYCLUSTER_LIBRARY "Build DisplayCluster library" OFF)
 option(BUILD_DESKTOPSTREAMER "Build DesktopStreamer application" OFF)
 
 if(BUILD_DISPLAYCLUSTER)
@@ -32,7 +33,7 @@ endif()
 # path for additional modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
-if(BUILD_DISPLAYCLUSTER OR BUILD_DESKTOPSTREAMER)
+if(BUILD_DISPLAYCLUSTER OR BUILD_DISPLAYCLUSTER_LIBRARY OR BUILD_DESKTOPSTREAMER)
     # find and setup Qt4
     # see http://cmake.org/cmake/help/cmake2.6docs.html#module:FindQt4 for details
     set(QT_USE_QTOPENGL TRUE)
@@ -221,6 +222,63 @@ if(BUILD_DISPLAYCLUSTER)
     if(ENABLE_PYTHON_SUPPORT)
         INSTALL(FILES ${CMAKE_BINARY_DIR}/pydc.so DESTINATION python)
     endif()
+endif()
+
+
+# DisplayCluster library
+if(BUILD_DISPLAYCLUSTER_LIBRARY)
+    set(DISPLAYCLUSTER_LIBRARY_LIBS ${QT_QTCORE_LIBRARY} ${QT_QTNETWORK_LIBRARY})
+    set(DISPLAYCLUSTER_LIBRARY_LIBS ${DISPLAYCLUSTER_LIBRARY_LIBS} ${LibJpegTurbo_LIBRARIES})
+
+    set(DISPLAYCLUSTER_LIBRARY_SRCS
+        src/log.cpp
+        src/lib/dcStream.cpp
+    )
+
+    set(DISPLAYCLUSTER_LIBRARY_PUBLIC_HEADERS
+        src/lib/dcStream.h
+    )
+
+    add_library(DisplayClusterLibrary ${DISPLAYCLUSTER_LIBRARY_SRCS})
+
+    set_target_properties(DisplayClusterLibrary PROPERTIES OUTPUT_NAME DisplayCluster)
+
+    target_link_libraries(DisplayClusterLibrary ${DISPLAYCLUSTER_LIBRARY_LIBS})
+
+    # install library
+    INSTALL(TARGETS DisplayClusterLibrary
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+    )
+
+    # install headers
+    install(FILES ${DISPLAYCLUSTER_LIBRARY_PUBLIC_HEADERS} DESTINATION include)
+
+
+    # SimpleStreamer example application
+    find_package(OpenGL REQUIRED)
+    include_directories(${OPENGL_INCLUDE_DIRS})
+    set(SIMPLESTREAMER_LIBS ${OPENGL_LIBRARIES})
+
+    find_package(GLUT REQUIRED)
+    include_directories(${GLUT_INCLUDE_DIR})
+    set(SIMPLESTREAMER_LIBS ${SIMPLESTREAMER_LIBS} ${GLUT_LIBRARIES})
+
+    include_directories(src/lib)
+    set(SIMPLESTREAMER_LIBS ${SIMPLESTREAMER_LIBS} DisplayClusterLibrary)
+
+    set(SIMPLESTREAMER_SRCS
+        apps/SimpleStreamer/src/main.cpp
+    )
+
+    add_executable(simplestreamer ${SIMPLESTREAMER_SRCS})
+
+    target_link_libraries(simplestreamer ${SIMPLESTREAMER_LIBS})
+
+    # install executable
+    INSTALL(TARGETS simplestreamer
+        RUNTIME DESTINATION bin
+    )
 endif()
 
 
