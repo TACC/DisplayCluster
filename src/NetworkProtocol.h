@@ -36,34 +36,10 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef NETWORK_LISTENER_THREAD_H
-#define NETWORK_LISTENER_THREAD_H
+#ifndef NETWORK_PROTOCOL_H
+#define NETWORK_PROTOCOL_H
 
 // increment this every time the network protocol changes in a major way
-#include "NetworkProtocol.h"
-
-#include "DisplayGroupManager.h"
-#include <QThread>
-#include <QtNetwork/QTcpSocket>
-
-class NetworkListenerThread : public QThread {
-    Q_OBJECT
-
-    public:
-
-        NetworkListenerThread(int socketDescriptor);
-
-        void run();
-
-    signals:
-
-        void updatedPixelStreamSource();
-
-    private:
-
-        int socketDescriptor_;
-
-        void handleMessage(MessageHeader messageHeader, QByteArray byteArray);
-};
+#define NETWORK_PROTOCOL_VERSION 2
 
 #endif
