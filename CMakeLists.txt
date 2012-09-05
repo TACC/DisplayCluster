@@ -239,7 +239,7 @@ if(BUILD_DISPLAYCLUSTER_LIBRARY)
         src/lib/dcStream.h
     )
 
-    add_library(DisplayClusterLibrary ${DISPLAYCLUSTER_LIBRARY_SRCS})
+    add_library(DisplayClusterLibrary SHARED ${DISPLAYCLUSTER_LIBRARY_SRCS})
 
     set_target_properties(DisplayClusterLibrary PROPERTIES OUTPUT_NAME DisplayCluster)
 
