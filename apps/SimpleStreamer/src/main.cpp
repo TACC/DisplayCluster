@@ -100,7 +100,7 @@ void syntax(char * app)
 {
     std::cerr << "syntax: " << app << " [options] <hostname>" << std::endl;
     std::cerr << "options:" << std::endl;
-    std::cerr << " -n <stream name>     set stream name (default SimpleStreamer)"
+    std::cerr << " -n <stream name>     set stream name (default SimpleStreamer)" << std::endl;
     std::cerr << " -p                   enable parallel streaming (default disabled)" << std::endl;
     std::cerr << " -s <segment size>    set parallel streaming segment size (default 512)" << std::endl;
 
