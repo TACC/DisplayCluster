@@ -12,11 +12,11 @@
 // DisplayCluster streaming
 #include <dcStream.h>
 
-std::string streamName = "SimpleStreamer";
-bool parallelStreaming = false;
-int segmentSize = 512;
-char * hostname = NULL;
-DcSocket * socket = NULL;
+std::string dcStreamName = "SimpleStreamer";
+bool dcParallelStreaming = false;
+int dcSegmentSize = 512;
+char * dcHostname = NULL;
+DcSocket * dcSocket = NULL;
 
 void syntax(char * app);
 void display();
@@ -33,17 +33,17 @@ int main(int argc, char **argv)
                 case 'n':
                     if(i+1 < argc)
                     {
-                        streamName = argv[i+1];
+                        dcStreamName = argv[i+1];
                         i++;
                     }
                     break;
                 case 'p':
-                    parallelStreaming = true;
+                    dcParallelStreaming = true;
                     break;
                 case 's':
                     if(i+1 < argc)
                     {
-                        segmentSize = atoi(argv[i+1]);
+                        dcSegmentSize = atoi(argv[i+1]);
                         i++;
                     }
                     break;
@@ -53,11 +53,11 @@ int main(int argc, char **argv)
         }
         else if(i == argc-1)
         {
-            hostname = argv[i];
+            dcHostname = argv[i];
         }
     }
 
-    if(hostname == NULL)
+    if(dcHostname == NULL)
     {
         syntax(argv[0]);
     }
@@ -81,11 +81,11 @@ int main(int argc, char **argv)
     glEnable(GL_LIGHT0);
 
     // connect to DisplayCluster
-    socket = dcStreamConnect(hostname);
+    dcSocket = dcStreamConnect(dcHostname);
 
-    if(socket == NULL)
+    if(dcSocket == NULL)
     {
-        std::cerr << "could not connect to DisplayCluster host: " << hostname << std::endl;
+        std::cerr << "could not connect to DisplayCluster host: " << dcHostname << std::endl;
         return 1;
     }
 
@@ -141,21 +141,21 @@ void display()
 
     bool success;
 
-    if(parallelStreaming == true)
+    if(dcParallelStreaming == true)
     {
-        // use a streaming segment size of roughly <segmentSize> x <segmentSize> pixels
-        std::vector<DcStreamParameters> parameters = dcStreamGenerateParameters(streamName, 0, segmentSize,segmentSize, 0,0,windowWidth,windowHeight, windowWidth,windowHeight);
+        // use a streaming segment size of roughly <dcSegmentSize> x <dcSegmentSize> pixels
+        std::vector<DcStreamParameters> parameters = dcStreamGenerateParameters(dcStreamName, 0, dcSegmentSize,dcSegmentSize, 0,0,windowWidth,windowHeight, windowWidth,windowHeight);
 
         // finally, send it to DisplayCluster
-        success = dcStreamSend(socket, imageData, 0,0,windowWidth,0,windowHeight, RGBA, parameters);
+        success = dcStreamSend(dcSocket, imageData, 0,0,windowWidth,0,windowHeight, RGBA, parameters);
     }
     else
     {
         // use a single streaming segment for the full window
-        DcStreamParameters parameters = dcStreamGenerateParameters(streamName, 0, 0,0,windowWidth,windowHeight, windowWidth,windowHeight);
+        DcStreamParameters parameters = dcStreamGenerateParameters(dcStreamName, 0, 0,0,windowWidth,windowHeight, windowWidth,windowHeight);
 
         // finally, send it to DisplayCluster
-        success = dcStreamSend(socket, imageData, 0,0,windowWidth,0,windowHeight, RGBA, parameters);
+        success = dcStreamSend(dcSocket, imageData, 0,0,windowWidth,0,windowHeight, RGBA, parameters);
     }
 
     if(success == false)
