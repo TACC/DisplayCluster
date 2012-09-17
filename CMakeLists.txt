@@ -239,7 +239,13 @@ if(BUILD_DISPLAYCLUSTER_LIBRARY)
         src/lib/dcStream.h
     )
 
-    add_library(DisplayClusterLibrary SHARED ${DISPLAYCLUSTER_LIBRARY_SRCS})
+    # build as a static library on Apple platforms, shared on others
+    # RPATH seems to have trouble on Apple...
+    if(APPLE)
+        add_library(DisplayClusterLibrary ${DISPLAYCLUSTER_LIBRARY_SRCS})
+    else(APPLE)
+        add_library(DisplayClusterLibrary SHARED ${DISPLAYCLUSTER_LIBRARY_SRCS})
+    endif(APPLE)
 
     set_target_properties(DisplayClusterLibrary PROPERTIES OUTPUT_NAME DisplayCluster)
 
