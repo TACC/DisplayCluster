@@ -200,7 +200,11 @@ bool dcStreamSend(DcSocket * socket, unsigned char * imageBuffer, int imageX, in
     {
         DcImage d;
 
-        d.imageBuffer = imageBuffer + (parameters[i].y - imageY)*imagePitch + (parameters[i].x - imageX)*dcBytesPerPixel[pixelFormat];
+        // imageBuffer coordinates have the origin at the bottom-left corner.
+        // DisplayCluster's coordinates have the origin at the top-left.
+        // a transformation is needed to find the appropriate memory location within the full imageBuffer...
+        d.imageBuffer = imageBuffer + imageHeight*imagePitch - (parameters[i].y - imageY + parameters[i].height)*imagePitch + (parameters[i].x - imageX)*dcBytesPerPixel[pixelFormat];
+
         d.width = parameters[i].width;
         d.pitch = imagePitch;
         d.height = parameters[i].height;
@@ -363,7 +367,7 @@ bool dcStreamComputeJpeg(unsigned char * imageBuffer, int width, int pitch, int 
     unsigned long tjJpegSize = 0;
     int tjJpegSubsamp = TJSAMP_444;
     int tjJpegQual = 75;
-    int tjFlags = 0;
+    int tjFlags = TJFLAG_BOTTOMUP;
 
     int success = tjCompress2(tjHandle, imageBuffer, width, pitch, height, tjPixelFormat, tjJpegBuf, &tjJpegSize, tjJpegSubsamp, tjJpegQual, tjFlags);
 
