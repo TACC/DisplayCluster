@@ -9,6 +9,7 @@ import sys
 import xml.etree.ElementTree as ET
 import subprocess
 import shlex
+import distutils.spawn
 
 # DisplayCluster directory; this is the parent directory of this script
 dcPath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -52,7 +53,15 @@ except:
 
 hostListString = ",".join(hostList)
 
-startCommand = 'mpirun -x DISPLAYCLUSTER_DIR -x PYTHONPATH -host ' + hostListString + ' ' + dcPath + '/bin/displaycluster.py'
+# find full path to mpirun; if MPI is installed in a non-standard location the
+# full path may be necessary to launch correctly across the cluster.
+mpirunCommand = distutils.spawn.find_executable('mpirun')
+
+if mpirunCommand is None:
+    print 'Error, could not find mpirun executable in PATH'
+    exit(-3)
+
+startCommand = mpirunCommand + ' -x DISPLAYCLUSTER_DIR -x PYTHONPATH -host ' + hostListString + ' ' + dcPath + '/bin/displaycluster.py'
 
 print 'launching with command: ' + startCommand
 
