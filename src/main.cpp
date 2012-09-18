@@ -40,6 +40,7 @@
 #include "config.h"
 #include "log.h"
 #include <mpi.h>
+#include <unistd.h>
 
 #if ENABLE_TUIO_TOUCH_LISTENER
     #include "TouchListener.h"
@@ -115,6 +116,12 @@ int main(int argc, char * argv[])
         // create thread to monitor joystick events (all joysticks handled in same event queue)
         JoystickThread * joystickThread = new JoystickThread();
         joystickThread->start();
+
+        // wait for thread to start
+        while(joystickThread->isRunning() == false || joystickThread->isFinished() == true)
+        {
+            usleep(1000);
+        }
     }
 #endif
 
@@ -123,6 +130,12 @@ int main(int argc, char * argv[])
     {
         g_skeletonThread = new SkeletonThread();
         g_skeletonThread->start();
+
+        // wait for thread to start
+        while(g_skeletonThread->isRunning() == false || g_skeletonThread->isFinished() == true)
+        {
+            usleep(1000);
+        }
     }
 #endif
 
