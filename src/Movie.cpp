@@ -114,9 +114,14 @@ Movie::Movie(std::string uri)
     }
 
     // open codec
-    if(avcodec_open2(avCodecContext_, codec, NULL) < 0)
+    int ret = avcodec_open2(avCodecContext_, codec, NULL);
+
+    if(ret < 0)
     {
-        put_flog(LOG_ERROR, "could not open codec");
+        char errbuf[256];
+        av_strerror(ret, errbuf, 256);
+
+        put_flog(LOG_ERROR, "could not open codec, error code %i: %s", ret, errbuf);
         return;
     }
 
