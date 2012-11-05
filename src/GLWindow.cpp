@@ -76,7 +76,7 @@ GLWindow::GLWindow(int tileIndex, QRect windowRect, QGLWidget * shareWidget) : Q
 
 GLWindow::~GLWindow()
 {
-    put_flog(LOG_DEBUG, "");
+
 }
 
 Factory<Texture> & GLWindow::getTextureFactory()
