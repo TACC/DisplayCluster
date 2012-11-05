@@ -76,6 +76,8 @@ class GLWindow : public QGLWidget
         static bool isRectangleVisible(double x, double y, double w, double h);
         static void drawRectangle(double x, double y, double w, double h);
 
+        void finalize();
+
     private:
 
         int tileIndex_;

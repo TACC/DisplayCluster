@@ -151,6 +151,15 @@ int main(int argc, char * argv[])
 
     put_flog(LOG_DEBUG, "quitting");
 
+    // wait for all threads to finish
+    QThreadPool::globalInstance()->waitForDone();
+
+    // call finalize cleanup actions
+    g_mainWindow->finalize();
+
+    // destruct the main window
+    delete g_mainWindow;
+
     if(g_mpiRank == 0)
     {
         g_displayGroupManager->sendQuit();

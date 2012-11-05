@@ -554,3 +554,11 @@ void MainWindow::updateGLWindows()
 
     emit(updateGLWindowsFinished());
 }
+
+void MainWindow::finalize()
+{
+    for(unsigned int i=0; i<glWindows_.size(); i++)
+    {
+        glWindows_[i]->finalize();
+    }
+}

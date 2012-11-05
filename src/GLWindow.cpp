@@ -76,7 +76,7 @@ GLWindow::GLWindow(int tileIndex, QRect windowRect, QGLWidget * shareWidget) : Q
 
 GLWindow::~GLWindow()
 {
-
+    put_flog(LOG_DEBUG, "");
 }
 
 Factory<Texture> & GLWindow::getTextureFactory()
@@ -441,6 +441,17 @@ void GLWindow::drawRectangle(double x, double y, double w, double h)
     glVertex2d(x,y+h);
 
     glEnd();
+}
+
+void GLWindow::finalize()
+{
+    textureFactory_.clear();
+    dynamicTextureFactory_.clear();
+    movieFactory_.clear();
+    pixelStreamFactory_.clear();
+    parallelPixelStreamFactory_.clear();
+
+    purgeTextures();
 }
 
 void GLWindow::renderTestPattern()
