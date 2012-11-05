@@ -60,25 +60,16 @@ JoystickThread::~JoystickThread()
 
 void JoystickThread::run()
 {
-    // we need SDL_INIT_VIDEO for events to work
-    if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) < 0)
+    put_flog(LOG_INFO, "found %i joysticks:", SDL_NumJoysticks());
+
+    if(SDL_NumJoysticks() == 0)
     {
-        put_flog(LOG_ERROR, "could not initial SDL joystick subsystem");
         return;
     }
-    else
+
+    for(int i=0; i<SDL_NumJoysticks(); i++)
     {
-        put_flog(LOG_INFO, "found %i joysticks:", SDL_NumJoysticks());
-
-        if(SDL_NumJoysticks() == 0)
-        {
-            return;
-        }
-
-        for(int i=0; i<SDL_NumJoysticks(); i++)
-        {
-            put_flog(LOG_INFO, "\t %s", SDL_JoystickName(i));
-        }
+        put_flog(LOG_INFO, "\t %s", SDL_JoystickName(i));
     }
 
     // open all joysticks and create corresponding DisplayGroupJoystick objects and state objects

@@ -113,6 +113,14 @@ int main(int argc, char * argv[])
 #if ENABLE_JOYSTICK_SUPPORT
     if(g_mpiRank == 0)
     {
+        // do this before the thread starts to avoid X callback race conditions
+        // we need SDL_INIT_VIDEO for events to work
+        if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) < 0)
+        {
+            put_flog(LOG_ERROR, "could not initial SDL joystick subsystem");
+            return -2;
+        }
+
         // create thread to monitor joystick events (all joysticks handled in same event queue)
         JoystickThread * joystickThread = new JoystickThread();
         joystickThread->start();
