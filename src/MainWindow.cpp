@@ -538,13 +538,15 @@ void MainWindow::updateGLWindows()
     // advance all contents
     g_displayGroupManager->advanceContents();
 
-    // clear old factory objects
+    // clear old factory objects and purge any textures
     if(glWindows_.size() > 0)
     {
         glWindows_[0]->getTextureFactory().clearStaleObjects();
         glWindows_[0]->getDynamicTextureFactory().clearStaleObjects();
         glWindows_[0]->getMovieFactory().clearStaleObjects();
         glWindows_[0]->getPixelStreamFactory().clearStaleObjects();
+
+        glWindows_[0]->purgeTextures();
     }
 
     // increment frame counter

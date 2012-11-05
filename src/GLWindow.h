@@ -62,6 +62,9 @@ class GLWindow : public QGLWidget
         Factory<PixelStream> & getPixelStreamFactory();
         Factory<ParallelPixelStream> & getParallelPixelStreamFactory();
 
+        void insertPurgeTextureId(GLuint textureId);
+        void purgeTextures();
+
         void initializeGL();
         void paintGL();
         void resizeGL(int width, int height);
@@ -87,6 +90,11 @@ class GLWindow : public QGLWidget
         Factory<Movie> movieFactory_;
         Factory<PixelStream> pixelStreamFactory_;
         Factory<ParallelPixelStream> parallelPixelStreamFactory_;
+
+        // mutex and vector of texture id's to purge
+        // this allows other threads to trigger deletion of a texture during the main OpenGL thread execution
+        QMutex purgeTexturesMutex_;
+        std::vector<GLuint> purgeTextureIds_;
 
         void renderTestPattern();
 };
