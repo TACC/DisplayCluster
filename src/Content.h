@@ -39,6 +39,8 @@
 #ifndef CONTENT_H
 #define CONTENT_H
 
+#define ERROR_IMAGE_FILENAME "error.png"
+
 #include <string>
 #include <QtGui>
 #include <boost/shared_ptr.hpp>
