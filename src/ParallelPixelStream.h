@@ -62,6 +62,7 @@ template<class Archive>
 void serialize(Archive & ar, ParallelPixelStreamSegmentParameters & p, const unsigned int)
 {
     ar & p.sourceIndex;
+    ar & p.frameIndex;
     ar & p.x;
     ar & p.y;
     ar & p.width;

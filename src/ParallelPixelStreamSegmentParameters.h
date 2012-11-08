@@ -42,10 +42,15 @@
     #include <stdint.h>
 #endif
 
+#define FRAME_INDEX_UNDEFINED -1
+
 struct ParallelPixelStreamSegmentParameters {
 
     // source identifier
     int32_t sourceIndex;
+
+    // frame index (used for synchronization)
+    int32_t frameIndex;
 
     // coordinates of segment (pixel coordinates)
     int32_t x;
@@ -56,4 +61,10 @@ struct ParallelPixelStreamSegmentParameters {
     // coordinates of total image
     int32_t totalWidth;
     int32_t totalHeight;
+
+    ParallelPixelStreamSegmentParameters()
+    {
+        // defaults
+        frameIndex = FRAME_INDEX_UNDEFINED;
+    }
 };

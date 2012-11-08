@@ -46,6 +46,9 @@
 #include <cmath>
 #include <turbojpeg.h>
 
+// default to undefined frame index
+int g_dcStreamFrameIndex = FRAME_INDEX_UNDEFINED;
+
 struct DcImage {
     unsigned char * imageBuffer;
     int width;
@@ -284,6 +287,7 @@ bool dcStreamSendJpeg(DcSocket * socket, DcStreamParameters parameters, const ch
     ParallelPixelStreamSegmentParameters p;
 
     p.sourceIndex = parameters.sourceIndex;
+    p.frameIndex = g_dcStreamFrameIndex;
     p.x = parameters.x;
     p.y = parameters.y;
     p.width = parameters.width;
@@ -388,6 +392,11 @@ bool dcStreamComputeJpeg(unsigned char * imageBuffer, int width, int pitch, int 
     jpegSize = tjJpegSize;
 
     return true;
+}
+
+void dcStreamIncrementFrameIndex()
+{
+    g_dcStreamFrameIndex++;
 }
 
 DcImage dcStreamComputeJpegMapped(const DcImage & dcImage)

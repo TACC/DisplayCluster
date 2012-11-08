@@ -97,4 +97,8 @@ extern bool dcStreamSendJpeg(DcSocket * socket, DcStreamParameters parameters, c
 // stored in jpegData and jpegSize.
 extern bool dcStreamComputeJpeg(unsigned char * imageBuffer, int width, int pitch, int height, PIXEL_FORMAT pixelFormat, char ** jpegData, int & jpegSize);
 
+// increment the frame index for all segments sent by this process. this is
+// used for frame synchronization.
+extern void dcStreamIncrementFrameIndex();
+
 #endif
