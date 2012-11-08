@@ -381,6 +381,9 @@ bool dcStreamComputeJpeg(unsigned char * imageBuffer, int width, int pitch, int 
 
         jpegSize = 0;
 
+        // destroy libjpeg-turbo handle
+        tjDestroy(tjHandle);
+
         return false;
     }
 
@@ -390,6 +393,9 @@ bool dcStreamComputeJpeg(unsigned char * imageBuffer, int width, int pitch, int 
     tjFree(tjJpegBufPtr);
 
     jpegSize = tjJpegSize;
+
+    // destroy libjpeg-turbo handle
+    tjDestroy(tjHandle);
 
     return true;
 }
