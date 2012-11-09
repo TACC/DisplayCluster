@@ -162,6 +162,13 @@ MainWindow::MainWindow()
         showZoomContextAction->setChecked(g_displayGroupManager->getOptions()->getShowZoomContext());
         connect(showZoomContextAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowZoomContext(bool)));
 
+        // enable streaming synchronization action
+        QAction * enableStreamingSynchronizationAction = new QAction("Enable Streaming Synchronization", this);
+        enableStreamingSynchronizationAction->setStatusTip("Enable streaming synchronization");
+        enableStreamingSynchronizationAction->setCheckable(true);
+        enableStreamingSynchronizationAction->setChecked(g_displayGroupManager->getOptions()->getEnableStreamingSynchronization());
+        connect(enableStreamingSynchronizationAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setEnableStreamingSynchronization(bool)));
+
         // show streaming segments action
         QAction * showStreamingSegmentsAction = new QAction("Show Segments", this);
         showStreamingSegmentsAction->setStatusTip("Show segments");
@@ -208,6 +215,7 @@ MainWindow::MainWindow()
         viewMenu->addAction(showTestPatternAction);
         viewMenu->addAction(enableMullionCompensationAction);
         viewMenu->addAction(showZoomContextAction);
+        viewStreamingMenu->addAction(enableStreamingSynchronizationAction);
         viewStreamingMenu->addAction(showStreamingSegmentsAction);
         viewStreamingMenu->addAction(showStreamingStatisticsAction);
 
