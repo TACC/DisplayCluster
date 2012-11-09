@@ -66,6 +66,9 @@ extern DcSocket * dcStreamConnect(const char * hostname);
 // closes a previously opened connection, deleting the socket.
 extern void dcStreamDisconnect(DcSocket * socket);
 
+// reset all stream segments associated with this connection.
+extern void dcStreamReset(DcSocket * socket);
+
 // generates a new parameter object with the given origin (x, y) and dimensions
 // (width, height). the origin (x, y) is relative to the full window represented
 // by all streams corresponding to <name>. totalWidth and totalHeight give the

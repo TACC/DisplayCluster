@@ -20,6 +20,7 @@ DcSocket * dcSocket = NULL;
 
 void syntax(char * app);
 void display();
+void reshape(int width, int height);
 
 int main(int argc, char **argv)
 {
@@ -73,6 +74,9 @@ int main(int argc, char **argv)
     // the display function will be called continuously
     glutDisplayFunc(display);
     glutIdleFunc(display);
+
+    // the reshape function will be called on window resize
+    glutReshapeFunc(reshape);
 
     glClearColor(0.5, 0.5, 0.5, 1.);
 
@@ -164,6 +168,8 @@ void display()
         exit(1);
     }
 
+    dcStreamIncrementFrameIndex();
+
     // and free the allocated image data
     free(imageData);
 
@@ -171,4 +177,13 @@ void display()
 
     // increment rotation angle
     angle += 1.;
+}
+
+void reshape(int width, int height)
+{
+    // reset the viewport
+    glViewport(0, 0, width, height);
+
+    // reset the stream since we may have a different number of segments now
+    dcStreamReset(dcSocket);
 }

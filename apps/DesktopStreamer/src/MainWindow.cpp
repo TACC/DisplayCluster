@@ -544,63 +544,70 @@ bool MainWindow::serialStream()
 
 bool MainWindow::parallelStream()
 {
+    // frame index
+    static int frameIndex = 0;
+
     // create JPEGs for each segment, in parallel
     std::vector<ParallelPixelStreamSegment> segments = QtConcurrent::blockingMapped<std::vector<ParallelPixelStreamSegment> >(segments_, &computeSegmentJpeg);
 
-    // stream changed segments
+    // stream segments
+    // we have to stream all of them in case stream synchronization is on (we can't ignore unchanged segments... todo: fix this)
     for(unsigned int i=0; i<segments.size(); i++)
     {
-        if(segments[i].imageData != segments_[i].imageData)
+        // update frame index
+        segments[i].parameters.frameIndex = frameIndex;
+
+        // send the parameters and image data
+        MessageHeader mh;
+        mh.size = sizeof(ParallelPixelStreamSegmentParameters) + segments[i].imageData.size();
+        mh.type = MESSAGE_TYPE_PARALLEL_PIXELSTREAM;
+
+        // add the truncated URI to the header
+        size_t len = uri_.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
+        mh.uri[len] = '\0';
+
+        // send the header
+        int sent = tcpSocket_.write((const char *)&mh, sizeof(MessageHeader));
+
+        while(sent < (int)sizeof(MessageHeader))
         {
-            // send the parameters and image data
-            MessageHeader mh;
-            mh.size = sizeof(ParallelPixelStreamSegmentParameters) + segments[i].imageData.size();
-            mh.type = MESSAGE_TYPE_PARALLEL_PIXELSTREAM;
-
-            // add the truncated URI to the header
-            size_t len = uri_.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
-            mh.uri[len] = '\0';
-
-            // send the header
-            int sent = tcpSocket_.write((const char *)&mh, sizeof(MessageHeader));
-
-            while(sent < (int)sizeof(MessageHeader))
-            {
-                sent += tcpSocket_.write((const char *)&mh + sent, sizeof(MessageHeader) - sent);
-            }
-
-            // send the message
-
-            // part 1: parameters
-            sent = tcpSocket_.write((const char *)&(segments[i].parameters), sizeof(ParallelPixelStreamSegmentParameters));
-
-            while(sent < (int)sizeof(ParallelPixelStreamSegmentParameters))
-            {
-                sent += tcpSocket_.write((const char *)&(segments[i].parameters) + sent, sizeof(ParallelPixelStreamSegmentParameters) - sent);
-            }
-
-            // part 2: image data
-            sent = tcpSocket_.write((const char *)segments[i].imageData.data(), segments[i].imageData.size());
-
-            while(sent < segments[i].imageData.size())
-            {
-                sent += tcpSocket_.write((const char *)segments[i].imageData.data() + sent, segments[i].imageData.size() - sent);
-            }
-
-            // wait for acknowledgment
-            while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < 3)
-            {
-    #ifndef _WIN32
-                usleep(10);
-    #endif
-            }
-
-            tcpSocket_.read(3);
+            sent += tcpSocket_.write((const char *)&mh + sent, sizeof(MessageHeader) - sent);
         }
+
+        // send the message
+
+        // part 1: parameters
+        sent = tcpSocket_.write((const char *)&(segments[i].parameters), sizeof(ParallelPixelStreamSegmentParameters));
+
+        while(sent < (int)sizeof(ParallelPixelStreamSegmentParameters))
+        {
+            sent += tcpSocket_.write((const char *)&(segments[i].parameters) + sent, sizeof(ParallelPixelStreamSegmentParameters) - sent);
+        }
+
+        // part 2: image data
+        sent = tcpSocket_.write((const char *)segments[i].imageData.data(), segments[i].imageData.size());
+
+        while(sent < segments[i].imageData.size())
+        {
+            sent += tcpSocket_.write((const char *)segments[i].imageData.data() + sent, segments[i].imageData.size() - sent);
+        }
+
+        // wait for acknowledgment
+        while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < 3)
+        {
+#ifndef _WIN32
+            usleep(10);
+#endif
+        }
+
+        tcpSocket_.read(3);
     }
 
     // update segments vector
     segments_ = segments;
+
+    // increment frame index
+    frameIndex++;
 
     return true;
 }

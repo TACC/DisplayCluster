@@ -55,6 +55,9 @@ class PixelStream : public boost::enable_shared_from_this<PixelStream>, public F
         void getDimensions(int &width, int &height);
         bool render(float tX, float tY, float tW, float tH); // return true on successful render; false if no texture available
         bool setImageData(QByteArray imageData); // returns true if load image thread was spawned; false if frame was dropped
+        bool getLoadImageDataThreadRunning();
+        void setAutoUpdateTexture(bool set);
+        void updateTextureIfAvailable();
 
         // for use by loadImageDataThread()
         tjhandle getHandle();
@@ -82,7 +85,11 @@ class PixelStream : public boost::enable_shared_from_this<PixelStream>, public F
         bool imageReady_;
         QImage image_;
 
-        void setImage(QImage & image);
+        // whether updateTexture() should be called automatically every render() or not
+        // this can be set to false to allow for synchronization across multiple streams, for example.
+        bool autoUpdateTexture_;
+
+        void updateTexture(QImage & image);
 };
 
 extern void loadImageDataThread(boost::shared_ptr<PixelStream> pixelStream, QByteArray imageData);

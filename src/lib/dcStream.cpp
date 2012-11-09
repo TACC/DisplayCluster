@@ -45,9 +45,13 @@
 #include <QtCore>
 #include <cmath>
 #include <turbojpeg.h>
+#include <algorithm>
 
 // default to undefined frame index
 int g_dcStreamFrameIndex = FRAME_INDEX_UNDEFINED;
+
+// all current source indices for each stream name
+std::map<std::string, std::vector<int> > g_dcStreamSourceIndices;
 
 struct DcImage {
     unsigned char * imageBuffer;
@@ -107,6 +111,28 @@ void dcStreamDisconnect(DcSocket * socket)
     delete socket;
 
     socket = NULL;
+}
+
+void dcStreamReset(DcSocket * socket)
+{
+    for(std::map<std::string, std::vector<int> >::iterator it=g_dcStreamSourceIndices.begin(); it != g_dcStreamSourceIndices.end(); it++)
+    {
+        for(unsigned int i=0; i<(*it).second.size(); i++)
+        {
+            std::string name = (*it).first;
+            int sourceIndex = (*it).second[i];
+
+            // blank parameters object
+            DcStreamParameters parameters = dcStreamGenerateParameters(name, sourceIndex, 0, 0, 0, 0, 0, 0);
+
+            // send the blank parameters object
+            // this will trigger remote deletion of this segment
+            dcStreamSendJpeg(socket, parameters, NULL, 0);
+        }
+    }
+
+    // clear the current source indices for each stream name
+    g_dcStreamSourceIndices.clear();
 }
 
 DcStreamParameters dcStreamGenerateParameters(std::string name, int sourceIndex, int x, int y, int width, int height, int totalWidth, int totalHeight)
@@ -303,11 +329,14 @@ bool dcStreamSendJpeg(DcSocket * socket, DcStreamParameters parameters, const ch
     }
 
     // part 2: image data
-    sent = socket->write(jpegData, jpegSize);
-
-    while(sent < jpegSize)
+    if(jpegSize > 0)
     {
-        sent += socket->write(jpegData + sent, jpegSize - sent);
+        sent = socket->write(jpegData, jpegSize);
+
+        while(sent < jpegSize)
+        {
+            sent += socket->write(jpegData + sent, jpegSize - sent);
+        }
     }
 
     // wait for acknowledgment
@@ -319,6 +348,12 @@ bool dcStreamSendJpeg(DcSocket * socket, DcStreamParameters parameters, const ch
     }
 
     socket->read(3);
+
+    // make sure this sourceIndex is in the vector of current source indices for this stream name
+    if(count(g_dcStreamSourceIndices[parameters.name].begin(), g_dcStreamSourceIndices[parameters.name].end(), parameters.sourceIndex) == 0)
+    {
+        g_dcStreamSourceIndices[parameters.name].push_back(parameters.sourceIndex);
+    }
 
     return true;
 }

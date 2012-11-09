@@ -125,6 +125,12 @@ class ParallelPixelStream : public FactoryObject {
         // retrieve latest segments and remove them (and older segments) from the map
         std::vector<ParallelPixelStreamSegment> getAndPopLatestSegments();
 
+        // retrieve all segments and clear the map
+        std::vector<ParallelPixelStreamSegment> getAndPopAllSegments();
+
+        // retrieve all segments for the given frame index and clear older entries in the map
+        std::vector<ParallelPixelStreamSegment> getAndPopSegments(int frameIndex);
+
         // update pixel streams corresponding to latest segments
         void updatePixelStreams();
 
@@ -150,6 +156,12 @@ class ParallelPixelStream : public FactoryObject {
 
         // determine if segment is visible on any of the screens of this process
         bool isSegmentVisible(ParallelPixelStreamSegmentParameters parameters);
+
+        // get vector of source indices visible on any of the screens of this process
+        std::vector<int> getSourceIndicesVisible();
+
+        // get whether or not we have valid frame indices for all segments
+        bool getValidFrameIndices();
 
         // clear old / stale pixel streams from map
         void clearStalePixelStreams();

@@ -145,15 +145,49 @@ void ParallelPixelStream::insertSegment(ParallelPixelStreamSegment segment)
 {
     QMutexLocker locker(&segmentsMutex_);
 
-    // update total dimensions
-    width_ = segment.parameters.totalWidth;
-    height_ = segment.parameters.totalHeight;
+    // update total dimensions if we have non-blank parameters
+    if(segment.parameters.totalWidth != 0 && segment.parameters.totalHeight != 0)
+    {
+        width_ = segment.parameters.totalWidth;
+        height_ = segment.parameters.totalHeight;
+    }
 
+    // update parameters
+    pixelStreamParameters_[segment.parameters.sourceIndex] = segment.parameters;
+
+    // delete any blank segments
     // filter out segments that are not visible (only for rank != 0)
     if(g_mpiRank != 0)
     {
-        if(isSegmentVisible(segment.parameters) == false)
+        if(segment.parameters.totalWidth == 0 && segment.parameters.totalHeight == 0)
         {
+            // this is a blank segment, clear out everything for its sourceIndex...
+
+            // clear any unprocessed segments for this source index
+            if(segments_.count(segment.parameters.sourceIndex) != 0)
+            {
+                segments_.erase(segment.parameters.sourceIndex);
+            }
+
+            // clear the stored parameters for this source index
+            if(pixelStreamParameters_.count(segment.parameters.sourceIndex) != 0)
+            {
+                pixelStreamParameters_.erase(segment.parameters.sourceIndex);
+            }
+
+            // note that the pixelStream object in pixelStreams_ will be cleared in clearStalePixelStreams()
+
+            // drop the segment
+            return;
+        }
+        else if(isSegmentVisible(segment.parameters) == false)
+        {
+            // clear any unprocessed segments for this source index
+            if(segments_.count(segment.parameters.sourceIndex) != 0)
+            {
+                segments_.erase(segment.parameters.sourceIndex);
+            }
+
             // drop the segment
             return;
         }
@@ -170,7 +204,10 @@ std::vector<ParallelPixelStreamSegment> ParallelPixelStream::getAndPopLatestSegm
 
     for(std::map<int, std::vector<ParallelPixelStreamSegment> >::iterator it=segments_.begin(); it != segments_.end(); it++)
     {
-        latestSegments.push_back((*it).second.back());
+        if((*it).second.size() > 0)
+        {
+            latestSegments.push_back((*it).second.back());
+        }
     }
 
     // clear the map since we got all the latest segments
@@ -179,13 +216,141 @@ std::vector<ParallelPixelStreamSegment> ParallelPixelStream::getAndPopLatestSegm
     return latestSegments;
 }
 
+std::vector<ParallelPixelStreamSegment> ParallelPixelStream::getAndPopAllSegments()
+{
+    QMutexLocker locker(&segmentsMutex_);
+
+    std::vector<ParallelPixelStreamSegment> allSegments;
+
+    for(std::map<int, std::vector<ParallelPixelStreamSegment> >::iterator it=segments_.begin(); it != segments_.end(); it++)
+    {
+        if((*it).second.size() > 0)
+        {
+            allSegments.insert(allSegments.end(), (*it).second.begin(), (*it).second.end());
+        }
+    }
+
+    // clear the map since we got all the segments
+    segments_.clear();
+
+    return allSegments;
+}
+
+std::vector<ParallelPixelStreamSegment> ParallelPixelStream::getAndPopSegments(int frameIndex)
+{
+    QMutexLocker locker(&segmentsMutex_);
+
+    std::vector<ParallelPixelStreamSegment> frameIndexSegments;
+
+    for(std::map<int, std::vector<ParallelPixelStreamSegment> >::iterator it=segments_.begin(); it != segments_.end(); it++)
+    {
+        for(unsigned int i=0; i<(*it).second.size(); i++)
+        {
+            if((*it).second[i].parameters.frameIndex == frameIndex)
+            {
+                frameIndexSegments.push_back((*it).second[i]);
+
+                // erase this segment and the earlier segments (i+1 segments will be erased)
+                (*it).second.erase((*it).second.begin(), (*it).second.begin() + i+1);
+
+                // continue to next source index in the map (breaking from this for loop)
+                break;
+            }
+        }
+    }
+
+    return frameIndexSegments;
+}
+
 void ParallelPixelStream::updatePixelStreams()
 {
-    std::vector<ParallelPixelStreamSegment> latestSegments = getAndPopLatestSegments();
+    // segments we want to process
+    std::vector<ParallelPixelStreamSegment> segments;
 
-    for(unsigned int i=0; i<latestSegments.size(); i++)
+    // process differently depending on synchronization option
+    bool enableStreamingSynchronization = g_displayGroupManager->getOptions()->getEnableStreamingSynchronization();
+
+    // make sure all of our segments have a valid frame index
+    // if this is not the case, then we can't have synchronization
+    if(enableStreamingSynchronization == true && getValidFrameIndices() != true)
     {
-        int sourceIndex = latestSegments[i].parameters.sourceIndex;
+        enableStreamingSynchronization = false;
+    }
+
+    if(enableStreamingSynchronization == true)
+    {
+        // determine if threads are running on any processes for this ParallelPixelStream
+
+        // first, for this local process
+        int localThreadsRunning = 0;
+
+        std::map<int, boost::shared_ptr<PixelStream> >::iterator it = pixelStreams_.begin();
+
+        while(it != pixelStreams_.end())
+        {
+            localThreadsRunning += (int)(*it).second->getLoadImageDataThreadRunning();
+            it++;
+        }
+
+        // now, globally for all render processes
+        int globalThreadsRunning;
+
+        MPI_Allreduce((void *)&localThreadsRunning, (void *)&globalThreadsRunning, 1, MPI_INT, MPI_SUM, g_mpiRenderComm);
+
+        // do nothing if threads are still running
+        if(globalThreadsRunning > 0)
+        {
+            return;
+        }
+
+        // if no threads are running, attempt to update textures (this will be synchronous across all streams!)
+        it = pixelStreams_.begin();
+
+        while(it != pixelStreams_.end())
+        {
+            (*it).second->updateTextureIfAvailable();
+            it++;
+        }
+
+        // find the latest frame index we have locally for all visible parameters
+
+        // the visible source indices
+        std::vector<int> visibleSourceIndices = getSourceIndicesVisible();
+
+        // the latest frame index we have for all visible source indices
+        int latestFrameIndex = INT_MAX;
+
+        for(unsigned int i=0; i<visibleSourceIndices.size(); i++)
+        {
+            if(segments_.count(visibleSourceIndices[i]) == 0 || segments_[visibleSourceIndices[i]].size() == 0)
+            {
+                latestFrameIndex = -1;
+            }
+            else
+            {
+                latestFrameIndex = std::min(latestFrameIndex, segments_[visibleSourceIndices[i]].back().parameters.frameIndex);
+            }
+        }
+
+        // now, find the latest frame index for visible source indices across all nodes
+        int globalLatestFrameIndex;
+
+        MPI_Allreduce((void *)&latestFrameIndex, (void *)&globalLatestFrameIndex, 1, MPI_INT, MPI_MIN, g_mpiRenderComm);
+
+        if(globalLatestFrameIndex > 0)
+        {
+            segments = getAndPopSegments(globalLatestFrameIndex);
+        }
+    }
+    else
+    {
+        // synchronization disabled
+        segments = getAndPopLatestSegments();
+    }
+
+    for(unsigned int i=0; i<segments.size(); i++)
+    {
+        int sourceIndex = segments[i].parameters.sourceIndex;
 
         if(pixelStreams_[sourceIndex] == NULL)
         {
@@ -193,8 +358,10 @@ void ParallelPixelStream::updatePixelStreams()
             pixelStreams_[sourceIndex] = ps;
         }
 
-        pixelStreamParameters_[sourceIndex] = latestSegments[i].parameters;
-        bool success = pixelStreams_[sourceIndex]->setImageData(latestSegments[i].imageData);
+        // auto texture uploading depending on synchronous setting
+        pixelStreams_[sourceIndex]->setAutoUpdateTexture(!enableStreamingSynchronization);
+
+        bool success = pixelStreams_[sourceIndex]->setImageData(segments[i].imageData);
 
         if(success == true)
         {
@@ -242,6 +409,42 @@ bool ParallelPixelStream::isSegmentVisible(ParallelPixelStreamSegmentParameters 
 
         return true;
     }
+}
+
+std::vector<int> ParallelPixelStream::getSourceIndicesVisible()
+{
+    std::vector<int> sourceIndices;
+
+    std::map<int, ParallelPixelStreamSegmentParameters>::iterator it = pixelStreamParameters_.begin();
+
+    while(it != pixelStreamParameters_.end())
+    {
+        if(isSegmentVisible((*it).second) == true)
+        {
+            sourceIndices.push_back((*it).first);
+        }
+
+        it++;
+    }
+
+    return sourceIndices;
+}
+
+bool ParallelPixelStream::getValidFrameIndices()
+{
+    std::map<int, ParallelPixelStreamSegmentParameters>::iterator it = pixelStreamParameters_.begin();
+
+    while(it != pixelStreamParameters_.end())
+    {
+        if((*it).second.frameIndex == FRAME_INDEX_UNDEFINED)
+        {
+            return false;
+        }
+
+        it++;
+    }
+
+    return true;
 }
 
 void ParallelPixelStream::clearStalePixelStreams()

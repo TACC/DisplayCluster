@@ -729,9 +729,19 @@ void DisplayGroupManager::sendParallelPixelStreams()
         boost::shared_ptr<ParallelPixelStream> parallelPixelStreamSource = (*it).second;
 
         // get updated segments
-        std::vector<ParallelPixelStreamSegment> latestSegments = parallelPixelStreamSource->getAndPopLatestSegments();
+        // if streaming synchronization is enabled, we need to send all segments; otherwise just the latest segments
+        std::vector<ParallelPixelStreamSegment> segments;
 
-        if(latestSegments.size() > 0)
+        if(options_->getEnableStreamingSynchronization() == true)
+        {
+            segments = parallelPixelStreamSource->getAndPopAllSegments();
+        }
+        else
+        {
+            segments = parallelPixelStreamSource->getAndPopLatestSegments();
+        }
+
+        if(segments.size() > 0)
         {
             // make sure Content/ContentWindowManager exists for the URI
 
@@ -753,7 +763,7 @@ void DisplayGroupManager::sendParallelPixelStreams()
             // brace this so destructor is called on archive before we use the stream
             {
                 boost::archive::binary_oarchive oa(oss);
-                oa << latestSegments;
+                oa << segments;
             }
 
             // serialized data to string
@@ -779,8 +789,8 @@ void DisplayGroupManager::sendParallelPixelStreams()
             MPI_Bcast((void *)serializedString.data(), size, MPI_BYTE, 0, MPI_COMM_WORLD);
 
             // check for updated dimensions
-            int newWidth = latestSegments[0].parameters.totalWidth;
-            int newHeight = latestSegments[0].parameters.totalHeight;
+            int newWidth = segments[0].parameters.totalWidth;
+            int newHeight = segments[0].parameters.totalHeight;
 
             boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager(uri, CONTENT_TYPE_PARALLEL_PIXEL_STREAM);
 
@@ -1030,15 +1040,15 @@ void DisplayGroupManager::receiveParallelPixelStreams(MessageHeader messageHeade
     }
 
     // read to a new segments vector
-    std::vector<ParallelPixelStreamSegment> latestSegments;
+    std::vector<ParallelPixelStreamSegment> segments;
 
     boost::archive::binary_iarchive ia(iss);
-    ia >> latestSegments;
+    ia >> segments;
 
     // now, insert all segments
-    for(unsigned int i=0; i<latestSegments.size(); i++)
+    for(unsigned int i=0; i<segments.size(); i++)
     {
-        g_mainWindow->getGLWindow()->getParallelPixelStreamFactory().getObject(uri)->insertSegment(latestSegments[i]);
+        g_mainWindow->getGLWindow()->getParallelPixelStreamFactory().getObject(uri)->insertSegment(segments[i]);
     }
 
     // update pixel streams corresponding to new segments
