@@ -59,11 +59,13 @@ PixelStream::PixelStream(std::string uri)
 
 PixelStream::~PixelStream()
 {
+    // delete bound texture
     if(textureBound_ == true)
     {
-        // delete bound texture
-        glDeleteTextures(1, &textureId_); // it appears deleteTexture() below is not actually deleting the texture from the GPU...
-        g_mainWindow->getGLWindow()->deleteTexture(textureId_);
+        // let the OpenGL window delete the texture, so the destructor can occur in any thread...
+        g_mainWindow->getGLWindow()->insertPurgeTextureId(textureId_);
+
+        textureBound_ = false;
     }
 
     // destroy libjpeg-turbo handle
