@@ -162,20 +162,9 @@ void ParallelPixelStream::insertSegment(ParallelPixelStreamSegment segment)
         if(segment.parameters.totalWidth == 0 && segment.parameters.totalHeight == 0)
         {
             // this is a blank segment, clear out everything for its sourceIndex...
-
-            // clear any unprocessed segments for this source index
-            if(segments_.count(segment.parameters.sourceIndex) != 0)
-            {
-                segments_.erase(segment.parameters.sourceIndex);
-            }
-
-            // clear the stored parameters for this source index
-            if(pixelStreamParameters_.count(segment.parameters.sourceIndex) != 0)
-            {
-                pixelStreamParameters_.erase(segment.parameters.sourceIndex);
-            }
-
-            // note that the pixelStream object in pixelStreams_ will be cleared in clearStalePixelStreams()
+            segments_.erase(segment.parameters.sourceIndex);
+            pixelStreams_.erase(segment.parameters.sourceIndex);
+            pixelStreamParameters_.erase(segment.parameters.sourceIndex);
 
             // drop the segment
             return;
@@ -337,7 +326,7 @@ void ParallelPixelStream::updatePixelStreams()
 
         MPI_Allreduce((void *)&latestFrameIndex, (void *)&globalLatestFrameIndex, 1, MPI_INT, MPI_MIN, g_mpiRenderComm);
 
-        if(globalLatestFrameIndex > 0)
+        if(globalLatestFrameIndex > 0 && globalLatestFrameIndex != INT_MAX)
         {
             segments = getAndPopSegments(globalLatestFrameIndex);
         }
