@@ -40,6 +40,7 @@
 #include "ContentWindowManager.h"
 #include "TextureContent.h"
 #include "DynamicTextureContent.h"
+#include "SVGContent.h"
 #include "MovieContent.h"
 #include "main.h"
 #include "GLWindow.h"
@@ -181,7 +182,14 @@ boost::shared_ptr<Content> Content::getContent(std::string uri)
     // see if this is an image
     QImageReader imageReader(uri.c_str());
 
-    if(imageReader.canRead() == true)
+    // see if this is an SVG image (must do this first, since SVG can also be read as an image directly)
+    if(fileTypeString.endsWith(".svg"))
+    {
+        boost::shared_ptr<Content> c(new SVGContent(uri));
+
+        return c;
+    }
+    else if(imageReader.canRead() == true)
     {
         // get its size
         QSize size = imageReader.size();

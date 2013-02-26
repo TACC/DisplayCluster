@@ -89,6 +89,11 @@ Factory<DynamicTexture> & GLWindow::getDynamicTextureFactory()
     return dynamicTextureFactory_;
 }
 
+Factory<SVG> & GLWindow::getSVGFactory()
+{
+    return svgFactory_;
+}
+
 Factory<Movie> & GLWindow::getMovieFactory()
 {
     return movieFactory_;
@@ -447,6 +452,7 @@ void GLWindow::finalize()
 {
     textureFactory_.clear();
     dynamicTextureFactory_.clear();
+    svgFactory_.clear();
     movieFactory_.clear();
     pixelStreamFactory_.clear();
     parallelPixelStreamFactory_.clear();

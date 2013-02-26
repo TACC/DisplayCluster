@@ -36,72 +36,47 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef GL_WINDOW_H
-#define GL_WINDOW_H
+#include "SVGStreamSource.h"
 
-#include "Factory.hpp"
-#include "Texture.h"
-#include "DynamicTexture.h"
-#include "SVG.h"
-#include "Movie.h"
-#include "PixelStream.h"
-#include "ParallelPixelStream.h"
-#include <QGLWidget>
-
-class GLWindow : public QGLWidget
+SVGStreamSource::SVGStreamSource(std::string uri)
 {
+    // defaults
+    imageDataCount_ = 0;
+    getImageDataCount_ = 0;
 
-    public:
+    // assign values
+    uri_ = uri;
+}
 
-        GLWindow(int tileIndex);
-        GLWindow(int tileIndex, QRect windowRect, QGLWidget * shareWidget = 0);
-        ~GLWindow();
+QByteArray SVGStreamSource::getImageData(bool & updated)
+{
+    QMutexLocker locker(&imageDataMutex_);
 
-        Factory<Texture> & getTextureFactory();
-        Factory<DynamicTexture> & getDynamicTextureFactory();
-        Factory<SVG> & getSVGFactory();
-        Factory<Movie> & getMovieFactory();
-        Factory<PixelStream> & getPixelStreamFactory();
-        Factory<ParallelPixelStream> & getParallelPixelStreamFactory();
+    // whether or not this is an updated image since the last call to getImageData()
+    if(imageDataCount_ > getImageDataCount_)
+    {
+        updated = true;
+    }
+    else
+    {
+        updated = false;
+    }
 
-        void insertPurgeTextureId(GLuint textureId);
-        void purgeTextures();
+    getImageDataCount_ = imageDataCount_;
 
-        void initializeGL();
-        void paintGL();
-        void resizeGL(int width, int height);
-        void setOrthographicView();
-        bool setPerspectiveView(double x=0., double y=0., double w=1., double h=1.);
+    return imageData_;
+}
 
-        bool isScreenRectangleVisible(double x, double y, double w, double h);
+void SVGStreamSource::setImageData(QByteArray imageData)
+{
+    QMutexLocker locker(&imageDataMutex_);
 
-        static bool isRectangleVisible(double x, double y, double w, double h);
-        static void drawRectangle(double x, double y, double w, double h);
+    // only take the update if the image data has changed
+    if(imageData_ != imageData)
+    {
+        imageData_ = imageData;
+        imageDataCount_++;
+    }
+}
 
-        void finalize();
-
-    private:
-
-        int tileIndex_;
-
-        double left_;
-        double right_;
-        double bottom_;
-        double top_;
-
-        Factory<Texture> textureFactory_;
-        Factory<DynamicTexture> dynamicTextureFactory_;
-        Factory<SVG> svgFactory_;
-        Factory<Movie> movieFactory_;
-        Factory<PixelStream> pixelStreamFactory_;
-        Factory<ParallelPixelStream> parallelPixelStreamFactory_;
-
-        // mutex and vector of texture id's to purge
-        // this allows other threads to trigger deletion of a texture during the main OpenGL thread execution
-        QMutex purgeTexturesMutex_;
-        std::vector<GLuint> purgeTextureIds_;
-
-        void renderTestPattern();
-};
-
-#endif
+Factory<SVGStreamSource> g_SVGStreamSourceFactory;

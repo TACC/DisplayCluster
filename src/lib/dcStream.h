@@ -104,4 +104,9 @@ extern bool dcStreamComputeJpeg(unsigned char * imageBuffer, int width, int pitc
 // used for frame synchronization.
 extern void dcStreamIncrementFrameIndex();
 
+// sends an SVG image with a given name to a DisplayCluster instance over a
+// socket. different from the pixel streaming capability, this allows for
+// streaming vector-based graphics.
+extern bool dcStreamSendSVG(DcSocket * socket, std::string name, const char * svgData, int svgSize);
+
 #endif

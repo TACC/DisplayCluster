@@ -36,72 +36,33 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef GL_WINDOW_H
-#define GL_WINDOW_H
+#ifndef SVG_CONTENT_H
+#define SVG_CONTENT_H
 
-#include "Factory.hpp"
-#include "Texture.h"
-#include "DynamicTexture.h"
-#include "SVG.h"
-#include "Movie.h"
-#include "PixelStream.h"
-#include "ParallelPixelStream.h"
-#include <QGLWidget>
+#include "Content.h"
+#include <boost/serialization/base_object.hpp>
+#include <boost/serialization/export.hpp>
 
-class GLWindow : public QGLWidget
-{
+class SVGContent : public Content {
 
     public:
+        SVGContent(std::string uri = "") : Content(uri) { }
 
-        GLWindow(int tileIndex);
-        GLWindow(int tileIndex, QRect windowRect, QGLWidget * shareWidget = 0);
-        ~GLWindow();
+        CONTENT_TYPE getType();
 
-        Factory<Texture> & getTextureFactory();
-        Factory<DynamicTexture> & getDynamicTextureFactory();
-        Factory<SVG> & getSVGFactory();
-        Factory<Movie> & getMovieFactory();
-        Factory<PixelStream> & getPixelStreamFactory();
-        Factory<ParallelPixelStream> & getParallelPixelStreamFactory();
-
-        void insertPurgeTextureId(GLuint textureId);
-        void purgeTextures();
-
-        void initializeGL();
-        void paintGL();
-        void resizeGL(int width, int height);
-        void setOrthographicView();
-        bool setPerspectiveView(double x=0., double y=0., double w=1., double h=1.);
-
-        bool isScreenRectangleVisible(double x, double y, double w, double h);
-
-        static bool isRectangleVisible(double x, double y, double w, double h);
-        static void drawRectangle(double x, double y, double w, double h);
-
-        void finalize();
+        void getFactoryObjectDimensions(int &width, int &height);
 
     private:
+        friend class boost::serialization::access;
 
-        int tileIndex_;
+        template<class Archive>
+        void serialize(Archive & ar, const unsigned int)
+        {
+            // serialize base class information
+            ar & boost::serialization::base_object<Content>(*this);
+        }
 
-        double left_;
-        double right_;
-        double bottom_;
-        double top_;
-
-        Factory<Texture> textureFactory_;
-        Factory<DynamicTexture> dynamicTextureFactory_;
-        Factory<SVG> svgFactory_;
-        Factory<Movie> movieFactory_;
-        Factory<PixelStream> pixelStreamFactory_;
-        Factory<ParallelPixelStream> parallelPixelStreamFactory_;
-
-        // mutex and vector of texture id's to purge
-        // this allows other threads to trigger deletion of a texture during the main OpenGL thread execution
-        QMutex purgeTexturesMutex_;
-        std::vector<GLuint> purgeTextureIds_;
-
-        void renderTestPattern();
+        void renderFactoryObject(float tX, float tY, float tW, float tH);
 };
 
 #endif

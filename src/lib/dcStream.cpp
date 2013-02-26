@@ -440,6 +440,65 @@ void dcStreamIncrementFrameIndex()
     g_dcStreamFrameIndex++;
 }
 
+bool dcStreamSendSVG(DcSocket * socket, std::string name, const char * svgData, int svgSize)
+{
+    if(socket == NULL)
+    {
+        put_flog(LOG_ERROR, "socket is NULL");
+
+        return false;
+    }
+
+    if(socket->state() != QAbstractSocket::ConnectedState)
+    {
+        put_flog(LOG_ERROR, "socket is not connected");
+
+        return false;
+    }
+
+    // send the parameters and image data
+    MessageHeader mh;
+    mh.size = svgSize;
+    mh.type = MESSAGE_TYPE_SVG_STREAM;
+
+    // add the truncated URI to the header
+    size_t len = name.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
+    mh.uri[len] = '\0';
+
+    // send the header
+    int sent = socket->write((const char *)&mh, sizeof(MessageHeader));
+
+    while(sent < (int)sizeof(MessageHeader))
+    {
+        sent += socket->write((const char *)&mh + sent, sizeof(MessageHeader) - sent);
+    }
+
+    // send the message
+
+    // part 1: image data
+    if(svgSize > 0)
+    {
+        sent = socket->write(svgData, svgSize);
+
+        while(sent < svgSize)
+        {
+            sent += socket->write(svgData + sent, svgSize - sent);
+        }
+    }
+
+    // wait for acknowledgment
+    while(socket->waitForReadyRead() && socket->bytesAvailable() < 3)
+    {
+#ifndef _WIN32
+        usleep(10);
+#endif
+    }
+
+    socket->read(3);
+
+    return true;
+}
+
 DcImage dcStreamComputeJpegMapped(const DcImage & dcImage)
 {
     DcImage newDcImage = dcImage;

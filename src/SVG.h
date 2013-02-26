@@ -36,72 +36,51 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef GL_WINDOW_H
-#define GL_WINDOW_H
+#ifndef SVG_H
+#define SVG_H
 
-#include "Factory.hpp"
-#include "Texture.h"
-#include "DynamicTexture.h"
-#include "SVG.h"
-#include "Movie.h"
-#include "PixelStream.h"
-#include "ParallelPixelStream.h"
+#include "FactoryObject.h"
+#include <QtSvg>
 #include <QGLWidget>
+#include <QGLFramebufferObject>
+#include <boost/shared_ptr.hpp>
+#include <map>
 
-class GLWindow : public QGLWidget
-{
+class GLWindow;
+
+class SVG : public FactoryObject {
 
     public:
 
-        GLWindow(int tileIndex);
-        GLWindow(int tileIndex, QRect windowRect, QGLWidget * shareWidget = 0);
-        ~GLWindow();
+        SVG(std::string uri);
+        ~SVG();
 
-        Factory<Texture> & getTextureFactory();
-        Factory<DynamicTexture> & getDynamicTextureFactory();
-        Factory<SVG> & getSVGFactory();
-        Factory<Movie> & getMovieFactory();
-        Factory<PixelStream> & getPixelStreamFactory();
-        Factory<ParallelPixelStream> & getParallelPixelStreamFactory();
-
-        void insertPurgeTextureId(GLuint textureId);
-        void purgeTextures();
-
-        void initializeGL();
-        void paintGL();
-        void resizeGL(int width, int height);
-        void setOrthographicView();
-        bool setPerspectiveView(double x=0., double y=0., double w=1., double h=1.);
-
-        bool isScreenRectangleVisible(double x, double y, double w, double h);
-
-        static bool isRectangleVisible(double x, double y, double w, double h);
-        static void drawRectangle(double x, double y, double w, double h);
-
-        void finalize();
+        void getDimensions(int &width, int &height);
+        void render(float tX, float tY, float tW, float tH);
+        bool setImageData(QByteArray imageData);
 
     private:
 
-        int tileIndex_;
+        // image location
+        std::string uri_;
 
-        double left_;
-        double right_;
-        double bottom_;
-        double top_;
+        // SVG renderer
+        QRectF svgExtents_;
+        QSvgRenderer svgRenderer_;
 
-        Factory<Texture> textureFactory_;
-        Factory<DynamicTexture> dynamicTextureFactory_;
-        Factory<SVG> svgFactory_;
-        Factory<Movie> movieFactory_;
-        Factory<PixelStream> pixelStreamFactory_;
-        Factory<ParallelPixelStream> parallelPixelStreamFactory_;
+        std::map<boost::shared_ptr<GLWindow>, boost::shared_ptr<QGLFramebufferObject> > fbos_;
 
-        // mutex and vector of texture id's to purge
-        // this allows other threads to trigger deletion of a texture during the main OpenGL thread execution
-        QMutex purgeTexturesMutex_;
-        std::vector<GLuint> purgeTextureIds_;
+        // current rasterized image dimensions
+        int imageWidth_;
+        int imageHeight_;
 
-        void renderTestPattern();
+        // texture information
+        QRectF textureRect_;
+        QSizeF textureSize_;
+        GLuint textureId_;
+
+        void generateTexture(QRectF screenRect, QRectF fullRect, float tX, float tY, float tW, float tH);
+        QRectF getProjectedPixelRect(bool onScreenOnly);
 };
 
 #endif

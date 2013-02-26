@@ -37,6 +37,7 @@ if(BUILD_DISPLAYCLUSTER OR BUILD_DISPLAYCLUSTER_LIBRARY OR BUILD_DESKTOPSTREAMER
     # find and setup Qt4
     # see http://cmake.org/cmake/help/cmake2.6docs.html#module:FindQt4 for details
     set(QT_USE_QTOPENGL TRUE)
+    set(QT_USE_QTSVG TRUE)
     set(QT_USE_QTXMLPATTERNS TRUE)
     set(QT_USE_QTXML TRUE)
     set(QT_USE_QTNETWORK TRUE)
@@ -166,6 +167,9 @@ if(BUILD_DISPLAYCLUSTER)
         src/PixelStream.cpp
         src/PixelStreamContent.cpp
         src/PixelStreamSource.cpp
+        src/SVG.cpp
+        src/SVGContent.cpp
+        src/SVGStreamSource.cpp
         src/Texture.cpp
         src/TextureContent.cpp
     )

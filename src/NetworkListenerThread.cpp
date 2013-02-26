@@ -41,6 +41,7 @@
 #include "log.h"
 #include "PixelStreamSource.h"
 #include "ParallelPixelStream.h"
+#include "SVGStreamSource.h"
 #include <stdint.h>
 
 NetworkListenerThread::NetworkListenerThread(int socketDescriptor)
@@ -53,6 +54,8 @@ NetworkListenerThread::NetworkListenerThread(int socketDescriptor)
 
     // connect signals
     connect(this, SIGNAL(updatedPixelStreamSource()), g_displayGroupManager.get(), SLOT(sendPixelStreams()), Qt::BlockingQueuedConnection);
+
+    connect(this, SIGNAL(updatedSVGStreamSource()), g_displayGroupManager.get(), SLOT(sendSVGStreams()), Qt::BlockingQueuedConnection);
 }
 
 void NetworkListenerThread::run()
@@ -162,5 +165,15 @@ void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArra
         g_parallelPixelStreamSourceFactory.getObject(uri)->insertSegment(segment);
 
         // no need to emit any signals since there's a polling loop in the main thread
+    }
+    else if(messageHeader.type == MESSAGE_TYPE_SVG_STREAM)
+    {
+        // update SVG stream source
+        // similar to pixel streaming above
+        std::string uri(messageHeader.uri);
+
+        g_SVGStreamSourceFactory.getObject(uri)->setImageData(byteArray);
+
+        emit(updatedSVGStreamSource());
     }
 }
