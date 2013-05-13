@@ -46,6 +46,7 @@
 #include <cmath>
 #include <turbojpeg.h>
 #include <algorithm>
+#include <unistd.h>
 
 // default to undefined frame index
 int g_dcStreamFrameIndex = FRAME_INDEX_UNDEFINED;
