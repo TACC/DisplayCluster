@@ -61,6 +61,7 @@ extern "C" {
     #include <libavformat/avformat.h>
     #include <libswscale/swscale.h>
     #include <libavutil/error.h>
+    #include <libavutil/mathematics.h>
 }
 
 class Movie : public FactoryObject {

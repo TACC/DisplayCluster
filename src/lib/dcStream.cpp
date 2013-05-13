@@ -45,6 +45,7 @@
 #include <QtCore>
 #include <cmath>
 #include <turbojpeg.h>
+#include <unistd.h>
 
 struct DcImage {
     unsigned char * imageBuffer;
@@ -216,7 +217,7 @@ bool dcStreamSend(DcSocket * socket, unsigned char * imageBuffer, int imageX, in
     }
 
     // create JPEGs for each segment, in parallel
-    
+
     dcImages = QtConcurrent::blockingMapped<std::vector<DcImage> >(dcImages, &dcStreamComputeJpegMapped);
 
     // send each segment, and return true if we were successful for all segments
