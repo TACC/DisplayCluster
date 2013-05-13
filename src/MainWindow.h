@@ -77,6 +77,8 @@ class MainWindow : public QMainWindow {
 
         void updateGLWindows();
 
+        void finalize();
+
     signals:
 
         void updateGLWindowsFinished();

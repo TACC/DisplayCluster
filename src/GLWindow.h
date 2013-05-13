@@ -42,6 +42,7 @@
 #include "Factory.hpp"
 #include "Texture.h"
 #include "DynamicTexture.h"
+#include "SVG.h"
 #include "Movie.h"
 #include "PixelStream.h"
 #include "ParallelPixelStream.h"
@@ -58,9 +59,13 @@ class GLWindow : public QGLWidget
 
         Factory<Texture> & getTextureFactory();
         Factory<DynamicTexture> & getDynamicTextureFactory();
+        Factory<SVG> & getSVGFactory();
         Factory<Movie> & getMovieFactory();
         Factory<PixelStream> & getPixelStreamFactory();
         Factory<ParallelPixelStream> & getParallelPixelStreamFactory();
+
+        void insertPurgeTextureId(GLuint textureId);
+        void purgeTextures();
 
         void initializeGL();
         void paintGL();
@@ -73,6 +78,8 @@ class GLWindow : public QGLWidget
         static bool isRectangleVisible(double x, double y, double w, double h);
         static void drawRectangle(double x, double y, double w, double h);
 
+        void finalize();
+
     private:
 
         int tileIndex_;
@@ -84,9 +91,15 @@ class GLWindow : public QGLWidget
 
         Factory<Texture> textureFactory_;
         Factory<DynamicTexture> dynamicTextureFactory_;
+        Factory<SVG> svgFactory_;
         Factory<Movie> movieFactory_;
         Factory<PixelStream> pixelStreamFactory_;
         Factory<ParallelPixelStream> parallelPixelStreamFactory_;
+
+        // mutex and vector of texture id's to purge
+        // this allows other threads to trigger deletion of a texture during the main OpenGL thread execution
+        QMutex purgeTexturesMutex_;
+        std::vector<GLuint> purgeTextureIds_;
 
         void renderTestPattern();
 };

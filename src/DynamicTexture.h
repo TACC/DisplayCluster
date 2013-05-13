@@ -117,6 +117,7 @@ class DynamicTexture : public boost::enable_shared_from_this<DynamicTexture>, pu
         long renderChildrenFrameCount_;
 
         boost::shared_ptr<DynamicTexture> getRoot();
+        void getObjectsAscending(std::vector<boost::shared_ptr<DynamicTexture> > &objects);
         QRect getRootImageCoordinates(float x, float y, float w, float h);
         QImage getImageFromParent(float x, float y, float w, float h, DynamicTexture * start);
         void uploadTexture();
@@ -126,6 +127,9 @@ class DynamicTexture : public boost::enable_shared_from_this<DynamicTexture>, pu
         int getThreadCount();
         void incrementThreadCount();
 };
+
+// this wrapper is used by child objects to prevent its ancestors from being destructed during thread execution.
+extern void loadImageThread(boost::shared_ptr<DynamicTexture> dynamicTexture, std::vector<boost::shared_ptr<DynamicTexture> > objects);
 
 extern void loadImageThread(DynamicTexture * dynamicTexture);
 

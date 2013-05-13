@@ -45,7 +45,13 @@
 #include <QtCore>
 #include <cmath>
 #include <turbojpeg.h>
-#include <unistd.h>
+#include <algorithm>
+
+// default to undefined frame index
+int g_dcStreamFrameIndex = FRAME_INDEX_UNDEFINED;
+
+// all current source indices for each stream name
+std::map<std::string, std::vector<int> > g_dcStreamSourceIndices;
 
 struct DcImage {
     unsigned char * imageBuffer;
@@ -105,6 +111,28 @@ void dcStreamDisconnect(DcSocket * socket)
     delete socket;
 
     socket = NULL;
+}
+
+void dcStreamReset(DcSocket * socket)
+{
+    for(std::map<std::string, std::vector<int> >::iterator it=g_dcStreamSourceIndices.begin(); it != g_dcStreamSourceIndices.end(); it++)
+    {
+        for(unsigned int i=0; i<(*it).second.size(); i++)
+        {
+            std::string name = (*it).first;
+            int sourceIndex = (*it).second[i];
+
+            // blank parameters object
+            DcStreamParameters parameters = dcStreamGenerateParameters(name, sourceIndex, 0, 0, 0, 0, 0, 0);
+
+            // send the blank parameters object
+            // this will trigger remote deletion of this segment
+            dcStreamSendJpeg(socket, parameters, NULL, 0);
+        }
+    }
+
+    // clear the current source indices for each stream name
+    g_dcStreamSourceIndices.clear();
 }
 
 DcStreamParameters dcStreamGenerateParameters(std::string name, int sourceIndex, int x, int y, int width, int height, int totalWidth, int totalHeight)
@@ -285,6 +313,7 @@ bool dcStreamSendJpeg(DcSocket * socket, DcStreamParameters parameters, const ch
     ParallelPixelStreamSegmentParameters p;
 
     p.sourceIndex = parameters.sourceIndex;
+    p.frameIndex = g_dcStreamFrameIndex;
     p.x = parameters.x;
     p.y = parameters.y;
     p.width = parameters.width;
@@ -300,11 +329,14 @@ bool dcStreamSendJpeg(DcSocket * socket, DcStreamParameters parameters, const ch
     }
 
     // part 2: image data
-    sent = socket->write(jpegData, jpegSize);
-
-    while(sent < jpegSize)
+    if(jpegSize > 0)
     {
-        sent += socket->write(jpegData + sent, jpegSize - sent);
+        sent = socket->write(jpegData, jpegSize);
+
+        while(sent < jpegSize)
+        {
+            sent += socket->write(jpegData + sent, jpegSize - sent);
+        }
     }
 
     // wait for acknowledgment
@@ -316,6 +348,12 @@ bool dcStreamSendJpeg(DcSocket * socket, DcStreamParameters parameters, const ch
     }
 
     socket->read(3);
+
+    // make sure this sourceIndex is in the vector of current source indices for this stream name
+    if(count(g_dcStreamSourceIndices[parameters.name].begin(), g_dcStreamSourceIndices[parameters.name].end(), parameters.sourceIndex) == 0)
+    {
+        g_dcStreamSourceIndices[parameters.name].push_back(parameters.sourceIndex);
+    }
 
     return true;
 }
@@ -378,6 +416,9 @@ bool dcStreamComputeJpeg(unsigned char * imageBuffer, int width, int pitch, int 
 
         jpegSize = 0;
 
+        // destroy libjpeg-turbo handle
+        tjDestroy(tjHandle);
+
         return false;
     }
 
@@ -387,6 +428,73 @@ bool dcStreamComputeJpeg(unsigned char * imageBuffer, int width, int pitch, int 
     tjFree(tjJpegBufPtr);
 
     jpegSize = tjJpegSize;
+
+    // destroy libjpeg-turbo handle
+    tjDestroy(tjHandle);
+
+    return true;
+}
+
+void dcStreamIncrementFrameIndex()
+{
+    g_dcStreamFrameIndex++;
+}
+
+bool dcStreamSendSVG(DcSocket * socket, std::string name, const char * svgData, int svgSize)
+{
+    if(socket == NULL)
+    {
+        put_flog(LOG_ERROR, "socket is NULL");
+
+        return false;
+    }
+
+    if(socket->state() != QAbstractSocket::ConnectedState)
+    {
+        put_flog(LOG_ERROR, "socket is not connected");
+
+        return false;
+    }
+
+    // send the parameters and image data
+    MessageHeader mh;
+    mh.size = svgSize;
+    mh.type = MESSAGE_TYPE_SVG_STREAM;
+
+    // add the truncated URI to the header
+    size_t len = name.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
+    mh.uri[len] = '\0';
+
+    // send the header
+    int sent = socket->write((const char *)&mh, sizeof(MessageHeader));
+
+    while(sent < (int)sizeof(MessageHeader))
+    {
+        sent += socket->write((const char *)&mh + sent, sizeof(MessageHeader) - sent);
+    }
+
+    // send the message
+
+    // part 1: image data
+    if(svgSize > 0)
+    {
+        sent = socket->write(svgData, svgSize);
+
+        while(sent < svgSize)
+        {
+            sent += socket->write(svgData + sent, svgSize - sent);
+        }
+    }
+
+    // wait for acknowledgment
+    while(socket->waitForReadyRead() && socket->bytesAvailable() < 3)
+    {
+#ifndef _WIN32
+        usleep(10);
+#endif
+    }
+
+    socket->read(3);
 
     return true;
 }

@@ -73,6 +73,13 @@ class Factory {
             return map_;
         }
 
+        void clear()
+        {
+            QMutexLocker locker(&mapMutex_);
+
+            map_.clear();
+        }
+
         void clearStaleObjects()
         {
             QMutexLocker locker(&mapMutex_);

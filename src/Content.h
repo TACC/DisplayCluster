@@ -39,6 +39,8 @@
 #ifndef CONTENT_H
 #define CONTENT_H
 
+#define ERROR_IMAGE_FILENAME "error.png"
+
 #include <string>
 #include <QtGui>
 #include <boost/shared_ptr.hpp>
@@ -46,7 +48,7 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/assume_abstract.hpp>
 
-enum CONTENT_TYPE { CONTENT_TYPE_ANY, CONTENT_TYPE_DYNAMIC_TEXTURE, CONTENT_TYPE_MOVIE, CONTENT_TYPE_PIXEL_STREAM, CONTENT_TYPE_PARALLEL_PIXEL_STREAM, CONTENT_TYPE_TEXTURE };
+enum CONTENT_TYPE { CONTENT_TYPE_ANY, CONTENT_TYPE_DYNAMIC_TEXTURE, CONTENT_TYPE_MOVIE, CONTENT_TYPE_PIXEL_STREAM, CONTENT_TYPE_PARALLEL_PIXEL_STREAM, CONTENT_TYPE_SVG, CONTENT_TYPE_TEXTURE };
 
 class ContentWindowManager;
 

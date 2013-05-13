@@ -48,6 +48,7 @@ PixelStream::PixelStream(std::string uri)
     textureHeight_ = 0;
     textureBound_ = false;
     imageReady_ = false;
+    autoUpdateTexture_ = true;
 
     // assign values
     uri_ = uri;
@@ -58,11 +59,13 @@ PixelStream::PixelStream(std::string uri)
 
 PixelStream::~PixelStream()
 {
+    // delete bound texture
     if(textureBound_ == true)
     {
-        // delete bound texture
-        glDeleteTextures(1, &textureId_); // it appears deleteTexture() below is not actually deleting the texture from the GPU...
-        g_mainWindow->getGLWindow()->deleteTexture(textureId_);
+        // let the OpenGL window delete the texture, so the destructor can occur in any thread...
+        g_mainWindow->getGLWindow()->insertPurgeTextureId(textureId_);
+
+        textureBound_ = false;
     }
 
     // destroy libjpeg-turbo handle
@@ -79,15 +82,11 @@ bool PixelStream::render(float tX, float tY, float tW, float tH)
 {
     updateRenderedFrameCount();
 
-    imageReadyMutex_.lock();
-
-    if(imageReady_ == true)
+    // automatically upload a new texture if a new image is available
+    if(autoUpdateTexture_ == true)
     {
-        setImage(image_);
-        imageReady_ = false;
+        updateTextureIfAvailable();
     }
-
-    imageReadyMutex_.unlock();
 
     if(textureBound_ != true)
     {
@@ -138,6 +137,28 @@ bool PixelStream::setImageData(QByteArray imageData)
     return true;
 }
 
+bool PixelStream::getLoadImageDataThreadRunning()
+{
+    return loadImageDataThread_.isRunning();
+}
+
+void PixelStream::setAutoUpdateTexture(bool set)
+{
+    autoUpdateTexture_ = set;
+}
+
+void PixelStream::updateTextureIfAvailable()
+{
+    // upload a new texture if a new image is available
+    QMutexLocker locker(&imageReadyMutex_);
+
+    if(imageReady_ == true)
+    {
+        updateTexture(image_);
+        imageReady_ = false;
+    }
+}
+
 tjhandle PixelStream::getHandle()
 {
     return handle_;
@@ -150,7 +171,7 @@ void PixelStream::imageReady(QImage image)
     image_ = image;
 }
 
-void PixelStream::setImage(QImage & image)
+void PixelStream::updateTexture(QImage & image)
 {
     // todo: consider if the image has changed dimensions
 

@@ -44,6 +44,7 @@ Options::Options()
     showTestPattern_ = false;
     enableMullionCompensation_ = true;
     showZoomContext_ = true;
+    enableStreamingSynchronization_ = false;
     showStreamingSegments_ = false;
     showStreamingStatistics_ = false;
 
@@ -70,6 +71,11 @@ bool Options::getEnableMullionCompensation()
 bool Options::getShowZoomContext()
 {
     return showZoomContext_;
+}
+
+bool Options::getEnableStreamingSynchronization()
+{
+    return enableStreamingSynchronization_;
 }
 
 bool Options::getShowStreamingSegments()
@@ -113,6 +119,13 @@ void Options::setEnableMullionCompensation(bool set)
 void Options::setShowZoomContext(bool set)
 {
     showZoomContext_ = set;
+
+    emit(updated());
+}
+
+void Options::setEnableStreamingSynchronization(bool set)
+{
+    enableStreamingSynchronization_ = set;
 
     emit(updated());
 }

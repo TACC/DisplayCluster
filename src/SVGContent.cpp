@@ -36,62 +36,23 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef PIXEL_STREAM_H
-#define PIXEL_STREAM_H
+#include "SVGContent.h"
+#include "main.h"
+#include "SVG.h"
 
-#include "FactoryObject.h"
-#include <boost/enable_shared_from_this.hpp>
-#include <QGLWidget>
-#include <QtConcurrentRun>
-#include <turbojpeg.h>
+BOOST_CLASS_EXPORT_GUID(SVGContent, "SVGContent")
 
-class PixelStream : public boost::enable_shared_from_this<PixelStream>, public FactoryObject {
+CONTENT_TYPE SVGContent::getType()
+{
+    return CONTENT_TYPE_SVG;
+}
 
-    public:
+void SVGContent::getFactoryObjectDimensions(int &width, int &height)
+{
+    g_mainWindow->getGLWindow()->getSVGFactory().getObject(getURI())->getDimensions(width, height);
+}
 
-        PixelStream(std::string uri);
-        ~PixelStream();
-
-        void getDimensions(int &width, int &height);
-        bool render(float tX, float tY, float tW, float tH); // return true on successful render; false if no texture available
-        bool setImageData(QByteArray imageData); // returns true if load image thread was spawned; false if frame was dropped
-        bool getLoadImageDataThreadRunning();
-        void setAutoUpdateTexture(bool set);
-        void updateTextureIfAvailable();
-
-        // for use by loadImageDataThread()
-        tjhandle getHandle();
-        void imageReady(QImage image);
-
-    private:
-
-        // pixel stream identifier
-        std::string uri_;
-
-        // texture
-        GLuint textureId_;
-        int textureWidth_;
-        int textureHeight_;
-        bool textureBound_;
-
-        // thread for generating images from image data
-        QFuture<void> loadImageDataThread_;
-
-        // libjpeg-turbo handle for decompression
-        tjhandle handle_;
-
-        // image, mutex, and ready status
-        QMutex imageReadyMutex_;
-        bool imageReady_;
-        QImage image_;
-
-        // whether updateTexture() should be called automatically every render() or not
-        // this can be set to false to allow for synchronization across multiple streams, for example.
-        bool autoUpdateTexture_;
-
-        void updateTexture(QImage & image);
-};
-
-extern void loadImageDataThread(boost::shared_ptr<PixelStream> pixelStream, QByteArray imageData);
-
-#endif
+void SVGContent::renderFactoryObject(float tX, float tY, float tW, float tH)
+{
+    g_mainWindow->getGLWindow()->getSVGFactory().getObject(getURI())->render(tX, tY, tW, tH);
+}

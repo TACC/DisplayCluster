@@ -89,6 +89,11 @@ Factory<DynamicTexture> & GLWindow::getDynamicTextureFactory()
     return dynamicTextureFactory_;
 }
 
+Factory<SVG> & GLWindow::getSVGFactory()
+{
+    return svgFactory_;
+}
+
 Factory<Movie> & GLWindow::getMovieFactory()
 {
     return movieFactory_;
@@ -102,6 +107,26 @@ Factory<PixelStream> & GLWindow::getPixelStreamFactory()
 Factory<ParallelPixelStream> & GLWindow::getParallelPixelStreamFactory()
 {
     return parallelPixelStreamFactory_;
+}
+
+void GLWindow::insertPurgeTextureId(GLuint textureId)
+{
+    QMutexLocker locker(&purgeTexturesMutex_);
+
+    purgeTextureIds_.push_back(textureId);
+}
+
+void GLWindow::purgeTextures()
+{
+    QMutexLocker locker(&purgeTexturesMutex_);
+
+    for(unsigned int i=0; i<purgeTextureIds_.size(); i++)
+    {
+        glDeleteTextures(1, &purgeTextureIds_[i]); // it appears deleteTexture() below is not actually deleting the texture from the GPU...
+        deleteTexture(purgeTextureIds_[i]);
+    }
+
+    purgeTextureIds_.clear();
 }
 
 void GLWindow::initializeGL()
@@ -421,6 +446,18 @@ void GLWindow::drawRectangle(double x, double y, double w, double h)
     glVertex2d(x,y+h);
 
     glEnd();
+}
+
+void GLWindow::finalize()
+{
+    textureFactory_.clear();
+    dynamicTextureFactory_.clear();
+    svgFactory_.clear();
+    movieFactory_.clear();
+    pixelStreamFactory_.clear();
+    parallelPixelStreamFactory_.clear();
+
+    purgeTextures();
 }
 
 void GLWindow::renderTestPattern()

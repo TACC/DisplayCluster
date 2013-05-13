@@ -36,62 +36,47 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef PIXEL_STREAM_H
-#define PIXEL_STREAM_H
+#include "SVGStreamSource.h"
 
-#include "FactoryObject.h"
-#include <boost/enable_shared_from_this.hpp>
-#include <QGLWidget>
-#include <QtConcurrentRun>
-#include <turbojpeg.h>
+SVGStreamSource::SVGStreamSource(std::string uri)
+{
+    // defaults
+    imageDataCount_ = 0;
+    getImageDataCount_ = 0;
 
-class PixelStream : public boost::enable_shared_from_this<PixelStream>, public FactoryObject {
+    // assign values
+    uri_ = uri;
+}
 
-    public:
+QByteArray SVGStreamSource::getImageData(bool & updated)
+{
+    QMutexLocker locker(&imageDataMutex_);
 
-        PixelStream(std::string uri);
-        ~PixelStream();
+    // whether or not this is an updated image since the last call to getImageData()
+    if(imageDataCount_ > getImageDataCount_)
+    {
+        updated = true;
+    }
+    else
+    {
+        updated = false;
+    }
 
-        void getDimensions(int &width, int &height);
-        bool render(float tX, float tY, float tW, float tH); // return true on successful render; false if no texture available
-        bool setImageData(QByteArray imageData); // returns true if load image thread was spawned; false if frame was dropped
-        bool getLoadImageDataThreadRunning();
-        void setAutoUpdateTexture(bool set);
-        void updateTextureIfAvailable();
+    getImageDataCount_ = imageDataCount_;
 
-        // for use by loadImageDataThread()
-        tjhandle getHandle();
-        void imageReady(QImage image);
+    return imageData_;
+}
 
-    private:
+void SVGStreamSource::setImageData(QByteArray imageData)
+{
+    QMutexLocker locker(&imageDataMutex_);
 
-        // pixel stream identifier
-        std::string uri_;
+    // only take the update if the image data has changed
+    if(imageData_ != imageData)
+    {
+        imageData_ = imageData;
+        imageDataCount_++;
+    }
+}
 
-        // texture
-        GLuint textureId_;
-        int textureWidth_;
-        int textureHeight_;
-        bool textureBound_;
-
-        // thread for generating images from image data
-        QFuture<void> loadImageDataThread_;
-
-        // libjpeg-turbo handle for decompression
-        tjhandle handle_;
-
-        // image, mutex, and ready status
-        QMutex imageReadyMutex_;
-        bool imageReady_;
-        QImage image_;
-
-        // whether updateTexture() should be called automatically every render() or not
-        // this can be set to false to allow for synchronization across multiple streams, for example.
-        bool autoUpdateTexture_;
-
-        void updateTexture(QImage & image);
-};
-
-extern void loadImageDataThread(boost::shared_ptr<PixelStream> pixelStream, QByteArray imageData);
-
-#endif
+Factory<SVGStreamSource> g_SVGStreamSourceFactory;

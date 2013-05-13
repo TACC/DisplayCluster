@@ -36,62 +36,33 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef PIXEL_STREAM_H
-#define PIXEL_STREAM_H
+#ifndef SVG_CONTENT_H
+#define SVG_CONTENT_H
 
-#include "FactoryObject.h"
-#include <boost/enable_shared_from_this.hpp>
-#include <QGLWidget>
-#include <QtConcurrentRun>
-#include <turbojpeg.h>
+#include "Content.h"
+#include <boost/serialization/base_object.hpp>
+#include <boost/serialization/export.hpp>
 
-class PixelStream : public boost::enable_shared_from_this<PixelStream>, public FactoryObject {
+class SVGContent : public Content {
 
     public:
+        SVGContent(std::string uri = "") : Content(uri) { }
 
-        PixelStream(std::string uri);
-        ~PixelStream();
+        CONTENT_TYPE getType();
 
-        void getDimensions(int &width, int &height);
-        bool render(float tX, float tY, float tW, float tH); // return true on successful render; false if no texture available
-        bool setImageData(QByteArray imageData); // returns true if load image thread was spawned; false if frame was dropped
-        bool getLoadImageDataThreadRunning();
-        void setAutoUpdateTexture(bool set);
-        void updateTextureIfAvailable();
-
-        // for use by loadImageDataThread()
-        tjhandle getHandle();
-        void imageReady(QImage image);
+        void getFactoryObjectDimensions(int &width, int &height);
 
     private:
+        friend class boost::serialization::access;
 
-        // pixel stream identifier
-        std::string uri_;
+        template<class Archive>
+        void serialize(Archive & ar, const unsigned int)
+        {
+            // serialize base class information
+            ar & boost::serialization::base_object<Content>(*this);
+        }
 
-        // texture
-        GLuint textureId_;
-        int textureWidth_;
-        int textureHeight_;
-        bool textureBound_;
-
-        // thread for generating images from image data
-        QFuture<void> loadImageDataThread_;
-
-        // libjpeg-turbo handle for decompression
-        tjhandle handle_;
-
-        // image, mutex, and ready status
-        QMutex imageReadyMutex_;
-        bool imageReady_;
-        QImage image_;
-
-        // whether updateTexture() should be called automatically every render() or not
-        // this can be set to false to allow for synchronization across multiple streams, for example.
-        bool autoUpdateTexture_;
-
-        void updateTexture(QImage & image);
+        void renderFactoryObject(float tX, float tY, float tW, float tH);
 };
-
-extern void loadImageDataThread(boost::shared_ptr<PixelStream> pixelStream, QByteArray imageData);
 
 #endif

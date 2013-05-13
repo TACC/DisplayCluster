@@ -66,6 +66,9 @@ extern DcSocket * dcStreamConnect(const char * hostname);
 // closes a previously opened connection, deleting the socket.
 extern void dcStreamDisconnect(DcSocket * socket);
 
+// reset all stream segments associated with this connection.
+extern void dcStreamReset(DcSocket * socket);
+
 // generates a new parameter object with the given origin (x, y) and dimensions
 // (width, height). the origin (x, y) is relative to the full window represented
 // by all streams corresponding to <name>. totalWidth and totalHeight give the
@@ -96,5 +99,14 @@ extern bool dcStreamSendJpeg(DcSocket * socket, DcStreamParameters parameters, c
 // computes a compressed JPEG image corresponding to imageBuffer. results are
 // stored in jpegData and jpegSize.
 extern bool dcStreamComputeJpeg(unsigned char * imageBuffer, int width, int pitch, int height, PIXEL_FORMAT pixelFormat, char ** jpegData, int & jpegSize);
+
+// increment the frame index for all segments sent by this process. this is
+// used for frame synchronization.
+extern void dcStreamIncrementFrameIndex();
+
+// sends an SVG image with a given name to a DisplayCluster instance over a
+// socket. different from the pixel streaming capability, this allows for
+// streaming vector-based graphics.
+extern bool dcStreamSendSVG(DcSocket * socket, std::string name, const char * svgData, int svgSize);
 
 #endif

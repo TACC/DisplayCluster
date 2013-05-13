@@ -133,7 +133,9 @@ DynamicTexture::~DynamicTexture()
     // delete bound texture
     if(textureBound_ == true)
     {
-        glDeleteTextures(1, &textureId_);
+        // let the OpenGL window delete the texture, so the destructor can occur in any thread...
+        g_mainWindow->getGLWindow()->insertPurgeTextureId(textureId_);
+
         textureBound_ = false;
     }
 }
@@ -325,7 +327,12 @@ void DynamicTexture::render(float tX, float tY, float tW, float tH, bool compute
             if(getThreadCount() < maxThreads)
             {
                 incrementThreadCount();
-                loadImageThread_ = QtConcurrent::run(loadImageThread, this);
+
+                // give the thread shared_ptr's to all of this object's parents to prevent their destruction during thread execution
+                std::vector<boost::shared_ptr<DynamicTexture> > objects;
+                getObjectsAscending(objects);
+
+                loadImageThread_ = QtConcurrent::run(loadImageThread, shared_from_this(), objects);
                 loadImageThreadStarted_ = true;
             }
         }
@@ -540,6 +547,21 @@ boost::shared_ptr<DynamicTexture> DynamicTexture::getRoot()
     {
         boost::shared_ptr<DynamicTexture> parent = parent_.lock();
         return parent->getRoot();
+    }
+}
+
+void DynamicTexture::getObjectsAscending(std::vector<boost::shared_ptr<DynamicTexture> > &objects)
+{
+    // order from parent -> child; e.g. depths 0,1,2,3...
+
+    objects.insert(objects.begin(), shared_from_this());
+
+    // get the shared_ptr from weak_ptr
+    boost::shared_ptr<DynamicTexture> parent = parent_.lock();
+
+    if(parent != NULL)
+    {
+        parent->getObjectsAscending(objects);
     }
 }
 
@@ -823,6 +845,12 @@ void DynamicTexture::incrementThreadCount()
     {
         return getRoot()->incrementThreadCount();
     }
+}
+
+void loadImageThread(boost::shared_ptr<DynamicTexture> dynamicTexture, std::vector<boost::shared_ptr<DynamicTexture> > objects)
+{
+    loadImageThread(dynamicTexture.get());
+    return;
 }
 
 void loadImageThread(DynamicTexture * dynamicTexture)

@@ -40,9 +40,11 @@
 #include "ContentWindowManager.h"
 #include "TextureContent.h"
 #include "DynamicTextureContent.h"
+#include "SVGContent.h"
 #include "MovieContent.h"
 #include "main.h"
 #include "GLWindow.h"
+#include "log.h"
 #include <QGLWidget>
 
 Content::Content(std::string uri)
@@ -163,13 +165,31 @@ void Content::render(boost::shared_ptr<ContentWindowManager> window)
 
 boost::shared_ptr<Content> Content::getContent(std::string uri)
 {
+    // make sure file exists; otherwise use error image
+    if(QFile::exists(uri.c_str()) != true)
+    {
+        put_flog(LOG_ERROR, "could not find file %s", uri.c_str());
+
+        std::string errorImageFilename = std::string(g_displayClusterDir) + std::string("/data/") + std::string(ERROR_IMAGE_FILENAME);
+        boost::shared_ptr<Content> c(new TextureContent(errorImageFilename));
+
+        return c;
+    }
+
     // convert to lower case for case-insensitivity in determining file type
     QString fileTypeString = QString::fromStdString(uri).toLower();
 
     // see if this is an image
     QImageReader imageReader(uri.c_str());
 
-    if(imageReader.canRead() == true)
+    // see if this is an SVG image (must do this first, since SVG can also be read as an image directly)
+    if(fileTypeString.endsWith(".svg"))
+    {
+        boost::shared_ptr<Content> c(new SVGContent(uri));
+
+        return c;
+    }
+    else if(imageReader.canRead() == true)
     {
         // get its size
         QSize size = imageReader.size();

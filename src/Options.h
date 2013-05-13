@@ -54,6 +54,7 @@ class Options : public QObject {
         bool getShowTestPattern();
         bool getEnableMullionCompensation();
         bool getShowZoomContext();
+        bool getEnableStreamingSynchronization();
         bool getShowStreamingSegments();
         bool getShowStreamingStatistics();
 
@@ -66,6 +67,7 @@ class Options : public QObject {
         void setShowTestPattern(bool set);
         void setEnableMullionCompensation(bool set);
         void setShowZoomContext(bool set);
+        void setEnableStreamingSynchronization(bool set);
         void setShowStreamingSegments(bool set);
         void setShowStreamingStatistics(bool set);
 
@@ -86,6 +88,7 @@ class Options : public QObject {
             ar & showTestPattern_;
             ar & enableMullionCompensation_;
             ar & showZoomContext_;
+            ar & enableStreamingSynchronization_;
             ar & showStreamingSegments_;
             ar & showStreamingStatistics_;
 
@@ -98,6 +101,7 @@ class Options : public QObject {
         bool showTestPattern_;
         bool enableMullionCompensation_;
         bool showZoomContext_;
+        bool enableStreamingSynchronization_;
         bool showStreamingSegments_;
         bool showStreamingStatistics_;
 
