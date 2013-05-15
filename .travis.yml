@@ -10,4 +10,4 @@ script:
  - env TRAVIS=1 make -j8 DisplayCluster-test ARGS=-V
 before_install:
  - sudo apt-get update -qq
- - sudo apt-get install -qq freeglut3-dev libavcodec-dev libavformat-dev libavutil-dev libboost-date-time-dev libboost-serialization-dev libjpeg-turbo8-dev libopenmpi-dev libxmu-dev 
+ - sudo apt-get install -qq freeglut3-dev libavcodec-dev libavformat-dev libavutil-dev libboost-date-time-dev libboost-serialization-dev libjpeg-turbo8-dev libopenmpi-dev libswscale-dev libturbojpeg libxmu-dev 
