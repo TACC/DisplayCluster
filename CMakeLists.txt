@@ -188,7 +188,8 @@ if(BUILD_DISPLAYCLUSTER)
         src/Options.h
     )
 
-    qt4_wrap_cpp(MOC_OUTFILES ${MOC_HEADERS})
+    # add OPTIONS hacks for Qt's MOC processing of Boost headers, for compiler errors with some versions of Boost
+    qt4_wrap_cpp(MOC_OUTFILES ${MOC_HEADERS} OPTIONS -DPOSIX_TIME_HPP___ -DPOSIX_TIME_SERIALIZE_HPP___ -DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED)
 
     add_executable(displaycluster ${SRCS} ${MOC_OUTFILES})
 
