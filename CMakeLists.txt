@@ -394,5 +394,6 @@ if(BUILD_DESKTOPSTREAMER)
 
         include(CPack)
     endif()
-
 endif()
+
+add_custom_target(test) # fake test target for Travis/Buildyard
