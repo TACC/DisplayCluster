@@ -1,2 +1,5 @@
 build/
 python/
+CMake/
+CMakeLists.txt.user*
+Makefile
