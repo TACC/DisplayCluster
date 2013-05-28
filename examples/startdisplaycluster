@@ -61,7 +61,12 @@ if mpirunCommand is None:
     print 'Error, could not find mpirun executable in PATH'
     exit(-3)
 
-startCommand = mpirunCommand + ' -x DISPLAYCLUSTER_DIR -x PYTHONPATH -host ' + hostListString + ' ' + dcPath + '/bin/displaycluster.py'
+# check if MVAPICH is used; mpirun has a different commandline syntax than OpenMPI
+mpinameCommand = distutils.spawn.find_executable('mpiname')
+if mpinameCommand:
+    startCommand = mpirunCommand + ' -genvlist DISPLAYCLUSTER_DIR,PYTHONPATH -hosts ' + hostListString + ' ' + dcPath + '/bin/displaycluster.py'
+else:
+    startCommand = mpirunCommand + ' -x DISPLAYCLUSTER_DIR -x PYTHONPATH -host ' + hostListString + ' ' + dcPath + '/bin/displaycluster.py'
 
 print 'launching with command: ' + startCommand
 

@@ -30,6 +30,8 @@ elif 'MPIRUN_RANK' in os.environ:
     myRank = int(os.environ['MPIRUN_RANK'])
 elif 'PMI_ID' in os.environ:
     myRank = int(os.environ['PMI_ID'])
+elif 'PMI_RANK' in os.environ:
+    myRank = int(os.environ['PMI_RANK'])
 else:
     print 'could not determine MPI rank!'
     exit(-4)
