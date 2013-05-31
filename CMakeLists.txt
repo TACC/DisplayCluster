@@ -6,6 +6,8 @@ cmake_minimum_required(VERSION 2.4.0)
 set(VERSION_MAJOR 0)
 set(VERSION_MINOR 1)
 set(VERSION_PATCH 0)
+set(VERSION_ABI 1)
+set(VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 
 # required for mixing libraries with full paths and not...
 if(COMMAND cmake_policy)
@@ -34,6 +36,9 @@ if(APPLE)
         STRING "Build architectures for OS X" FORCE)
     endif()
   endif()
+  if (NOT CMAKE_INSTALL_NAME_DIR)
+    set(CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
+  endif (NOT CMAKE_INSTALL_NAME_DIR)
 endif()
 
 if(BUILD_DISPLAYCLUSTER)
@@ -257,16 +262,16 @@ if(BUILD_DISPLAYCLUSTER_LIBRARY)
         src/lib/dcStream.h
     )
 
-    add_library(DisplayClusterLibrary SHARED ${DISPLAYCLUSTER_LIBRARY_SRCS})
-    set_target_properties(DisplayClusterLibrary PROPERTIES OUTPUT_NAME DisplayCluster)
-
-    target_link_libraries(DisplayClusterLibrary ${DISPLAYCLUSTER_LIBRARY_LIBS})
+    add_library(DisplayCluster SHARED ${DISPLAYCLUSTER_LIBRARY_SRCS})
+    target_link_libraries(DisplayCluster ${DISPLAYCLUSTER_LIBRARY_LIBS})
+    set_target_properties(DisplayCluster
+      PROPERTIES VERSION ${VERSION} SOVERSION ${VERSION_ABI})
 
     # install library
-    INSTALL(TARGETS DisplayClusterLibrary
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
-    )
+    INSTALL(TARGETS DisplayCluster
+        ARCHIVE DESTINATION lib COMPONENT dev
+        RUNTIME DESTINATION bin COMPONENT lib
+        LIBRARY DESTINATION lib COMPONENT lib)
 
     # install headers
     install(FILES ${DISPLAYCLUSTER_LIBRARY_PUBLIC_HEADERS} DESTINATION include)
@@ -282,7 +287,7 @@ if(BUILD_DISPLAYCLUSTER_LIBRARY)
     set(SIMPLESTREAMER_LIBS ${SIMPLESTREAMER_LIBS} ${GLUT_LIBRARIES})
 
     include_directories(src/lib)
-    set(SIMPLESTREAMER_LIBS ${SIMPLESTREAMER_LIBS} DisplayClusterLibrary)
+    set(SIMPLESTREAMER_LIBS ${SIMPLESTREAMER_LIBS} DisplayCluster)
 
     set(SIMPLESTREAMER_SRCS
         apps/SimpleStreamer/src/main.cpp
