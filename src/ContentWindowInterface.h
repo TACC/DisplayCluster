@@ -43,9 +43,13 @@
 #define HIGHLIGHT_BLINK_INTERVAL 250 // milliseconds
 
 #include <QtGui>
-#include <boost/shared_ptr.hpp>
-#include <boost/weak_ptr.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
+#ifndef Q_MOC_RUN
+// https://bugreports.qt.nokia.com/browse/QTBUG-22829: When Qt moc runs on CGAL
+// files, do not process <boost/type_traits/has_operator.hpp>
+#  include <boost/shared_ptr.hpp>
+#  include <boost/weak_ptr.hpp>
+#  include <boost/date_time/posix_time/posix_time.hpp>
+#endif
 
 class ContentWindowManager;
 

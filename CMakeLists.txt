@@ -22,6 +22,7 @@ SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 option(BUILD_DISPLAYCLUSTER "Build main DisplayCluster application" OFF)
 option(BUILD_DISPLAYCLUSTER_LIBRARY "Build DisplayCluster library" OFF)
 option(BUILD_DESKTOPSTREAMER "Build DesktopStreamer application" OFF)
+set(CMAKE_OSX_SYSROOT "" CACHE PATH "" FORCE)
 
 if(BUILD_DISPLAYCLUSTER)
     option(ENABLE_TUIO_TOUCH_LISTENER "Enable TUIO touch listener for multi-touch events" OFF)

@@ -46,11 +46,15 @@
 #include "config.h"
 #include <QtGui>
 #include <vector>
-#include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
+#ifndef Q_MOC_RUN
+// https://bugreports.qt.nokia.com/browse/QTBUG-22829: When Qt moc runs on CGAL
+// files, do not process <boost/type_traits/has_operator.hpp>
+#  include <boost/shared_ptr.hpp>
+#  include <boost/enable_shared_from_this.hpp>
+#  include <boost/archive/binary_oarchive.hpp>
+#  include <boost/archive/binary_iarchive.hpp>
+#  include <boost/date_time/posix_time/posix_time.hpp>
+#endif
 
 #if ENABLE_SKELETON_SUPPORT
     #include "SkeletonState.h"
