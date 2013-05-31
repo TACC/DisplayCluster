@@ -321,19 +321,19 @@ if(BUILD_DESKTOPSTREAMER)
 
     # on Apple platform set the icon
     if(APPLE)
-        # set how it shows up in the Info.plist file
-        SET(MACOSX_BUNDLE_ICON_FILE desktopstreamer.icns)
-
         # set where in the bundle to put the icns file
-        SET_SOURCE_FILES_PROPERTIES(apps/DesktopStreamer/desktopstreamer.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+        SET_SOURCE_FILES_PROPERTIES(apps/DesktopStreamer/desktopstreamer.icns
+          PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 
         # include the icns file in the target
-        SET(DESKTOP_STREAMER_SRCS ${DESKTOP_STREAMER_SRCS} apps/DesktopStreamer/desktopstreamer.icns)
+        SET(DESKTOP_STREAMER_SRCS ${DESKTOP_STREAMER_SRCS}
+          apps/DesktopStreamer/desktopstreamer.icns)
     endif(APPLE)
 
     add_executable(desktopstreamer MACOSX_BUNDLE WIN32
-        ${DESKTOP_STREAMER_SRCS} ${DESKTOP_STREAMER_MOC_OUTFILES})
-
+      ${DESKTOP_STREAMER_SRCS} ${DESKTOP_STREAMER_MOC_OUTFILES})
+    set_target_properties(desktopstreamer PROPERTIES
+      MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/apps/DesktopStreamer/src/Info.plist)
     target_link_libraries(desktopstreamer ${DESKTOP_STREAMER_LIBS})
 
     # install executable

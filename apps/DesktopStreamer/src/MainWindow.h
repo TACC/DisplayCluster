@@ -84,6 +84,7 @@ class MainWindow : public QMainWindow {
         QSpinBox ySpinBox_;
         QSpinBox widthSpinBox_;
         QSpinBox heightSpinBox_;
+        QCheckBox retinaBox_;
         QSpinBox frameRateSpinBox_;
         QLabel frameRateLabel_;
 
@@ -96,6 +97,7 @@ class MainWindow : public QMainWindow {
         int y_;
         int width_;
         int height_;
+        float deviceScale_;
 
         bool parallelStreaming_;
 

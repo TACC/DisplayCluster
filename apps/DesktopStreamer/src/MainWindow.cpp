@@ -91,6 +91,7 @@ MainWindow::MainWindow()
     // defaults
     updatedDimensions_ = true;
     parallelStreaming_ = false;
+    deviceScale_ = 1.f;
 
     QWidget * widget = new QWidget();
     QFormLayout * layout = new QFormLayout();
@@ -103,9 +104,11 @@ MainWindow::MainWindow()
     connect(&ySpinBox_, SIGNAL(editingFinished()), this, SLOT(updateCoordinates()));
     connect(&widthSpinBox_, SIGNAL(editingFinished()), this, SLOT(updateCoordinates()));
     connect(&heightSpinBox_, SIGNAL(editingFinished()), this, SLOT(updateCoordinates()));
+    connect(&retinaBox_, SIGNAL(editingFinished()), this, SLOT(updateCoordinates()));
 
     // constrain valid range and default to a quarter of the desktop, centered
-    QRect desktopRect = QApplication::desktop()->screenGeometry();
+    const int screen = -1;
+    QRect desktopRect = QApplication::desktop()->screenGeometry( screen );
 
     xSpinBox_.setRange(0, desktopRect.width());
     ySpinBox_.setRange(0, desktopRect.height());
@@ -132,6 +135,7 @@ MainWindow::MainWindow()
     layout->addRow("Y", &ySpinBox_);
     layout->addRow("Width", &widthSpinBox_);
     layout->addRow("Height", &heightSpinBox_);
+    layout->addRow("Retina Display", &retinaBox_);
     layout->addRow("Max frame rate", &frameRateSpinBox_);
     layout->addRow("Actual frame rate", &frameRateLabel_);
 
@@ -264,14 +268,9 @@ void MainWindow::shareDesktop(bool set)
 
 void MainWindow::showDesktopSelectionWindow(bool set)
 {
-    if(set == true)
-    {
-        g_desktopSelectionWindow->showFullScreen();
-    }
-    else
-    {
+    set ?
+        g_desktopSelectionWindow->showFullScreen() :
         g_desktopSelectionWindow->hide();
-    }
 
     // this slot may be called externally, so make sure the action checked value matches the set argument
     if(showDesktopSelectionWindowAction_->isChecked() != set)
@@ -301,7 +300,14 @@ void MainWindow::shareDesktopUpdate()
     }
 
     // take screenshot
-    QPixmap desktopPixmap = QPixmap::grabWindow(QApplication::desktop()->winId(), x_,y_,width_,height_);
+    const int x = x_ * deviceScale_;
+    const int y = y_ * deviceScale_;
+    const int w = width_ * deviceScale_;
+    const int h = height_ * deviceScale_;
+
+    QPixmap desktopPixmap =
+        QPixmap::grabWindow( QApplication::desktop()->winId(), x_, y_, w, h );
+    //std::cout << desktopPixmap.devicePixelRatio() << std::endl;
 
     if(desktopPixmap.isNull() == true)
     {
@@ -328,8 +334,8 @@ void MainWindow::shareDesktopUpdate()
         {
             // updated dimensions
             int dimensions[2];
-            dimensions[0] = width_;
-            dimensions[1] = height_;
+            dimensions[0] = w;
+            dimensions[1] = h;
 
             int dimensionsSize = 2 * sizeof(int);
 
@@ -435,11 +441,16 @@ void MainWindow::updateCoordinates()
     y_ = ySpinBox_.value();
     width_ = widthSpinBox_.value();
     height_ = heightSpinBox_.value();
+    deviceScale_ = retinaBox_.checkState() ? 2.f : 1.f;
+    const int x = x_ * deviceScale_;
+    const int y = y_ * deviceScale_;
+    const int w = width_ * deviceScale_;
+    const int h = height_ * deviceScale_;
 
     // update DesktopSelectionRectangle
-    if(g_desktopSelectionWindow != NULL)
+    if( g_desktopSelectionWindow )
     {
-        g_desktopSelectionWindow->getDesktopSelectionView()->getDesktopSelectionRectangle()->setCoordinates(x_, y_, width_, height_);
+        g_desktopSelectionWindow->getDesktopSelectionView()->getDesktopSelectionRectangle()->setCoordinates( x_, y_, width_, height_ );
     }
 
     // update ParallelPixelStreamSegment parameters, whether or not we are currently streaming in parallel
@@ -450,8 +461,8 @@ void MainWindow::updateCoordinates()
     int nominalSegmentSize = 512;
 
     // number of subdivisions in each dimensions
-    int numSubdivisionsX = (int)floor((float)width_ / (float)nominalSegmentSize + 0.5);
-    int numSubdivisionsY = (int)floor((float)height_ / (float)nominalSegmentSize + 0.5);
+    int numSubdivisionsX = (int)floor((float)w / (float)nominalSegmentSize + 0.5f);
+    int numSubdivisionsY = (int)floor((float)h / (float)nominalSegmentSize + 0.5f);
 
     // now, create segments with appropriate parameters
     for(int i=0; i<numSubdivisionsX; i++)
@@ -461,12 +472,12 @@ void MainWindow::updateCoordinates()
             ParallelPixelStreamSegment segment;
 
             segment.parameters.sourceIndex = i*numSubdivisionsY + j;
-            segment.parameters.x = i * (int)((float)width_ / (float)numSubdivisionsX);
-            segment.parameters.y = j * (int)((float)height_ / (float)numSubdivisionsY);
-            segment.parameters.width = (int)((float)width_ / (float)numSubdivisionsX);
-            segment.parameters.height = (int)((float)height_ / (float)numSubdivisionsY);
-            segment.parameters.totalWidth = width_;
-            segment.parameters.totalHeight = height_;
+            segment.parameters.x = i * (int)((float)w / (float)numSubdivisionsX);
+            segment.parameters.y = j * (int)((float)h / (float)numSubdivisionsY);
+            segment.parameters.width = (int)((float)w / (float)numSubdivisionsX);
+            segment.parameters.height = (int)((float)h / (float)numSubdivisionsY);
+            segment.parameters.totalWidth = w;
+            segment.parameters.totalHeight = h;
 
             segments_.push_back(segment);
         }
