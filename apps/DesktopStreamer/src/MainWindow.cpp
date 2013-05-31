@@ -300,8 +300,8 @@ void MainWindow::shareDesktopUpdate()
     }
 
     // take screenshot
-    const int x = x_ * deviceScale_;
-    const int y = y_ * deviceScale_;
+    //const int x = x_ * deviceScale_;
+    //const int y = y_ * deviceScale_;
     const int w = width_ * deviceScale_;
     const int h = height_ * deviceScale_;
 
@@ -432,7 +432,8 @@ void MainWindow::shareDesktopUpdate()
 
 void MainWindow::updateCoordinates()
 {
-    if(widthSpinBox_.value() != width_ || heightSpinBox_.value() != height_)
+    if( widthSpinBox_.value() != width_ || heightSpinBox_.value() != height_ ||
+        float( retinaBox_.checkState( )) + 1.f != deviceScale_ )
     {
         updatedDimensions_ = true;
     }
@@ -441,9 +442,9 @@ void MainWindow::updateCoordinates()
     y_ = ySpinBox_.value();
     width_ = widthSpinBox_.value();
     height_ = heightSpinBox_.value();
-    deviceScale_ = retinaBox_.checkState() ? 2.f : 1.f;
-    const int x = x_ * deviceScale_;
-    const int y = y_ * deviceScale_;
+    deviceScale_ = float( retinaBox_.checkState( )) + 1.f;
+    //const int x = x_ * deviceScale_;
+    //const int y = y_ * deviceScale_;
     const int w = width_ * deviceScale_;
     const int h = height_ * deviceScale_;
 
