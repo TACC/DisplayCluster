@@ -262,13 +262,13 @@ if(BUILD_DISPLAYCLUSTER_LIBRARY)
         src/lib/dcStream.h
     )
 
-    add_library(DisplayCluster SHARED ${DISPLAYCLUSTER_LIBRARY_SRCS})
-    target_link_libraries(DisplayCluster ${DISPLAYCLUSTER_LIBRARY_LIBS})
-    set_target_properties(DisplayCluster
-      PROPERTIES VERSION ${VERSION} SOVERSION ${VERSION_ABI})
+    add_library(DisplayClusterLibrary SHARED ${DISPLAYCLUSTER_LIBRARY_SRCS})
+    target_link_libraries(DisplayClusterLibrary ${DISPLAYCLUSTER_LIBRARY_LIBS})
+    set_target_properties(DisplayClusterLibrary PROPERTIES
+      VERSION ${VERSION} SOVERSION ${VERSION_ABI} OUTPUT_NAME DisplayCluster)
 
     # install library
-    INSTALL(TARGETS DisplayCluster
+    INSTALL(TARGETS DisplayClusterLibrary
         ARCHIVE DESTINATION lib COMPONENT dev
         RUNTIME DESTINATION bin COMPONENT lib
         LIBRARY DESTINATION lib COMPONENT lib)
@@ -287,7 +287,7 @@ if(BUILD_DISPLAYCLUSTER_LIBRARY)
     set(SIMPLESTREAMER_LIBS ${SIMPLESTREAMER_LIBS} ${GLUT_LIBRARIES})
 
     include_directories(src/lib)
-    set(SIMPLESTREAMER_LIBS ${SIMPLESTREAMER_LIBS} DisplayCluster)
+    set(SIMPLESTREAMER_LIBS ${SIMPLESTREAMER_LIBS} DisplayClusterLibrary)
 
     set(SIMPLESTREAMER_SRCS
         apps/SimpleStreamer/src/main.cpp
