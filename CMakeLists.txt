@@ -22,7 +22,19 @@ SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 option(BUILD_DISPLAYCLUSTER "Build main DisplayCluster application" OFF)
 option(BUILD_DISPLAYCLUSTER_LIBRARY "Build DisplayCluster library" OFF)
 option(BUILD_DESKTOPSTREAMER "Build DesktopStreamer application" OFF)
-set(CMAKE_OSX_SYSROOT "" CACHE PATH "" FORCE)
+
+if(APPLE)
+  set(CMAKE_OSX_SYSROOT "" CACHE PATH "" FORCE)
+  if(NOT CMAKE_OSX_ARCHITECTURES OR CMAKE_OSX_ARCHITECTURES STREQUAL "")
+    if(_CMAKE_OSX_MACHINE MATCHES "ppc")
+      set(CMAKE_OSX_ARCHITECTURES "ppc;ppc64" CACHE
+        STRING "Build architectures for OS X" FORCE)
+    else()
+      set(CMAKE_OSX_ARCHITECTURES "i386;x86_64" CACHE
+        STRING "Build architectures for OS X" FORCE)
+    endif()
+  endif()
+endif()
 
 if(BUILD_DISPLAYCLUSTER)
     option(ENABLE_TUIO_TOUCH_LISTENER "Enable TUIO touch listener for multi-touch events" OFF)
