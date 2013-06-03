@@ -106,7 +106,12 @@ MainWindow::MainWindow()
     connect(&heightSpinBox_, SIGNAL(editingFinished()), this, SLOT(updateCoordinates()));
     connect(&retinaBox_, SIGNAL(editingFinished()), this, SLOT(updateCoordinates()));
 
-    // constrain valid range and default to a quarter of the desktop, centered
+    hostnameLineEdit_.setText( "bbplxviz01.epfl.ch" );
+
+    char hostname[256] = {0};
+    gethostname( hostname, 256 );
+    uriLineEdit_.setText( hostname );
+
     const int screen = -1;
     QRect desktopRect = QApplication::desktop()->screenGeometry( screen );
 
