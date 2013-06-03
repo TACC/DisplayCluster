@@ -432,8 +432,10 @@ void MainWindow::shareDesktopUpdate()
 
 void MainWindow::updateCoordinates()
 {
+    const float newScale = retinaBox_.checkState() ? 2.f : 1.f;
+
     if( widthSpinBox_.value() != width_ || heightSpinBox_.value() != height_ ||
-        float( retinaBox_.checkState( )) + 1.f != deviceScale_ )
+        newScale != deviceScale_ )
     {
         updatedDimensions_ = true;
     }
@@ -442,7 +444,7 @@ void MainWindow::updateCoordinates()
     y_ = ySpinBox_.value();
     width_ = widthSpinBox_.value();
     height_ = heightSpinBox_.value();
-    deviceScale_ = float( retinaBox_.checkState( )) + 1.f;
+    deviceScale_ = newScale;
     //const int x = x_ * deviceScale_;
     //const int y = y_ * deviceScale_;
     const int w = width_ * deviceScale_;
