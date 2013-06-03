@@ -21,9 +21,12 @@ set(CMAKE_CXX_FLAGS "-Wall")
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # build options
-option(BUILD_DISPLAYCLUSTER "Build main DisplayCluster application" OFF)
 option(BUILD_DISPLAYCLUSTER_LIBRARY "Build DisplayCluster library" OFF)
 option(BUILD_DESKTOPSTREAMER "Build DesktopStreamer application" OFF)
+option(ENABLE_TUIO_TOUCH_LISTENER "Enable TUIO touch listener for multi-touch events" OFF)
+option(ENABLE_JOYSTICK_SUPPORT "Enable joystick support" OFF)
+option(ENABLE_SKELETON_SUPPORT "EXPERIMENTAL: Enable skeleton tracking interface support" OFF)
+option(ENABLE_PYTHON_SUPPORT "Enable Python support" OFF)
 
 if(APPLE)
   set(CMAKE_OSX_SYSROOT "" CACHE PATH "" FORCE)
@@ -41,107 +44,92 @@ if(APPLE)
   endif (NOT CMAKE_INSTALL_NAME_DIR)
 endif()
 
-if(BUILD_DISPLAYCLUSTER)
-    option(ENABLE_TUIO_TOUCH_LISTENER "Enable TUIO touch listener for multi-touch events" OFF)
-    option(ENABLE_JOYSTICK_SUPPORT "Enable joystick support" OFF)
-    option(ENABLE_SKELETON_SUPPORT "EXPERIMENTAL: Enable skeleton tracking interface support" OFF)
-    option(ENABLE_PYTHON_SUPPORT "Enable Python support" OFF)
-endif()
-
 # path for additional modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
-if(BUILD_DISPLAYCLUSTER OR BUILD_DISPLAYCLUSTER_LIBRARY OR BUILD_DESKTOPSTREAMER)
-    # find and setup Qt4
-    # see http://cmake.org/cmake/help/cmake2.6docs.html#module:FindQt4 for details
-    set(QT_USE_QTOPENGL TRUE)
-    set(QT_USE_QTSVG TRUE)
-    set(QT_USE_QTXMLPATTERNS TRUE)
-    set(QT_USE_QTXML TRUE)
-    set(QT_USE_QTNETWORK TRUE)
+# find and setup Qt4
+# see http://cmake.org/cmake/help/cmake2.6docs.html#module:FindQt4 for details
+set(QT_USE_QTOPENGL TRUE)
+set(QT_USE_QTSVG TRUE)
+set(QT_USE_QTXMLPATTERNS TRUE)
+set(QT_USE_QTXML TRUE)
+set(QT_USE_QTNETWORK TRUE)
 
-    if(WIN32)
-        set(QT_USE_QTMAIN TRUE)
-    endif()
-
-    find_package(Qt4 REQUIRED)
-
-    include(${QT_USE_FILE})
-    set(LIBS ${LIBS} ${QT_LIBRARIES})
-
-    # libjpeg-turbo
-    find_package(LibJpegTurbo REQUIRED)
-    include_directories(${LibJpegTurbo_INCLUDE_DIRS})
-    set(LIBS ${LIBS} ${LibJpegTurbo_LIBRARIES})
+if(WIN32)
+  set(QT_USE_QTMAIN TRUE)
 endif()
 
-if(BUILD_DISPLAYCLUSTER)
-    find_package(OpenGL REQUIRED)
-    include_directories(${OPENGL_INCLUDE_DIRS})
-    set(LIBS ${LIBS} ${OPENGL_LIBRARIES})
+find_package(Qt4 REQUIRED)
+include(${QT_USE_FILE})
+list(APPEND LIBS ${QT_LIBRARIES})
 
-    find_package(Boost REQUIRED COMPONENTS serialization date_time)
-    include_directories(${Boost_INCLUDE_DIRS})
-    set(LIBS ${LIBS} ${Boost_LIBRARIES})
+find_package(LibJpegTurbo REQUIRED)
+include_directories(${LibJpegTurbo_INCLUDE_DIRS})
+list(APPEND LIBS ${LibJpegTurbo_LIBRARIES})
 
-    find_package(MPI REQUIRED)
-    include_directories(${MPI_INCLUDE_PATH})
-    set(LIBS ${LIBS} ${MPI_LIBRARIES})
+find_package(Boost REQUIRED COMPONENTS serialization date_time)
+include_directories(${Boost_INCLUDE_DIRS})
+list(APPEND LIBS ${Boost_LIBRARIES})
 
-    find_package(FFMPEG REQUIRED)
-    include_directories(SYSTEM ${FFMPEG_INCLUDE_DIR}) # use SYSTEM to suppress FFMPEG compile warnings
-    set(LIBS ${LIBS} ${FFMPEG_LIBRARIES})
+find_package(OpenGL)
+find_package(MPI)
+find_package(FFMPEG)
+if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
+  include_directories(SYSTEM ${OPENGL_INCLUDE_DIRS} ${MPI_INCLUDE_PATH}
+    ${FFMPEG_INCLUDE_DIR})
+  list(APPEND LIBS ${OPENGL_LIBRARIES} ${MPI_CXX_LIBRARIES}
+    ${FFMPEG_LIBRARIES})
 
-    # handle build options
-    if(ENABLE_TUIO_TOUCH_LISTENER)
-        find_package(TUIO REQUIRED)
-        include_directories(${TUIO_INCLUDE_DIRS})
-        set(LIBS ${LIBS} ${TUIO_LIBRARIES})
+  # handle build options
+  if(ENABLE_TUIO_TOUCH_LISTENER)
+    find_package(TUIO REQUIRED)
+    include_directories(${TUIO_INCLUDE_DIRS})
+    list(APPEND LIBS ${TUIO_LIBRARIES})
 
-        set(SRCS ${SRCS} src/TouchListener.cpp)
+    set(SRCS ${SRCS} src/TouchListener.cpp)
 
-        find_package(X11 REQUIRED)
-        include_directories(${X11_INCLUDE_DIR})
-        set(LIBS ${LIBS} ${X11_LIBRARIES})
+    find_package(X11 REQUIRED)
+    include_directories(${X11_INCLUDE_DIR})
+    list(APPEND LIBS ${X11_LIBRARIES})
+  endif()
+
+  if(ENABLE_JOYSTICK_SUPPORT)
+    find_package(SDL REQUIRED)
+    include_directories(${SDL_INCLUDE_DIR})
+    list(APPEND LIBS ${SDL_LIBRARY})
+
+    set(SRCS ${SRCS} src/JoystickThread.cpp)
+    set(SRCS ${SRCS} src/DisplayGroupJoystick.cpp)
+
+    set(MOC_HEADERS ${MOC_HEADERS} src/JoystickThread.h)
+  endif()
+
+  if(ENABLE_SKELETON_SUPPORT)
+    find_package(OpenNI REQUIRED)
+    include_directories(SYSTEM ${OpenNI_INCLUDE_DIRS}) # use SYSTEM to suppress OpenNI compile warnings
+    list(APPEND LIBS ${OpenNI_LIBRARIES})
+
+    list(APPEMD SRCS
+      src/SkeletonThread.cpp
+      src/SkeletonSensor.cpp
+      src/SkeletonState.cpp)
+
+    if(NOT ENABLE_JOYSTICK_SUPPORT)
+      list(APPEMD SRCS src/DisplayGroupJoystick.cpp)
     endif()
 
-    if(ENABLE_JOYSTICK_SUPPORT)
-        find_package(SDL REQUIRED)
-        include_directories(${SDL_INCLUDE_DIR})
-        set(LIBS ${LIBS} ${SDL_LIBRARY})
-
-        set(SRCS ${SRCS} src/JoystickThread.cpp)
-        set(SRCS ${SRCS} src/DisplayGroupJoystick.cpp)
-
-        set(MOC_HEADERS ${MOC_HEADERS} src/JoystickThread.h)
-    endif()
-
-    if(ENABLE_SKELETON_SUPPORT)
-        find_package(OpenNI REQUIRED)
-        include_directories(SYSTEM ${OpenNI_INCLUDE_DIRS}) # use SYSTEM to suppress OpenNI compile warnings
-        set(LIBS ${LIBS} ${OpenNI_LIBRARIES})
-
-        set(SRCS ${SRCS}
-            src/SkeletonThread.cpp
-            src/SkeletonSensor.cpp
-            src/SkeletonState.cpp)
-
-        if(NOT ENABLE_JOYSTICK_SUPPORT)
-            set(SRCS ${SRCS} src/DisplayGroupJoystick.cpp)
-        endif()
-
-        set(MOC_HEADERS ${MOC_HEADERS} src/SkeletonThread.h)
-    endif()
+    set(MOC_HEADERS ${MOC_HEADERS} src/SkeletonThread.h)
+  endif()
 
     if(ENABLE_PYTHON_SUPPORT)
         find_package(PythonLibs REQUIRED)
         include_directories(${PYTHON_INCLUDE_PATH}) # deprecated, but include for old CMake versions
         include_directories(${PYTHON_INCLUDE_DIRS})
-        set(LIBS ${LIBS} ${PYTHON_LIBRARIES})
+        list(APPEND LIBS ${PYTHON_LIBRARIES})
 
         find_package(PythonQt REQUIRED)
         include_directories(${PythonQt_INCLUDE_DIRS})
-        set(LIBS ${LIBS} ${PythonQt_LIBRARIES})
+        list(APPEND LIBS ${PythonQt_LIBRARIES})
 
         set(SRCS ${SRCS} src/DisplayGroupPython.cpp)
         set(SRCS ${SRCS} src/PythonConsole.cpp)
@@ -154,7 +142,7 @@ if(BUILD_DISPLAYCLUSTER)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
     include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-    set(SRCS ${SRCS}
+    list(APPEND SRCS
         src/Configuration.cpp
         src/Content.cpp
         src/ContentWindowManager.cpp
@@ -192,7 +180,7 @@ if(BUILD_DISPLAYCLUSTER)
         src/TextureContent.cpp
     )
 
-    set(MOC_HEADERS ${MOC_HEADERS}
+    list(APPEND MOC_HEADERS
         src/Content.h
         src/ContentWindowInterface.h
         src/DisplayGroupManager.h
