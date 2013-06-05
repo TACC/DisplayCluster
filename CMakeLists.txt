@@ -336,10 +336,14 @@ if(BUILD_DESKTOPSTREAMER)
     target_link_libraries(desktopstreamer ${DESKTOP_STREAMER_LIBS})
 
     # install executable
-    INSTALL(TARGETS desktopstreamer
+    install(TARGETS desktopstreamer
         RUNTIME DESTINATION bin COMPONENT Runtime
         BUNDLE DESTINATION . COMPONENT Runtime
     )
+    if(APPLE)
+      install(FILES ${DESKTOP_STREAMER_LIBS}
+        DESTINATION ${CMAKE_BINARY_DIR}/desktopstreamer.app/Contents/MacOS)
+    endif()
 
     # on Apple platform make the .app bundle; on Windows make the installer
     if(APPLE OR WIN32)
