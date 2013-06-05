@@ -119,6 +119,7 @@ class MainWindow : public QMainWindow {
 
         bool serialStream();
         bool parallelStream();
+        void sendDimensions();
 };
 
 #endif

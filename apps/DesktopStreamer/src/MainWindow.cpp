@@ -104,7 +104,7 @@ MainWindow::MainWindow()
     connect(&ySpinBox_, SIGNAL(editingFinished()), this, SLOT(updateCoordinates()));
     connect(&widthSpinBox_, SIGNAL(editingFinished()), this, SLOT(updateCoordinates()));
     connect(&heightSpinBox_, SIGNAL(editingFinished()), this, SLOT(updateCoordinates()));
-    connect(&retinaBox_, SIGNAL(editingFinished()), this, SLOT(updateCoordinates()));
+    connect(&retinaBox_, SIGNAL(released()), this, SLOT(updateCoordinates()));
 
     hostnameLineEdit_.setText( "bbplxviz01.epfl.ch" );
 
@@ -215,60 +215,57 @@ QImage MainWindow::getImage()
 
 void MainWindow::shareDesktop(bool set)
 {
-    if(set == true)
-    {
-        // save values from UI: hostname and uri can only be updated here--not during streaming
-        hostname_ = hostnameLineEdit_.text().toStdString();
-        uri_ = uriLineEdit_.text().toStdString();
-
-        // open connection (disconnecting from an existing connection if necessary)
-        tcpSocket_.disconnectFromHost();
-        tcpSocket_.connectToHost(hostname_.c_str(), 1701);
-
-        if(tcpSocket_.waitForConnected() != true)
-        {
-            put_flog(LOG_ERROR, "could not connect");
-            QMessageBox::warning(this, "Error", "Could not connect.", QMessageBox::Ok, QMessageBox::Ok);
-
-            shareDesktopAction_->setChecked(false);
-            return;
-        }
-
-        // handshake
-        while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < (int)sizeof(int32_t))
-        {
-#ifndef _WIN32
-            usleep(10);
-#endif
-        }
-
-        int32_t protocolVersion = -1;
-        tcpSocket_.read((char *)&protocolVersion, sizeof(int32_t));
-
-        if(protocolVersion != SUPPORTED_NETWORK_PROTOCOL_VERSION)
-        {
-            tcpSocket_.disconnectFromHost();
-            shareDesktopAction_->setChecked(false);
-
-            put_flog(LOG_ERROR, "unsupported protocol version %i > %i", protocolVersion, SUPPORTED_NETWORK_PROTOCOL_VERSION);
-            QMessageBox::warning(this, "Error", "This version is incompatible with the DisplayCluster instance you connected to. (" + QString::number(protocolVersion) + " != " + QString::number(SUPPORTED_NETWORK_PROTOCOL_VERSION) + ")", QMessageBox::Ok, QMessageBox::Ok);
-
-            return;
-        }
-
-        // make sure dimensions get updated
-        updatedDimensions_ = true;
-
-        shareDesktopUpdateTimer_.start(SHARE_DESKTOP_UPDATE_DELAY);
-    }
-    else
+    if( !set )
     {
         tcpSocket_.disconnectFromHost();
-
         shareDesktopUpdateTimer_.stop();
-
         frameRateLabel_.setText("");
+        return;
     }
+
+    // save values from UI: hostname and uri can only be updated here--not during streaming
+    hostname_ = hostnameLineEdit_.text().toStdString();
+    uri_ = uriLineEdit_.text().toStdString();
+
+    // open connection (disconnecting from an existing connection if necessary)
+    tcpSocket_.disconnectFromHost();
+    tcpSocket_.connectToHost(hostname_.c_str(), 1701);
+
+    if(tcpSocket_.waitForConnected() != true)
+    {
+        put_flog(LOG_ERROR, "could not connect");
+        QMessageBox::warning(this, "Error", "Could not connect.", QMessageBox::Ok, QMessageBox::Ok);
+
+        shareDesktopAction_->setChecked(false);
+        return;
+    }
+
+    // handshake
+    while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < (int)sizeof(int32_t))
+    {
+#ifndef _WIN32
+        usleep(10);
+#endif
+    }
+
+    int32_t protocolVersion = -1;
+    tcpSocket_.read((char *)&protocolVersion, sizeof(int32_t));
+
+    if(protocolVersion != SUPPORTED_NETWORK_PROTOCOL_VERSION)
+    {
+        tcpSocket_.disconnectFromHost();
+        shareDesktopAction_->setChecked(false);
+
+        put_flog(LOG_ERROR, "unsupported protocol version %i > %i", protocolVersion, SUPPORTED_NETWORK_PROTOCOL_VERSION);
+        QMessageBox::warning(this, "Error", "This version is incompatible with the DisplayCluster instance you connected to. (" + QString::number(protocolVersion) + " != " + QString::number(SUPPORTED_NETWORK_PROTOCOL_VERSION) + ")", QMessageBox::Ok, QMessageBox::Ok);
+
+        return;
+    }
+
+    // make sure dimensions get updated
+    updatedDimensions_ = true;
+
+    shareDesktopUpdateTimer_.start(SHARE_DESKTOP_UPDATE_DELAY);
 }
 
 void MainWindow::showDesktopSelectionWindow(bool set)
@@ -305,16 +302,16 @@ void MainWindow::shareDesktopUpdate()
     }
 
     // take screenshot
-    //const int x = x_ * deviceScale_;
-    //const int y = y_ * deviceScale_;
+    const int x = x_ * deviceScale_;
+    const int y = y_ * deviceScale_;
     const int w = width_ * deviceScale_;
     const int h = height_ * deviceScale_;
 
     QPixmap desktopPixmap =
-        QPixmap::grabWindow( QApplication::desktop()->winId(), x_, y_, w, h );
+        QPixmap::grabWindow( QApplication::desktop()->winId(), x, y, w, h );
     //std::cout << desktopPixmap.devicePixelRatio() << std::endl;
 
-    if(desktopPixmap.isNull() == true)
+    if( desktopPixmap.isNull( ))
     {
         put_flog(LOG_ERROR, "got NULL desktop pixmap");
         QMessageBox::warning(this, "Error", "Got NULL desktop pixmap.", QMessageBox::Ok, QMessageBox::Ok);
@@ -329,69 +326,20 @@ void MainWindow::shareDesktopUpdate()
 
     bool success;
 
-    if(parallelStreaming_ == false)
+    if( parallelStreaming_ )
     {
-        // stream as one big image
-        success = serialStream();
-
-        // check if we updated dimensions
-        if(updatedDimensions_ == true)
-        {
-            // updated dimensions
-            int dimensions[2];
-            dimensions[0] = w;
-            dimensions[1] = h;
-
-            int dimensionsSize = 2 * sizeof(int);
-
-            // header
-            MessageHeader mh;
-            mh.size = dimensionsSize;
-            mh.type = MESSAGE_TYPE_PIXELSTREAM_DIMENSIONS_CHANGED;
-
-            // add the truncated URI to the header
-            size_t len = uri_.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
-            mh.uri[len] = '\0';
-
-            // send the header
-            int sent = tcpSocket_.write((const char *)&mh, sizeof(MessageHeader));
-
-            while(sent < (int)sizeof(MessageHeader))
-            {
-                sent += tcpSocket_.write((const char *)&mh + sent, sizeof(MessageHeader) - sent);
-            }
-
-            // send the message
-            sent = tcpSocket_.write((const char *)dimensions, dimensionsSize);
-
-            while(sent < dimensionsSize)
-            {
-                sent += tcpSocket_.write((const char *)dimensions + sent, dimensionsSize - sent);
-            }
-
-            updatedDimensions_ = false;
-
-            // wait for acknowledgment
-            while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < 3)
-            {
-    #ifndef _WIN32
-                usleep(10);
-    #endif
-            }
-
-            tcpSocket_.read(3);
-        }
+        success = parallelStream();
+        // no need to watch for dimension changes; server handles it automatically
     }
     else
     {
-        // stream in segments
-        success = parallelStream();
-
-        // no need to watch for dimension changes; server handles it automatically
+        // stream as one big image
+        success = serialStream();
+        sendDimensions();
     }
 
     // check for failure
-    if(success == false)
+    if( !success )
     {
         put_flog(LOG_ERROR, "streaming failure");
         QMessageBox::warning(this, "Error", "Streaming failure.", QMessageBox::Ok, QMessageBox::Ok);
@@ -402,14 +350,12 @@ void MainWindow::shareDesktopUpdate()
     }
 
     // elapsed time (milliseconds)
-    int elapsedFrameTime = frameTime.elapsed();
+    const int elapsedFrameTime = frameTime.elapsed();
 
     // frame rate limiting
-    int maxFrameRate = frameRateSpinBox_.value();
-
-    int desiredFrameTime = (int)(1000. * 1. / (float)maxFrameRate);
-
-    int sleepTime = desiredFrameTime - elapsedFrameTime;
+    const int maxFrameRate = frameRateSpinBox_.value();
+    const int desiredFrameTime = (int)(1000. * 1. / (float)maxFrameRate);
+    const int sleepTime = desiredFrameTime - elapsedFrameTime;
 
     if(sleepTime > 0)
     {
@@ -429,16 +375,59 @@ void MainWindow::shareDesktopUpdate()
     }
     else if(frameSentTimes_.size() == FRAME_RATE_AVERAGE_NUM_FRAMES)
     {
-        float fps = (float)frameSentTimes_.size() / (float)frameSentTimes_.front().msecsTo(frameSentTimes_.back()) * 1000.;
+        const float fps = (float)frameSentTimes_.size() / (float)frameSentTimes_.front().msecsTo(frameSentTimes_.back()) * 1000.;
 
         frameRateLabel_.setText(QString::number(fps) + QString(" fps"));
     }
 }
 
+void MainWindow::sendDimensions()
+{
+    if( !updatedDimensions_ )
+        return;
+
+    // updated dimensions
+    const int dimensions[2] = {  width_*deviceScale_, height_*deviceScale_ };
+    const int dimensionsSize = 2 * sizeof(int);
+
+    // header
+    MessageHeader mh;
+    mh.size = dimensionsSize;
+    mh.type = MESSAGE_TYPE_PIXELSTREAM_DIMENSIONS_CHANGED;
+
+    // add the truncated URI to the header
+    const size_t len = uri_.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
+    mh.uri[len] = '\0';
+
+    // send the header
+    int sent = tcpSocket_.write((const char *)&mh, sizeof(MessageHeader));
+    while(sent < (int)sizeof(MessageHeader))
+    {
+        sent += tcpSocket_.write((const char *)&mh + sent, sizeof(MessageHeader) - sent);
+    }
+
+    // send the message
+    sent = tcpSocket_.write((const char *)dimensions, dimensionsSize);
+    while(sent < dimensionsSize)
+    {
+        sent += tcpSocket_.write((const char *)dimensions + sent, dimensionsSize - sent);
+    }
+
+    // wait for acknowledgment
+    while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < 3)
+    {
+#ifndef _WIN32
+        usleep(10);
+#endif
+    }
+
+    tcpSocket_.read(3);
+    updatedDimensions_ = false;
+}
+
 void MainWindow::updateCoordinates()
 {
     const float newScale = retinaBox_.checkState() ? 2.f : 1.f;
-
     if( widthSpinBox_.value() != width_ || heightSpinBox_.value() != height_ ||
         newScale != deviceScale_ )
     {
@@ -450,10 +439,6 @@ void MainWindow::updateCoordinates()
     width_ = widthSpinBox_.value();
     height_ = heightSpinBox_.value();
     deviceScale_ = newScale;
-    //const int x = x_ * deviceScale_;
-    //const int y = y_ * deviceScale_;
-    const int w = width_ * deviceScale_;
-    const int h = height_ * deviceScale_;
 
     // update DesktopSelectionRectangle
     if( g_desktopSelectionWindow )
@@ -461,16 +446,19 @@ void MainWindow::updateCoordinates()
         g_desktopSelectionWindow->getDesktopSelectionView()->getDesktopSelectionRectangle()->setCoordinates( x_, y_, width_, height_ );
     }
 
-    // update ParallelPixelStreamSegment parameters, whether or not we are currently streaming in parallel
-    // users can toggle parallel streaming at any time
+    // update ParallelPixelStreamSegment parameters, whether or not we are
+    // currently streaming in parallel. Users can toggle parallel streaming at
+    // any time
     segments_.clear();
 
     // segment dimensions will be approximately this
-    int nominalSegmentSize = 512;
+    const int w = width_ * deviceScale_;
+    const int h = height_ * deviceScale_;
+    const int nominalSegmentSize = 512;
 
     // number of subdivisions in each dimensions
-    int numSubdivisionsX = (int)floor((float)w / (float)nominalSegmentSize + 0.5f);
-    int numSubdivisionsY = (int)floor((float)h / (float)nominalSegmentSize + 0.5f);
+    const int numSubdivisionsX = (int)floor((float)w / (float)nominalSegmentSize + 0.5f);
+    const int numSubdivisionsY = (int)floor((float)h / (float)nominalSegmentSize + 0.5f);
 
     // now, create segments with appropriate parameters
     for(int i=0; i<numSubdivisionsX; i++)
@@ -496,16 +484,14 @@ bool MainWindow::serialStream()
 {
     // use libjpeg-turbo for JPEG conversion
     tjhandle handle = tjInitCompress();
-    int pixelFormat = TJPF_BGRX;
-    unsigned char ** jpegBuf;
-    unsigned char * jpegBufPtr = NULL;
-    jpegBuf = &jpegBufPtr;
+    const int pixelFormat = TJPF_BGRX;
+    unsigned char* jpegBuf = NULL;
     unsigned long jpegSize = 0;
     int jpegSubsamp = TJSAMP_444;
     int jpegQual = JPEG_QUALITY;
     int flags = 0;
 
-    int success = tjCompress2(handle, image_.scanLine(0), image_.width(), image_.bytesPerLine(), image_.height(), pixelFormat, jpegBuf, &jpegSize, jpegSubsamp, jpegQual, flags);
+    int success = tjCompress2(handle, image_.scanLine(0), image_.width(), image_.bytesPerLine(), image_.height(), pixelFormat, &jpegBuf, &jpegSize, jpegSubsamp, jpegQual, flags);
 
     if(success != 0)
     {
@@ -516,8 +502,8 @@ bool MainWindow::serialStream()
     }
 
     // move the JPEG buffer to a byte array and free the libjpeg-turbo allocated memory
-    QByteArray byteArray((char *)jpegBufPtr, jpegSize);
-    free(jpegBufPtr);
+    QByteArray byteArray((char *)jpegBuf, jpegSize);
+    free( jpegBuf );
 
     if(byteArray != previousImageData_)
     {
@@ -626,7 +612,7 @@ bool MainWindow::parallelStream()
     segments_ = segments;
 
     // increment frame index
-    frameIndex++;
+    ++frameIndex;
 
     return true;
 }
