@@ -302,13 +302,11 @@ void MainWindow::shareDesktopUpdate()
     }
 
     // take screenshot
-    const int x = x_ * deviceScale_;
-    const int y = y_ * deviceScale_;
     const int w = width_ * deviceScale_;
     const int h = height_ * deviceScale_;
 
     QPixmap desktopPixmap =
-        QPixmap::grabWindow( QApplication::desktop()->winId(), x, y, w, h );
+        QPixmap::grabWindow( QApplication::desktop()->winId(), x_, y_, w, h );
     //std::cout << desktopPixmap.devicePixelRatio() << std::endl;
 
     if( desktopPixmap.isNull( ))
