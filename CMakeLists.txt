@@ -29,7 +29,8 @@ option(ENABLE_SKELETON_SUPPORT "EXPERIMENTAL: Enable skeleton tracking interface
 option(ENABLE_PYTHON_SUPPORT "Enable Python support" OFF)
 
 if(APPLE)
-  set(CMAKE_OSX_SYSROOT "" CACHE PATH "" FORCE)
+  # WAR needed when CMAKE_OSX_SYSROOT is set to find /usr/include/turbojpeg.h
+  include_directories(SYSTEM /usr/local/../include)
   if(NOT CMAKE_OSX_ARCHITECTURES OR CMAKE_OSX_ARCHITECTURES STREQUAL "")
     if(_CMAKE_OSX_MACHINE MATCHES "ppc")
       set(CMAKE_OSX_ARCHITECTURES "ppc;ppc64" CACHE
