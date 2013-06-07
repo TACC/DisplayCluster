@@ -385,7 +385,8 @@ void MainWindow::sendDimensions()
         return;
 
     // updated dimensions
-    const int dimensions[2] = {  width_*deviceScale_, height_*deviceScale_ };
+    const int dimensions[2] = {  int(width_*deviceScale_),
+                                 int(height_*deviceScale_) };
     const int dimensionsSize = 2 * sizeof(int);
 
     // header

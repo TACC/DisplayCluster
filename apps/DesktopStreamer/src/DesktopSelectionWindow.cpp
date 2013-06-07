@@ -61,7 +61,7 @@ DesktopSelectionWindow::DesktopSelectionWindow()
     hideWindowButton->setFlat(true);
 
     // add it to the scene
-    QGraphicsProxyWidget * hideWindowProxy = desktopSelectionView_.scene()->addWidget(hideWindowButton);
+    desktopSelectionView_.scene()->addWidget(hideWindowButton);
 }
 
 DesktopSelectionView * DesktopSelectionWindow::getDesktopSelectionView()
