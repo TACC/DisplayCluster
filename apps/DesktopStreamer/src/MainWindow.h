@@ -76,6 +76,8 @@ class MainWindow : public QMainWindow {
 
     private:
 
+        virtual void closeEvent( QCloseEvent* event );
+
         bool updatedDimensions_;
 
         QLineEdit hostnameLineEdit_;
@@ -120,6 +122,7 @@ class MainWindow : public QMainWindow {
         bool serialStream();
         bool parallelStream();
         void sendDimensions();
+        void sendQuit();
 };
 
 #endif

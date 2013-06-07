@@ -668,7 +668,15 @@ void DisplayGroupManager::sendPixelStreams()
         bool updated;
         QByteArray imageData = pixelStreamSource->getImageData(updated);
 
-        if(updated == true)
+        if( imageData.isEmpty( ))
+        {
+            boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
+            if( cwm )
+                removeContentWindowManager( cwm );
+            continue;
+        }
+
+        if( updated )
         {
             // make sure Content/ContentWindowManager exists for the URI
 
@@ -733,6 +741,14 @@ void DisplayGroupManager::sendParallelPixelStreams()
     {
         std::string uri = (*it).first;
         boost::shared_ptr<ParallelPixelStream> parallelPixelStreamSource = (*it).second;
+
+        if( parallelPixelStreamSource->isDeleted( ))
+        {
+            boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager(uri, CONTENT_TYPE_PARALLEL_PIXEL_STREAM);
+            if( cwm )
+                removeContentWindowManager( cwm );
+            continue;
+        }
 
         // get updated segments
         // if streaming synchronization is enabled, we need to send all segments; otherwise just the latest segments

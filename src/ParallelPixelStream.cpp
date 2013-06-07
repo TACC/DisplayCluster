@@ -44,6 +44,7 @@
 ParallelPixelStream::ParallelPixelStream(std::string uri)
 {
     // defaults
+    deleted_ = false;
     width_ = 0;
     height_ = 0;
 
@@ -144,6 +145,8 @@ void ParallelPixelStream::render(float tX, float tY, float tW, float tH)
 void ParallelPixelStream::insertSegment(ParallelPixelStreamSegment segment)
 {
     QMutexLocker locker(&segmentsMutex_);
+
+    deleted_ = false;
 
     // update total dimensions if we have non-blank parameters
     if(segment.parameters.totalWidth != 0 && segment.parameters.totalHeight != 0)
@@ -357,6 +360,16 @@ void ParallelPixelStream::updatePixelStreams()
             frameUpdated(sourceIndex);
         }
     }
+}
+
+void ParallelPixelStream::markDeleted()
+{
+    deleted_ = true;
+}
+
+bool ParallelPixelStream::isDeleted() const
+{
+    return deleted_;
 }
 
 bool ParallelPixelStream::isSegmentVisible(ParallelPixelStreamSegmentParameters parameters)

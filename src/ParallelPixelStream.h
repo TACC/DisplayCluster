@@ -134,7 +134,12 @@ class ParallelPixelStream : public FactoryObject {
         // update pixel streams corresponding to latest segments
         void updatePixelStreams();
 
+        void markDeleted();
+        bool isDeleted() const;
+
     private:
+
+        bool deleted_;
 
         // parallel pixel stream identifier
         std::string uri_;

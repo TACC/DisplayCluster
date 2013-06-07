@@ -124,7 +124,19 @@ void NetworkListenerThread::run()
 
 void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArray byteArray)
 {
-    if(messageHeader.type == MESSAGE_TYPE_PIXELSTREAM)
+    if(messageHeader.type == MESSAGE_TYPE_QUIT)
+    {
+        std::string uri(messageHeader.uri);
+
+        QByteArray empty;
+        g_pixelStreamSourceFactory.getObject(uri)->setImageData(empty);
+        g_SVGStreamSourceFactory.getObject(uri)->setImageData(empty);
+        g_parallelPixelStreamSourceFactory.getObject(uri)->markDeleted();
+
+        emit(updatedPixelStreamSource());
+        emit(updatedSVGStreamSource());
+    }
+    else if(messageHeader.type == MESSAGE_TYPE_PIXELSTREAM)
     {
         // update pixel stream source
         // keep this in this thread so we can have pixel stream source updating and sendPixelStreams() happening in parallel

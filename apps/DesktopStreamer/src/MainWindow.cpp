@@ -184,6 +184,13 @@ MainWindow::MainWindow()
     show();
 }
 
+void MainWindow::closeEvent( QCloseEvent* event )
+{
+    shareDesktopUpdateTimer_.stop();
+    sendQuit();
+    QMainWindow::closeEvent( event );
+}
+
 void MainWindow::getCoordinates(int &x, int &y, int &width, int &height)
 {
     x = x_;
@@ -217,8 +224,9 @@ void MainWindow::shareDesktop(bool set)
 {
     if( !set )
     {
-        tcpSocket_.disconnectFromHost();
         shareDesktopUpdateTimer_.stop();
+        sendQuit();
+        tcpSocket_.disconnectFromHost();
         frameRateLabel_.setText("");
         return;
     }
@@ -314,6 +322,7 @@ void MainWindow::shareDesktopUpdate()
         put_flog(LOG_ERROR, "got NULL desktop pixmap");
         QMessageBox::warning(this, "Error", "Got NULL desktop pixmap.", QMessageBox::Ok, QMessageBox::Ok);
 
+        sendQuit();
         tcpSocket_.disconnectFromHost();
         shareDesktopAction_->setChecked(false);
         return;
@@ -342,6 +351,7 @@ void MainWindow::shareDesktopUpdate()
         put_flog(LOG_ERROR, "streaming failure");
         QMessageBox::warning(this, "Error", "Streaming failure.", QMessageBox::Ok, QMessageBox::Ok);
 
+        sendQuit();
         tcpSocket_.disconnectFromHost();
         shareDesktopAction_->setChecked(false);
         return;
@@ -422,6 +432,38 @@ void MainWindow::sendDimensions()
 
     tcpSocket_.read(3);
     updatedDimensions_ = false;
+}
+
+void MainWindow::sendQuit()
+{
+    if( tcpSocket_.state() != QAbstractSocket::ConnectedState )
+        return;
+
+    // header
+    MessageHeader mh;
+    mh.size = 0;
+    mh.type = MESSAGE_TYPE_QUIT;
+
+    // add the truncated URI to the header
+    const size_t len = uri_.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
+    mh.uri[len] = '\0';
+
+    // send the header
+    int sent = tcpSocket_.write((const char *)&mh, sizeof(MessageHeader));
+    while(sent < (int)sizeof(MessageHeader))
+    {
+        sent += tcpSocket_.write((const char *)&mh + sent, sizeof(MessageHeader) - sent);
+    }
+
+    // wait for acknowledgment
+    while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < 3)
+    {
+#ifndef _WIN32
+        usleep(10);
+#endif
+    }
+
+    tcpSocket_.read(3);
 }
 
 void MainWindow::updateCoordinates()
