@@ -141,6 +141,13 @@ MainWindow::MainWindow()
         showWindowBordersAction->setChecked(g_displayGroupManager->getOptions()->getShowWindowBorders());
         connect(showWindowBordersAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowWindowBorders(bool)));
 
+        // show mouse cursor action
+        QAction * showMouseCursorAction = new QAction("Show Mouse Cursor", this);
+        showMouseCursorAction->setStatusTip("Show mouse cursor");
+        showMouseCursorAction->setCheckable(true);
+        showMouseCursorAction->setChecked(g_displayGroupManager->getOptions()->getShowMouseCursor());
+        connect(showMouseCursorAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowMouseCursor(bool)));
+
         // show test pattern action
         QAction * showTestPatternAction = new QAction("Show Test Pattern", this);
         showTestPatternAction->setStatusTip("Show test pattern");
@@ -212,6 +219,7 @@ MainWindow::MainWindow()
         fileMenu->addAction(quitAction);
         viewMenu->addAction(constrainAspectRatioAction);
         viewMenu->addAction(showWindowBordersAction);
+        viewMenu->addAction(showMouseCursorAction);
         viewMenu->addAction(showTestPatternAction);
         viewMenu->addAction(enableMullionCompensationAction);
         viewMenu->addAction(showZoomContextAction);
@@ -513,6 +521,11 @@ void MainWindow::setEnableSkeletonTracking(bool enable)
 
 void MainWindow::updateGLWindows()
 {
+    if( g_displayGroupManager->getOptions()->getShowMouseCursor( ))
+        unsetCursor();
+    else
+        setCursor( QCursor( Qt::BlankCursor ));
+
     // receive any waiting messages
     g_displayGroupManager->receiveMessages();
 

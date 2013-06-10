@@ -41,6 +41,7 @@
 Options::Options()
 {
     showWindowBorders_ = false;
+    showMouseCursor_ = false;
     showTestPattern_ = false;
     enableMullionCompensation_ = true;
     showZoomContext_ = true;
@@ -56,6 +57,11 @@ Options::Options()
 bool Options::getShowWindowBorders()
 {
     return showWindowBorders_;
+}
+
+bool Options::getShowMouseCursor()
+{
+    return showMouseCursor_;
 }
 
 bool Options::getShowTestPattern()
@@ -98,6 +104,13 @@ bool Options::getShowSkeletons()
 void Options::setShowWindowBorders(bool set)
 {
     showWindowBorders_ = set;
+
+    emit(updated());
+}
+
+void Options::setShowMouseCursor(bool set)
+{
+    showMouseCursor_ = set;
 
     emit(updated());
 }
