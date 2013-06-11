@@ -318,6 +318,7 @@ if(BUILD_DESKTOPSTREAMER)
     )
 
     qt4_wrap_cpp(DESKTOP_STREAMER_MOC_OUTFILES ${DESKTOP_STREAMER_MOC_HEADERS})
+    qt4_add_resources(DESKTOP_STREAMER_RRC apps/DesktopStreamer/resources.qrc)
 
     # on Apple platform set the icon
     if(APPLE)
@@ -331,7 +332,7 @@ if(BUILD_DESKTOPSTREAMER)
     endif(APPLE)
 
     add_executable(desktopstreamer MACOSX_BUNDLE WIN32
-      ${DESKTOP_STREAMER_SRCS} ${DESKTOP_STREAMER_MOC_OUTFILES})
+      ${DESKTOP_STREAMER_SRCS} ${DESKTOP_STREAMER_MOC_OUTFILES} ${DESKTOP_STREAMER_RRC})
     set_target_properties(desktopstreamer PROPERTIES
       MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/apps/DesktopStreamer/src/Info.plist)
     target_link_libraries(desktopstreamer ${DESKTOP_STREAMER_LIBS})

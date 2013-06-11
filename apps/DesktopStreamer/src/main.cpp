@@ -48,6 +48,8 @@ int main(int argc, char * argv[])
 
     QApplication * app = new QApplication(argc, argv);
 
+    Q_INIT_RESOURCE( resources );
+
     g_mainWindow = new MainWindow();
     g_desktopSelectionWindow = new DesktopSelectionWindow();
 

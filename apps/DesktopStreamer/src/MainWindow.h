@@ -106,6 +106,9 @@ class MainWindow : public QMainWindow {
         // full image
         QImage image_;
 
+        // mouse cursor pixmap
+        QImage cursor_;
+
         // for regular pixel streaming
         QByteArray previousImageData_;
 

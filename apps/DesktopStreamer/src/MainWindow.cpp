@@ -93,6 +93,8 @@ MainWindow::MainWindow()
     parallelStreaming_ = false;
     deviceScale_ = 1.f;
 
+    cursor_ = QImage( ":/cursor.png" ).scaled( 40, 40, Qt::KeepAspectRatio );
+
     QWidget * widget = new QWidget();
     QFormLayout * layout = new QFormLayout();
     widget->setLayout(layout);
@@ -330,6 +332,12 @@ void MainWindow::shareDesktopUpdate()
 
     // convert to QImage
     image_ = desktopPixmap.toImage();
+
+    // render mouse cursor
+    QPoint mousePos = QCursor::pos() - QPoint(x_, y_) -
+                      QPoint( cursor_.width()/2, cursor_.height()/2);
+    QPainter painter( &image_ );
+    painter.drawImage( mousePos, cursor_ );
 
     bool success;
 
