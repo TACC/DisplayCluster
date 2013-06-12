@@ -334,8 +334,8 @@ void MainWindow::shareDesktopUpdate()
     image_ = desktopPixmap.toImage();
 
     // render mouse cursor
-    QPoint mousePos = QCursor::pos() - QPoint(x_, y_) -
-                      QPoint( cursor_.width()/2, cursor_.height()/2);
+    QPoint mousePos = ( QCursor::pos() - QPoint( x_, y_ )) * deviceScale_ -
+        QPoint( cursor_.width()/2, cursor_.height()/2);
     QPainter painter( &image_ );
     painter.drawImage( mousePos, cursor_ );
 
