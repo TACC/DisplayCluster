@@ -92,9 +92,9 @@ MainWindow::MainWindow()
     updatedDimensions_ = true;
     parallelStreaming_ = false;
     deviceScale_ = 1.f;
-
-    cursor_ = QImage( ":/cursor.png" ).scaled( 40, 40, Qt::KeepAspectRatio );
-
+    cursor_ = QImage( ":/cursor.png" ).scaled( 20 * deviceScale_,
+                                               20 * deviceScale_,
+                                               Qt::KeepAspectRatio );
     QWidget * widget = new QWidget();
     QFormLayout * layout = new QFormLayout();
     widget->setLayout(layout);
@@ -488,7 +488,9 @@ void MainWindow::updateCoordinates()
     width_ = widthSpinBox_.value();
     height_ = heightSpinBox_.value();
     deviceScale_ = newScale;
-
+    cursor_ = QImage( ":/cursor.png" ).scaled( 20 * deviceScale_,
+                                               20 * deviceScale_,
+                                               Qt::KeepAspectRatio );
     // update DesktopSelectionRectangle
     if( g_desktopSelectionWindow )
     {
