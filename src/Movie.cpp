@@ -175,7 +175,7 @@ Movie::~Movie()
     }
 
     // close the format context
-    av_close_input_file(avFormatContext_);
+    avformat_close_input(&avFormatContext_);
 
     // free scaler context
     sws_freeContext(swsContext_);
@@ -306,7 +306,7 @@ void Movie::nextFrame(bool skip)
         {
             // decode video frame
             avcodec_decode_video2(avCodecContext_, avFrame_, &frameFinished, &packet);
-                                     
+
             // make sure we got a full video frame
             if(frameFinished)
             {

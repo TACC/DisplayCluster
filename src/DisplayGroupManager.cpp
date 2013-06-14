@@ -341,6 +341,7 @@ bool DisplayGroupManager::loadStateXMLFile(std::string filename)
     // temp
     QString qstring;
 
+#if 0
     // get version; we don't do anything with it now but may in the future
     int version = -1;
     query.setQuery("string(/state/version)");
@@ -349,6 +350,7 @@ bool DisplayGroupManager::loadStateXMLFile(std::string filename)
     {
         version = qstring.toInt();
     }
+#endif
 
     // get number of content windows
     int numContentWindows = 0;
