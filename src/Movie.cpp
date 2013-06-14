@@ -69,7 +69,7 @@ Movie::Movie(std::string uri)
     // open movie file
     if(avformat_open_input(&avFormatContext_, uri.c_str(), NULL, NULL) != 0)
     {
-        put_flog(LOG_ERROR, "could not open movie file");
+        put_flog(LOG_ERROR, "could not open movie file %s", uri.c_str());
         return;
     }
 
