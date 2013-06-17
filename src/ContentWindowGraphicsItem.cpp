@@ -98,6 +98,25 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
         painter->drawRect(resizeRect);
         painter->drawLine(QPointF(rect().x() + rect().width(), rect().y() + rect().height() - buttonHeight), QPointF(rect().x() + rect().width() - buttonWidth, rect().y() + rect().height()));
 
+        if( contentWindowManager->getContent()->getType() == CONTENT_TYPE_MOVIE )
+        {
+            // play/pause
+            QRectF playPauseRect((rect().x() + rect().width())/2 - buttonWidth,
+                                 rect().y() + rect().height() - buttonHeight,
+                                 buttonWidth, buttonHeight);
+            pen.setColor(QColor(contentWindowManager->getControlState() & STATE_PAUSED ? 128 :200,0,0));
+            painter->setPen(pen);
+            painter->fillRect(playPauseRect, pen.color());
+
+            // loop
+            QRectF loopRect((rect().x() + rect().width())/2 + buttonWidth,
+                            rect().y() + rect().height() - buttonHeight,
+                            buttonWidth, buttonHeight);
+            pen.setColor(QColor(0,contentWindowManager->getControlState() & STATE_LOOP ? 200 :128,0));
+            painter->setPen(pen);
+            painter->fillRect(loopRect, pen.color());
+        }
+
         // text label
 
         // set the font
@@ -348,6 +367,22 @@ void ContentWindowGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent * event
     if(fabs((r.x()+r.width()) - eventPos.x()) <= buttonWidth && fabs((r.y()+r.height()) - eventPos.y()) <= buttonHeight)
     {
         resizing_ = true;
+    }
+
+    boost::shared_ptr<ContentWindowManager> window = getContentWindowManager();
+    if( window->getContent()->getType() == CONTENT_TYPE_MOVIE )
+    {
+        if(fabs(((r.x()+r.width())/2) - eventPos.x() - buttonWidth) <= buttonWidth &&
+           fabs((r.y()+r.height()) - eventPos.y()) <= buttonHeight)
+        {
+            window->setControlState( ControlState(window->getControlState() ^ STATE_PAUSED) );
+        }
+
+        if(fabs(((r.x()+r.width())/2) - eventPos.x() + buttonWidth) <= buttonWidth &&
+           fabs((r.y()+r.height()) - eventPos.y()) <= buttonHeight)
+        {
+            window->setControlState( ControlState(window->getControlState() ^ STATE_LOOP) );
+        }
     }
 
     // move to the front of the GUI display

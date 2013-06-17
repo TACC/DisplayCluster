@@ -74,6 +74,8 @@ class Movie : public FactoryObject {
         void getDimensions(int &width, int &height);
         void render(float tX, float tY, float tW, float tH);
         void nextFrame(bool skip);
+        void setPause(const bool pause);
+        void setLoop(const bool loop);
 
     private:
 
@@ -93,15 +95,23 @@ class Movie : public FactoryObject {
         SwsContext * swsContext_;
         AVFrame * avFrame_;
         AVFrame * avFrameRGB_;
-        int videoStream_;
+        int streamIdx_;
+        AVStream * videostream_;    // shortcut; no need to free
 
         // used for seeking
         int64_t start_time_;
         int64_t duration_;
         int64_t num_frames_;
+        double frameDuration_;
 
         int64_t frame_index_;
-        int64_t skipped_frames_;
+        bool skipped_frames_;
+
+        bool paused_;
+        bool loop_;
+
+        int64_t den2_;
+        int64_t num2_;
 
         // frame timing
         boost::shared_ptr<boost::posix_time::ptime> nextTimestamp_;

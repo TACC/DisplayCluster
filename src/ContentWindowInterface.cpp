@@ -57,6 +57,7 @@ ContentWindowInterface::ContentWindowInterface(boost::shared_ptr<ContentWindowMa
         centerY_ = contentWindowManager->centerY_;
         zoom_ = contentWindowManager->zoom_;
         selected_ = contentWindowManager->selected_;
+        controlState_ = contentWindowManager->controlState_;
     }
 
     // connect signals from this to slots on the ContentWindowManager

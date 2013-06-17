@@ -52,13 +52,15 @@ Movie::Movie(std::string uri)
     swsContext_ = NULL;
     avFrame_ = NULL;
     avFrameRGB_ = NULL;
-    videoStream_ = -1;
+    streamIdx_ = -1;
+    paused_ = false;
+    loop_ = true;
 
     start_time_ = 0;
     duration_ = 0;
     num_frames_ = 0;
     frame_index_ = 0;
-    skipped_frames_ = 0;
+    skipped_frames_ = false;
 
     // assign values
     uri_ = uri;
@@ -84,25 +86,27 @@ Movie::Movie(std::string uri)
     av_dump_format(avFormatContext_, 0, uri.c_str(), 0);
 
     // find the first video stream
-    videoStream_ = -1;
+    streamIdx_ = -1;
 
     for(unsigned int i=0; i<avFormatContext_->nb_streams; i++)
     {
         if(avFormatContext_->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
         {
-            videoStream_ = i;
+            streamIdx_ = i;
             break;
         }
     }
 
-    if(videoStream_ == -1)
+    if(streamIdx_ == -1)
     {
         put_flog(LOG_ERROR, "could not find video stream");
         return;
     }
 
+    videostream_ = avFormatContext_->streams[streamIdx_];
+
     // get a pointer to the codec context for the video stream
-    avCodecContext_ = avFormatContext_->streams[videoStream_]->codec;
+    avCodecContext_ = videostream_->codec;
 
     // find the decoder for the video stream
     AVCodec * codec = avcodec_find_decoder(avCodecContext_->codec_id);
@@ -125,10 +129,14 @@ Movie::Movie(std::string uri)
         return;
     }
 
+    den2_ = videostream_->time_base.den * videostream_->r_frame_rate.den;
+    num2_ = videostream_->time_base.num * videostream_->r_frame_rate.num;
+
     // generate seeking parameters
-    start_time_ = avFormatContext_->streams[videoStream_]->start_time;
-    duration_ = avFormatContext_->streams[videoStream_]->duration;
-    num_frames_ = av_rescale(duration_, avFormatContext_->streams[videoStream_]->time_base.num * avFormatContext_->streams[videoStream_]->r_frame_rate.num, avFormatContext_->streams[videoStream_]->time_base.den * avFormatContext_->streams[videoStream_]->r_frame_rate.den);
+    start_time_ = videostream_->start_time;
+    duration_ = videostream_->duration;
+    num_frames_ = av_rescale(duration_, num2_, den2_);
+    frameDuration_ = (double)videostream_->r_frame_rate.den / (double)videostream_->r_frame_rate.num;
 
     put_flog(LOG_DEBUG, "seeking parameters: start_time = %i, duration_ = %i, num frames = %i", start_time_, duration_, num_frames_);
 
@@ -231,67 +239,56 @@ void Movie::render(float tX, float tY, float tW, float tH)
 
 void Movie::nextFrame(bool skip)
 {
-    double frameDuration = (double)avFormatContext_->streams[videoStream_]->r_frame_rate.den / (double)avFormatContext_->streams[videoStream_]->r_frame_rate.num;
+    if( !initialized_ || paused_ )
+        return;
 
     // rate limiting
     double elapsedSeconds = 999999.;
+    if( nextTimestamp_ && !nextTimestamp_->is_not_a_date_time( ))
+        elapsedSeconds = (*(g_displayGroupManager->getTimestamp()) -
+                           *nextTimestamp_).total_microseconds() / 1000000.;
 
-    if(nextTimestamp_ != NULL && nextTimestamp_->is_not_a_date_time() == false)
-    {
-        elapsedSeconds = (double)(*(g_displayGroupManager->getTimestamp()) - *nextTimestamp_).total_microseconds() / 1000000.;
-    }
-
-    if(elapsedSeconds < frameDuration)
-    {
+    if( elapsedSeconds < frameDuration_ )
         return;
-    }
 
     // update timestamp of last frame
     nextTimestamp_ = g_displayGroupManager->getTimestamp();
 
-    if(initialized_ != true)
-    {
-        return;
-    }
-
     // seeking
 
-    // keep track of a desired timestamp if we seek in this frame
-    int64_t desiredTimestamp = 0;
-
     // where we should be after we read a frame in this function
-    frame_index_++;
+    ++frame_index_;
 
     // if we're skipping this frame, increment the skipped frame counter and return
     // otherwise, make sure we're in the correct position in the stream and decode
-    if(skip == true)
+    if( skip )
     {
-        skipped_frames_++;
+        skipped_frames_ = true;
         return;
     }
-    else
+
+    // keep track of a desired timestamp if we seek in this frame
+    int64_t desiredTimestamp = 0;
+    if( skipped_frames_ )
     {
-        if(skipped_frames_ > 0)
+        // need to seek
+
+        // frame number we want
+        const int64_t index = (frame_index_) % (num_frames_ + 1);
+
+        // timestamp we want
+        desiredTimestamp = start_time_ + av_rescale(index, den2_, num2_);
+
+        // seek to the nearest keyframe before desiredTimestamp and flush buffers
+        if(avformat_seek_file(avFormatContext_, streamIdx_, 0, desiredTimestamp, desiredTimestamp, 0) != 0)
         {
-            // need to seek
-
-            // frame number we want
-            int64_t index = (frame_index_) % (num_frames_ + 1);
-
-            // timestamp we want
-            desiredTimestamp = start_time_ + av_rescale(index, avFormatContext_->streams[videoStream_]->time_base.den * avFormatContext_->streams[videoStream_]->r_frame_rate.den, avFormatContext_->streams[videoStream_]->time_base.num * avFormatContext_->streams[videoStream_]->r_frame_rate.num);
-
-            // seek to the nearest keyframe before desiredTimestamp and flush buffers
-            if(avformat_seek_file(avFormatContext_, videoStream_, 0, desiredTimestamp, desiredTimestamp, 0) != 0)
-            {
-                put_flog(LOG_ERROR, "seeking error");
-                return;
-            }
-
-            avcodec_flush_buffers(avCodecContext_);
-
-            skipped_frames_ = 0;
+            put_flog(LOG_ERROR, "seeking error");
+            return;
         }
+
+        avcodec_flush_buffers(avCodecContext_);
+
+        skipped_frames_ = false;
     }
 
     int avReadStatus = 0;
@@ -302,7 +299,7 @@ void Movie::nextFrame(bool skip)
     while((avReadStatus = av_read_frame(avFormatContext_, &packet)) >= 0)
     {
         // make sure packet is from video stream
-        if(packet.stream_index == videoStream_)
+        if(packet.stream_index == streamIdx_)
         {
             // decode video frame
             avcodec_decode_video2(avCodecContext_, avFrame_, &frameFinished, &packet);
@@ -336,8 +333,18 @@ void Movie::nextFrame(bool skip)
     }
 
     // see if we need to loop
-    if(avReadStatus < 0)
+    if(avReadStatus < 0 && loop_)
     {
-        av_seek_frame(avFormatContext_, videoStream_, 0, AVSEEK_FLAG_BACKWARD);
+        av_seek_frame(avFormatContext_, streamIdx_, 0, AVSEEK_FLAG_BACKWARD);
     }
+}
+
+void Movie::setPause(const bool pause)
+{
+    paused_ = pause;
+}
+
+void Movie::setLoop(const bool loop)
+{
+    loop_ = loop;
 }

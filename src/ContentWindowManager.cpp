@@ -72,6 +72,8 @@ ContentWindowManager::ContentWindowManager(boost::shared_ptr<Content> content)
     // default window state
     selected_ = false;
 
+    controlState_ = STATE_LOOP;
+
     // set content object
     content_ = content;
 

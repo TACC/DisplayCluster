@@ -53,6 +53,12 @@
 
 class ContentWindowManager;
 
+enum ControlState
+{
+    STATE_PAUSED = 1 << 0,
+    STATE_LOOP   = 1 << 1
+};
+
 class ContentWindowInterface : public QObject {
     Q_OBJECT
 
@@ -71,6 +77,9 @@ class ContentWindowInterface : public QObject {
         double getZoom();
         bool getSelected();
         bool getHighlighted();
+
+        void setControlState( const ControlState state ) { controlState_ = state; }
+        ControlState getControlState() const { return controlState_; }
 
         // button dimensions
         void getButtonDimensions(float &width, float &height);
@@ -133,6 +142,8 @@ class ContentWindowInterface : public QObject {
 
         // window state
         bool selected_;
+
+        ControlState controlState_;
 
         // highlighted timestamp
         boost::posix_time::ptime highlightedTimestamp_;
