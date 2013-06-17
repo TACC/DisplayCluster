@@ -68,7 +68,7 @@ void Marker::setPosition(float x, float y)
 {
     x_ = x;
     y_ = y;
-    updatedTimestamp_ = *(g_displayGroupManager->getTimestamp());
+    updatedTimestamp_ = g_displayGroupManager->getTimestamp();
 
     emit(positionChanged());
 }
@@ -81,7 +81,7 @@ void Marker::getPosition(float &x, float &y)
 
 bool Marker::getActive()
 {
-    if((*(g_displayGroupManager->getTimestamp()) - updatedTimestamp_).total_seconds() > MARKER_TIMEOUT_SECONDS)
+    if((g_displayGroupManager->getTimestamp() - updatedTimestamp_).total_seconds() > MARKER_TIMEOUT_SECONDS)
     {
         return false;
     }

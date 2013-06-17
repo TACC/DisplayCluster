@@ -75,7 +75,7 @@ DisplayGroupManager::DisplayGroupManager()
 #endif
 }
 
-boost::shared_ptr<Options> DisplayGroupManager::getOptions()
+boost::shared_ptr<Options> DisplayGroupManager::getOptions() const
 {
     return options_;
 }
@@ -96,19 +96,17 @@ boost::shared_ptr<Marker> DisplayGroupManager::getNewMarker()
     return marker;
 }
 
-std::vector<boost::shared_ptr<Marker> > DisplayGroupManager::getMarkers()
+const std::vector<boost::shared_ptr<Marker> >& DisplayGroupManager::getMarkers() const
 {
     return markers_;
 }
 
-boost::shared_ptr<boost::posix_time::ptime> DisplayGroupManager::getTimestamp()
+boost::posix_time::ptime DisplayGroupManager::getTimestamp() const
 {
     // rank 0 will return a timestamp calibrated to rank 1's clock
     if(g_mpiRank == 0)
     {
-        boost::shared_ptr<boost::posix_time::ptime> timestamp(new boost::posix_time::ptime(boost::posix_time::microsec_clock::universal_time() + timestampOffset_));
-
-        return timestamp;
+        return boost::posix_time::ptime(boost::posix_time::microsec_clock::universal_time() + timestampOffset_);
     }
     else
     {
@@ -923,7 +921,7 @@ void DisplayGroupManager::sendFrameClockUpdate()
         return;
     }
 
-    boost::shared_ptr<boost::posix_time::ptime> timestamp(new boost::posix_time::ptime(boost::posix_time::microsec_clock::universal_time()));
+    boost::posix_time::ptime timestamp(boost::posix_time::microsec_clock::universal_time());
 
     // serialize state
     std::ostringstream oss(std::ostringstream::binary);
@@ -990,17 +988,11 @@ void DisplayGroupManager::receiveFrameClockUpdate()
         exit(-1);
     }
 
-    // read to a new timestamp
-    boost::shared_ptr<boost::posix_time::ptime> timestamp;
-
     boost::archive::binary_iarchive ia(iss);
-    ia >> timestamp;
+    ia >> timestamp_;
 
     // free mpi buffer
     delete [] buf;
-
-    // update timestamp
-    timestamp_ = timestamp;
 }
 
 void DisplayGroupManager::sendQuit()

@@ -244,9 +244,9 @@ void Movie::nextFrame(bool skip)
 
     // rate limiting
     double elapsedSeconds = 999999.;
-    if( nextTimestamp_ && !nextTimestamp_->is_not_a_date_time( ))
-        elapsedSeconds = (*(g_displayGroupManager->getTimestamp()) -
-                           *nextTimestamp_).total_microseconds() / 1000000.;
+    if( !nextTimestamp_.is_not_a_date_time( ))
+        elapsedSeconds = (g_displayGroupManager->getTimestamp() -
+                           nextTimestamp_).total_microseconds() / 1000000.;
 
     if( elapsedSeconds < frameDuration_ )
         return;

@@ -139,7 +139,7 @@ bool ContentWindowInterface::getSelected()
 
 bool ContentWindowInterface::getHighlighted()
 {
-    long dtMilliseconds = (*(g_displayGroupManager->getTimestamp()) - highlightedTimestamp_).total_milliseconds();
+    long dtMilliseconds = (g_displayGroupManager->getTimestamp() - highlightedTimestamp_).total_milliseconds();
 
     if(dtMilliseconds > HIGHLIGHT_TIMEOUT_MILLISECONDS || dtMilliseconds % (HIGHLIGHT_BLINK_INTERVAL*2) < HIGHLIGHT_BLINK_INTERVAL)
     {
@@ -475,7 +475,7 @@ void ContentWindowInterface::highlight(ContentWindowInterface * source)
     }
 
     // set highlighted timestamp
-    highlightedTimestamp_ = *(g_displayGroupManager->getTimestamp());
+    highlightedTimestamp_ = g_displayGroupManager->getTimestamp();
 
     if(source == NULL || dynamic_cast<ContentWindowManager *>(this) != NULL)
     {

@@ -69,12 +69,12 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
 
         DisplayGroupManager();
 
-        boost::shared_ptr<Options> getOptions();
+        boost::shared_ptr<Options> getOptions() const;
 
         boost::shared_ptr<Marker> getNewMarker();
-        std::vector<boost::shared_ptr<Marker> > getMarkers();
+        const std::vector<boost::shared_ptr<Marker> >& getMarkers() const;
 
-        boost::shared_ptr<boost::posix_time::ptime> getTimestamp();
+        boost::posix_time::ptime getTimestamp() const;
 
 #if ENABLE_SKELETON_SUPPORT
         std::vector< boost::shared_ptr<SkeletonState> > getSkeletons();
@@ -133,7 +133,7 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         std::vector<boost::shared_ptr<Marker> > markers_;
 
         // frame timing
-        boost::shared_ptr<boost::posix_time::ptime> timestamp_;
+        boost::posix_time::ptime timestamp_;
 
 #if ENABLE_SKELETON_SUPPORT
         std::vector<boost::shared_ptr<SkeletonState> > skeletons_;

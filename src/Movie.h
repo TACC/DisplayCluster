@@ -114,7 +114,7 @@ class Movie : public FactoryObject {
         int64_t num2_;
 
         // frame timing
-        boost::shared_ptr<boost::posix_time::ptime> nextTimestamp_;
+        boost::posix_time::ptime nextTimestamp_;
 };
 
 #endif
