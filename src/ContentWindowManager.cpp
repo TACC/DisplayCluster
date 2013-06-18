@@ -58,8 +58,14 @@ ContentWindowManager::ContentWindowManager(boost::shared_ptr<Content> content)
     h_ = contentHeight_ == 0 ? 1. : double(contentHeight_) /
                                     double(g_configuration->getTotalHeight());
     h_ = std::min( h_, 1. );
-    y_ = (1. - h_) * .5;
     w_ = configAR * contentAR * h_;
+    if( w_ > 1. )
+    {
+        h_ /= w_;
+        w_ /= w_;
+    }
+
+    y_ = (1. - h_) * .5;
     x_ = (1. - w_) * .5;
 
     // default to centered
