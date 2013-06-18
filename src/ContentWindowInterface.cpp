@@ -272,14 +272,14 @@ void ContentWindowInterface::setContentDimensions(int contentWidth, int contentH
     contentWidth_ = contentWidth;
     contentHeight_ = contentHeight;
 
-    fixAspectRatio(this);
-
     if(source == NULL || dynamic_cast<ContentWindowManager *>(this) != NULL)
     {
         if(source == NULL)
         {
             source = this;
         }
+
+        fixAspectRatio(source);
 
         emit(contentDimensionsChanged(contentWidth_, contentHeight_, source));
     }
@@ -302,14 +302,14 @@ void ContentWindowInterface::setCoordinates(double x, double y, double w, double
         h_ = h;
     }
 
-    fixAspectRatio(this);
-
     if(source == NULL || dynamic_cast<ContentWindowManager *>(this) != NULL)
     {
         if(source == NULL)
         {
             source = this;
         }
+
+        fixAspectRatio(source);
 
         emit(coordinatesChanged(x_, y_, w_, h_, source));
     }
@@ -350,14 +350,14 @@ void ContentWindowInterface::setSize(double w, double h, ContentWindowInterface 
         h_ = h;
     }
 
-    fixAspectRatio(this);
-
     if(source == NULL || dynamic_cast<ContentWindowManager *>(this) != NULL)
     {
         if(source == NULL)
         {
             source = this;
         }
+
+        fixAspectRatio(source);
 
         emit(sizeChanged(w_, h_, source));
     }
