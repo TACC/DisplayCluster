@@ -98,6 +98,11 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
         painter->drawRect(resizeRect);
         painter->drawLine(QPointF(rect().x() + rect().width(), rect().y() + rect().height() - buttonHeight), QPointF(rect().x() + rect().width() - buttonWidth, rect().y() + rect().height()));
 
+        // fullscreen button
+        QRectF fullscreenRect(rect().x(), rect().y() + rect().height() - buttonHeight, buttonWidth, buttonHeight);
+        painter->setPen(pen);
+        painter->drawRect(fullscreenRect);
+
         if( contentWindowManager->getContent()->getType() == CONTENT_TYPE_MOVIE )
         {
             // play/pause
@@ -173,6 +178,17 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
 
         QString windowInfoLabel = coordinatesLabel + zoomCenterLabel;
         painter->drawText(textBoundingRect, Qt::AlignLeft | Qt::AlignBottom, windowInfoLabel);
+    }
+}
+
+void ContentWindowGraphicsItem::setFullscreen( const bool on, ContentWindowInterface * source )
+{
+    ContentWindowInterface::setFullscreen( on, source );
+
+    if(source != this)
+    {
+        setPos(x_, y_);
+        setRect(mapRectFromScene(x_, y_, w_, h_));
     }
 }
 
@@ -367,6 +383,12 @@ void ContentWindowGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent * event
     if(fabs((r.x()+r.width()) - eventPos.x()) <= buttonWidth && fabs((r.y()+r.height()) - eventPos.y()) <= buttonHeight)
     {
         resizing_ = true;
+    }
+
+    // check to see if user clicked on the fullscreen button
+    if(fabs(r.x() - eventPos.x()) <= buttonWidth && fabs((r.y()+r.height()) - eventPos.y()) <= buttonHeight)
+    {
+        setFullscreen( !isFullscreen( ));
     }
 
     boost::shared_ptr<ContentWindowManager> window = getContentWindowManager();
