@@ -108,7 +108,7 @@ MainWindow::MainWindow()
     connect(&heightSpinBox_, SIGNAL(editingFinished()), this, SLOT(updateCoordinates()));
     connect(&retinaBox_, SIGNAL(released()), this, SLOT(updateCoordinates()));
 
-    hostnameLineEdit_.setText( "bbplxviz01.epfl.ch" );
+    hostnameLineEdit_.setText( "bbplxviz03.epfl.ch" );
 
     char hostname[256] = {0};
     gethostname( hostname, 256 );

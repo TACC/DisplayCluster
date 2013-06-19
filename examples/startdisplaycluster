@@ -33,7 +33,7 @@ os.environ['PYTHONPATH'] += os.pathsep + os.pathsep.join(sys.path)
 # form the MPI host list
 
 # rank 0 is always on localhost
-hostList = ['localhost']
+hostList = ['bbplxviz03i']
 
 # configuration.xml gives the rest of the hosts
 try:
