@@ -68,6 +68,8 @@ class ContentWindowGraphicsItem : public QGraphicsRectItem, public ContentWindow
 
     protected:
 
+        QVariant itemChange(GraphicsItemChange change, const QVariant &value);
+
         // QGraphicsRectItem events
         virtual void mouseMoveEvent(QGraphicsSceneMouseEvent * event);
         virtual void mousePressEvent(QGraphicsSceneMouseEvent * event);
@@ -79,6 +81,8 @@ class ContentWindowGraphicsItem : public QGraphicsRectItem, public ContentWindow
 
         // resizing state
         bool resizing_;
+
+        bool moving_;
 
         // counter used to determine stacking order in the UI
         static qreal zCounter_;

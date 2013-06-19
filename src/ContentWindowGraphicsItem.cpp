@@ -49,6 +49,7 @@ ContentWindowGraphicsItem::ContentWindowGraphicsItem(boost::shared_ptr<ContentWi
 {
     // defaults
     resizing_ = false;
+    moving_ = false;
 
     // graphics items are movable
     setFlag(QGraphicsItem::ItemIsMovable, true);
@@ -61,12 +62,21 @@ ContentWindowGraphicsItem::ContentWindowGraphicsItem(boost::shared_ptr<ContentWi
     setSelected(selected_, (ContentWindowInterface *)-1);
 
     // current coordinates
+    setPos(x_, y_);
     setRect(x_, y_, w_, h_);
 
     // new items at the front
     // we assume that interface items will be constructed in depth order so this produces the correct result...
     setZToFront();
 }
+
+QVariant ContentWindowGraphicsItem::itemChange(GraphicsItemChange change,
+                                               const QVariant &value)
+ {
+     if (change == ItemSceneHasChanged)
+         setRect(mapRectFromScene(x_, y_, w_, h_));
+     return QGraphicsItem::itemChange(change, value);
+ }
 
 void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGraphicsItem * option, QWidget * widget)
 {
@@ -84,23 +94,28 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
     float buttonWidth, buttonHeight;
     getButtonDimensions(buttonWidth, buttonHeight);
 
+    const qreal& x = rect().x();
+    const qreal& y = rect().y();
+    const qreal& w = rect().width();
+    const qreal& h = rect().height();
+
     // draw close button
-    QRectF closeRect(rect().x() + rect().width() - buttonWidth, rect().y(), buttonWidth, buttonHeight);
+    QRectF closeRect(x + w - buttonWidth, y, buttonWidth, buttonHeight);
     pen.setColor(QColor(255,0,0));
     painter->setPen(pen);
     painter->drawRect(closeRect);
-    painter->drawLine(QPointF(rect().x() + rect().width() - buttonWidth, rect().y()), QPointF(rect().x() + rect().width(), rect().y() + buttonHeight));
-    painter->drawLine(QPointF(rect().x() + rect().width(), rect().y()), QPointF(rect().x() + rect().width() - buttonWidth, rect().y() + buttonHeight));
+    painter->drawLine(QPointF(x + w - buttonWidth, y), QPointF(x + w, y + buttonHeight));
+    painter->drawLine(QPointF(x + w, y), QPointF(x + w - buttonWidth, y + buttonHeight));
 
     // resize indicator
-    QRectF resizeRect(rect().x() + rect().width() - buttonWidth, rect().y() + rect().height() - buttonHeight, buttonWidth, buttonHeight);
+    QRectF resizeRect(x + w - buttonWidth, y + h - buttonHeight, buttonWidth, buttonHeight);
     pen.setColor(QColor(128,128,128));
     painter->setPen(pen);
     painter->drawRect(resizeRect);
-    painter->drawLine(QPointF(rect().x() + rect().width(), rect().y() + rect().height() - buttonHeight), QPointF(rect().x() + rect().width() - buttonWidth, rect().y() + rect().height()));
+    painter->drawLine(QPointF(x + w, y + h - buttonHeight), QPointF(x + w - buttonWidth, y + h));
 
     // fullscreen button
-    QRectF fullscreenRect(rect().x(), rect().y() + rect().height() - buttonHeight, buttonWidth, buttonHeight);
+    QRectF fullscreenRect(x, y + h - buttonHeight, buttonWidth, buttonHeight);
     painter->setPen(pen);
     painter->drawRect(fullscreenRect);
 
@@ -108,16 +123,14 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
         g_displayGroupManager->getOptions()->getShowMovieControls( ))
     {
         // play/pause
-        QRectF playPauseRect((rect().x() + rect().width())/2 - buttonWidth,
-                             rect().y() + rect().height() - buttonHeight,
-                             buttonWidth, buttonHeight);
+        QRectF playPauseRect((x + w)/2 - buttonWidth, y + h - buttonHeight,
+                              buttonWidth, buttonHeight);
         pen.setColor(QColor(contentWindowManager->getControlState() & STATE_PAUSED ? 128 :200,0,0));
         painter->setPen(pen);
         painter->fillRect(playPauseRect, pen.color());
 
         // loop
-        QRectF loopRect((rect().x() + rect().width())/2,
-                        rect().y() + rect().height() - buttonHeight,
+        QRectF loopRect((x + w)/2, y + h - buttonHeight,
                         buttonWidth, buttonHeight);
         pen.setColor(QColor(0,contentWindowManager->getControlState() & STATE_LOOP ? 200 :128,0));
         painter->setPen(pen);
@@ -160,7 +173,7 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
 
     painter->scale(horizontalTextScale, verticalTextScale);
 
-    QRectF textBoundingRect = QRectF(rect().x() / horizontalTextScale, rect().y() / verticalTextScale, rect().width() / horizontalTextScale, rect().height() / verticalTextScale);
+    QRectF textBoundingRect = QRectF(x / horizontalTextScale, y / verticalTextScale, w / horizontalTextScale, h / verticalTextScale);
 
     // get the label and render it
     QString label(contentWindowManager->getContent()->getURI().c_str());
@@ -173,7 +186,7 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
 
     painter->scale(0.5, 0.5);
 
-    textBoundingRect = QRectF(rect().x() / horizontalTextScale, rect().y() / verticalTextScale, rect().width() / horizontalTextScale, rect().height() / verticalTextScale);
+    textBoundingRect = QRectF(x / horizontalTextScale, y / verticalTextScale, w / horizontalTextScale, h / verticalTextScale);
 
     QString coordinatesLabel = QString(" (") + QString::number(x_, 'f', 2) + QString(" ,") + QString::number(y_, 'f', 2) + QString(", ") + QString::number(w_, 'f', 2) + QString(", ") + QString::number(h_, 'f', 2) + QString(")\n");
     QString zoomCenterLabel = QString(" zoom = ") + QString::number(zoom_, 'f', 2) + QString(" @ (") + QString::number(centerX_, 'f', 2) + QString(", ") + QString::number(centerY_, 'f', 2) + QString(")");
@@ -282,36 +295,7 @@ void ContentWindowGraphicsItem::setZToFront()
 void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
 {
     // handle mouse movements differently depending on selected mode of item
-    if(selected_ == false)
-    {
-        if(event->buttons().testFlag(Qt::LeftButton) == true)
-        {
-            if(resizing_ == true)
-            {
-                QRectF r = rect();
-                QPointF eventPos = event->pos();
-
-                r.setBottomRight(eventPos);
-
-                QRectF sceneRect = mapRectToScene(r);
-
-                double w = sceneRect.width();
-                double h = sceneRect.height();
-
-                setSize(w, h);
-            }
-            else
-            {
-                QPointF delta = event->pos() - event->lastPos();
-
-                double x = x_ + delta.x();
-                double y = y_ + delta.y();
-
-                setPosition(x, y);
-            }
-        }
-    }
-    else
+    if(selected_)
     {
         // handle zooms / pans
         QPointF delta = event->scenePos() - event->lastScenePos();
@@ -349,6 +333,34 @@ void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
 
         // force a redraw to update window info label
         update();
+        return;
+    }
+
+    if(event->buttons().testFlag(Qt::LeftButton) == true)
+    {
+        if( resizing_ )
+        {
+            QRectF r = rect();
+            QPointF eventPos = event->pos();
+
+            r.setBottomRight(eventPos);
+
+            QRectF sceneRect = mapRectToScene(r);
+
+            double w = sceneRect.width();
+            double h = sceneRect.height();
+
+            setSize(w, h);
+        }
+        else if( moving_ )
+        {
+            QPointF delta = event->pos() - event->lastPos();
+
+            double x = x_ + delta.x();
+            double y = y_ + delta.y();
+
+            setPosition(x, y);
+        }
     }
 }
 
@@ -384,6 +396,9 @@ void ContentWindowGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent * event
     // move to the front of the GUI display
     moveToFront();
 
+    if( selected_ )
+        return;
+
     boost::shared_ptr<ContentWindowManager> window = getContentWindowManager();
 
     // check to see if user clicked on the resize button
@@ -410,6 +425,8 @@ void ContentWindowGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent * event
     {
         window->setControlState( ControlState(window->getControlState() ^ STATE_LOOP) );
     }
+    else
+        moving_ = true;
 
     QGraphicsItem::mousePressEvent(event);
 }
@@ -436,6 +453,7 @@ void ContentWindowGraphicsItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *
 void ContentWindowGraphicsItem::mouseReleaseEvent(QGraphicsSceneMouseEvent * event)
 {
     resizing_ = false;
+    moving_ = false;
 
     QGraphicsItem::mouseReleaseEvent(event);
 }

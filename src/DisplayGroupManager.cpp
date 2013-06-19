@@ -382,6 +382,9 @@ bool DisplayGroupManager::loadStateXMLFile(std::string filename)
             put_flog(LOG_DEBUG, "found content window with URI %s", uri.c_str());
         }
 
+        if(uri.empty())
+            continue;
+
         double x, y, w, h, centerX, centerY, zoom;
         x = y = w = h = centerX = centerY = zoom = -1.;
 
@@ -451,41 +454,37 @@ bool DisplayGroupManager::loadStateXMLFile(std::string filename)
             selected = (bool)qstring.toInt();
         }
 
-        // add the window if we have a valid URI
-        if(uri.empty() == false)
+        boost::shared_ptr<Content> c = Content::getContent(uri);
+
+        if(c != NULL)
         {
-            boost::shared_ptr<Content> c = Content::getContent(uri);
+            boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
 
-            if(c != NULL)
+            contentWindowManagers.push_back(cwm);
+
+            // now, apply settings if we got them from the XML file
+            if(x != -1. || y != -1.)
             {
-                boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
-
-                contentWindowManagers.push_back(cwm);
-
-                // now, apply settings if we got them from the XML file
-                if(x != -1. || y != -1.)
-                {
-                    cwm->setPosition(x, y);
-                }
-
-                if(w != -1. || h != -1.)
-                {
-                    cwm->setSize(w, h);
-                }
-
-                // zoom needs to be set before center because of clamping
-                if(zoom != -1.)
-                {
-                    cwm->setZoom(zoom);
-                }
-
-                if(centerX != -1. || centerY != -1.)
-                {
-                    cwm->setCenter(centerX, centerY);
-                }
-
-                cwm->setSelected(selected);
+                cwm->setPosition(x, y);
             }
+
+            if(w != -1. || h != -1.)
+            {
+                cwm->setSize(w, h);
+            }
+
+            // zoom needs to be set before center because of clamping
+            if(zoom != -1.)
+            {
+                cwm->setZoom(zoom);
+            }
+
+            if(centerX != -1. || centerY != -1.)
+            {
+                cwm->setCenter(centerX, centerY);
+            }
+
+            cwm->setSelected(selected);
         }
     }
 
