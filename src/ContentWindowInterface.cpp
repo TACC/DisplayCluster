@@ -57,7 +57,7 @@ ContentWindowInterface::ContentWindowInterface(boost::shared_ptr<ContentWindowMa
         centerY_ = contentWindowManager->centerY_;
         zoom_ = contentWindowManager->zoom_;
         selected_ = contentWindowManager->selected_;
-        fullscreen_ = contentWindowManager->fullscreen_;
+        sizeState_ = contentWindowManager->sizeState_;
         controlState_ = contentWindowManager->controlState_;
     }
 
@@ -152,9 +152,9 @@ bool ContentWindowInterface::getHighlighted()
     }
 }
 
-bool ContentWindowInterface::isFullscreen() const
+SizeState ContentWindowInterface::getSizeState() const
 {
-    return fullscreen_;
+    return sizeState_;
 }
 
 void ContentWindowInterface::getButtonDimensions(float &width, float &height)
@@ -219,13 +219,10 @@ void ContentWindowInterface::fixAspectRatio(ContentWindowInterface * source)
     }
 }
 
-void ContentWindowInterface::setFullscreen( const bool on,
-                                            ContentWindowInterface * source )
+void ContentWindowInterface::adjustSize( const SizeState state,
+                                         ContentWindowInterface * source )
 {
-    if( fullscreen_ == on )
-        return;
-
-    fullscreen_ = on;
+    sizeState_ = state;
 
     const double contentAR = contentHeight_ == 0 ? 16./9 :
                                  double(contentWidth_) / double(contentHeight_);
@@ -238,14 +235,16 @@ void ContentWindowInterface::setFullscreen( const bool on,
                                     double(contentWidth_) /
                                        double(g_configuration->getTotalWidth());
 
-    if( on )
+    switch( state )
     {
-        const double resize = std::min( 1. / h, 1. / w );
-        h *= resize;
-        w *= resize;
-    }
-    else
-    {
+    case SIZE_FULLSCREEN:
+        {
+            const double resize = std::min( 1. / h, 1. / w );
+            h *= resize;
+            w *= resize;
+        } break;
+
+    case SIZE_1TO1:
         h = std::min( h, 1. );
         w = configAR * contentAR * h;
         if( w > 1. )
@@ -253,6 +252,11 @@ void ContentWindowInterface::setFullscreen( const bool on,
             h /= w;
             w /= w;
         }
+        break;
+
+    case SIZE_CUSTOM:
+    default:
+        return;
     }
 
     // center on the wall

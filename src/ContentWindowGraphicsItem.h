@@ -55,7 +55,7 @@ class ContentWindowGraphicsItem : public QGraphicsRectItem, public ContentWindow
         virtual void paint(QPainter * painter, const QStyleOptionGraphicsItem * option, QWidget * widget=0);
 
         // re-implemented ContentWindowInterface slots
-        virtual void setFullscreen( const bool on, ContentWindowInterface * source=NULL );
+        virtual void adjustSize( const SizeState state, ContentWindowInterface * source=NULL );
         virtual void setCoordinates(double x, double y, double w, double h, ContentWindowInterface * source=NULL);
         virtual void setPosition(double x, double y, ContentWindowInterface * source=NULL);
         virtual void setSize(double w, double h, ContentWindowInterface * source=NULL);

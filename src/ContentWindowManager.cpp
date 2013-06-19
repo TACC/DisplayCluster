@@ -50,8 +50,7 @@ ContentWindowManager::ContentWindowManager(boost::shared_ptr<Content> content)
     content->getDimensions(contentWidth_, contentHeight_);
 
     // 1:1 screen
-    fullscreen_ = true;
-    setFullscreen( false );
+    adjustSize( SIZE_1TO1 );
 
     // default to centered
     centerX_ = 0.5;

@@ -195,9 +195,10 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
     painter->drawText(textBoundingRect, Qt::AlignLeft | Qt::AlignBottom, windowInfoLabel);
 }
 
-void ContentWindowGraphicsItem::setFullscreen( const bool on, ContentWindowInterface * source )
+void ContentWindowGraphicsItem::adjustSize( const SizeState state,
+                                            ContentWindowInterface * source )
 {
-    ContentWindowInterface::setFullscreen( on, source );
+    ContentWindowInterface::adjustSize( state, source );
 
     if(source != this)
     {
@@ -411,7 +412,7 @@ void ContentWindowGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent * event
     else if(fabs(r.x() - eventPos.x()) <= buttonWidth &&
             fabs((r.y()+r.height()) - eventPos.y()) <= buttonHeight)
     {
-        setFullscreen( !isFullscreen( ));
+        adjustSize( getSizeState() == SIZE_FULLSCREEN ? SIZE_1TO1 : SIZE_FULLSCREEN );
     }
     else if(fabs(((r.x()+r.width())/2) - eventPos.x() - buttonWidth) <= buttonWidth &&
             fabs((r.y()+r.height()) - eventPos.y()) <= buttonHeight &&

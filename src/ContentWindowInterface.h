@@ -59,6 +59,13 @@ enum ControlState
     STATE_LOOP   = 1 << 1
 };
 
+enum SizeState
+{
+    SIZE_1TO1,
+    SIZE_FULLSCREEN,
+    SIZE_CUSTOM
+};
+
 class ContentWindowInterface : public QObject {
     Q_OBJECT
 
@@ -77,7 +84,7 @@ class ContentWindowInterface : public QObject {
         double getZoom();
         bool getSelected();
         bool getHighlighted();
-        bool isFullscreen() const;
+        SizeState getSizeState() const;
 
         void setControlState( const ControlState state ) { controlState_ = state; }
         ControlState getControlState() const { return controlState_; }
@@ -93,7 +100,7 @@ class ContentWindowInterface : public QObject {
         // these methods set the local copies of the state variables if source != this
         // they will emit signals if source == NULL or if this is a ContentWindowManager object
         // the source argument should not be provided by users -- only by these functions
-        virtual void setFullscreen( const bool on, ContentWindowInterface * source=NULL );
+        virtual void adjustSize( const SizeState state, ContentWindowInterface * source=NULL );
         virtual void setContentDimensions(int contentWidth, int contentHeight, ContentWindowInterface * source=NULL);
         virtual void setCoordinates(double x, double y, double w, double h, ContentWindowInterface * source=NULL);
         virtual void setPosition(double x, double y, ContentWindowInterface * source=NULL);
@@ -145,7 +152,7 @@ class ContentWindowInterface : public QObject {
         // window state
         bool selected_;
 
-        bool fullscreen_;
+        SizeState sizeState_;
 
         ControlState controlState_;
 

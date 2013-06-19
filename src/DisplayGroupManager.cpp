@@ -766,9 +766,11 @@ void DisplayGroupManager::sendParallelPixelStreams()
         {
             // make sure Content/ContentWindowManager exists for the URI
 
+            const bool initial = !getContentWindowManager(uri, CONTENT_TYPE_PARALLEL_PIXEL_STREAM);
+
             // todo: this means as long as the parallel pixel stream is updating, we'll have a window for it
             // closing a window therefore will not terminate the parallel pixel stream
-            if(getContentWindowManager(uri, CONTENT_TYPE_PARALLEL_PIXEL_STREAM) == NULL)
+            if(initial)
             {
                 put_flog(LOG_DEBUG, "adding parallel pixel stream: %s", uri.c_str());
 
@@ -826,6 +828,9 @@ void DisplayGroupManager::sendParallelPixelStreams()
                 {
                     c->setDimensions(newWidth, newHeight);
                 }
+
+                if( initial )
+                    cwm->adjustSize( SIZE_1TO1 );
             }
         }
     }
