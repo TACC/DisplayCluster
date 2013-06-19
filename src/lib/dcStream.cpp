@@ -52,7 +52,9 @@
 int g_dcStreamFrameIndex = FRAME_INDEX_UNDEFINED;
 
 // all current source indices for each stream name
-std::map<std::string, std::vector<int> > g_dcStreamSourceIndices;
+typedef std::map< std::string, std::vector<int> > SourcesIndices;
+typedef std::map< DcSocket*, SourcesIndices > StreamSources;
+StreamSources g_dcStreamSourceIndices;
 
 struct DcImage {
     unsigned char * imageBuffer;
@@ -109,19 +111,60 @@ DcSocket * dcStreamConnect(const char * hostname)
 
 void dcStreamDisconnect(DcSocket * socket)
 {
-    delete socket;
+    if( !socket || socket->state() != QAbstractSocket::ConnectedState )
+        return;
 
+    StreamSources::const_iterator i = g_dcStreamSourceIndices.find( socket );
+    if( i != g_dcStreamSourceIndices.end( ))
+    {
+        // header
+        MessageHeader mh;
+        mh.size = 0;
+        mh.type = MESSAGE_TYPE_QUIT;
+
+        for( SourcesIndices::const_iterator j = i->second.begin();
+             j != i->second.end(); ++j )
+        {
+            // add the truncated URI to the header
+            const size_t len = j->first.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
+            mh.uri[len] = '\0';
+
+            // send the header
+            int sent = socket->write((const char *)&mh, sizeof(MessageHeader));
+            while(sent < (int)sizeof(MessageHeader))
+            {
+                sent += socket->write((const char *)&mh + sent, sizeof(MessageHeader) - sent);
+            }
+
+            // wait for acknowledgment
+            while(socket->waitForReadyRead() && socket->bytesAvailable() < 3)
+            {
+        #ifndef _WIN32
+                usleep(10);
+        #endif
+            }
+
+            socket->read(3);
+        }
+    }
+
+    delete socket;
     socket = NULL;
 }
 
 void dcStreamReset(DcSocket * socket)
 {
-    for(std::map<std::string, std::vector<int> >::iterator it=g_dcStreamSourceIndices.begin(); it != g_dcStreamSourceIndices.end(); it++)
+    StreamSources::iterator i = g_dcStreamSourceIndices.find( socket );
+    if( i == g_dcStreamSourceIndices.end( ))
+        return;
+
+    for( SourcesIndices::iterator j = i->second.begin(); j != i->second.end();
+         ++j )
     {
-        for(unsigned int i=0; i<(*it).second.size(); i++)
+        const std::string& name = j->first;
+        for( size_t k = 0; k < j->second.size(); ++k )
         {
-            std::string name = (*it).first;
-            int sourceIndex = (*it).second[i];
+            int sourceIndex = j->second[k];
 
             // blank parameters object
             DcStreamParameters parameters = dcStreamGenerateParameters(name, sourceIndex, 0, 0, 0, 0, 0, 0);
@@ -133,7 +176,7 @@ void dcStreamReset(DcSocket * socket)
     }
 
     // clear the current source indices for each stream name
-    g_dcStreamSourceIndices.clear();
+    g_dcStreamSourceIndices.erase( i );
 }
 
 DcStreamParameters dcStreamGenerateParameters(std::string name, int sourceIndex, int x, int y, int width, int height, int totalWidth, int totalHeight)
@@ -350,10 +393,11 @@ bool dcStreamSendJpeg(DcSocket * socket, DcStreamParameters parameters, const ch
 
     socket->read(3);
 
+    SourcesIndices& indices = g_dcStreamSourceIndices[socket];
     // make sure this sourceIndex is in the vector of current source indices for this stream name
-    if(count(g_dcStreamSourceIndices[parameters.name].begin(), g_dcStreamSourceIndices[parameters.name].end(), parameters.sourceIndex) == 0)
+    if(count(indices[parameters.name].begin(), indices[parameters.name].end(), parameters.sourceIndex) == 0)
     {
-        g_dcStreamSourceIndices[parameters.name].push_back(parameters.sourceIndex);
+        indices[parameters.name].push_back(parameters.sourceIndex);
     }
 
     return true;
