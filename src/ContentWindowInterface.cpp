@@ -276,14 +276,14 @@ void ContentWindowInterface::setContentDimensions(int contentWidth, int contentH
     contentWidth_ = contentWidth;
     contentHeight_ = contentHeight;
 
+    adjustSize( SIZE_1TO1, source );
+
     if(source == NULL || dynamic_cast<ContentWindowManager *>(this) != NULL)
     {
         if(source == NULL)
         {
             source = this;
         }
-
-        fixAspectRatio(source);
 
         emit(contentDimensionsChanged(contentWidth_, contentHeight_, source));
     }
