@@ -70,6 +70,7 @@ class TouchListener : public TUIO::TuioListener
 
         TUIO::TuioClient client_;
         QPointF lastPoint_;
+        QPointF cursorPos_;
 
         // detect double-clicks and triple-clicks
         QTime lastClickTime1_;

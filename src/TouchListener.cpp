@@ -41,12 +41,18 @@
 #include "DisplayGroupGraphicsViewProxy.h"
 #include "DisplayGroupGraphicsView.h"
 
+//#define TABLET_INTERACTION
+
 TouchListener::TouchListener()
 {
     graphicsViewProxy_ = new DisplayGroupGraphicsViewProxy(g_displayGroupManager);
 
     client_.addTuioListener(this);
     client_.connect();
+
+#ifdef TABLET_INTERACTION
+    cursorPos_ = QPointF( .5, .5 );
+#endif
 }
 
 void TouchListener::addTuioObject(TUIO::TuioObject *tobj)
@@ -66,6 +72,9 @@ void TouchListener::removeTuioObject(TUIO::TuioObject *tobj)
 
 void TouchListener::addTuioCursor(TUIO::TuioCursor *tcur)
 {
+#ifdef TABLET_INTERACTION
+    lastPoint_ = QPointF(tcur->getX(), tcur->getY());
+#else
     QPointF point(tcur->getX(), tcur->getY());
 
     // figure out what kind of click this is
@@ -94,7 +103,7 @@ void TouchListener::addTuioCursor(TUIO::TuioCursor *tcur)
 
     // create the mouse event
     QGraphicsSceneMouseEvent * event = NULL;
-    
+
     if(clickType == 2)
     {
         event = new QGraphicsSceneMouseEvent(QEvent::GraphicsSceneMouseDoubleClick);
@@ -126,13 +135,25 @@ void TouchListener::addTuioCursor(TUIO::TuioCursor *tcur)
         // post the event (thread-safe)
         QApplication::postEvent(graphicsViewProxy_->getGraphicsView()->scene(), event);
     }
-
-    // reset last point
-    lastPoint_ = point;
+#endif
 }
 
 void TouchListener::updateTuioCursor(TUIO::TuioCursor *tcur)
 {
+#ifdef TABLET_INTERACTION
+    QGraphicsSceneMouseEvent* event = new QGraphicsSceneMouseEvent(QEvent::GraphicsSceneMouseMove);
+    event->setLastScenePos( cursorPos_ );
+    event->setButton( Qt::NoButton );
+
+    const QPointF point( tcur->getX(), tcur->getY( ));
+    cursorPos_ += point - lastPoint_;
+    lastPoint_ = point;
+    cursorPos_.setX( std::min( std::max( cursorPos_.x(), 0. ), 1. ));
+    cursorPos_.setY( std::min( std::max( cursorPos_.y(), 0. ), 1. ));
+
+    event->setScenePos( cursorPos_ );
+    QApplication::postEvent(graphicsViewProxy_->getGraphicsView()->scene(), event);
+#else
     // if more than one cursor is down, only accept cursor 1 for right movements
     if(client_.getTuioCursors().size() > 1 && tcur->getCursorID() != 1)
     {
@@ -166,10 +187,12 @@ void TouchListener::updateTuioCursor(TUIO::TuioCursor *tcur)
 
     // reset last point
     lastPoint_ = point;
+#endif
 }
 
 void TouchListener::removeTuioCursor(TUIO::TuioCursor *tcur)
 {
+#ifndef TABLET_INTERACTION
     QPointF point(tcur->getX(), tcur->getY());
 
     // create the mouse event
@@ -197,6 +220,7 @@ void TouchListener::removeTuioCursor(TUIO::TuioCursor *tcur)
 
     // reset last point
     lastPoint_ = point;
+#endif
 }
 
 void TouchListener::refresh(TUIO::TuioTime frameTime)
