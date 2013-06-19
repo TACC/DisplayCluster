@@ -148,6 +148,13 @@ MainWindow::MainWindow()
         showMouseCursorAction->setChecked(g_displayGroupManager->getOptions()->getShowMouseCursor());
         connect(showMouseCursorAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowMouseCursor(bool)));
 
+        // show movie controls action
+        QAction * showMovieControlsAction = new QAction("Show Movie Controls", this);
+        showMovieControlsAction->setStatusTip("Show movie controls");
+        showMovieControlsAction->setCheckable(true);
+        showMovieControlsAction->setChecked(g_displayGroupManager->getOptions()->getShowMovieControls());
+        connect(showMovieControlsAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowMovieControls(bool)));
+
         // show test pattern action
         QAction * showTestPatternAction = new QAction("Show Test Pattern", this);
         showTestPatternAction->setStatusTip("Show test pattern");
@@ -220,6 +227,7 @@ MainWindow::MainWindow()
         viewMenu->addAction(constrainAspectRatioAction);
         viewMenu->addAction(showWindowBordersAction);
         viewMenu->addAction(showMouseCursorAction);
+        viewMenu->addAction(showMovieControlsAction);
         viewMenu->addAction(showTestPatternAction);
         viewMenu->addAction(enableMullionCompensationAction);
         viewMenu->addAction(showZoomContextAction);
