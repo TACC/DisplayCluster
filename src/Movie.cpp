@@ -239,7 +239,7 @@ void Movie::render(float tX, float tY, float tW, float tH)
 
 void Movie::nextFrame(bool skip)
 {
-    if( !initialized_ || paused_ )
+    if( !initialized_ || (paused_ && !skipped_frames_) )
         return;
 
     // rate limiting
@@ -257,7 +257,8 @@ void Movie::nextFrame(bool skip)
     // seeking
 
     // where we should be after we read a frame in this function
-    ++frame_index_;
+    if( !paused_ )
+        ++frame_index_;
 
     // if we're skipping this frame, increment the skipped frame counter and return
     // otherwise, make sure we're in the correct position in the stream and decode
