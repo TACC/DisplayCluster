@@ -726,6 +726,7 @@ void DisplayGroupManager::sendPixelStreams()
                 boost::shared_ptr<Content> c = cwm->getContent();
 
                 c->setDimensions(pixelStreamWidth, pixelStreamHeight);
+                cwm->adjustSize( SIZE_1TO1 );
             }
         }
     }
@@ -890,6 +891,7 @@ void DisplayGroupManager::sendSVGStreams()
                 if(newWidth != oldWidth || newHeight != oldHeight)
                 {
                     c->setDimensions(newWidth, newHeight);
+                    cwm->adjustSize( SIZE_1TO1 );
                 }
             }
 
