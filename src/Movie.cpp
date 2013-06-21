@@ -275,7 +275,7 @@ void Movie::nextFrame(bool skip)
         // need to seek
 
         // frame number we want
-        const int64_t index = (frame_index_) % (num_frames_ + 1);
+        const int64_t index = (frame_index_-1) % (num_frames_+1);
 
         // timestamp we want
         desiredTimestamp = start_time_ + av_rescale(index, den2_, num2_);
@@ -337,6 +337,7 @@ void Movie::nextFrame(bool skip)
     if(avReadStatus < 0 && loop_)
     {
         av_seek_frame(avFormatContext_, streamIdx_, 0, AVSEEK_FLAG_BACKWARD);
+        frame_index_ = 0;
     }
 }
 
