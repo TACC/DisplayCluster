@@ -46,7 +46,7 @@ Options::Options()
     showTestPattern_ = false;
     enableMullionCompensation_ = true;
     showZoomContext_ = true;
-    enableStreamingSynchronization_ = false;
+    enableStreamingSynchronization_ = true;
     showStreamingSegments_ = false;
     showStreamingStatistics_ = false;
 
