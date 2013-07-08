@@ -143,7 +143,7 @@ void ContentWindowManager::render()
         showWindowBorders = dgm->getOptions()->getShowWindowBorders();
     }
 
-    if(showWindowBorders == true)
+    if(showWindowBorders == true || selected_ )
     {
         double horizontalBorder = 5. / (double)g_configuration->getTotalHeight(); // 5 pixels
 
@@ -172,6 +172,7 @@ void ContentWindowManager::render()
         glPopAttrib();
     }
 
+#if 0	// not needed for multitouch
     glPushAttrib(GL_CURRENT_BIT);
 
     // render buttons if any of the markers are over the window
@@ -281,4 +282,5 @@ void ContentWindowManager::render()
     }
 
     glPopAttrib();
+#endif
 }

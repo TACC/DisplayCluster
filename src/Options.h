@@ -52,6 +52,7 @@ class Options : public QObject {
 
         bool getShowWindowBorders();
         bool getShowMouseCursor();
+        bool getShowTouchPoints();
         bool getShowMovieControls();
         bool getShowTestPattern();
         bool getEnableMullionCompensation();
@@ -67,6 +68,7 @@ class Options : public QObject {
     public slots:
         void setShowWindowBorders(bool set);
         void setShowMouseCursor(bool set);
+        void setShowTouchPoints(bool set);
         void setShowMovieControls(bool set);
         void setShowTestPattern(bool set);
         void setEnableMullionCompensation(bool set);
@@ -90,6 +92,7 @@ class Options : public QObject {
         {
             ar & showWindowBorders_;
             ar & showMouseCursor_;
+            ar & showTouchPoints_;
             ar & showMovieControls_;
             ar & showTestPattern_;
             ar & enableMullionCompensation_;
@@ -105,6 +108,7 @@ class Options : public QObject {
 
         bool showWindowBorders_;
         bool showMouseCursor_;
+        bool showTouchPoints_;
         bool showMovieControls_;
         bool showTestPattern_;
         bool enableMullionCompensation_;

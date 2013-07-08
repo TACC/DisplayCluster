@@ -42,6 +42,7 @@
 #include "DisplayGroupManager.h"
 #include "DisplayGroupGraphicsView.h"
 #include "main.h"
+#include "Gestures.h"
 
 qreal ContentWindowGraphicsItem::zCounter_ = 0;
 
@@ -54,50 +55,52 @@ ContentWindowGraphicsItem::ContentWindowGraphicsItem(boost::shared_ptr<ContentWi
     // graphics items are movable
     setFlag(QGraphicsItem::ItemIsMovable, true);
 
-    // default fill color / opacity
-    setBrush(QBrush(QColor(0, 0, 0, 128)));
-
     // border based on if we're selected or not
     // use the -1 argument to force an update but not emit signals
     setSelected(selected_, (ContentWindowInterface *)-1);
 
-    // current coordinates
-    setPos(x_, y_);
-    setRect(x_, y_, w_, h_);
-
     // new items at the front
     // we assume that interface items will be constructed in depth order so this produces the correct result...
     setZToFront();
+
+    grabGesture(Qt::PinchGesture);
+    grabGesture(PanGestureRecognizer::type( ));
+    grabGesture(Qt::SwipeGesture);
+    grabGesture(Qt::TapAndHoldGesture);
+    grabGesture(Qt::TapGesture);
 }
 
-QVariant ContentWindowGraphicsItem::itemChange(GraphicsItemChange change,
-                                               const QVariant &value)
- {
-     if (change == ItemSceneHasChanged)
-         setRect(mapRectFromScene(x_, y_, w_, h_));
-     return QGraphicsItem::itemChange(change, value);
- }
+QRectF ContentWindowGraphicsItem::boundingRect() const
+{
+    return QRectF(x_, y_, w_, h_);
+}
 
 void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGraphicsItem * option, QWidget * widget)
 {
-    QGraphicsRectItem::paint(painter, option, widget);
-
     boost::shared_ptr<ContentWindowManager> contentWindowManager = getContentWindowManager();
 
     if(!contentWindowManager)
         return;
 
-    // default pen
     QPen pen;
+    if(selected_)
+        pen.setColor(QColor(255,0,0));
+    else
+        pen.setColor(QColor(0,0,0));
+
+    // draw & fill rectangle
+    painter->setPen(pen);
+    painter->setBrush( QBrush(QColor(0, 0, 0, 128)));
+    painter->drawRect(boundingRect());
 
     // button dimensions
     float buttonWidth, buttonHeight;
     getButtonDimensions(buttonWidth, buttonHeight);
 
-    const qreal& x = rect().x();
-    const qreal& y = rect().y();
-    const qreal& w = rect().width();
-    const qreal& h = rect().height();
+    const qreal& x = x_;
+    const qreal& y = y_;
+    const qreal& w = w_;
+    const qreal& h = h_;
 
     // draw close button
     QRectF closeRect(x + w - buttonWidth, y, buttonWidth, buttonHeight);
@@ -123,14 +126,14 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
         g_displayGroupManager->getOptions()->getShowMovieControls( ))
     {
         // play/pause
-        QRectF playPauseRect((x + w)/2 - buttonWidth, y + h - buttonHeight,
+        QRectF playPauseRect(x + w/2 - buttonWidth, y + h - buttonHeight,
                               buttonWidth, buttonHeight);
         pen.setColor(QColor(contentWindowManager->getControlState() & STATE_PAUSED ? 128 :200,0,0));
         painter->setPen(pen);
         painter->fillRect(playPauseRect, pen.color());
 
         // loop
-        QRectF loopRect((x + w)/2, y + h - buttonHeight,
+        QRectF loopRect(x + w/2, y + h - buttonHeight,
                         buttonWidth, buttonHeight);
         pen.setColor(QColor(0,contentWindowManager->getControlState() & STATE_LOOP ? 200 :128,0));
         painter->setPen(pen);
@@ -202,8 +205,7 @@ void ContentWindowGraphicsItem::adjustSize( const SizeState state,
 
     if(source != this)
     {
-        setPos(x_, y_);
-        setRect(mapRectFromScene(x_, y_, w_, h_));
+        prepareGeometryChange();
     }
 }
 
@@ -213,8 +215,7 @@ void ContentWindowGraphicsItem::setCoordinates(double x, double y, double w, dou
 
     if(source != this)
     {
-        setPos(x_, y_);
-        setRect(mapRectFromScene(x_, y_, w_, h_));
+        prepareGeometryChange();
     }
 }
 
@@ -224,8 +225,7 @@ void ContentWindowGraphicsItem::setPosition(double x, double y, ContentWindowInt
 
     if(source != this)
     {
-        setPos(x_, y_);
-        setRect(mapRectFromScene(x_, y_, w_, h_));
+        prepareGeometryChange();
     }
 }
 
@@ -235,8 +235,7 @@ void ContentWindowGraphicsItem::setSize(double w, double h, ContentWindowInterfa
 
     if(source != this)
     {
-        setPos(x_, y_);
-        setRect(mapRectFromScene(x_, y_, w_, h_));
+        prepareGeometryChange();
     }
 }
 
@@ -247,7 +246,7 @@ void ContentWindowGraphicsItem::setCenter(double centerX, double centerY, Conten
     if(source != this)
     {
         // force a redraw to update window info label
-        update();
+        prepareGeometryChange();
     }
 }
 
@@ -258,7 +257,7 @@ void ContentWindowGraphicsItem::setZoom(double zoom, ContentWindowInterface * so
     if(source != this)
     {
         // force a redraw to update window info label
-        update();
+        prepareGeometryChange();
     }
 }
 
@@ -268,22 +267,8 @@ void ContentWindowGraphicsItem::setSelected(bool selected, ContentWindowInterfac
 
     if(source != this)
     {
-        // set the pen
-        QPen p = pen();
-
-        if(selected_ == true)
-        {
-            p.setColor(QColor(255,0,0));
-        }
-        else
-        {
-            p.setColor(QColor(0,0,0));
-        }
-
-        setPen(p);
-
         // force a redraw
-        update();
+        prepareGeometryChange();
     }
 }
 
@@ -291,6 +276,116 @@ void ContentWindowGraphicsItem::setZToFront()
 {
     zCounter_ = zCounter_ + 1;
     setZValue(zCounter_);
+}
+
+bool ContentWindowGraphicsItem::sceneEvent(QEvent *event)
+{
+    switch( event->type( ))
+    {
+    case QEvent::Gesture:
+        gestureEvent(static_cast<QGestureEvent*>(event));
+        return true;
+    default:
+        return QGraphicsObject::sceneEvent( event );
+    }
+}
+
+void ContentWindowGraphicsItem::gestureEvent(QGestureEvent *event)
+{
+    if( !getContentWindowManager( ))
+        return;
+
+    if( QGesture *swipe = event->gesture( Qt::SwipeGesture ))
+    {
+        swipeTriggered(static_cast<QSwipeGesture *>(swipe));
+    }
+    if (QGesture *pan = event->gesture(PanGestureRecognizer::type( )))
+    {
+        panTriggered(static_cast<PanGesture *>(pan));
+    }
+    if (QGesture *pinch = event->gesture(Qt::PinchGesture))
+    {
+        pinchTriggered(static_cast<QPinchGesture *>(pinch));
+    }
+    if (QGesture *tap = event->gesture(Qt::TapGesture))
+    {
+        tapTriggered(static_cast<QTapGesture *>(tap));
+    }
+    if (QGesture *tapandhold = event->gesture(Qt::TapAndHoldGesture))
+    {
+        tapandholdTriggered(static_cast<QTapAndHoldGesture *>(tapandhold));
+    }
+}
+
+void ContentWindowGraphicsItem::swipeTriggered(QSwipeGesture *gesture)
+{
+    std::cout << "SWIPE " << gesture->state() << std::endl;
+}
+
+void ContentWindowGraphicsItem::panTriggered(PanGesture *gesture)
+{
+    const QPointF& delta = gesture->delta();
+    const double dx = delta.x() / g_configuration->getTotalWidth();
+    const double dy = delta.y() / g_configuration->getTotalHeight();
+
+    if( selected_ )
+    {
+        const double centerX = centerX_ + 2.*dx / zoom_;
+        const double centerY = centerY_ + 2.*dy / zoom_;
+        setCenter(centerX, centerY);
+        return;
+    }
+
+    if( gesture->state() == Qt::GestureStarted )
+        getContentWindowManager()->getContent()->blockAdvance( true );
+
+    const double x = x_ + dx;
+    const double y = y_ + dy;
+    setPosition( x, y );
+
+    if( gesture->state() == Qt::GestureCanceled ||
+        gesture->state() == Qt::GestureFinished )
+    {
+        getContentWindowManager()->getContent()->blockAdvance( false );
+    }
+}
+
+void ContentWindowGraphicsItem::pinchTriggered(QPinchGesture *gesture)
+{
+    if( selected_ )
+    {
+        const qreal factor = getZoom() * gesture->scaleFactor();
+        if( factor > 0.05 && factor < 10.0 )
+            setZoom( factor );
+        return;
+    }
+
+    if( gesture->state() == Qt::GestureStarted )
+        getContentWindowManager()->getContent()->blockAdvance( true );
+
+    const qreal factor = scale() * gesture->scaleFactor();
+    if( factor > 0.05 && factor < 10.0 )
+        scaleSize( factor );
+
+    if( gesture->state() == Qt::GestureCanceled ||
+        gesture->state() == Qt::GestureFinished )
+    {
+        getContentWindowManager()->getContent()->blockAdvance( false );
+    }
+}
+
+void ContentWindowGraphicsItem::tapTriggered(QTapGesture *gesture)
+{
+    if( gesture->state() == Qt::GestureFinished )
+    {
+        std::cout << "TAP" << std::endl;
+    }
+}
+
+void ContentWindowGraphicsItem::tapandholdTriggered(QTapAndHoldGesture *gesture)
+{
+    if( gesture->state() == Qt::GestureFinished )
+        setSelected( !selected_ );
 }
 
 void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
@@ -341,7 +436,7 @@ void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
     {
         if( resizing_ )
         {
-            QRectF r = rect();
+            QRectF r = boundingRect();
             QPointF eventPos = event->pos();
 
             r.setBottomRight(eventPos);
@@ -382,7 +477,7 @@ void ContentWindowGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent * event
     getButtonDimensions(buttonWidth, buttonHeight);
 
     // item rectangle and event position
-    QRectF r = rect();
+    QRectF r = boundingRect();
     QPointF eventPos = event->pos();
 
     // check to see if user clicked on the close button
@@ -401,6 +496,8 @@ void ContentWindowGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent * event
         return;
 
     boost::shared_ptr<ContentWindowManager> window = getContentWindowManager();
+
+    window->getContent()->blockAdvance( true );
 
     // check to see if user clicked on the resize button
     if(fabs((r.x()+r.width()) - eventPos.x()) <= buttonWidth &&
@@ -455,6 +552,7 @@ void ContentWindowGraphicsItem::mouseReleaseEvent(QGraphicsSceneMouseEvent * eve
 {
     resizing_ = false;
     moving_ = false;
+    getContentWindowManager()->getContent()->blockAdvance( false );
 
     QGraphicsItem::mouseReleaseEvent(event);
 }

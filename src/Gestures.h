@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Daniel Nachbaur <daniel.nachbaur@epfl.ch>     */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,35 +37,52 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DISPLAY_GROUP_GRAPHICS_SCENE_H
-#define DISPLAY_GROUP_GRAPHICS_SCENE_H
+#ifndef GESTURES_H
+#define GESTURES_H
 
-#include <QtGui>
-#include <boost/shared_ptr.hpp>
-#include <vector>
+#include <QtGui/QGesture>
+#include <QtGui/QGestureRecognizer>
 
-class Marker;
+class PanGesture : public QGesture
+{
+public:
+    PanGesture( QObject* parent = 0 );
 
-class DisplayGroupGraphicsScene : public QGraphicsScene {
+    const QPointF& lastOffset() const { return _lastOffset; }
+    const QPointF& offset() const { return _offset; }
+    QPointF delta() const { return _offset - _lastOffset; }
+    qreal acceleration() const { return _acceleration; }
 
-    public:
+    void setLastOffset( const QPointF& value ) { _lastOffset = value; }
+    void setOffset( const QPointF& value ) { _offset = value; }
+    void setAcceleration( const qreal value ) { _acceleration = value; }
 
-        DisplayGroupGraphicsScene();
+private:
+    QPointF _lastOffset;
+    QPointF _offset;
+    qreal _acceleration;
+};
 
-        void refreshTileRects();
+class PanGestureRecognizer : public QGestureRecognizer
+{
+public:
+    PanGestureRecognizer( const int numPoints );
 
-    protected:
+    virtual QGesture* create( QObject *target );
 
-        bool event(QEvent *event);
-        void mouseMoveEvent(QGraphicsSceneMouseEvent * event);
-        void mousePressEvent(QGraphicsSceneMouseEvent * event);
-        void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
+    virtual QGestureRecognizer::Result recognize( QGesture* state,
+                                                  QObject* watched,
+                                                  QEvent* event );
 
-    private:
+    virtual void reset( QGesture* state );
 
-        std::vector< boost::shared_ptr<Marker> > markers_;
+    static void install();
+    static void uninstall();
+    static Qt::GestureType type();
 
-        std::vector<QGraphicsRectItem *> tileRects_;
+private:
+    int _nPoints;
+    static Qt::GestureType _type;
 };
 
 #endif

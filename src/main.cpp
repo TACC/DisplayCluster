@@ -43,7 +43,6 @@
 #include <unistd.h>
 
 #if ENABLE_TUIO_TOUCH_LISTENER
-    #include "TouchListener.h"
     #include <X11/Xlib.h>
 #endif
 
@@ -102,13 +101,6 @@ int main(int argc, char * argv[])
 
     // calibrate timestamp offset between rank 0 and rank 1 clocks
     g_displayGroupManager->calibrateTimestampOffset();
-
-#if ENABLE_TUIO_TOUCH_LISTENER
-    if(g_mpiRank == 0)
-    {
-        new TouchListener();
-    }
-#endif
 
 #if ENABLE_JOYSTICK_SUPPORT
     if(g_mpiRank == 0)

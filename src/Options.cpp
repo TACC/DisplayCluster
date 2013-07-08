@@ -42,6 +42,7 @@ Options::Options()
 {
     showWindowBorders_ = false;
     showMouseCursor_ = false;
+    showTouchPoints_ = false;
     showMovieControls_ = true;
     showTestPattern_ = false;
     enableMullionCompensation_ = true;
@@ -63,6 +64,11 @@ bool Options::getShowWindowBorders()
 bool Options::getShowMouseCursor()
 {
     return showMouseCursor_;
+}
+
+bool Options::getShowTouchPoints()
+{
+    return showTouchPoints_;
 }
 
 bool Options::getShowMovieControls()
@@ -117,6 +123,13 @@ void Options::setShowWindowBorders(bool set)
 void Options::setShowMouseCursor(bool set)
 {
     showMouseCursor_ = set;
+
+    emit(updated());
+}
+
+void Options::setShowTouchPoints(bool set)
+{
+    showTouchPoints_ = set;
 
     emit(updated());
 }

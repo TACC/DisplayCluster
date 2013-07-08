@@ -52,6 +52,10 @@
     #include "SkeletonThread.h"
 #endif
 
+#if ENABLE_TUIO_TOUCH_LISTENER
+    #include "MultiTouchListener.h"
+#endif
+
 MainWindow::MainWindow()
 {
     // defaults
@@ -148,6 +152,13 @@ MainWindow::MainWindow()
         showMouseCursorAction->setChecked(g_displayGroupManager->getOptions()->getShowMouseCursor());
         connect(showMouseCursorAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowMouseCursor(bool)));
 
+        // show touch points action
+        QAction * showTouchPoints = new QAction("Show Touch Points", this);
+        showTouchPoints->setStatusTip("Show touch points");
+        showTouchPoints->setCheckable(true);
+        showTouchPoints->setChecked(g_displayGroupManager->getOptions()->getShowTouchPoints());
+        connect(showTouchPoints, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowTouchPoints(bool)));
+
         // show movie controls action
         QAction * showMovieControlsAction = new QAction("Show Movie Controls", this);
         showMovieControlsAction->setStatusTip("Show movie controls");
@@ -227,6 +238,7 @@ MainWindow::MainWindow()
         viewMenu->addAction(constrainAspectRatioAction);
         viewMenu->addAction(showWindowBordersAction);
         viewMenu->addAction(showMouseCursorAction);
+        viewMenu->addAction(showTouchPoints);
         viewMenu->addAction(showMovieControlsAction);
         viewMenu->addAction(showTestPatternAction);
         viewMenu->addAction(enableMullionCompensationAction);
@@ -262,6 +274,10 @@ MainWindow::MainWindow()
         DisplayGroupGraphicsViewProxy * dggv = new DisplayGroupGraphicsViewProxy(g_displayGroupManager);
         mainWidget->addTab((QWidget *)dggv->getGraphicsView(), "Display group 0");
 
+#if ENABLE_TUIO_TOUCH_LISTENER
+        touchListener_ = new MultiTouchListener( dggv );
+#endif
+
         // create contents dock widget
         QDockWidget * contentsDockWidget = new QDockWidget("Contents", this);
         QWidget * contentsWidget = new QWidget();
@@ -284,6 +300,9 @@ MainWindow::MainWindow()
     }
     else
     {
+#if ENABLE_TUIO_TOUCH_LISTENER
+        touchListener_ = 0;
+#endif
         // setup OpenGL windows
         // if we have just one tile for this process, make the GL window the central widget
         // otherwise, create multiple windows
@@ -341,6 +360,13 @@ MainWindow::MainWindow()
         // trigger the first update
         updateGLWindows();
     }
+}
+
+MainWindow::~MainWindow()
+{
+#if ENABLE_TUIO_TOUCH_LISTENER
+    delete touchListener_;
+#endif
 }
 
 bool MainWindow::getConstrainAspectRatio()

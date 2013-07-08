@@ -48,12 +48,15 @@
 #include <QGLWidget>
 #include <boost/shared_ptr.hpp>
 
+class MultiTouchListener;
+
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
     public:
 
         MainWindow();
+        ~MainWindow();
 
         bool getConstrainAspectRatio();
 
@@ -97,6 +100,10 @@ class MainWindow : public QMainWindow {
 
         // polling timer for updating parallel pixel streams
         QTimer parallelPixelStreamTimer_;
+
+#if ENABLE_TUIO_TOUCH_LISTENER
+        MultiTouchListener* touchListener_;
+#endif
 };
 
 #endif

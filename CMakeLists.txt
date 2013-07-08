@@ -87,6 +87,8 @@ if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
     include_directories(${TUIO_INCLUDE_DIRS})
     list(APPEND LIBS ${TUIO_LIBRARIES})
 
+    set(SRCS ${SRCS} src/Gestures.cpp)
+    set(SRCS ${SRCS} src/MultiTouchListener.cpp)
     set(SRCS ${SRCS} src/TouchListener.cpp)
 
     find_package(X11 REQUIRED)

@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Daniel Nachbaur <daniel.nachbaur@epfl.ch>     */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,35 +37,41 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DISPLAY_GROUP_GRAPHICS_SCENE_H
-#define DISPLAY_GROUP_GRAPHICS_SCENE_H
+#ifndef MULTI_TOUCH_LISTENER_H
+#define MULTI_TOUCH_LISTENER_H
 
-#include <QtGui>
-#include <boost/shared_ptr.hpp>
-#include <vector>
+#include <TuioListener.h>
+#include <TuioClient.h>
+#include <QtGui/QtEvents>
 
-class Marker;
 
-class DisplayGroupGraphicsScene : public QGraphicsScene {
+class DisplayGroupGraphicsViewProxy;
 
+class MultiTouchListener : public TUIO::TuioListener
+{
     public:
+        MultiTouchListener( DisplayGroupGraphicsViewProxy* proxy );
+        ~MultiTouchListener();
 
-        DisplayGroupGraphicsScene();
+        void addTuioObject( TUIO::TuioObject* tobj );
+        void updateTuioObject( TUIO::TuioObject* tobj );
+        void removeTuioObject( TUIO::TuioObject* tobj );
 
-        void refreshTileRects();
+        void addTuioCursor( TUIO::TuioCursor* tcur );
+        void updateTuioCursor( TUIO::TuioCursor* tcur );
+        void removeTuioCursor( TUIO::TuioCursor* tcur );
 
-    protected:
-
-        bool event(QEvent *event);
-        void mouseMoveEvent(QGraphicsSceneMouseEvent * event);
-        void mousePressEvent(QGraphicsSceneMouseEvent * event);
-        void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
+        void refresh( TUIO::TuioTime frameTime );
 
     private:
+        void handleEvent( TUIO::TuioCursor* tcur,
+                          const QEvent::Type eventType );
 
-        std::vector< boost::shared_ptr<Marker> > markers_;
+        QMap< int, QTouchEvent::TouchPoint > _touchPointMap;
 
-        std::vector<QGraphicsRectItem *> tileRects_;
+        DisplayGroupGraphicsViewProxy* _graphicsViewProxy;
+
+        TUIO::TuioClient client_;
 };
 
 #endif

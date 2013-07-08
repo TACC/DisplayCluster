@@ -52,6 +52,7 @@ Content::Content(std::string uri)
     uri_ = uri;
     width_ = 0;
     height_ = 0;
+    blockAdvance_ = false;
 }
 
 std::string Content::getURI()

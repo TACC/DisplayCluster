@@ -44,8 +44,9 @@
 #include <boost/shared_ptr.hpp>
 
 class ContentWindowManager;
+class PanGesture;
 
-class ContentWindowGraphicsItem : public QGraphicsRectItem, public ContentWindowInterface {
+class ContentWindowGraphicsItem : public QGraphicsObject, public ContentWindowInterface {
 
     public:
 
@@ -68,9 +69,10 @@ class ContentWindowGraphicsItem : public QGraphicsRectItem, public ContentWindow
 
     protected:
 
-        QVariant itemChange(GraphicsItemChange change, const QVariant &value);
+        QRectF boundingRect() const;
 
         // QGraphicsRectItem events
+        virtual bool sceneEvent(QEvent *event);
         virtual void mouseMoveEvent(QGraphicsSceneMouseEvent * event);
         virtual void mousePressEvent(QGraphicsSceneMouseEvent * event);
         virtual void mouseDoubleClickEvent(QGraphicsSceneMouseEvent * event);
@@ -78,6 +80,13 @@ class ContentWindowGraphicsItem : public QGraphicsRectItem, public ContentWindow
         virtual void wheelEvent(QGraphicsSceneWheelEvent * event);
 
     private:
+
+        void gestureEvent(QGestureEvent *event);
+        void swipeTriggered(QSwipeGesture *gesture);
+        void panTriggered(PanGesture *gesture);
+        void pinchTriggered(QPinchGesture *gesture);
+        void tapTriggered(QTapGesture *gesture);
+        void tapandholdTriggered(QTapAndHoldGesture *gesture);
 
         // resizing state
         bool resizing_;

@@ -55,6 +55,9 @@ void MovieContent::getFactoryObjectDimensions(int &width, int &height)
 
 void MovieContent::advance(boost::shared_ptr<ContentWindowManager> window)
 {
+    if( blockAdvance_ )
+        return;
+
     // skip a frame if the Content rectangle is not visible in ANY windows; otherwise decode normally
     bool skip = true;
 

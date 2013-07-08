@@ -51,7 +51,7 @@ DisplayGroupGraphicsScene::DisplayGroupGraphicsScene()
     refreshTileRects();
 
     // get marker for this scene
-    marker_ = g_displayGroupManager->getNewMarker();
+    markers_.push_back( g_displayGroupManager->getNewMarker());
 }
 
 void DisplayGroupGraphicsScene::refreshTileRects()
@@ -108,23 +108,51 @@ void DisplayGroupGraphicsScene::refreshTileRects()
     }
 }
 
+bool DisplayGroupGraphicsScene::event(QEvent *event)
+{
+    switch( event->type())
+    {
+    case QEvent::TouchBegin:
+    case QEvent::TouchUpdate:
+    case QEvent::TouchEnd:
+    {
+        if( g_displayGroupManager->getOptions()->getShowTouchPoints( ))
+        {
+            QTouchEvent* touchEvent = static_cast< QTouchEvent* >( event );
+
+            while( markers_.size() < size_t( touchEvent->touchPoints().size( )))
+                markers_.push_back( g_displayGroupManager->getNewMarker());
+
+            for( int i = 0; i < touchEvent->touchPoints().size(); ++i )
+            {
+                markers_[i]->setPosition(touchEvent->touchPoints()[i].normalizedPos().x(),
+                                         touchEvent->touchPoints()[i].normalizedPos().y());
+            }
+        }
+        return QGraphicsScene::event(event);
+    }
+    default:
+        return QGraphicsScene::event(event);
+    }
+}
+
 void DisplayGroupGraphicsScene::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
 {
-    marker_->setPosition(event->scenePos().x(), event->scenePos().y());
+    markers_[0]->setPosition(event->scenePos().x(), event->scenePos().y());
 
     QGraphicsScene::mouseMoveEvent(event);
 }
 
 void DisplayGroupGraphicsScene::mousePressEvent(QGraphicsSceneMouseEvent * event)
 {
-    marker_->setPosition(event->scenePos().x(), event->scenePos().y());
+    markers_[0]->setPosition(event->scenePos().x(), event->scenePos().y());
 
     QGraphicsScene::mousePressEvent(event);
 }
 
 void DisplayGroupGraphicsScene::mouseReleaseEvent(QGraphicsSceneMouseEvent * event)
 {
-    marker_->setPosition(event->scenePos().x(), event->scenePos().y());
+    markers_[0]->setPosition(event->scenePos().x(), event->scenePos().y());
 
     QGraphicsScene::mouseReleaseEvent(event);
 }

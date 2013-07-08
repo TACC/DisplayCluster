@@ -76,6 +76,7 @@ class Content : public QObject {
         void setDimensions(int width, int height);
         virtual void getFactoryObjectDimensions(int &width, int &height) = 0;
         void render(boost::shared_ptr<ContentWindowManager> window);
+        void blockAdvance( bool block ) { blockAdvance_ = block; }
 
         // virtual method for implementing actions on advancing to a new frame
         // useful when a process has multiple GLWindows
@@ -97,11 +98,13 @@ class Content : public QObject {
             ar & uri_;
             ar & width_;
             ar & height_;
+            ar & blockAdvance_;
         }
 
         std::string uri_;
         int width_;
         int height_;
+        bool blockAdvance_;
 
         virtual void renderFactoryObject(float tX, float tY, float tW, float tH) = 0;
 };
