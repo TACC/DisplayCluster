@@ -295,6 +295,8 @@ void ContentWindowGraphicsItem::gestureEvent(QGestureEvent *event)
     if( !getContentWindowManager( ))
         return;
 
+    moveToFront();
+
     if( QGesture *swipe = event->gesture( Qt::SwipeGesture ))
     {
         swipeTriggered(static_cast<QSwipeGesture *>(swipe));
