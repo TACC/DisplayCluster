@@ -201,75 +201,58 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
 void ContentWindowGraphicsItem::adjustSize( const SizeState state,
                                             ContentWindowInterface * source )
 {
-    ContentWindowInterface::adjustSize( state, source );
-
     if(source != this)
-    {
         prepareGeometryChange();
-    }
+
+    ContentWindowInterface::adjustSize( state, source );
 }
 
 void ContentWindowGraphicsItem::setCoordinates(double x, double y, double w, double h, ContentWindowInterface * source)
 {
-    ContentWindowInterface::setCoordinates(x, y, w, h, source);
-
     if(source != this)
-    {
         prepareGeometryChange();
-    }
+
+    ContentWindowInterface::setCoordinates(x, y, w, h, source);
 }
 
 void ContentWindowGraphicsItem::setPosition(double x, double y, ContentWindowInterface * source)
 {
-    ContentWindowInterface::setPosition(x, y, source);
-
     if(source != this)
-    {
         prepareGeometryChange();
-    }
+
+    ContentWindowInterface::setPosition(x, y, source);
 }
 
 void ContentWindowGraphicsItem::setSize(double w, double h, ContentWindowInterface * source)
 {
-    ContentWindowInterface::setSize(w, h, source);
-
     if(source != this)
-    {
         prepareGeometryChange();
-    }
+
+    ContentWindowInterface::setSize(w, h, source);
 }
 
 void ContentWindowGraphicsItem::setCenter(double centerX, double centerY, ContentWindowInterface * source)
 {
-    ContentWindowInterface::setCenter(centerX, centerY, source);
-
     if(source != this)
-    {
-        // force a redraw to update window info label
         prepareGeometryChange();
-    }
+
+    ContentWindowInterface::setCenter(centerX, centerY, source);
 }
 
 void ContentWindowGraphicsItem::setZoom(double zoom, ContentWindowInterface * source)
 {
-    ContentWindowInterface::setZoom(zoom, source);
-
     if(source != this)
-    {
-        // force a redraw to update window info label
         prepareGeometryChange();
-    }
+
+    ContentWindowInterface::setZoom(zoom, source);
 }
 
 void ContentWindowGraphicsItem::setSelected(bool selected, ContentWindowInterface * source)
 {
-    ContentWindowInterface::setSelected(selected, source);
-
     if(source != this)
-    {
-        // force a redraw
         prepareGeometryChange();
-    }
+
+    ContentWindowInterface::setSelected(selected, source);
 }
 
 void ContentWindowGraphicsItem::setZToFront()
@@ -355,6 +338,8 @@ void ContentWindowGraphicsItem::panTriggered(PanGesture *gesture)
 void ContentWindowGraphicsItem::pinchTriggered(QPinchGesture *gesture)
 {
     const qreal factor = (gesture->scaleFactor() - 1.) * 0.2f + 1.f;
+    if( std::isnan( factor) || std::isinf( factor ))
+        return;
 
     if( selected_ )
     {
