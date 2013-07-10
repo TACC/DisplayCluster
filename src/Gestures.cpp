@@ -116,7 +116,7 @@ QGestureRecognizer::Result PanGestureRecognizer::recognize( QGesture* state,
         break;
 
     case QEvent::TouchUpdate:
-        if( touchEvent->touchPoints().size() >= _nPoints )
+        if( touchEvent->touchPoints().size() == _nPoints )
         {
             gesture->setLastOffset( gesture->offset( ));
             QPointF offset( 0, 0 );
