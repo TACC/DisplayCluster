@@ -354,20 +354,18 @@ void ContentWindowGraphicsItem::panTriggered(PanGesture *gesture)
 
 void ContentWindowGraphicsItem::pinchTriggered(QPinchGesture *gesture)
 {
+    const qreal factor = (gesture->scaleFactor() - 1.) * 0.2f + 1.f;
+
     if( selected_ )
     {
-        const qreal factor = getZoom() * gesture->scaleFactor();
-        if( factor > 0.05 && factor < 10.0 )
-            setZoom( factor );
+        setZoom( getZoom() * factor );
         return;
     }
 
     if( gesture->state() == Qt::GestureStarted )
         getContentWindowManager()->getContent()->blockAdvance( true );
 
-    const qreal factor = scale() * gesture->scaleFactor();
-    if( factor > 0.05 && factor < 10.0 )
-        scaleSize( factor );
+    scaleSize( factor );
 
     if( gesture->state() == Qt::GestureCanceled ||
         gesture->state() == Qt::GestureFinished )
