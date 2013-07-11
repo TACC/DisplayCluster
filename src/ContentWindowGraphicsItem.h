@@ -45,6 +45,7 @@
 
 class ContentWindowManager;
 class PanGesture;
+class DoubleTapGesture;
 
 class ContentWindowGraphicsItem : public QGraphicsObject, public ContentWindowInterface {
 
@@ -85,6 +86,7 @@ class ContentWindowGraphicsItem : public QGraphicsObject, public ContentWindowIn
         void swipeTriggered(QSwipeGesture *gesture);
         void panTriggered(PanGesture *gesture);
         void pinchTriggered(QPinchGesture *gesture);
+        void doubleTapTriggered(DoubleTapGesture* gesture);
         void tapTriggered(QTapGesture *gesture);
         void tapandholdTriggered(QTapAndHoldGesture *gesture);
 

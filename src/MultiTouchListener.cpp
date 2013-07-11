@@ -53,6 +53,8 @@ MultiTouchListener::MultiTouchListener( DisplayGroupGraphicsViewProxy* proxy )
     , _graphicsViewProxy( proxy )
 {
     PanGestureRecognizer::install();
+    DoubleTapGestureRecognizer::install();
+
     client_.addTuioListener( this );
     client_.connect();
 }
@@ -60,6 +62,7 @@ MultiTouchListener::MultiTouchListener( DisplayGroupGraphicsViewProxy* proxy )
 MultiTouchListener::~MultiTouchListener()
 {
     PanGestureRecognizer::uninstall();
+    DoubleTapGestureRecognizer::uninstall();
 }
 
 void MultiTouchListener::addTuioObject( TUIO::TuioObject* tobj )

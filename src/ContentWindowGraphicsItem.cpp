@@ -65,6 +65,7 @@ ContentWindowGraphicsItem::ContentWindowGraphicsItem(boost::shared_ptr<ContentWi
 
     grabGesture(Qt::PinchGesture);
     grabGesture(PanGestureRecognizer::type( ));
+    grabGesture(DoubleTapGestureRecognizer::type( ));
     grabGesture(Qt::SwipeGesture);
     grabGesture(Qt::TapAndHoldGesture);
     grabGesture(Qt::TapGesture);
@@ -292,6 +293,10 @@ void ContentWindowGraphicsItem::gestureEvent(QGestureEvent *event)
     {
         pinchTriggered(static_cast<QPinchGesture *>(pinch));
     }
+    else if (QGesture *pan = event->gesture(DoubleTapGestureRecognizer::type( )))
+    {
+        doubleTapTriggered(static_cast<DoubleTapGesture *>(pan));
+    }
     else if (QGesture *tap = event->gesture(Qt::TapGesture))
     {
         tapTriggered(static_cast<QTapGesture *>(tap));
@@ -365,6 +370,12 @@ void ContentWindowGraphicsItem::tapTriggered(QTapGesture *gesture)
     {
         std::cout << "TAP" << std::endl;
     }
+}
+
+void ContentWindowGraphicsItem::doubleTapTriggered(DoubleTapGesture *gesture)
+{
+    if( gesture->state() != Qt::GestureFinished )
+        adjustSize( getSizeState() == SIZE_FULLSCREEN ? SIZE_1TO1 : SIZE_FULLSCREEN );
 }
 
 void ContentWindowGraphicsItem::tapandholdTriggered(QTapAndHoldGesture *gesture)

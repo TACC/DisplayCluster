@@ -162,3 +162,97 @@ void PanGestureRecognizer::reset( QGesture* state )
 
     QGestureRecognizer::reset( state );
 }
+
+
+
+Qt::GestureType DoubleTapGestureRecognizer::_type = Qt::CustomGesture;
+
+void DoubleTapGestureRecognizer::install()
+{
+    _type = QGestureRecognizer::registerRecognizer( new DoubleTapGestureRecognizer );
+}
+
+void DoubleTapGestureRecognizer::uninstall()
+{
+    QGestureRecognizer::unregisterRecognizer( _type );
+}
+
+Qt::GestureType DoubleTapGestureRecognizer::type()
+{
+    return _type;
+}
+
+DoubleTapGestureRecognizer::DoubleTapGestureRecognizer()
+    : _firstPoint( -1, -1 )
+{
+}
+
+QGesture* DoubleTapGestureRecognizer::create( QObject* target )
+{
+    if( target && target->isWidgetType( ))
+        static_cast< QWidget* >( target )->setAttribute( Qt::WA_AcceptTouchEvents );
+    return new DoubleTapGesture;
+}
+
+QGestureRecognizer::Result DoubleTapGestureRecognizer::recognize( QGesture* state,
+                                                            QObject* watched,
+                                                            QEvent* event )
+{
+    const QTouchEvent* touchEvent = static_cast< const QTouchEvent* >( event );
+    DoubleTapGesture* gesture = static_cast<DoubleTapGesture *>(state);
+
+    enum { TapRadius = 40 };
+
+    switch( event->type( ))
+    {
+    case QEvent::TouchBegin:
+        if( touchEvent->touchPoints().size() != 1 )
+            return QGestureRecognizer::Ignore;
+        return QGestureRecognizer::MayBeGesture;
+
+    case QEvent::TouchEnd:
+    {
+        if( touchEvent->touchPoints().size() != 1 )
+            return QGestureRecognizer::Ignore;
+        const QTouchEvent::TouchPoint& p = touchEvent->touchPoints().at(0);
+        QPoint delta = p.pos().toPoint() - p.startPos().toPoint();
+        if( delta.manhattanLength() > TapRadius )
+            return QGestureRecognizer::CancelGesture;
+
+        if( _firstPoint != QPointF( -1, -1 ))
+        {
+            delta =  p.pos().toPoint() - _firstPoint.toPoint();
+            if( delta.manhattanLength() > TapRadius ||
+                _firstPointTime.elapsed() > 750 )
+            {
+                _firstPoint = QPointF( -1, -1 );
+                return QGestureRecognizer::CancelGesture;
+            }
+
+            gesture->setPosition( p.startScreenPos());
+            gesture->setHotSpot( gesture->position( ));
+            _firstPoint = QPointF( -1, -1 );
+            return QGestureRecognizer::FinishGesture;
+        }
+        else
+        {
+            _firstPoint = p.pos();
+            _firstPointTime.restart();
+            return QGestureRecognizer::MayBeGesture;
+        }
+    }
+
+    case QEvent::TouchUpdate:
+        if( touchEvent->touchPoints().size() != 1 )
+            return QGestureRecognizer::Ignore;
+        return QGestureRecognizer::MayBeGesture;
+
+    default:
+        return QGestureRecognizer::Ignore;
+    }
+}
+
+void DoubleTapGestureRecognizer::reset( QGesture* state )
+{
+    QGestureRecognizer::reset( state );
+}

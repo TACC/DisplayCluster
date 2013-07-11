@@ -63,6 +63,18 @@ private:
     qreal _acceleration;
 };
 
+class DoubleTapGesture : public QGesture
+{
+public:
+    DoubleTapGesture( QObject* parent = 0 ) : QGesture( parent ){}
+
+    QPointF position() const { return _position; }
+    void setPosition( const QPointF& pos ) { _position = pos; }
+
+private:
+    QPointF _position;
+};
+
 class PanGestureRecognizer : public QGestureRecognizer
 {
 public:
@@ -82,6 +94,29 @@ public:
 
 private:
     int _nPoints;
+    static Qt::GestureType _type;
+};
+
+class DoubleTapGestureRecognizer : public QGestureRecognizer
+{
+public:
+    DoubleTapGestureRecognizer();
+
+    virtual QGesture* create( QObject *target );
+
+    virtual QGestureRecognizer::Result recognize( QGesture* state,
+                                                  QObject* watched,
+                                                  QEvent* event );
+
+    virtual void reset( QGesture* state );
+
+    static void install();
+    static void uninstall();
+    static Qt::GestureType type();
+
+private:
+    QPointF _firstPoint;
+    QTime _firstPointTime;
     static Qt::GestureType _type;
 };
 
