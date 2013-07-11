@@ -284,19 +284,19 @@ void ContentWindowGraphicsItem::gestureEvent(QGestureEvent *event)
     {
         swipeTriggered(static_cast<QSwipeGesture *>(swipe));
     }
-    if (QGesture *pan = event->gesture(PanGestureRecognizer::type( )))
+    else if (QGesture *pan = event->gesture(PanGestureRecognizer::type( )))
     {
         panTriggered(static_cast<PanGesture *>(pan));
     }
-    if (QGesture *pinch = event->gesture(Qt::PinchGesture))
+    else if (QGesture *pinch = event->gesture(Qt::PinchGesture))
     {
         pinchTriggered(static_cast<QPinchGesture *>(pinch));
     }
-    if (QGesture *tap = event->gesture(Qt::TapGesture))
+    else if (QGesture *tap = event->gesture(Qt::TapGesture))
     {
         tapTriggered(static_cast<QTapGesture *>(tap));
     }
-    if (QGesture *tapandhold = event->gesture(Qt::TapAndHoldGesture))
+    else if (QGesture *tapandhold = event->gesture(Qt::TapAndHoldGesture))
     {
         tapandholdTriggered(static_cast<QTapAndHoldGesture *>(tapandhold));
     }
@@ -315,8 +315,8 @@ void ContentWindowGraphicsItem::panTriggered(PanGesture *gesture)
 
     if( selected_ )
     {
-        const double centerX = centerX_ + 2.*dx / zoom_;
-        const double centerY = centerY_ + 2.*dy / zoom_;
+        const double centerX = centerX_ - 2.*dx / zoom_;
+        const double centerY = centerY_ - 2.*dy / zoom_;
         setCenter(centerX, centerY);
         return;
     }
