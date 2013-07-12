@@ -58,10 +58,8 @@ else:
         display = elem.get('display')
 
         if display != None:
-            print 'rank ' + str(myRank) + ': setting DISPLAY to ' + display
             os.environ['DISPLAY'] = display
         else:
-            print 'rank ' + str(myRank) + ': setting DISPLAY to default :0'
             os.environ['DISPLAY'] = ':0'
     except:
         print 'Error processing configuration.xml. Make sure you have created a configuration.xml and put it in ' + dcPath + '/. An example is provided in the examples/ directory.'

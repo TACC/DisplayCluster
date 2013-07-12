@@ -45,7 +45,11 @@
 #define LOG_ERROR 4
 #define LOG_FATAL 5
 
-#define LOG_THRESHHOLD 1
+#ifdef NDEBUG
+#  define LOG_THRESHHOLD 3
+#else
+#  define LOG_THRESHHOLD 1
+#endif
 
 #define MAX_LOG_LENGTH 1024
 
