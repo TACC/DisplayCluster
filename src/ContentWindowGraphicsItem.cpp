@@ -68,7 +68,7 @@ ContentWindowGraphicsItem::ContentWindowGraphicsItem(boost::shared_ptr<ContentWi
     grabGesture( DoubleTapGestureRecognizer::type( ));
     //grabGesture( Qt::SwipeGesture );
     grabGesture( Qt::TapAndHoldGesture );
-    //grabGesture( Qt::TapGesture );
+    grabGesture( Qt::TapGesture );
 }
 
 QRectF ContentWindowGraphicsItem::boundingRect() const
