@@ -63,12 +63,12 @@ ContentWindowGraphicsItem::ContentWindowGraphicsItem(boost::shared_ptr<ContentWi
     // we assume that interface items will be constructed in depth order so this produces the correct result...
     setZToFront();
 
-    grabGesture(Qt::PinchGesture);
-    grabGesture(PanGestureRecognizer::type( ));
-    grabGesture(DoubleTapGestureRecognizer::type( ));
-    grabGesture(Qt::SwipeGesture);
-    grabGesture(Qt::TapAndHoldGesture);
-    grabGesture(Qt::TapGesture);
+    grabGesture( Qt::PinchGesture );
+    grabGesture( PanGestureRecognizer::type( ));
+    grabGesture( DoubleTapGestureRecognizer::type( ));
+    //grabGesture( Qt::SwipeGesture );
+    grabGesture( Qt::TapAndHoldGesture );
+    //grabGesture( Qt::TapGesture );
 }
 
 QRectF ContentWindowGraphicsItem::boundingRect() const
@@ -262,57 +262,63 @@ void ContentWindowGraphicsItem::setZToFront()
     setZValue(zCounter_);
 }
 
-bool ContentWindowGraphicsItem::sceneEvent(QEvent *event)
+bool ContentWindowGraphicsItem::sceneEvent( QEvent* event )
 {
     switch( event->type( ))
     {
     case QEvent::Gesture:
-        gestureEvent(static_cast<QGestureEvent*>(event));
+        gestureEvent( static_cast< QGestureEvent* >( event ));
         return true;
     default:
         return QGraphicsObject::sceneEvent( event );
     }
 }
 
-void ContentWindowGraphicsItem::gestureEvent(QGestureEvent *event)
+void ContentWindowGraphicsItem::gestureEvent( QGestureEvent* event )
 {
     if( !getContentWindowManager( ))
         return;
 
     moveToFront();
 
-    if( QGesture *swipe = event->gesture( Qt::SwipeGesture ))
+    if( QGesture *gesture = event->gesture( Qt::SwipeGesture ))
     {
-        swipeTriggered(static_cast<QSwipeGesture *>(swipe));
+        event->accept( Qt::SwipeGesture );
+        swipe( static_cast< QSwipeGesture* >( gesture ));
     }
-    else if (QGesture *pan = event->gesture(PanGestureRecognizer::type( )))
+    else if(QGesture* gesture = event->gesture( PanGestureRecognizer::type( )))
     {
-        panTriggered(static_cast<PanGesture *>(pan));
+        event->accept( PanGestureRecognizer::type( ));
+        pan( static_cast< PanGesture* >( gesture ));
     }
-    else if (QGesture *pinch = event->gesture(Qt::PinchGesture))
+    else if(QGesture* gesture = event->gesture( Qt::PinchGesture ))
     {
-        pinchTriggered(static_cast<QPinchGesture *>(pinch));
+        event->accept( Qt::PinchGesture );
+        pinch( static_cast< QPinchGesture* >( gesture ));
     }
-    else if (QGesture *pan = event->gesture(DoubleTapGestureRecognizer::type( )))
+    else if( QGesture* gesture = event->gesture( DoubleTapGestureRecognizer::type( )))
     {
-        doubleTapTriggered(static_cast<DoubleTapGesture *>(pan));
+        event->accept( DoubleTapGestureRecognizer::type( ));
+        doubleTap( static_cast< DoubleTapGesture* >( gesture ));
     }
-    else if (QGesture *tap = event->gesture(Qt::TapGesture))
+    else if( QGesture* gesture = event->gesture( Qt::TapGesture ))
     {
-        tapTriggered(static_cast<QTapGesture *>(tap));
+        event->accept( Qt::TapGesture );
+        tap( static_cast< QTapGesture* >( gesture ));
     }
-    else if (QGesture *tapandhold = event->gesture(Qt::TapAndHoldGesture))
+    else if( QGesture* gesture = event->gesture( Qt::TapAndHoldGesture ))
     {
-        tapandholdTriggered(static_cast<QTapAndHoldGesture *>(tapandhold));
+        event->accept( Qt::TapAndHoldGesture );
+        tapAndHold( static_cast< QTapAndHoldGesture* >( gesture ));
     }
 }
 
-void ContentWindowGraphicsItem::swipeTriggered(QSwipeGesture *gesture)
+void ContentWindowGraphicsItem::swipe( QSwipeGesture* gesture )
 {
     std::cout << "SWIPE " << gesture->state() << std::endl;
 }
 
-void ContentWindowGraphicsItem::panTriggered(PanGesture *gesture)
+void ContentWindowGraphicsItem::pan( PanGesture* gesture )
 {
     const QPointF& delta = gesture->delta();
     const double dx = delta.x() / g_configuration->getTotalWidth();
@@ -340,7 +346,7 @@ void ContentWindowGraphicsItem::panTriggered(PanGesture *gesture)
     }
 }
 
-void ContentWindowGraphicsItem::pinchTriggered(QPinchGesture *gesture)
+void ContentWindowGraphicsItem::pinch( QPinchGesture* gesture )
 {
     const qreal factor = (gesture->scaleFactor() - 1.) * 0.2f + 1.f;
     if( std::isnan( factor) || std::isinf( factor ))
@@ -364,21 +370,19 @@ void ContentWindowGraphicsItem::pinchTriggered(QPinchGesture *gesture)
     }
 }
 
-void ContentWindowGraphicsItem::tapTriggered(QTapGesture *gesture)
-{
-    if( gesture->state() == Qt::GestureFinished )
-    {
-        std::cout << "TAP" << std::endl;
-    }
-}
-
-void ContentWindowGraphicsItem::doubleTapTriggered(DoubleTapGesture *gesture)
+void ContentWindowGraphicsItem::tap( QTapGesture* gesture )
 {
     if( gesture->state() != Qt::GestureFinished )
+        return;
+}
+
+void ContentWindowGraphicsItem::doubleTap( DoubleTapGesture* gesture )
+{
+    if( gesture->state() == Qt::GestureFinished )
         adjustSize( getSizeState() == SIZE_FULLSCREEN ? SIZE_1TO1 : SIZE_FULLSCREEN );
 }
 
-void ContentWindowGraphicsItem::tapandholdTriggered(QTapAndHoldGesture *gesture)
+void ContentWindowGraphicsItem::tapAndHold( QTapAndHoldGesture* gesture )
 {
     if( gesture->state() == Qt::GestureFinished )
         setSelected( !selected_ );

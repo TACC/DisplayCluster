@@ -49,14 +49,14 @@ class DisplayGroupGraphicsView : public QGraphicsView {
 
     protected:
 
-        bool event(QEvent *event);
-        void gestureEvent(QGestureEvent *event);
-        void swipeTriggered(QSwipeGesture *gesture);
-        void panTriggered(QPanGesture *gesture);
-        void pinchTriggered(QPinchGesture *gesture);
-        void tapTriggered(QTapGesture *gesture);
-        void tapandholdTriggered(QTapAndHoldGesture *gesture);
-        void resizeEvent(QResizeEvent * event);
+        bool viewportEvent( QEvent* event );
+        void gestureEvent( QGestureEvent* event );
+        void swipe( QSwipeGesture* gesture );
+        void pan( QPanGesture* gesture );
+        void pinch( QPinchGesture* gesture );
+        void tap( QTapGesture* gesture );
+        void tapAndHold( QTapAndHoldGesture* gesture );
+        void resizeEvent( QResizeEvent* event );
 };
 
 #endif

@@ -82,13 +82,13 @@ class ContentWindowGraphicsItem : public QGraphicsObject, public ContentWindowIn
 
     private:
 
-        void gestureEvent(QGestureEvent *event);
-        void swipeTriggered(QSwipeGesture *gesture);
-        void panTriggered(PanGesture *gesture);
-        void pinchTriggered(QPinchGesture *gesture);
-        void doubleTapTriggered(DoubleTapGesture* gesture);
-        void tapTriggered(QTapGesture *gesture);
-        void tapandholdTriggered(QTapAndHoldGesture *gesture);
+        void gestureEvent( QGestureEvent *event );
+        void swipe( QSwipeGesture *gesture );
+        void pan( PanGesture* gesture) ;
+        void pinch( QPinchGesture* gesture );
+        void doubleTap( DoubleTapGesture* gesture );
+        void tap( QTapGesture* gesture );
+        void tapAndHold( QTapAndHoldGesture* gesture );
 
         // resizing state
         bool resizing_;

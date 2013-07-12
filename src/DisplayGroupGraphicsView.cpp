@@ -53,83 +53,76 @@ DisplayGroupGraphicsView::DisplayGroupGraphicsView()
     setDragMode(QGraphicsView::RubberBandDrag);
     setAcceptDrops(true);
 
-//    grabGesture(Qt::TapGesture);
-//    grabGesture(Qt::TapAndHoldGesture);
-//    grabGesture(Qt::PanGesture);
-//    grabGesture(Qt::PinchGesture);
-//    grabGesture(Qt::SwipeGesture);
+    //viewport()->grabGesture(Qt::TapGesture);
+    //viewport()->grabGesture(Qt::TapAndHoldGesture);
+    //viewport()->grabGesture(Qt::PanGesture);
+    //viewport()->grabGesture(Qt::PinchGesture);
+    //viewport()->grabGesture(Qt::SwipeGesture);
 }
 
-bool DisplayGroupGraphicsView::event(QEvent *event)
+bool DisplayGroupGraphicsView::viewportEvent( QEvent* event )
 {
-    if (event->type() == QEvent::Gesture)
+    if( event->type() == QEvent::Gesture )
     {
-        QGestureEvent *gesture = static_cast<QGestureEvent *>(event);
-        //gesture->setWidget(viewport());
-        //gestureEvent(static_cast<QGestureEvent*>(event));
-        return QGraphicsView::event(gesture);
+        QGestureEvent* gesture = static_cast< QGestureEvent* >( event );
+        gestureEvent( gesture );
+        return QGraphicsView::viewportEvent( gesture );
     }
-    return QGraphicsView::event(event);
+    return QGraphicsView::viewportEvent(event);
 }
 
-void DisplayGroupGraphicsView::gestureEvent(QGestureEvent *event)
+void DisplayGroupGraphicsView::gestureEvent( QGestureEvent* event )
 {
-    if( QGesture *swipe = event->gesture( Qt::SwipeGesture ))
+    if( QGesture* gesture = event->gesture( Qt::SwipeGesture ))
     {
-        event->accept(Qt::SwipeGesture);
-        swipeTriggered(static_cast<QSwipeGesture *>(swipe));
+        event->accept( Qt::SwipeGesture );
+        swipe( static_cast< QSwipeGesture* >( gesture ));
     }
-    else if (QGesture *pan = event->gesture(Qt::PanGesture))
+    else if( QGesture* gesture = event->gesture( Qt::PanGesture ))
     {
-        event->accept(Qt::PanGesture);
-        panTriggered(static_cast<QPanGesture *>(pan));
+        event->accept( Qt::PanGesture );
+        pan( static_cast< QPanGesture* >( gesture ));
     }
-    else if (QGesture *pinch = event->gesture(Qt::PinchGesture))
+    else if( QGesture* gesture = event->gesture( Qt::PinchGesture ))
     {
-        event->accept(Qt::PinchGesture);
-        pinchTriggered(static_cast<QPinchGesture *>(pinch));
+        event->accept( Qt::PinchGesture );
+        pinch( static_cast< QPinchGesture* >( gesture ));
     }
-    else if (QGesture *tap = event->gesture(Qt::TapGesture))
+    else if( QGesture* gesture = event->gesture( Qt::TapGesture ))
     {
-        event->accept(Qt::TapGesture);
-        tapTriggered(static_cast<QTapGesture *>(tap));
+        event->accept( Qt::TapGesture );
+        tap( static_cast< QTapGesture* >( gesture ));
     }
-    else if (QGesture *tapandhold = event->gesture(Qt::TapAndHoldGesture))
+    else if( QGesture* gesture = event->gesture( Qt::TapAndHoldGesture ))
     {
-        event->accept(Qt::TapAndHoldGesture);
-        tapandholdTriggered(static_cast<QTapAndHoldGesture *>(tapandhold));
+        event->accept( Qt::TapAndHoldGesture );
+        tapAndHold( static_cast< QTapAndHoldGesture* >( gesture ));
     }
 }
 
-void DisplayGroupGraphicsView::swipeTriggered(QSwipeGesture *gesture)
+void DisplayGroupGraphicsView::swipe( QSwipeGesture* gesture )
 {
     std::cout << "SWIPE VIEW" << std::endl;
 }
 
-void DisplayGroupGraphicsView::panTriggered(QPanGesture *gesture)
+void DisplayGroupGraphicsView::pan( QPanGesture* gesture )
 {
-    std::cout << "PAN VIEW" << std::endl;
 }
 
-void DisplayGroupGraphicsView::pinchTriggered(QPinchGesture *gesture)
+void DisplayGroupGraphicsView::pinch( QPinchGesture* gesture )
 {
-    std::cout << "PINCH VIEW" << std::endl;
 }
 
-void DisplayGroupGraphicsView::tapTriggered(QTapGesture *gesture)
+void DisplayGroupGraphicsView::tap( QTapGesture* gesture )
 {
-    if( gesture->state() == Qt::GestureFinished )
-    {
-        std::cout << "TAP VIEW" << std::endl;
-    }
+    if( gesture->state() != Qt::GestureFinished )
+        return;
 }
 
-void DisplayGroupGraphicsView::tapandholdTriggered(QTapAndHoldGesture *gesture)
+void DisplayGroupGraphicsView::tapAndHold( QTapAndHoldGesture* gesture )
 {
-    if( gesture->state() == Qt::GestureFinished )
-    {
-        std::cout << "TAPANDHOLD VIEW" << std::endl;
-    }
+    if( gesture->state() != Qt::GestureFinished )
+        return;
 }
 
 void DisplayGroupGraphicsView::resizeEvent(QResizeEvent * event)
