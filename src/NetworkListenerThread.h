@@ -43,19 +43,31 @@
 #include "NetworkProtocol.h"
 
 #include "DisplayGroupManager.h"
-#include <QThread>
+#include "InteractionState.h"
+#include <QtCore>
 #include <QtNetwork/QTcpSocket>
 
-class NetworkListenerThread : public QThread {
+class NetworkListenerThread : public QObject {
     Q_OBJECT
 
     public:
 
         NetworkListenerThread(int socketDescriptor);
+        ~NetworkListenerThread();
 
-        void run();
+    public slots:
+
+        void initialize();
+
+        void process();
+
+        void socketReceiveMessage();
+
+        void setInteractionState(InteractionState interactionState);
 
     signals:
+
+        void finished();
 
         void updatedPixelStreamSource();
         void updatedSVGStreamSource();
@@ -63,8 +75,22 @@ class NetworkListenerThread : public QThread {
     private:
 
         int socketDescriptor_;
+        QTcpSocket * tcpSocket_;
+
+        boost::shared_ptr<DisplayGroupInterface> displayGroupInterface_;
+
+        std::string interactionName_;
+        bool interactionBound_;
+
+        // interaction state information
+        // right now we only keep track of the latest state, but we could queue these up later if needed...
+        bool updatedInteractionState_;
+        InteractionState interactionState_;
 
         void handleMessage(MessageHeader messageHeader, QByteArray byteArray);
+
+        bool bindInteraction();
+        void sendInteractionState();
 };
 
 #endif

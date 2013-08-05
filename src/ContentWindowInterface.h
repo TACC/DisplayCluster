@@ -42,6 +42,7 @@
 #define HIGHLIGHT_TIMEOUT_MILLISECONDS 1500
 #define HIGHLIGHT_BLINK_INTERVAL 250 // milliseconds
 
+#include "InteractionState.h"
 #include <QtGui>
 #ifndef Q_MOC_RUN
 // https://bugreports.qt.nokia.com/browse/QTBUG-22829: When Qt moc runs on CGAL
@@ -66,10 +67,32 @@ enum SizeState
     SIZE_CUSTOM
 };
 
+// allow serialization of InteractionState
+namespace boost {
+    namespace serialization {
+
+        template<class Archive>
+        void serialize(Archive & ar, InteractionState & is, const unsigned int version)
+        {
+            ar & is.mouseX;
+            ar & is.mouseY;
+            ar & is.mouseLeft;
+            ar & is.mouseRight;
+            ar & is.mouseMiddle;
+        }
+    }
+}
+
 class ContentWindowInterface : public QObject {
     Q_OBJECT
 
     public:
+
+        enum WindowState {
+            UNSELECTED,   // the window is not selected and interaction changes its position/size
+            SELECTED,     // the window is selected and interaction modifies its zoom/pan
+            INTERACTION   // interaction within the window may be forwarded to the content source
+        };
 
         ContentWindowInterface() { }
         ContentWindowInterface(boost::shared_ptr<ContentWindowManager> contentWindowManager);
@@ -82,18 +105,22 @@ class ContentWindowInterface : public QObject {
         void getSize(double &w, double &h);
         void getCenter(double &centerX, double &centerY);
         double getZoom();
-        bool getSelected();
         bool getHighlighted();
         SizeState getSizeState() const;
 
         void setControlState( const ControlState state ) { controlState_ = state; }
         ControlState getControlState() const { return controlState_; }
 
+        ContentWindowInterface::WindowState getWindowState();
+        InteractionState getInteractionState();
+
         // button dimensions
         void getButtonDimensions(float &width, float &height);
 
         // aspect ratio correction
         void fixAspectRatio(ContentWindowInterface * source=NULL);
+
+        bool selected() const { return windowState_ == SELECTED; }
 
     public slots:
 
@@ -108,8 +135,9 @@ class ContentWindowInterface : public QObject {
         virtual void scaleSize(double factor, ContentWindowInterface * source=NULL);
         virtual void setCenter(double centerX, double centerY, ContentWindowInterface * source=NULL);
         virtual void setZoom(double zoom, ContentWindowInterface * source=NULL);
-        virtual void setSelected(bool selected, ContentWindowInterface * source=NULL);
         virtual void highlight(ContentWindowInterface * source=NULL);
+        virtual void setWindowState(ContentWindowInterface::WindowState windowState, ContentWindowInterface * source=NULL);
+        virtual void setInteractionState(InteractionState interactionState, ContentWindowInterface * source=NULL);
         virtual void moveToFront(ContentWindowInterface * source=NULL);
         virtual void close(ContentWindowInterface * source=NULL);
 
@@ -123,8 +151,9 @@ class ContentWindowInterface : public QObject {
         void sizeChanged(double w, double h, ContentWindowInterface * source);
         void centerChanged(double centerX, double centerY, ContentWindowInterface * source);
         void zoomChanged(double zoom, ContentWindowInterface * source);
-        void selectedChanged(bool selected, ContentWindowInterface * source);
         void highlighted(ContentWindowInterface * source);
+        void windowStateChanged(ContentWindowInterface::WindowState windowState, ContentWindowInterface * source);
+        void interactionStateChanged(InteractionState interactionState, ContentWindowInterface * source);
         void movedToFront(ContentWindowInterface * source);
         void closed(ContentWindowInterface * source);
 
@@ -150,7 +179,10 @@ class ContentWindowInterface : public QObject {
         double zoom_;
 
         // window state
-        bool selected_;
+        ContentWindowInterface::WindowState windowState_;
+
+        // interaction state
+        InteractionState interactionState_;
 
         SizeState sizeState_;
 

@@ -63,7 +63,8 @@ class ContentWindowGraphicsItem : public QGraphicsObject, public ContentWindowIn
         virtual void setSize(double w, double h, ContentWindowInterface * source=NULL);
         virtual void setCenter(double centerX, double centerY, ContentWindowInterface * source=NULL);
         virtual void setZoom(double zoom, ContentWindowInterface * source=NULL);
-        virtual void setSelected(bool selected, ContentWindowInterface * source=NULL);
+        virtual void setWindowState(ContentWindowInterface::WindowState windowState, ContentWindowInterface * source=NULL);
+        virtual void setInteractionState(InteractionState interactionState, ContentWindowInterface * source=NULL);
 
         // increment the Z value of this item
         void setZToFront();

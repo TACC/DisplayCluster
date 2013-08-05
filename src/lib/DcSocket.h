@@ -36,23 +36,65 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MESSAGE_HEADER_H
-#define MESSAGE_HEADER_H
+#ifndef DC_SOCKET_H
+#define DC_SOCKET_H
 
-#ifdef _WIN32
-    typedef __int32 int32_t;
-#else
-    #include <stdint.h>
-#endif
+#include "../MessageHeader.h"
+#include "../InteractionState.h"
+#include <QtCore>
+#include <queue>
 
-enum MESSAGE_TYPE { MESSAGE_TYPE_CONTENTS, MESSAGE_TYPE_CONTENTS_DIMENSIONS, MESSAGE_TYPE_PIXELSTREAM, MESSAGE_TYPE_PIXELSTREAM_DIMENSIONS_CHANGED, MESSAGE_TYPE_PARALLEL_PIXELSTREAM, MESSAGE_TYPE_SVG_STREAM, MESSAGE_TYPE_BIND_INTERACTION, MESSAGE_TYPE_INTERACTION, MESSAGE_TYPE_FRAME_CLOCK, MESSAGE_TYPE_QUIT, MESSAGE_TYPE_ACK };
+class QTcpSocket;
 
-#define MESSAGE_HEADER_URI_LENGTH 64
+// we can't use the signal / slot model for handling threads without a Qt event
+// loop. so, we make our own thread class and override run()...
 
-struct MessageHeader {
-    int32_t size;
-    MESSAGE_TYPE type;
-    char uri[MESSAGE_HEADER_URI_LENGTH]; // optional URI related to message. needs to be a fixed size so sizeof(MessageHeader) is constant
+class DcSocket : public QThread {
+
+    public:
+
+        DcSocket(const char * hostname);
+        ~DcSocket();
+
+        bool isConnected();
+
+        // queue a message to be sent (non-blocking)
+        bool queueMessage(QByteArray message);
+
+        // wait for count acks to be received
+        void waitForAck(int count=1);
+
+        InteractionState getInteractionState();
+
+    protected:
+
+        QTcpSocket * socket_;
+
+        // mutex and queue for messages to send
+        QMutex sendMessagesQueueMutex_;
+        std::queue<QByteArray> sendMessagesQueue_;
+
+        // semaphore for ack count
+        QSemaphore ackSemaphore_;
+
+        // mutex and flag to trigger socket thread to disconnect
+        QMutex disconnectFlagMutex_;
+        bool disconnectFlag_;
+
+        // current interaction state
+        QMutex interactionStateMutex_;
+        InteractionState interactionState_;
+
+        // socket connections
+        bool connect(const char * hostname);
+        void disconnect();
+
+        // thread execution
+        void run();
+
+        // these are only called in the thread execution
+        bool socketSendMessage(QByteArray message);
+        bool socketReceiveMessage(MessageHeader & messageHeader, QByteArray & message);
 };
 
 #endif

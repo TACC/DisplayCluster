@@ -237,6 +237,16 @@ void DisplayGroupManager::calibrateTimestampOffset()
     }
 }
 
+boost::shared_ptr<DisplayGroupInterface> DisplayGroupManager::getDisplayGroupInterface(QThread * thread)
+{
+    boost::shared_ptr<DisplayGroupInterface> dgi(new DisplayGroupInterface(shared_from_this()));
+
+    // push it to the other thread
+    dgi.get()->moveToThread(thread);
+
+    return dgi;
+}
+
 bool DisplayGroupManager::saveStateXMLFile(std::string filename)
 {
     // get contents vector
@@ -266,8 +276,6 @@ bool DisplayGroupManager::saveStateXMLFile(std::string filename)
         contentWindowManagers[i]->getCenter(centerX, centerY);
 
         double zoom = contentWindowManagers[i]->getZoom();
-
-        bool selected = contentWindowManagers[i]->getSelected();
 
         // add the XML node with these values
         QDomElement cwmNode = doc.createElement("ContentWindow");
@@ -303,10 +311,6 @@ bool DisplayGroupManager::saveStateXMLFile(std::string filename)
 
         n = doc.createElement("zoom");
         n.appendChild(doc.createTextNode(QString::number(zoom)));
-        cwmNode.appendChild(n);
-
-        n = doc.createElement("selected");
-        n.appendChild(doc.createTextNode(QString::number(selected)));
         cwmNode.appendChild(n);
     }
 
@@ -388,8 +392,6 @@ bool DisplayGroupManager::loadStateXMLFile(std::string filename)
         double x, y, w, h, centerX, centerY, zoom;
         x = y = w = h = centerX = centerY = zoom = -1.;
 
-        bool selected = false;
-
         sprintf(string, "string(//state/ContentWindow[%i]/x)", i);
         query.setQuery(string);
 
@@ -446,14 +448,6 @@ bool DisplayGroupManager::loadStateXMLFile(std::string filename)
             zoom = qstring.toDouble();
         }
 
-        sprintf(string, "string(//state/ContentWindow[%i]/selected)", i);
-        query.setQuery(string);
-
-        if(query.evaluateTo(&qstring) == true)
-        {
-            selected = (bool)qstring.toInt();
-        }
-
         boost::shared_ptr<Content> c = Content::getContent(uri);
 
         if(c != NULL)
@@ -483,8 +477,6 @@ bool DisplayGroupManager::loadStateXMLFile(std::string filename)
             {
                 cwm->setCenter(centerX, centerY);
             }
-
-            cwm->setSelected(selected);
         }
     }
 

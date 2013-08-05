@@ -246,6 +246,7 @@ if(BUILD_DISPLAYCLUSTER_LIBRARY)
 
     set(DISPLAYCLUSTER_LIBRARY_SRCS
         src/log.cpp
+        src/lib/DcSocket.cpp
         src/lib/dcStream.cpp
     )
 

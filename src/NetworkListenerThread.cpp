@@ -42,84 +42,170 @@
 #include "PixelStreamSource.h"
 #include "ParallelPixelStream.h"
 #include "SVGStreamSource.h"
+#include "ContentWindowManager.h"
 #include <stdint.h>
 
 NetworkListenerThread::NetworkListenerThread(int socketDescriptor)
 {
+    // defaults
+    tcpSocket_ = NULL;
+    interactionBound_ = false;
+    updatedInteractionState_ = false;
+
     // assign values
     socketDescriptor_ = socketDescriptor;
-
-    // required for using MessageHeader with queued connections
-    qRegisterMetaType<MessageHeader>("MessageHeader");
-
-    // connect signals
-    connect(this, SIGNAL(updatedPixelStreamSource()), g_displayGroupManager.get(), SLOT(sendPixelStreams()), Qt::BlockingQueuedConnection);
-
-    connect(this, SIGNAL(updatedSVGStreamSource()), g_displayGroupManager.get(), SLOT(sendSVGStreams()), Qt::BlockingQueuedConnection);
 }
 
-void NetworkListenerThread::run()
+NetworkListenerThread::~NetworkListenerThread()
 {
-    QTcpSocket tcpSocket;
+    put_flog(LOG_DEBUG, "");
 
-    if(tcpSocket.setSocketDescriptor(socketDescriptor_) != true)
+    if(tcpSocket_ != NULL)
     {
-        put_flog(LOG_ERROR, "could not set socket descriptor: %s", tcpSocket.errorString().toStdString().c_str());
+        delete tcpSocket_;
+    }
+}
+
+void NetworkListenerThread::initialize()
+{
+    tcpSocket_ = new QTcpSocket();
+
+    if(tcpSocket_->setSocketDescriptor(socketDescriptor_) != true)
+    {
+        put_flog(LOG_ERROR, "could not set socket descriptor: %s", tcpSocket_->errorString().toStdString().c_str());
+        emit(finished());
         return;
     }
 
+    // make connections
+    connect(tcpSocket_, SIGNAL(disconnected()), this, SIGNAL(finished()));
+    connect(this, SIGNAL(updatedPixelStreamSource()), g_displayGroupManager.get(), SLOT(sendPixelStreams()), Qt::BlockingQueuedConnection);
+    connect(this, SIGNAL(updatedSVGStreamSource()), g_displayGroupManager.get(), SLOT(sendSVGStreams()), Qt::BlockingQueuedConnection);
+
+    // get a local DisplayGroupInterface to help manage interaction
+    bool success = QMetaObject::invokeMethod(g_displayGroupManager.get(), "getDisplayGroupInterface", Qt::BlockingQueuedConnection, Q_RETURN_ARG(boost::shared_ptr<DisplayGroupInterface>, displayGroupInterface_), Q_ARG(QThread *, QThread::currentThread()));
+
+    if(success != true)
+    {
+        put_flog(LOG_ERROR, "error getting DisplayGroupInterface");
+        emit(finished());
+        return;
+    }
+
+    // todo: we need to consider the performance of the low delay option
+    // tcpSocket_->setSocketOption(QAbstractSocket::LowDelayOption, 1);
+
     // handshake
     int32_t protocolVersion = NETWORK_PROTOCOL_VERSION;
-    tcpSocket.write((char *)&protocolVersion, sizeof(int32_t));
+    tcpSocket_->write((char *)&protocolVersion, sizeof(int32_t));
 
-    // read the pixel stream updates
-    while(tcpSocket.waitForReadyRead() == true || tcpSocket.state() == QAbstractSocket::ConnectedState)
+    tcpSocket_->flush();
+
+    while(tcpSocket_->bytesToWrite() > 0)
     {
-        // first, read the message header
-        QByteArray byteArray = tcpSocket.read(sizeof(MessageHeader));
+        tcpSocket_->waitForBytesWritten();
+    }
 
-        while(byteArray.size() < (int)sizeof(MessageHeader))
+    // start a timer-based event loop...
+    QTimer * timer = new QTimer(this);
+    connect(timer, SIGNAL(timeout()), this, SLOT(process()));
+    timer->start(1);
+}
+
+void NetworkListenerThread::process()
+{
+    // receive a message if available
+    tcpSocket_->waitForReadyRead(1);
+
+    if(tcpSocket_->bytesAvailable() >= (int)sizeof(MessageHeader))
+    {
+        socketReceiveMessage();
+
+        // if we tried and failed to bind interaction events, try again... maybe the window was created after this new message
+        if(interactionName_.empty() != true && interactionBound_ == false)
         {
-            tcpSocket.waitForReadyRead();
+            put_flog(LOG_DEBUG, "attempting to bind interaction events again...");
 
-            byteArray.append(tcpSocket.read(sizeof(MessageHeader) - byteArray.size()));
-        }
-
-        // got the header
-        MessageHeader * mh = (MessageHeader *)byteArray.data();
-
-        // next, read the actual message
-        QByteArray messageByteArray;
-
-        if(mh->size > 0)
-        {
-            messageByteArray = tcpSocket.read(mh->size);
-
-            while(messageByteArray.size() < mh->size)
-            {
-                tcpSocket.waitForReadyRead();
-
-                messageByteArray.append(tcpSocket.read(mh->size - messageByteArray.size()));
-            }
-        }
-
-        // got the message
-        handleMessage(*mh, messageByteArray);
-
-        // send acknowledgment
-        const char ack[] = "ack";
-
-        int sent = tcpSocket.write(ack, 3);
-
-        while(sent < 3)
-        {
-            sent += tcpSocket.write(ack + sent, 3 - sent);
+            interactionBound_ = bindInteraction();
         }
     }
 
-    tcpSocket.disconnectFromHost();
+    // send messages if needed
+    if(updatedInteractionState_ == true)
+    {
+        sendInteractionState();
 
-    put_flog(LOG_DEBUG, "disconnected");
+        updatedInteractionState_ = false;
+    }
+
+    // flush the socket
+    tcpSocket_->flush();
+}
+
+void NetworkListenerThread::socketReceiveMessage()
+{
+    if(tcpSocket_->state() != QAbstractSocket::ConnectedState)
+    {
+        emit(finished());
+        return;
+    }
+
+    // first, read the message header
+    QByteArray byteArray = tcpSocket_->read(sizeof(MessageHeader));
+
+    while(byteArray.size() < (int)sizeof(MessageHeader))
+    {
+        tcpSocket_->waitForReadyRead();
+
+        byteArray.append(tcpSocket_->read(sizeof(MessageHeader) - byteArray.size()));
+    }
+
+    // got the header
+    MessageHeader * mh = (MessageHeader *)byteArray.data();
+
+    // next, read the actual message
+    QByteArray messageByteArray;
+
+    if(mh->size > 0)
+    {
+        messageByteArray = tcpSocket_->read(mh->size);
+
+        while(messageByteArray.size() < mh->size)
+        {
+            tcpSocket_->waitForReadyRead();
+
+            messageByteArray.append(tcpSocket_->read(mh->size - messageByteArray.size()));
+        }
+    }
+
+    // send acknowledgment
+    MessageHeader mhAck;
+    mhAck.size = 0;
+    mhAck.type = MESSAGE_TYPE_ACK;
+
+    int sent = tcpSocket_->write((const char *)&mhAck, sizeof(MessageHeader));
+
+    while(sent < (int)sizeof(MessageHeader))
+    {
+        sent += tcpSocket_->write((const char *)&mhAck + sent, sizeof(MessageHeader) - sent);
+    }
+
+    // we want the ack to be sent immediately
+    tcpSocket_->flush();
+
+    while(tcpSocket_->bytesToWrite() > 0)
+    {
+        tcpSocket_->waitForBytesWritten();
+    }
+
+    // got the message
+    handleMessage(*mh, messageByteArray);
+}
+
+void NetworkListenerThread::setInteractionState(InteractionState interactionState)
+{
+    updatedInteractionState_ = true;
+    interactionState_ = interactionState;
 }
 
 void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArray byteArray)
@@ -187,5 +273,71 @@ void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArra
         g_SVGStreamSourceFactory.getObject(uri)->setImageData(byteArray);
 
         emit(updatedSVGStreamSource());
+    }
+    else if(messageHeader.type == MESSAGE_TYPE_BIND_INTERACTION)
+    {
+        std::string uri(messageHeader.uri);
+
+        put_flog(LOG_INFO, "binding to %s", uri.c_str());
+
+        interactionName_ = uri;
+
+        interactionBound_ = bindInteraction();
+    }
+}
+
+bool NetworkListenerThread::bindInteraction()
+{
+    // try to bind to the ContentWindowManager corresponding to interactionName
+    boost::shared_ptr<ContentWindowManager> cwm = displayGroupInterface_->getContentWindowManager(interactionName_);
+
+    if(cwm != NULL)
+    {
+        put_flog(LOG_DEBUG, "found window");
+
+        // todo: disconnect any existing signal connections to the setInteractionState() slot
+        // in case we're binding to another window in the same connection / socket
+
+        // make connection to get interaction updates
+        connect(cwm.get(), SIGNAL(interactionStateChanged(InteractionState, ContentWindowInterface *)), this, SLOT(setInteractionState(InteractionState)), Qt::QueuedConnection);
+
+        return true;
+    }
+    else
+    {
+        put_flog(LOG_WARN, "could not find window");
+
+        return false;
+    }
+}
+
+void NetworkListenerThread::sendInteractionState()
+{
+    // send message header
+    MessageHeader mh;
+    mh.size = sizeof(InteractionState);
+    mh.type = MESSAGE_TYPE_INTERACTION;
+
+    int sent = tcpSocket_->write((const char *)&mh, sizeof(MessageHeader));
+
+    while(sent < (int)sizeof(MessageHeader))
+    {
+        sent += tcpSocket_->write((const char *)&mh + sent, sizeof(MessageHeader) - sent);
+    }
+
+    // send interaction state
+    sent = tcpSocket_->write((const char *)&interactionState_, sizeof(InteractionState));
+
+    while(sent < (int)sizeof(InteractionState))
+    {
+        sent += tcpSocket_->write((const char *)&interactionState_ + sent, sizeof(InteractionState) - sent);
+    }
+
+    // we want the message to be sent immediately
+    tcpSocket_->flush();
+
+    while(tcpSocket_->bytesToWrite() > 0)
+    {
+        tcpSocket_->waitForBytesWritten();
     }
 }

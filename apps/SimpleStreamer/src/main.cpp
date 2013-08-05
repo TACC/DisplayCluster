@@ -15,6 +15,7 @@
 std::string dcStreamName = "SimpleStreamer";
 bool dcParallelStreaming = false;
 int dcSegmentSize = 512;
+bool dcInteraction = false;
 char * dcHostname = NULL;
 DcSocket * dcSocket = NULL;
 
@@ -47,6 +48,9 @@ int main(int argc, char **argv)
                         dcSegmentSize = atoi(argv[i+1]);
                         i++;
                     }
+                    break;
+                case 'i':
+                    dcInteraction = true;
                     break;
                 default:
                     syntax(argv[0]);
@@ -93,6 +97,17 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    if(dcInteraction == true)
+    {
+        bool success = dcStreamBindInteraction(dcSocket, dcStreamName);
+
+        if(success != true)
+        {
+            std::cerr << "could not bind interaction events" << std::endl;
+            return 1;
+        }
+    }
+
     // enter the main loop
     glutMainLoop();
 
@@ -107,14 +122,19 @@ void syntax(char * app)
     std::cerr << " -n <stream name>     set stream name (default SimpleStreamer)" << std::endl;
     std::cerr << " -p                   enable parallel streaming (default disabled)" << std::endl;
     std::cerr << " -s <segment size>    set parallel streaming segment size (default 512)" << std::endl;
+    std::cerr << " -i                   enable interaction events (default disabled)" << std::endl;
 
     exit(1);
 }
 
 void display()
 {
-    // angle of camera rotation
-    static float angle = 0;
+    // angles of camera rotation
+    static float angleX = 0.;
+    static float angleY = 0.;
+
+    // zoom factor
+    static float zoom = 1.;
 
     // clear color / depth buffers and setup view
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -128,7 +148,10 @@ void display()
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    glRotatef(angle, 0.0, 1.0, 1.0);
+    glRotatef(angleX, 0.0, 1.0, 0.0);
+    glRotatef(angleY, -1.0, 0.0, 0.0);
+
+    glScalef(zoom, zoom, zoom);
 
     // render the teapot
     glutSolidTeapot(1.);
@@ -175,8 +198,36 @@ void display()
 
     glutSwapBuffers();
 
-    // increment rotation angle
-    angle += 1.;
+    // increment rotation angle according to interaction, or by a constant rate if interaction is not enabled
+    // note that mouse position is in normalized window coordinates: (0,0) to (1,1)
+    if(dcInteraction == true)
+    {
+        static float mouseX = 0.;
+        static float mouseY = 0.;
+
+        InteractionState interactionState = dcStreamGetInteractionState(dcSocket);
+
+        float newMouseX = interactionState.mouseX;
+        float newMouseY = interactionState.mouseY;
+
+        if(interactionState.mouseLeft == true)
+        {
+            angleX += (newMouseX - mouseX) * 360.;
+            angleY += (newMouseY - mouseY) * 360.;
+        }
+        else if(interactionState.mouseRight == true)
+        {
+            zoom += (newMouseY - mouseY);
+        }
+
+        mouseX = newMouseX;
+        mouseY = newMouseY;
+    }
+    else
+    {
+        angleX += 1.;
+        angleY += 1.;
+    }
 }
 
 void reshape(int width, int height)

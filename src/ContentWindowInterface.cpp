@@ -56,10 +56,17 @@ ContentWindowInterface::ContentWindowInterface(boost::shared_ptr<ContentWindowMa
         centerX_ = contentWindowManager->centerX_;
         centerY_ = contentWindowManager->centerY_;
         zoom_ = contentWindowManager->zoom_;
-        selected_ = contentWindowManager->selected_;
         sizeState_ = contentWindowManager->sizeState_;
         controlState_ = contentWindowManager->controlState_;
+        windowState_ = contentWindowManager->windowState_;
+        interactionState_ = contentWindowManager->interactionState_;
     }
+
+    // register WindowState in Qt
+    qRegisterMetaType<ContentWindowInterface::WindowState>("ContentWindowInterface::WindowState");
+
+    // register Interactionstate in Qt
+    qRegisterMetaType<InteractionState>("InteractionState");
 
     // connect signals from this to slots on the ContentWindowManager
     // use queued connections for thread-safety
@@ -69,7 +76,8 @@ ContentWindowInterface::ContentWindowInterface(boost::shared_ptr<ContentWindowMa
     connect(this, SIGNAL(sizeChanged(double, double, ContentWindowInterface *)), contentWindowManager.get(), SLOT(setSize(double, double, ContentWindowInterface *)), Qt::QueuedConnection);
     connect(this, SIGNAL(centerChanged(double, double, ContentWindowInterface *)), contentWindowManager.get(), SLOT(setCenter(double, double, ContentWindowInterface *)), Qt::QueuedConnection);
     connect(this, SIGNAL(zoomChanged(double, ContentWindowInterface *)), contentWindowManager.get(), SLOT(setZoom(double, ContentWindowInterface *)), Qt::QueuedConnection);
-    connect(this, SIGNAL(selectedChanged(bool, ContentWindowInterface *)), contentWindowManager.get(), SLOT(setSelected(bool, ContentWindowInterface *)), Qt::QueuedConnection);
+    connect(this, SIGNAL(windowStateChanged(ContentWindowInterface::WindowState, ContentWindowInterface *)), contentWindowManager.get(), SLOT(setWindowState(ContentWindowInterface::WindowState, ContentWindowInterface *)), Qt::QueuedConnection);
+    connect(this, SIGNAL(interactionStateChanged(InteractionState, ContentWindowInterface *)), contentWindowManager.get(), SLOT(setInteractionState(InteractionState, ContentWindowInterface *)), Qt::QueuedConnection);
     connect(this, SIGNAL(highlighted(ContentWindowInterface *)), contentWindowManager.get(), SLOT(highlight(ContentWindowInterface *)), Qt::QueuedConnection);
     connect(this, SIGNAL(movedToFront(ContentWindowInterface *)), contentWindowManager.get(), SLOT(moveToFront(ContentWindowInterface *)), Qt::QueuedConnection);
     connect(this, SIGNAL(closed(ContentWindowInterface *)), contentWindowManager.get(), SLOT(close(ContentWindowInterface *)), Qt::QueuedConnection);
@@ -82,7 +90,8 @@ ContentWindowInterface::ContentWindowInterface(boost::shared_ptr<ContentWindowMa
     connect(contentWindowManager.get(), SIGNAL(sizeChanged(double, double, ContentWindowInterface *)), this, SLOT(setSize(double, double, ContentWindowInterface *)), Qt::QueuedConnection);
     connect(contentWindowManager.get(), SIGNAL(centerChanged(double, double, ContentWindowInterface *)), this, SLOT(setCenter(double, double, ContentWindowInterface *)), Qt::QueuedConnection);
     connect(contentWindowManager.get(), SIGNAL(zoomChanged(double, ContentWindowInterface *)), this, SLOT(setZoom(double, ContentWindowInterface *)), Qt::QueuedConnection);
-    connect(contentWindowManager.get(), SIGNAL(selectedChanged(bool, ContentWindowInterface *)), this, SLOT(setSelected(bool, ContentWindowInterface *)), Qt::QueuedConnection);
+    connect(contentWindowManager.get(), SIGNAL(windowStateChanged(ContentWindowInterface::WindowState, ContentWindowInterface *)), this, SLOT(setWindowState(ContentWindowInterface::WindowState, ContentWindowInterface *)), Qt::QueuedConnection);
+    connect(contentWindowManager.get(), SIGNAL(interactionStateChanged(InteractionState, ContentWindowInterface *)), this, SLOT(setInteractionState(InteractionState, ContentWindowInterface *)), Qt::QueuedConnection);
     connect(contentWindowManager.get(), SIGNAL(highlighted(ContentWindowInterface *)), this, SLOT(highlight(ContentWindowInterface *)), Qt::QueuedConnection);
     connect(contentWindowManager.get(), SIGNAL(movedToFront(ContentWindowInterface *)), this, SLOT(moveToFront(ContentWindowInterface *)), Qt::QueuedConnection);
     connect(contentWindowManager.get(), SIGNAL(closed(ContentWindowInterface *)), this, SLOT(close(ContentWindowInterface *)), Qt::QueuedConnection);
@@ -133,9 +142,14 @@ double ContentWindowInterface::getZoom()
     return zoom_;
 }
 
-bool ContentWindowInterface::getSelected()
+ContentWindowInterface::WindowState ContentWindowInterface::getWindowState()
 {
-    return selected_;
+    return windowState_;
+}
+
+InteractionState ContentWindowInterface::getInteractionState()
+{
+    return interactionState_;
 }
 
 bool ContentWindowInterface::getHighlighted()
@@ -498,14 +512,14 @@ void ContentWindowInterface::setZoom(double zoom, ContentWindowInterface * sourc
     }
 }
 
-void ContentWindowInterface::setSelected(bool selected, ContentWindowInterface * source)
+void ContentWindowInterface::setWindowState(ContentWindowInterface::WindowState windowState, ContentWindowInterface * source)
 {
     if(source == this)
     {
         return;
     }
 
-    selected_ = selected;
+    windowState_ = windowState;
 
     if(source == NULL || dynamic_cast<ContentWindowManager *>(this) != NULL)
     {
@@ -514,7 +528,27 @@ void ContentWindowInterface::setSelected(bool selected, ContentWindowInterface *
             source = this;
         }
 
-        emit(selectedChanged(selected_, source));
+        emit(windowStateChanged(windowState_, source));
+    }
+}
+
+void ContentWindowInterface::setInteractionState(InteractionState interactionState, ContentWindowInterface * source)
+{
+    if(source == this)
+    {
+        return;
+    }
+
+    interactionState_ = interactionState;
+
+    if(source == NULL || dynamic_cast<ContentWindowManager *>(this) != NULL)
+    {
+        if(source == NULL)
+        {
+            source = this;
+        }
+
+        emit(interactionStateChanged(interactionState_, source));
     }
 }
 

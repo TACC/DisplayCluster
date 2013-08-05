@@ -39,11 +39,11 @@
 #ifndef DC_STREAM_H
 #define DC_STREAM_H
 
+#include "../InteractionState.h"
 #include <string>
 #include <vector>
 
-class QTcpSocket;
-typedef QTcpSocket DcSocket;
+class DcSocket;
 
 struct DcStreamParameters  {
     std::string name;
@@ -93,8 +93,9 @@ extern bool dcStreamSend(DcSocket * socket, unsigned char * imageBuffer, int ima
 extern bool dcStreamSend(DcSocket * socket, unsigned char * imageBuffer, int imageX, int imageY, int imageWidth, int imagePitch, int imageHeight, PIXEL_FORMAT pixelFormat, std::vector<DcStreamParameters> parameters);
 
 // sends a compressed JPEG image corresponding to parameters and sends it to a
-// DisplayCluster instance over socket.
-extern bool dcStreamSendJpeg(DcSocket * socket, DcStreamParameters parameters, const char * jpegData, int jpegSize);
+// DisplayCluster instance over socket. if waitForAck is true, this function
+// will block until an acknowledgment is received.
+extern bool dcStreamSendJpeg(DcSocket * socket, DcStreamParameters parameters, const char * jpegData, int jpegSize, bool waitForAck=true);
 
 // computes a compressed JPEG image corresponding to imageBuffer. results are
 // stored in jpegData and jpegSize.
@@ -108,5 +109,9 @@ extern void dcStreamIncrementFrameIndex();
 // socket. different from the pixel streaming capability, this allows for
 // streaming vector-based graphics.
 extern bool dcStreamSendSVG(DcSocket * socket, std::string name, const char * svgData, int svgSize);
+
+extern bool dcStreamBindInteraction(DcSocket * socket, std::string name);
+
+extern InteractionState dcStreamGetInteractionState(DcSocket * socket);
 
 #endif

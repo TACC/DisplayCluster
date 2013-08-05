@@ -90,6 +90,9 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
 
     public slots:
 
+        // this can be invoked from other threads to construct a DisplayGroupInterface and move it to that thread
+        boost::shared_ptr<DisplayGroupInterface> getDisplayGroupInterface(QThread * thread);
+
         bool saveStateXMLFile(std::string filename);
         bool loadStateXMLFile(std::string filename);
 

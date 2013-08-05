@@ -57,7 +57,7 @@ ContentWindowGraphicsItem::ContentWindowGraphicsItem(boost::shared_ptr<ContentWi
 
     // border based on if we're selected or not
     // use the -1 argument to force an update but not emit signals
-    setSelected(selected_, (ContentWindowInterface *)-1);
+    setWindowState(windowState_, (ContentWindowInterface *)-1);
 
     // new items at the front
     // we assume that interface items will be constructed in depth order so this produces the correct result...
@@ -84,8 +84,12 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
         return;
 
     QPen pen;
-    if(selected_)
+    if(windowState_ == UNSELECTED)
+        pen.setColor(QColor(0,0,0));
+    else if(windowState_ == SELECTED)
         pen.setColor(QColor(255,0,0));
+    else if(windowState_ == INTERACTION)
+        pen.setColor(QColor(0,255,0));
     else
         pen.setColor(QColor(0,0,0));
 
@@ -194,8 +198,14 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
 
     QString coordinatesLabel = QString(" (") + QString::number(x_, 'f', 2) + QString(" ,") + QString::number(y_, 'f', 2) + QString(", ") + QString::number(w_, 'f', 2) + QString(", ") + QString::number(h_, 'f', 2) + QString(")\n");
     QString zoomCenterLabel = QString(" zoom = ") + QString::number(zoom_, 'f', 2) + QString(" @ (") + QString::number(centerX_, 'f', 2) + QString(", ") + QString::number(centerY_, 'f', 2) + QString(")");
+    QString interactionLabel = QString(" x: ") +
+            QString::number(interactionState_.mouseX, 'f', 2) +
+            QString(" y: ") + QString::number(interactionState_.mouseY, 'f', 2) +
+            QString(" mouseLeft: ") + QString::number((int) interactionState_.mouseLeft, 'b', 1) +
+            QString(" mouseMiddle: ") + QString::number((int) interactionState_.mouseMiddle, 'b', 1) +
+            QString(" mouseRight: ") + QString::number((int) interactionState_.mouseRight, 'b', 1);
 
-    QString windowInfoLabel = coordinatesLabel + zoomCenterLabel;
+    QString windowInfoLabel = coordinatesLabel + zoomCenterLabel + interactionLabel;
     painter->drawText(textBoundingRect, Qt::AlignLeft | Qt::AlignBottom, windowInfoLabel);
 }
 
@@ -248,12 +258,18 @@ void ContentWindowGraphicsItem::setZoom(double zoom, ContentWindowInterface * so
     ContentWindowInterface::setZoom(zoom, source);
 }
 
-void ContentWindowGraphicsItem::setSelected(bool selected, ContentWindowInterface * source)
+void ContentWindowGraphicsItem::setWindowState(ContentWindowInterface::WindowState windowState, ContentWindowInterface * source)
 {
     if(source != this)
         prepareGeometryChange();
 
-    ContentWindowInterface::setSelected(selected, source);
+    ContentWindowInterface::setWindowState(windowState, source);
+}
+
+void ContentWindowGraphicsItem::setInteractionState(InteractionState interactionState, ContentWindowInterface * source)
+{
+    if(source != this)
+        prepareGeometryChange();
 }
 
 void ContentWindowGraphicsItem::setZToFront()
@@ -324,7 +340,7 @@ void ContentWindowGraphicsItem::pan( PanGesture* gesture )
     const double dx = delta.x() / g_configuration->getTotalWidth();
     const double dy = delta.y() / g_configuration->getTotalHeight();
 
-    if( selected_ )
+    if( selected( ))
     {
         const double centerX = centerX_ - 2.*dx / zoom_;
         const double centerY = centerY_ - 2.*dy / zoom_;
@@ -352,7 +368,7 @@ void ContentWindowGraphicsItem::pinch( QPinchGesture* gesture )
     if( std::isnan( factor) || std::isinf( factor ))
         return;
 
-    if( selected_ )
+    if( selected( ))
     {
         setZoom( getZoom() * factor );
         return;
@@ -385,13 +401,42 @@ void ContentWindowGraphicsItem::doubleTap( DoubleTapGesture* gesture )
 void ContentWindowGraphicsItem::tapAndHold( QTapAndHoldGesture* gesture )
 {
     if( gesture->state() == Qt::GestureFinished )
-        setSelected( !selected_ );
+        setSelected( !selected( ));
 }
 
 void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
 {
     // handle mouse movements differently depending on selected mode of item
-    if(selected_)
+    if(windowState_ == UNSELECTED)
+    {
+        if(event->buttons().testFlag(Qt::LeftButton) == true)
+        {
+            if(resizing_ == true)
+            {
+                QRectF r = boundingRect();
+                QPointF eventPos = event->pos();
+
+                r.setBottomRight(eventPos);
+
+                QRectF sceneRect = mapRectToScene(r);
+
+                double w = sceneRect.width();
+                double h = sceneRect.height();
+
+                setSize(w, h);
+            }
+            else
+            {
+                QPointF delta = event->pos() - event->lastPos();
+
+                double x = x_ + delta.x();
+                double y = y_ + delta.y();
+
+                setPosition(x, y);
+            }
+        }
+    }
+    else if(windowState_ == SELECTED)
     {
         // handle zooms / pans
         QPointF delta = event->scenePos() - event->lastScenePos();
@@ -429,34 +474,25 @@ void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
 
         // force a redraw to update window info label
         update();
-        return;
     }
-
-    if(event->buttons().testFlag(Qt::LeftButton) == true)
+    else if(windowState_ == INTERACTION)
     {
-        if( resizing_ )
-        {
-            QRectF r = boundingRect();
-            QPointF eventPos = event->pos();
+        QRectF r = boundingRect();
+        QPointF eventPos = event->pos();
 
-            r.setBottomRight(eventPos);
+        InteractionState interactionState = interactionState_;
 
-            QRectF sceneRect = mapRectToScene(r);
+        interactionState.mouseX = (eventPos.x() - r.x()) / r.width();
+        interactionState.mouseY = (eventPos.y() - r.y()) / r.height();
 
-            double w = sceneRect.width();
-            double h = sceneRect.height();
+        interactionState.mouseLeft = event->buttons().testFlag(Qt::LeftButton);
+        interactionState.mouseMiddle = event->buttons().testFlag(Qt::MiddleButton);
+        interactionState.mouseRight = event->buttons().testFlag(Qt::RightButton);
 
-            setSize(w, h);
-        }
-        else if( moving_ )
-        {
-            QPointF delta = event->pos() - event->lastPos();
+        setInteractionState(interactionState);
 
-            double x = x_ + delta.x();
-            double y = y_ + delta.y();
-
-            setPosition(x, y);
-        }
+        // force a redraw to update window info label
+        update();
     }
 }
 
@@ -492,7 +528,7 @@ void ContentWindowGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent * event
     // move to the front of the GUI display
     moveToFront();
 
-    if( selected_ )
+    if( selected( ))
         return;
 
     boost::shared_ptr<ContentWindowManager> window = getContentWindowManager();
@@ -541,9 +577,21 @@ void ContentWindowGraphicsItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *
         return;
     }
 
-    bool selected = !selected_;
+    // move to next state
+    switch(windowState_)
+    {
+        case UNSELECTED:
+            windowState_ = SELECTED;
+            break;
+        case SELECTED:
+            windowState_ = INTERACTION;
+            break;
+        case INTERACTION:
+            windowState_ = UNSELECTED;
+            break;
+    }
 
-    setSelected(selected);
+    setWindowState(windowState_);
 
     QGraphicsItem::mouseDoubleClickEvent(event);
 }
@@ -569,8 +617,8 @@ void ContentWindowGraphicsItem::wheelEvent(QGraphicsSceneWheelEvent * event)
         return;
     }
 
-    // handle wheel movements differently depending on selected mode of item
-    if(selected_ == false)
+    // handle wheel movements differently depending on state of item window
+    if(windowState_ == UNSELECTED)
     {
         // scale size based on wheel delta
         // typical delta value is 120, so scale based on that
@@ -578,7 +626,7 @@ void ContentWindowGraphicsItem::wheelEvent(QGraphicsSceneWheelEvent * event)
 
         scaleSize(factor);
     }
-    else
+    else if(windowState_ == SELECTED)
     {
         // change zoom based on wheel delta
         // deltas are counted in 1/8 degrees. so, scale based on 180 degrees => delta = 180*8 = 1440

@@ -56,7 +56,15 @@ void NetworkListener::incomingConnection(int socketDescriptor)
 {
     put_flog(LOG_DEBUG, "");
 
-    NetworkListenerThread * thread = new NetworkListenerThread(socketDescriptor);
+    QThread * thread = new QThread();
+    NetworkListenerThread * worker = new NetworkListenerThread(socketDescriptor);
+
+    worker->moveToThread(thread);
+
+    connect(thread, SIGNAL(started()), worker, SLOT(initialize()));
+    connect(worker, SIGNAL(finished()), thread, SLOT(quit()));
+    connect(thread, SIGNAL(finished()), worker, SLOT(deleteLater()));
     connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
+
     thread->start();
 }
