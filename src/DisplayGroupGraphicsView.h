@@ -47,6 +47,8 @@ class DisplayGroupGraphicsView : public QGraphicsView {
 
         DisplayGroupGraphicsView();
 
+        void grabGestures();
+
     protected:
 
         bool viewportEvent( QEvent* event );

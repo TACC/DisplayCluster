@@ -66,6 +66,7 @@ boost::shared_ptr<DisplayGroupManager> g_displayGroupManager;
 MainWindow * g_mainWindow = NULL;
 NetworkListener * g_networkListener = NULL;
 long g_frameCount = 0;
+Dock* g_dock = 0;
 
 int main(int argc, char * argv[])
 {

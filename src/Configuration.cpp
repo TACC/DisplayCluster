@@ -92,6 +92,13 @@ Configuration::Configuration(const char * filename)
         fullscreen_ = 0;
     }
 
+    // dock start directory
+    query_.setQuery("string(/configuration/dock/@directory)");
+    query_.evaluateTo(&dockStartDir_);
+    dockStartDir_.remove(QRegExp("[\\n\\t\\r]"));
+    if( dockStartDir_.isEmpty( ))
+        dockStartDir_ = QDir::homePath();
+
     put_flog(LOG_INFO, "dimensions: numTilesWidth = %i, numTilesHeight = %i, screenWidth = %i, screenHeight = %i, mullionWidth = %i, mullionHeight = %i. fullscreen = %i", numTilesWidth_, numTilesHeight_, screenWidth_, screenHeight_, mullionWidth_, mullionHeight_, fullscreen_);
 
     // get tile parameters (if we're not rank 0)
@@ -222,6 +229,11 @@ std::string Configuration::getMyHost()
 std::string Configuration::getMyDisplay()
 {
     return display_;
+}
+
+QString Configuration::getDockStartDir() const
+{
+    return dockStartDir_;
 }
 
 int Configuration::getMyNumTiles()

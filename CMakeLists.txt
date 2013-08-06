@@ -72,6 +72,62 @@ find_package(Boost REQUIRED COMPONENTS serialization date_time)
 include_directories(${Boost_INCLUDE_DIRS})
 list(APPEND LIBS ${Boost_LIBRARIES})
 
+# DisplayCluster library
+if(BUILD_DISPLAYCLUSTER_LIBRARY)
+    set(DISPLAYCLUSTER_LIBRARY_LIBS ${QT_QTCORE_LIBRARY} ${QT_QTNETWORK_LIBRARY})
+    set(DISPLAYCLUSTER_LIBRARY_LIBS ${DISPLAYCLUSTER_LIBRARY_LIBS} ${LibJpegTurbo_LIBRARIES})
+
+    set(DISPLAYCLUSTER_LIBRARY_SRCS
+        src/log.cpp
+        src/lib/dcStream.cpp
+    )
+
+    set(DISPLAYCLUSTER_LIBRARY_PUBLIC_HEADERS
+        src/lib/dcStream.h
+    )
+
+    add_library(DisplayClusterLibrary SHARED ${DISPLAYCLUSTER_LIBRARY_SRCS})
+    target_link_libraries(DisplayClusterLibrary ${DISPLAYCLUSTER_LIBRARY_LIBS})
+    set_target_properties(DisplayClusterLibrary PROPERTIES
+      VERSION ${VERSION} SOVERSION ${VERSION_ABI} OUTPUT_NAME DisplayCluster)
+
+    # install library
+    INSTALL(TARGETS DisplayClusterLibrary
+        ARCHIVE DESTINATION lib COMPONENT dev
+        RUNTIME DESTINATION bin COMPONENT lib
+        LIBRARY DESTINATION lib COMPONENT lib)
+
+    # install headers
+    install(FILES ${DISPLAYCLUSTER_LIBRARY_PUBLIC_HEADERS} DESTINATION include)
+
+
+    # SimpleStreamer example application
+    find_package(OpenGL REQUIRED)
+    include_directories(${OPENGL_INCLUDE_DIRS})
+    set(SIMPLESTREAMER_LIBS ${OPENGL_LIBRARIES})
+
+    find_package(GLUT REQUIRED)
+    include_directories(${GLUT_INCLUDE_DIR})
+    set(SIMPLESTREAMER_LIBS ${SIMPLESTREAMER_LIBS} ${GLUT_LIBRARIES})
+
+    include_directories(src/lib)
+    set(SIMPLESTREAMER_LIBS ${SIMPLESTREAMER_LIBS} DisplayClusterLibrary)
+
+    set(SIMPLESTREAMER_SRCS
+        apps/SimpleStreamer/src/main.cpp
+    )
+
+    add_executable(simplestreamer ${SIMPLESTREAMER_SRCS})
+
+    target_link_libraries(simplestreamer ${SIMPLESTREAMER_LIBS})
+
+    # install executable
+    INSTALL(TARGETS simplestreamer
+        RUNTIME DESTINATION bin
+    )
+endif()
+
+
 find_package(OpenGL)
 find_package(MPI)
 find_package(FFMPEG)
@@ -159,6 +215,7 @@ if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
         src/DisplayGroupGraphicsViewProxy.cpp
         src/DisplayGroupGraphicsView.cpp
         src/DisplayGroupListWidgetProxy.cpp
+        src/Dock.cpp
         src/DynamicTexture.cpp
         src/DynamicTextureContent.cpp
         src/FactoryObject.cpp
@@ -173,6 +230,7 @@ if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
         src/Options.cpp
         src/ParallelPixelStream.cpp
         src/ParallelPixelStreamContent.cpp
+        src/Pictureflow.cpp
         src/PixelStream.cpp
         src/PixelStreamContent.cpp
         src/PixelStreamSource.cpp
@@ -190,11 +248,13 @@ if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
         src/DisplayGroupInterface.h
         src/DisplayGroupGraphicsViewProxy.h
         src/DisplayGroupListWidgetProxy.h
+        src/Dock.h
         src/MainWindow.h
         src/Marker.h
         src/NetworkListener.h
         src/NetworkListenerThread.h
         src/Options.h
+        src/Pictureflow.h
     )
 
     # add OPTIONS hacks for Qt's MOC processing of Boost headers, for compiler errors with some versions of Boost
@@ -202,7 +262,7 @@ if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
 
     add_executable(displaycluster ${SRCS} ${MOC_OUTFILES})
 
-    target_link_libraries(displaycluster ${LIBS})
+    target_link_libraries(displaycluster ${LIBS} DisplayClusterLibrary)
 
     # build Python module if Python support is enabled
     if(ENABLE_PYTHON_SUPPORT)
@@ -236,62 +296,6 @@ if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
     if(ENABLE_PYTHON_SUPPORT)
         INSTALL(FILES ${CMAKE_BINARY_DIR}/pydc.so DESTINATION python)
     endif()
-endif()
-
-
-# DisplayCluster library
-if(BUILD_DISPLAYCLUSTER_LIBRARY)
-    set(DISPLAYCLUSTER_LIBRARY_LIBS ${QT_QTCORE_LIBRARY} ${QT_QTNETWORK_LIBRARY})
-    set(DISPLAYCLUSTER_LIBRARY_LIBS ${DISPLAYCLUSTER_LIBRARY_LIBS} ${LibJpegTurbo_LIBRARIES})
-
-    set(DISPLAYCLUSTER_LIBRARY_SRCS
-        src/log.cpp
-        src/lib/dcStream.cpp
-    )
-
-    set(DISPLAYCLUSTER_LIBRARY_PUBLIC_HEADERS
-        src/lib/dcStream.h
-    )
-
-    add_library(DisplayClusterLibrary SHARED ${DISPLAYCLUSTER_LIBRARY_SRCS})
-    target_link_libraries(DisplayClusterLibrary ${DISPLAYCLUSTER_LIBRARY_LIBS})
-    set_target_properties(DisplayClusterLibrary PROPERTIES
-      VERSION ${VERSION} SOVERSION ${VERSION_ABI} OUTPUT_NAME DisplayCluster)
-
-    # install library
-    INSTALL(TARGETS DisplayClusterLibrary
-        ARCHIVE DESTINATION lib COMPONENT dev
-        RUNTIME DESTINATION bin COMPONENT lib
-        LIBRARY DESTINATION lib COMPONENT lib)
-
-    # install headers
-    install(FILES ${DISPLAYCLUSTER_LIBRARY_PUBLIC_HEADERS} DESTINATION include)
-
-
-    # SimpleStreamer example application
-    find_package(OpenGL REQUIRED)
-    include_directories(${OPENGL_INCLUDE_DIRS})
-    set(SIMPLESTREAMER_LIBS ${OPENGL_LIBRARIES})
-
-    find_package(GLUT REQUIRED)
-    include_directories(${GLUT_INCLUDE_DIR})
-    set(SIMPLESTREAMER_LIBS ${SIMPLESTREAMER_LIBS} ${GLUT_LIBRARIES})
-
-    include_directories(src/lib)
-    set(SIMPLESTREAMER_LIBS ${SIMPLESTREAMER_LIBS} DisplayClusterLibrary)
-
-    set(SIMPLESTREAMER_SRCS
-        apps/SimpleStreamer/src/main.cpp
-    )
-
-    add_executable(simplestreamer ${SIMPLESTREAMER_SRCS})
-
-    target_link_libraries(simplestreamer ${SIMPLESTREAMER_LIBS})
-
-    # install executable
-    INSTALL(TARGETS simplestreamer
-        RUNTIME DESTINATION bin
-    )
 endif()
 
 

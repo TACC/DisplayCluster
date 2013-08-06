@@ -1,5 +1,5 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, The University of Texas at Austin.            */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,59 +36,88 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef CONFIGURATION_H
-#define CONFIGURATION_H
+#ifndef DOCK_H
+#define DOCK_H
 
-#include <QtGui>
-#include <QtXmlPatterns>
+#include <QtCore/QDir>
+#include <QtCore/QObject>
+#include <QtCore/QThread>
+#include <QtCore/QHash>
+#include <QtGui/QImage>
+#include <dcStream.h>
 
-class Configuration {
+class PictureFlow;
 
-    public:
 
-        Configuration(const char * filename);
+class ImageStreamer : public QObject
+{
+    Q_OBJECT
 
-        int getNumTilesWidth();
-        int getNumTilesHeight();
-        int getScreenWidth();
-        int getScreenHeight();
-        int getMullionWidth();
-        int getMullionHeight();
-        bool getFullscreen();
-        int getTotalWidth();
-        int getTotalHeight();
+    DcSocket* dcSocket;
 
-        std::string getMyHost();
-        std::string getMyDisplay();
-        QString getDockStartDir() const;
+public:
+    ImageStreamer();
+    ~ImageStreamer();
 
-        int getMyNumTiles();
-        int getTileX(int i);
-        int getTileY(int i);
-        int getTileI(int i);
-        int getTileJ(int i);
+public slots:
+    void connect();
+    void disconnect();
+    void send( const QImage& image );
+};
 
-    private:
+class ImageLoader : public QObject
+{
+    Q_OBJECT
 
-        QXmlQuery query_;
+    PictureFlow* flow_;
 
-        int numTilesWidth_;
-        int numTilesHeight_;
-        int screenWidth_;
-        int screenHeight_;
-        int mullionWidth_;
-        int mullionHeight_;
-        int fullscreen_;
+public:
+    ImageLoader( PictureFlow* flow );
+    ~ImageLoader();
 
-        std::string host_;
-        std::string display_;
-        QString dockStartDir_;
+public slots:
+    void loadImage( const QString& fileName, const int index );
+};
 
-        int myNumTiles_;
-        std::vector<int> tileX_;
-        std::vector<int> tileY_;
-        std::vector<int> tileI_;
-        std::vector<int> tileJ_;
+
+class Dock : public QObject
+{
+    Q_OBJECT
+
+public:
+    Dock();
+    ~Dock();
+    PictureFlow* getFlow() const;
+
+    void open();
+    void close();
+
+    void onItem();
+
+    void setPos( const QPointF& pos ) { pos_ = pos; }
+    QPointF getPos() const { return pos_; }
+
+Q_SIGNALS:
+    void started();
+    void finished();
+    void renderPreview( const QString& fileName, const int index );
+
+private:
+    void changeDirectory( const QString& dir );
+    QThread streamThread_;
+    QThread loadThread_;
+    PictureFlow* flow_;
+    ImageStreamer* streamer_;
+    ImageLoader* loader_;
+    QDir currentDir_;
+    QPointF pos_;
+    QStringList filters_;
+    QHash< QString, int > slideIndex_;
+
+    void addSlide_( const QString& fileName, const QString& shortName,
+                    const bool isDir, const QColor& bgcolor1,
+                    const QColor& bgcolor2 );
+
 };
 
 #endif
