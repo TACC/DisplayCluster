@@ -144,7 +144,7 @@ void ContentWindowManager::render()
         showWindowBorders = dgm->getOptions()->getShowWindowBorders();
     }
 
-    if(showWindowBorders == true )
+    if(showWindowBorders || windowState_ != UNSELECTED )
     {
         double horizontalBorder = 5. / (double)g_configuration->getTotalHeight(); // 5 pixels
 

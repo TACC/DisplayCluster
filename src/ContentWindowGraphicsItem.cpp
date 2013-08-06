@@ -351,11 +351,17 @@ void ContentWindowGraphicsItem::pan( PanGesture* gesture )
         return;
     }
 
-    if( selected( ) )
+    if( windowState_ == SELECTED )
     {
         const double centerX = centerX_ - 2.*dx / zoom_;
         const double centerY = centerY_ - 2.*dy / zoom_;
         setCenter(centerX, centerY);
+        return;
+    }
+
+    if( windowState_ == INTERACTION )
+    {
+        // TODO: implement me
         return;
     }
 
@@ -382,9 +388,15 @@ void ContentWindowGraphicsItem::pinch( QPinchGesture* gesture )
     if( std::isnan( factor ) || std::isinf( factor ))
         return;
 
-    if( selected( ))
+    if( windowState_ == SELECTED )
     {
         setZoom( getZoom() * factor );
+        return;
+    }
+
+    if( windowState_ == INTERACTION )
+    {
+        // TODO: implement me
         return;
     }
 
@@ -429,6 +441,9 @@ void ContentWindowGraphicsItem::doubleTap( DoubleTapGesture* gesture )
     if( getContentWindowManager()->getContent()->isDock( ))
         return;
 
+    if( windowState_ != UNSELECTED )
+        return;
+
     if( gesture->state() == Qt::GestureFinished )
         adjustSize( getSizeState() == SIZE_FULLSCREEN ? SIZE_1TO1 :
                                                         SIZE_FULLSCREEN );
@@ -439,8 +454,24 @@ void ContentWindowGraphicsItem::tapAndHold( QTapAndHoldGesture* gesture )
     if( getContentWindowManager()->getContent()->isDock( ))
         return;
 
-    if( gesture->state() == Qt::GestureFinished )
-        setSelected( !selected( ));
+    if( gesture->state() != Qt::GestureFinished )
+        return;
+
+    // move to next state
+    switch( windowState_ )
+    {
+    case UNSELECTED:
+        windowState_ = SELECTED;
+        break;
+    case SELECTED:
+        windowState_ = INTERACTION;
+        break;
+    case INTERACTION:
+        windowState_ = UNSELECTED;
+        break;
+    }
+
+    setWindowState( windowState_ );
 }
 
 void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
