@@ -85,6 +85,7 @@ if(BUILD_DISPLAYCLUSTER_LIBRARY)
 
     set(DISPLAYCLUSTER_LIBRARY_PUBLIC_HEADERS
         src/lib/dcStream.h
+        src/InteractionState.h
     )
 
     add_library(DisplayClusterLibrary SHARED ${DISPLAYCLUSTER_LIBRARY_SRCS})
@@ -111,7 +112,7 @@ if(BUILD_DISPLAYCLUSTER_LIBRARY)
     include_directories(${GLUT_INCLUDE_DIR})
     set(SIMPLESTREAMER_LIBS ${SIMPLESTREAMER_LIBS} ${GLUT_LIBRARIES})
 
-    include_directories(src/lib)
+    include_directories(src/lib src)
     set(SIMPLESTREAMER_LIBS ${SIMPLESTREAMER_LIBS} DisplayClusterLibrary)
 
     set(SIMPLESTREAMER_SRCS

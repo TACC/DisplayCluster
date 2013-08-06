@@ -39,7 +39,7 @@
 #ifndef DC_STREAM_H
 #define DC_STREAM_H
 
-#include "../InteractionState.h"
+#include <InteractionState.h>
 #include <string>
 #include <vector>
 
