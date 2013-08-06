@@ -65,9 +65,6 @@ ContentWindowInterface::ContentWindowInterface(boost::shared_ptr<ContentWindowMa
     // register WindowState in Qt
     qRegisterMetaType<ContentWindowInterface::WindowState>("ContentWindowInterface::WindowState");
 
-    // register Interactionstate in Qt
-    qRegisterMetaType<InteractionState>("InteractionState");
-
     // connect signals from this to slots on the ContentWindowManager
     // use queued connections for thread-safety
     connect(this, SIGNAL(contentDimensionsChanged(int, int, ContentWindowInterface *)), contentWindowManager.get(), SLOT(setContentDimensions(int, int, ContentWindowInterface *)), Qt::QueuedConnection);

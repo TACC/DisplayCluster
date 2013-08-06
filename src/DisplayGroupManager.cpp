@@ -66,6 +66,9 @@ DisplayGroupManager::DisplayGroupManager()
     // make Options trigger sendDisplayGroup() when it is updated
     connect(options_.get(), SIGNAL(updated()), this, SLOT(sendDisplayGroup()), Qt::QueuedConnection);
 
+    // register Interactionstate in Qt
+    qRegisterMetaType<InteractionState>("InteractionState");
+
     // register types for use in signals/slots
     qRegisterMetaType<boost::shared_ptr<ContentWindowManager> >("boost::shared_ptr<ContentWindowManager>");
 

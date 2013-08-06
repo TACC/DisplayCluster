@@ -270,6 +270,8 @@ void ContentWindowGraphicsItem::setInteractionState(InteractionState interaction
 {
     if(source != this)
         prepareGeometryChange();
+
+    ContentWindowInterface::setInteractionState(interactionState, source);
 }
 
 void ContentWindowGraphicsItem::setZToFront()
