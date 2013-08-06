@@ -110,6 +110,7 @@ void dcStreamDisconnect(DcSocket * socket)
             QByteArray message;
             message.append( (const char *)&mh, sizeof(MessageHeader));
             socket->queueMessage(message);
+            socket->waitForAck();
         }
     }
 
