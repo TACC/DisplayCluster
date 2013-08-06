@@ -43,6 +43,8 @@
 #include "DisplayGroupGraphicsView.h"
 #include "main.h"
 #include "Gestures.h"
+#include "Dock.h"
+#include "Pictureflow.h"
 
 qreal ContentWindowGraphicsItem::zCounter_ = 0;
 
@@ -342,7 +344,14 @@ void ContentWindowGraphicsItem::pan( PanGesture* gesture )
     const double dx = delta.x() / g_configuration->getTotalWidth();
     const double dy = delta.y() / g_configuration->getTotalHeight();
 
-    if( selected( ))
+    if( getContentWindowManager()->getContent()->isDock( ))
+    {
+        const int offs = delta.x()/4;
+        g_dock->getFlow()->showSlide( g_dock->getFlow()->centerIndex() + offs );
+        return;
+    }
+
+    if( selected( ) )
     {
         const double centerX = centerX_ - 2.*dx / zoom_;
         const double centerY = centerY_ - 2.*dy / zoom_;
@@ -366,8 +375,11 @@ void ContentWindowGraphicsItem::pan( PanGesture* gesture )
 
 void ContentWindowGraphicsItem::pinch( QPinchGesture* gesture )
 {
+    if( getContentWindowManager()->getContent()->isDock( ))
+        return;
+
     const qreal factor = (gesture->scaleFactor() - 1.) * 0.2f + 1.f;
-    if( std::isnan( factor) || std::isinf( factor ))
+    if( std::isnan( factor ) || std::isinf( factor ))
         return;
 
     if( selected( ))
@@ -392,16 +404,41 @@ void ContentWindowGraphicsItem::tap( QTapGesture* gesture )
 {
     if( gesture->state() != Qt::GestureFinished )
         return;
+
+    if( !getContentWindowManager()->getContent()->isDock( ))
+        return;
+
+    const int xPos = gesture->position().x() - (x_*g_configuration->getTotalWidth());
+    const int mid = (w_*g_configuration->getTotalWidth())/2;
+    const int slideMid = g_dock->getFlow()->slideSize().width()/2;
+
+    if( xPos > mid-slideMid && xPos < mid+slideMid )
+    {
+        g_dock->onItem();
+        return;
+    }
+
+    if( xPos > mid )
+      g_dock->getFlow()->showNext();
+    else
+      g_dock->getFlow()->showPrevious();
 }
 
 void ContentWindowGraphicsItem::doubleTap( DoubleTapGesture* gesture )
 {
+    if( getContentWindowManager()->getContent()->isDock( ))
+        return;
+
     if( gesture->state() == Qt::GestureFinished )
-        adjustSize( getSizeState() == SIZE_FULLSCREEN ? SIZE_1TO1 : SIZE_FULLSCREEN );
+        adjustSize( getSizeState() == SIZE_FULLSCREEN ? SIZE_1TO1 :
+                                                        SIZE_FULLSCREEN );
 }
 
 void ContentWindowGraphicsItem::tapAndHold( QTapAndHoldGesture* gesture )
 {
+    if( getContentWindowManager()->getContent()->isDock( ))
+        return;
+
     if( gesture->state() == Qt::GestureFinished )
         setSelected( !selected( ));
 }
@@ -602,7 +639,8 @@ void ContentWindowGraphicsItem::mouseReleaseEvent(QGraphicsSceneMouseEvent * eve
 {
     resizing_ = false;
     moving_ = false;
-    getContentWindowManager()->getContent()->blockAdvance( false );
+    if( getContentWindowManager( ))
+        getContentWindowManager()->getContent()->blockAdvance( false );
 
     QGraphicsItem::mouseReleaseEvent(event);
 }

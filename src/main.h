@@ -47,9 +47,12 @@
 #include <boost/shared_ptr.hpp>
 #include <mpi.h>
 
+class Dock;
+
 extern std::string g_displayClusterDir;
 extern QApplication * g_app;
 extern int g_mpiRank;
+extern Dock* g_dock;
 extern int g_mpiSize;
 extern MPI_Comm g_mpiRenderComm;
 extern Configuration * g_configuration;

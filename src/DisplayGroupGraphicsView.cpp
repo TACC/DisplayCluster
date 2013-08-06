@@ -39,6 +39,9 @@
 #include "DisplayGroupGraphicsView.h"
 #include "DisplayGroupGraphicsScene.h"
 #include "main.h"
+#include "ContentWindowManager.h"
+#include "ContentWindowGraphicsItem.h"
+#include "Dock.h"
 
 DisplayGroupGraphicsView::DisplayGroupGraphicsView()
 {
@@ -53,8 +56,13 @@ DisplayGroupGraphicsView::DisplayGroupGraphicsView()
     setDragMode(QGraphicsView::RubberBandDrag);
     setAcceptDrops(true);
 
+    grabGestures();
+}
+
+void DisplayGroupGraphicsView::grabGestures()
+{
     //viewport()->grabGesture(Qt::TapGesture);
-    //viewport()->grabGesture(Qt::TapAndHoldGesture);
+    viewport()->grabGesture(Qt::TapAndHoldGesture);
     //viewport()->grabGesture(Qt::PanGesture);
     //viewport()->grabGesture(Qt::PinchGesture);
     //viewport()->grabGesture(Qt::SwipeGesture);
@@ -123,6 +131,18 @@ void DisplayGroupGraphicsView::tapAndHold( QTapAndHoldGesture* gesture )
 {
     if( gesture->state() != Qt::GestureFinished )
         return;
+
+    const QPoint widgetPos = mapFromGlobal( QPoint( gesture->hotSpot().x(),
+                                                    gesture->hotSpot().y( )));
+    const QPointF pos = mapToScene( widgetPos );
+    QGraphicsItem* item = scene()->itemAt( pos );
+    if( dynamic_cast< ContentWindowGraphicsItem* >( item ))
+        return;
+
+    if( !g_dock )
+        g_dock = new Dock;
+    g_dock->open();
+    g_dock->setPos( pos );
 }
 
 void DisplayGroupGraphicsView::resizeEvent(QResizeEvent * event)

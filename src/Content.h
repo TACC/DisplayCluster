@@ -68,7 +68,7 @@ class Content : public QObject {
 
         Content(std::string uri = "");
 
-        std::string getURI();
+        const std::string& getURI() const;
 
         virtual CONTENT_TYPE getType() = 0;
 
@@ -77,6 +77,7 @@ class Content : public QObject {
         virtual void getFactoryObjectDimensions(int &width, int &height) = 0;
         void render(boost::shared_ptr<ContentWindowManager> window);
         void blockAdvance( bool block ) { blockAdvance_ = block; }
+        bool isDock() const;
 
         // virtual method for implementing actions on advancing to a new frame
         // useful when a process has multiple GLWindows

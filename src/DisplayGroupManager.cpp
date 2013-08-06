@@ -47,6 +47,7 @@
 #include "ParallelPixelStreamContent.h"
 #include "SVGStreamSource.h"
 #include "SVGContent.h"
+#include "Dock.h"
 #include <sstream>
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/shared_ptr.hpp>
@@ -826,7 +827,16 @@ void DisplayGroupManager::sendParallelPixelStreams()
                 }
 
                 if( initial )
+                {
                     cwm->adjustSize( SIZE_1TO1 );
+                    if( c->isDock( ))
+                    {
+                        double w, h;
+                        cwm->getSize( w, h );
+                        cwm->setPosition( g_dock->getPos().x() - w/2.,
+                                          g_dock->getPos().y() - h/2. );
+                    }
+                }
             }
         }
     }
