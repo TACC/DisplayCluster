@@ -515,6 +515,7 @@ void DynamicTexture::computeImagePyramid(std::string imagePyramidPath)
         imageBounds[3] = QRectF(0.,0.5,0.5,0.5);
 
         // generate and compute children
+#pragma omp parallel for
         for(unsigned int i=0; i<4; i++)
         {
             boost::shared_ptr<DynamicTexture> c(new DynamicTexture("", shared_from_this(), imageBounds[i].x(), imageBounds[i].y(), imageBounds[i].width(), imageBounds[i].height(), i));
