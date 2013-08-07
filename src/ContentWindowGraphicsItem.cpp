@@ -377,6 +377,10 @@ void ContentWindowGraphicsItem::pan( PanGesture* gesture )
         case Qt::GestureFinished:
             interactionState.type = InteractionState::EVT_RELEASE;
             break;
+        case Qt::NoGesture:
+        case Qt::GestureCanceled:
+        default:
+            break;
         }
 
         setInteractionState(interactionState);
