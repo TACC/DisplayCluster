@@ -49,6 +49,8 @@ ContentWindowManager::ContentWindowManager(boost::shared_ptr<Content> content)
     // content dimensions
     content->getDimensions(contentWidth_, contentHeight_);
 
+    adjustSize( SIZE_1TO1 );
+
     // default to centered
     centerX_ = 0.5;
     centerY_ = 0.5;
