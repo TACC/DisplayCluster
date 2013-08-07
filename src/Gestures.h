@@ -48,16 +48,19 @@ class PanGesture : public QGesture
 public:
     PanGesture( QObject* parent = 0 );
 
+    const QPointF& position() const { return _position; }
     const QPointF& lastOffset() const { return _lastOffset; }
     const QPointF& offset() const { return _offset; }
     QPointF delta() const { return _offset - _lastOffset; }
     qreal acceleration() const { return _acceleration; }
 
+    void setPosition( const QPointF& value ) { _position = value; }
     void setLastOffset( const QPointF& value ) { _lastOffset = value; }
     void setOffset( const QPointF& value ) { _offset = value; }
     void setAcceleration( const qreal value ) { _acceleration = value; }
 
 private:
+    QPointF _position;
     QPointF _lastOffset;
     QPointF _offset;
     qreal _acceleration;

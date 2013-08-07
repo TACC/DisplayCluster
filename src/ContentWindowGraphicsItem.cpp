@@ -361,7 +361,25 @@ void ContentWindowGraphicsItem::pan( PanGesture* gesture )
 
     if( windowState_ == INTERACTION )
     {
-        // TODO: implement me
+        InteractionState interactionState = interactionState_;
+
+        interactionState.mouseX = gesture->position().x();
+        interactionState.mouseY = gesture->position().y();
+        interactionState.mouseLeft = true;
+        switch( gesture->state( ))
+        {
+        case Qt::GestureStarted:
+            interactionState.type = InteractionState::EVT_PRESS;
+            break;
+        case Qt::GestureUpdated:
+            interactionState.type = InteractionState::EVT_MOVE;
+            break;
+        case Qt::GestureFinished:
+            interactionState.type = InteractionState::EVT_RELEASE;
+            break;
+        }
+
+        setInteractionState(interactionState);
         return;
     }
 
@@ -396,7 +414,11 @@ void ContentWindowGraphicsItem::pinch( QPinchGesture* gesture )
 
     if( windowState_ == INTERACTION )
     {
-        // TODO: implement me
+        InteractionState interactionState = interactionState_;
+        interactionState.dy = factor - 1.f;
+        interactionState.type = InteractionState::EVT_WHEEL;
+
+        setInteractionState(interactionState);
         return;
     }
 
@@ -414,6 +436,20 @@ void ContentWindowGraphicsItem::pinch( QPinchGesture* gesture )
 
 void ContentWindowGraphicsItem::tap( QTapGesture* gesture )
 {
+//    if( windowState_ == INTERACTION && gesture->state() != Qt::GestureCanceled )
+//    {
+//        InteractionState interactionState = interactionState_;
+
+//        interactionState.mouseX = gesture->position().x() / w_;
+//        interactionState.mouseY = gesture->position().y() / h_;
+//        interactionState.mouseLeft = true;
+//        interactionState.type = gesture->state() == Qt::GestureStarted ?
+//                    InteractionState::EVT_PRESS : InteractionState::EVT_RELEASE;
+
+//        setInteractionState(interactionState);
+//        return;
+//    }
+
     if( gesture->state() != Qt::GestureFinished )
         return;
 
