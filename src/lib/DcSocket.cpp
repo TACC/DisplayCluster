@@ -111,7 +111,7 @@ int DcSocket::socketDescriptor() const
     return socket_->socketDescriptor();
 }
 
-bool DcSocket::processInteractionMessage()
+bool DcSocket::hasNewInteractionState()
 {
     MESSAGE_TYPE type;
     if( !receiveMessage_( type ))

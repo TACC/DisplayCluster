@@ -558,6 +558,7 @@ void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
         interactionState.mouseLeft = event->buttons().testFlag(Qt::LeftButton);
         interactionState.mouseMiddle = event->buttons().testFlag(Qt::MiddleButton);
         interactionState.mouseRight = event->buttons().testFlag(Qt::RightButton);
+        interactionState.type = InteractionState::EVT_MOVE;
 
         setInteractionState(interactionState);
 
@@ -576,6 +577,24 @@ void ContentWindowGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent * event
     {
         event->ignore();
         return;
+    }
+
+    if(windowState_ == INTERACTION)
+    {
+        QRectF r = boundingRect();
+        QPointF eventPos = event->pos();
+
+        InteractionState interactionState = interactionState_;
+
+        interactionState.mouseX = (eventPos.x() - r.x()) / r.width();
+        interactionState.mouseY = (eventPos.y() - r.y()) / r.height();
+
+        interactionState.mouseLeft = event->buttons().testFlag(Qt::LeftButton);
+        interactionState.mouseMiddle = event->buttons().testFlag(Qt::MiddleButton);
+        interactionState.mouseRight = event->buttons().testFlag(Qt::RightButton);
+        interactionState.type = InteractionState::EVT_PRESS;
+
+        setInteractionState(interactionState);
     }
 
     // button dimensions
@@ -673,6 +692,24 @@ void ContentWindowGraphicsItem::mouseReleaseEvent(QGraphicsSceneMouseEvent * eve
     if( getContentWindowManager( ))
         getContentWindowManager()->getContent()->blockAdvance( false );
 
+    if(windowState_ == INTERACTION)
+    {
+        QRectF r = boundingRect();
+        QPointF eventPos = event->pos();
+
+        InteractionState interactionState = interactionState_;
+
+        interactionState.mouseX = (eventPos.x() - r.x()) / r.width();
+        interactionState.mouseY = (eventPos.y() - r.y()) / r.height();
+
+        interactionState.mouseLeft = event->buttons().testFlag(Qt::LeftButton);
+        interactionState.mouseMiddle = event->buttons().testFlag(Qt::MiddleButton);
+        interactionState.mouseRight = event->buttons().testFlag(Qt::RightButton);
+        interactionState.type = InteractionState::EVT_RELEASE;
+
+        setInteractionState(interactionState);
+    }
+
     QGraphicsItem::mouseReleaseEvent(event);
 }
 
@@ -705,5 +742,23 @@ void ContentWindowGraphicsItem::wheelEvent(QGraphicsSceneWheelEvent * event)
         double zoom = zoom_ * (1. + zoomDelta);
 
         setZoom(zoom);
+    }
+    else if(windowState_ == INTERACTION)
+    {
+        QRectF r = boundingRect();
+        QPointF eventPos = event->pos();
+
+        InteractionState interactionState = interactionState_;
+
+        interactionState.mouseX = (eventPos.x() - r.x()) / r.width();
+        interactionState.mouseY = (eventPos.y() - r.y()) / r.height();
+
+        interactionState.mouseLeft = event->buttons().testFlag(Qt::LeftButton);
+        interactionState.mouseMiddle = event->buttons().testFlag(Qt::MiddleButton);
+        interactionState.mouseRight = event->buttons().testFlag(Qt::RightButton);
+        interactionState.type = InteractionState::EVT_WHEEL;
+        interactionState.dy = (double)event->delta() / 1440.;
+
+        setInteractionState(interactionState);
     }
 }

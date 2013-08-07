@@ -3,13 +3,25 @@
 
 // the state of interaction within a window (mouse emulation)
 struct InteractionState {
-    double mouseX, mouseY;
+    enum EventType
+    {
+        EVT_PRESS,
+        EVT_RELEASE,
+        EVT_DOUBLECLICK,
+        EVT_MOVE,
+        EVT_WHEEL,
+        EVT_NONE
+    };
+
+    double mouseX, mouseY, dx, dy;
     bool mouseLeft, mouseRight, mouseMiddle;
+    EventType type;
 
     InteractionState()
     {
-        mouseX = mouseY = 0.;
+        mouseX = mouseY = dx = dy = 0.;
         mouseLeft = mouseRight = mouseMiddle = false;
+        type = EVT_NONE;
     }
 };
 

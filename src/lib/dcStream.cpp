@@ -537,9 +537,9 @@ int dcSocketDescriptor(DcSocket * socket)
     return socket->socketDescriptor();
 }
 
-bool dcProcessMessage(DcSocket * socket)
+bool dcHasNewInteractionState(DcSocket * socket)
 {
-    return socket->processInteractionMessage();
+    return socket->hasNewInteractionState();
 }
 
 DcImage dcStreamComputeJpegMapped(const DcImage & dcImage)

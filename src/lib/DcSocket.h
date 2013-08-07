@@ -69,7 +69,7 @@ class DcSocket : public QThread {
         int socketDescriptor() const;
 
         // for synchronous read operations (non-blocking)
-        bool processInteractionMessage();
+        bool hasNewInteractionState();
 
     protected:
 

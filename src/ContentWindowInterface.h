@@ -76,9 +76,12 @@ namespace boost {
         {
             ar & is.mouseX;
             ar & is.mouseY;
+            ar & is.dx;
+            ar & is.dy;
             ar & is.mouseLeft;
             ar & is.mouseRight;
             ar & is.mouseMiddle;
+            ar & is.type;
         }
     }
 }

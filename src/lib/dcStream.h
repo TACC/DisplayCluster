@@ -116,6 +116,6 @@ extern InteractionState dcStreamGetInteractionState(DcSocket * socket);
 
 extern int dcSocketDescriptor(DcSocket * socket);
 
-extern bool dcProcessMessage(DcSocket * socket);
+extern bool dcHasNewInteractionState(DcSocket * socket);
 
 #endif
