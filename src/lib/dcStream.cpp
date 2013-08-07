@@ -71,9 +71,9 @@ int dcBytesPerPixel[] = { 3, 4, 4, 3, 4, 4 };
 DcImage dcStreamComputeJpegMapped(const DcImage & dcImage);
 
 
-DcSocket * dcStreamConnect(const char * hostname)
+DcSocket * dcStreamConnect(const char * hostname, bool async)
 {
-    DcSocket * dcSocket = new DcSocket(hostname);
+    DcSocket * dcSocket = new DcSocket(hostname, async);
 
     if(dcSocket->isConnected() != true)
     {
@@ -530,6 +530,16 @@ InteractionState dcStreamGetInteractionState(DcSocket * socket)
     }
 
     return socket->getInteractionState();
+}
+
+int dcSocketDescriptor(DcSocket * socket)
+{
+    return socket->socketDescriptor();
+}
+
+bool dcProcessMessage(DcSocket * socket)
+{
+    return socket->processInteractionMessage();
 }
 
 DcImage dcStreamComputeJpegMapped(const DcImage & dcImage)

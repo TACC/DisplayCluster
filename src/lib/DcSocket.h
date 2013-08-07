@@ -53,7 +53,7 @@ class DcSocket : public QThread {
 
     public:
 
-        DcSocket(const char * hostname);
+        DcSocket(const char * hostname, bool async = true );
         ~DcSocket();
 
         bool isConnected();
@@ -66,8 +66,14 @@ class DcSocket : public QThread {
 
         InteractionState getInteractionState();
 
+        int socketDescriptor() const;
+
+        // for synchronous read operations (non-blocking)
+        bool processInteractionMessage();
+
     protected:
 
+        bool async_;
         QTcpSocket * socket_;
 
         // mutex and queue for messages to send
@@ -95,6 +101,9 @@ class DcSocket : public QThread {
         // these are only called in the thread execution
         bool socketSendMessage(QByteArray message);
         bool socketReceiveMessage(MessageHeader & messageHeader, QByteArray & message);
+
+        bool sendMessage_();
+        bool receiveMessage_( MESSAGE_TYPE& type );
 };
 
 #endif

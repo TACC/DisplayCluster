@@ -41,11 +41,12 @@
 #include "../log.h"
 #include <QtNetwork/QTcpSocket>
 
-DcSocket::DcSocket(const char * hostname)
+DcSocket::DcSocket(const char * hostname, bool async)
 {
     // defaults
     socket_ = NULL;
     disconnectFlag_ = false;
+    async_ = async;
 
     if(connect(hostname) != true)
     {
@@ -62,7 +63,7 @@ bool DcSocket::isConnected()
 {
     // if the thread is running, we are connected
     // the thread will exit if there is a connection error
-    return isRunning();
+    return async_ ? isRunning() : (socket_ ? socket_->state() == QTcpSocket::ConnectedState : false);
 }
 
 bool DcSocket::queueMessage(QByteArray message)
@@ -78,6 +79,9 @@ bool DcSocket::queueMessage(QByteArray message)
         sendMessagesQueue_.push(message);
     }
 
+    if( !async_ )
+        sendMessage_();
+
     return true;
 }
 
@@ -91,7 +95,8 @@ void DcSocket::waitForAck(int count)
         return;
     }
 
-    ackSemaphore_.acquire(count);
+    if( async_ )
+        ackSemaphore_.acquire(count);
 }
 
 InteractionState DcSocket::getInteractionState()
@@ -99,6 +104,19 @@ InteractionState DcSocket::getInteractionState()
     QMutexLocker locker(&interactionStateMutex_);
 
     return interactionState_;
+}
+
+int DcSocket::socketDescriptor() const
+{
+    return socket_->socketDescriptor();
+}
+
+bool DcSocket::processInteractionMessage()
+{
+    MESSAGE_TYPE type;
+    if( !receiveMessage_( type ))
+        return false;
+    return type == MESSAGE_TYPE_INTERACTION;
 }
 
 bool DcSocket::connect(const char * hostname)
@@ -158,9 +176,10 @@ bool DcSocket::connect(const char * hostname)
     socket_->moveToThread(this);
 
     // start thread execution
-    start();
+    if( async_ )
+        start();
 
-    put_flog(LOG_INFO, "connected to to host %s", hostname);
+    put_flog(LOG_INFO, "connected to host %s", hostname);
 
     return true;
 }
@@ -174,12 +193,23 @@ void DcSocket::disconnect()
             disconnectFlag_ = true;
         }
 
-        // wait for thread to finish
-        bool success = wait();
-
-        if(success == false)
+        if( async_ )
         {
-            put_flog(LOG_ERROR, "thread did not finish");
+            // wait for thread to finish
+            bool success = wait();
+
+            if(success == false)
+            {
+                put_flog(LOG_ERROR, "thread did not finish");
+            }
+        }
+        else
+        {
+            // delete the socket
+            delete socket_;
+            socket_ = NULL;
+
+            put_flog(LOG_DEBUG, "finished");
         }
     }
 }
@@ -190,86 +220,17 @@ void DcSocket::run()
 
     while(true)
     {
-        // exit flag
-        bool exitFlag = false;
-
-        // send a message if available
-        QByteArray sendMessage;
-
-        {
-            QMutexLocker locker(&sendMessagesQueueMutex_);
-
-            if(sendMessagesQueue_.size() > 0)
-            {
-                sendMessage = sendMessagesQueue_.front();
-                sendMessagesQueue_.pop();
-            }
-        }
-
-        if(sendMessage.isEmpty() != true)
-        {
-            bool success = socketSendMessage(sendMessage);
-
-            if(success != true)
-            {
-                put_flog(LOG_ERROR, "error sending message");
-
-                exitFlag = true;
-            }
-        }
-
         // break here if we had a failure
-        if(exitFlag == true)
-        {
+        if( !sendMessage_( ))
             break;
-        }
 
-        // receive a message if available
-        socket_->waitForReadyRead(1);
-
-        if(socket_->bytesAvailable() >= (int)sizeof(MessageHeader))
-        {
-            MessageHeader messageHeader;
-            QByteArray message;
-
-            bool success = socketReceiveMessage(messageHeader, message);
-
-            if(success == true)
-            {
-                // handle the message
-                if(messageHeader.type == MESSAGE_TYPE_ACK)
-                {
-                    ackSemaphore_.release(1);
-                }
-                else if(messageHeader.type == MESSAGE_TYPE_INTERACTION)
-                {
-                    QMutexLocker locker(&interactionStateMutex_);
-                    interactionState_ = *(InteractionState *)(message.data());
-                }
-                else
-                {
-                    put_flog(LOG_ERROR, "unknown message header type");
-                }
-            }
-            else
-            {
-                put_flog(LOG_ERROR, "error receiving message");
-
-                exitFlag = true;
-            }
-        }
+        MESSAGE_TYPE type;
+        receiveMessage_( type );
 
         // make sure the socket is still connected
         if(socket_->state() != QAbstractSocket::ConnectedState)
         {
             put_flog(LOG_ERROR, "socket disconnected");
-
-            exitFlag = true;
-        }
-
-        // break here if we had a failure
-        if(exitFlag == true)
-        {
             break;
         }
 
@@ -292,6 +253,75 @@ void DcSocket::run()
     socket_ = NULL;
 
     put_flog(LOG_DEBUG, "finished");
+}
+
+bool DcSocket::sendMessage_()
+{
+    // send a message if available
+    QByteArray sendMessage;
+
+    {
+        QMutexLocker locker(&sendMessagesQueueMutex_);
+
+        if(sendMessagesQueue_.size() > 0)
+        {
+            sendMessage = sendMessagesQueue_.front();
+            sendMessagesQueue_.pop();
+        }
+    }
+
+    if(sendMessage.isEmpty() != true)
+    {
+        bool success = socketSendMessage(sendMessage);
+
+        if(success != true)
+        {
+            put_flog(LOG_ERROR, "error sending message");
+            return false;
+        }
+    }
+    return true;
+}
+
+bool DcSocket::receiveMessage_( MESSAGE_TYPE& type )
+{
+    type = MESSAGE_TYPE_NONE;
+
+    // receive a message if available
+    socket_->waitForReadyRead(1);
+
+    if(socket_->bytesAvailable() < (int)sizeof(MessageHeader))
+        return false;
+
+    MessageHeader messageHeader;
+    QByteArray message;
+
+    bool success = socketReceiveMessage(messageHeader, message);
+
+    if( !success )
+    {
+        put_flog(LOG_ERROR, "error receiving message");
+        return false;
+    }
+
+    type = messageHeader.type;
+
+    // handle the message
+    if(type == MESSAGE_TYPE_ACK)
+    {
+        ackSemaphore_.release(1);
+    }
+    else if(type == MESSAGE_TYPE_INTERACTION)
+    {
+        QMutexLocker locker(&interactionStateMutex_);
+        interactionState_ = *(InteractionState *)(message.data());
+    }
+    else
+    {
+        put_flog(LOG_ERROR, "unknown message header type");
+        return false;
+    }
+    return true;
 }
 
 bool DcSocket::socketSendMessage(QByteArray message)

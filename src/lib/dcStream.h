@@ -61,7 +61,7 @@ enum PIXEL_FORMAT { RGB=0, RGBA=1, ARGB=2, BGR=3, BGRA=4, ABGR=5 };
 // make a new connection to the DisplayCluster instance on hostname, and
 // returns a DcSocket. the user is responsible for closing the socket using
 // dcStreamDisconnect().
-extern DcSocket * dcStreamConnect(const char * hostname);
+extern DcSocket * dcStreamConnect(const char * hostname, bool async=true);
 
 // closes a previously opened connection, deleting the socket.
 extern void dcStreamDisconnect(DcSocket * socket);
@@ -113,5 +113,9 @@ extern bool dcStreamSendSVG(DcSocket * socket, std::string name, const char * sv
 extern bool dcStreamBindInteraction(DcSocket * socket, std::string name);
 
 extern InteractionState dcStreamGetInteractionState(DcSocket * socket);
+
+extern int dcSocketDescriptor(DcSocket * socket);
+
+extern bool dcProcessMessage(DcSocket * socket);
 
 #endif
