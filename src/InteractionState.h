@@ -10,6 +10,7 @@ struct InteractionState {
         EVT_DOUBLECLICK,
         EVT_MOVE,
         EVT_WHEEL,
+        EVT_CLOSE,
         EVT_NONE
     };
 
