@@ -1012,6 +1012,10 @@ void DisplayGroupManager::sendQuit()
     MessageHeader mh;
     mh.type = MESSAGE_TYPE_QUIT;
 
+    // will send EVT_CLOSE through InteractionState
+    std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers;
+    setContentWindowManagers( contentWindowManagers );
+
     // the header is sent via a send, so that we can probe it on the render processes
     for(int i=1; i<g_mpiSize; i++)
     {

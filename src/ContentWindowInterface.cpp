@@ -595,10 +595,6 @@ void ContentWindowInterface::close(ContentWindowInterface * source)
         return;
     }
 
-    InteractionState interactionState;
-    interactionState.type = InteractionState::EVT_CLOSE;
-    setInteractionState( interactionState );
-
     if(source == NULL || dynamic_cast<ContentWindowManager *>(this) != NULL)
     {
         if(source == NULL)

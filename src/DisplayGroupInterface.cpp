@@ -140,6 +140,10 @@ void DisplayGroupInterface::removeContentWindowManager(boost::shared_ptr<Content
         return;
     }
 
+    InteractionState interactionState;
+    interactionState.type = InteractionState::EVT_CLOSE;
+    contentWindowManager->setInteractionState( interactionState );
+
     // find vector entry for content window manager
     std::vector<boost::shared_ptr<ContentWindowManager> >::iterator it;
 
