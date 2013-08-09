@@ -87,9 +87,13 @@ if(BUILD_DISPLAYCLUSTER_LIBRARY)
         src/lib/dcStream.cpp
     )
 
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/lib/dcVersion.in.h
+      ${CMAKE_BINARY_DIR}/dcVersion.h)
+
     set(DISPLAYCLUSTER_LIBRARY_PUBLIC_HEADERS
         src/lib/dcStream.h
         src/InteractionState.h
+        ${CMAKE_BINARY_DIR}/dcVersion.h
     )
 
     add_library(DisplayClusterLibrary SHARED ${DISPLAYCLUSTER_LIBRARY_SRCS})
