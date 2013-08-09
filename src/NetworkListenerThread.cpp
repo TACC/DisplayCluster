@@ -256,6 +256,11 @@ void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArra
         ParallelPixelStreamSegmentParameters * parameters = (ParallelPixelStreamSegmentParameters *)(byteArray.data());
         segment.parameters = *parameters;
 
+        // just use a unique index for this stream in case the sender does not
+        // care or know about the index
+        if( segment.parameters.sourceIndex == -1 )
+            segment.parameters.sourceIndex = socketDescriptor_;
+
         // read image data
         QByteArray imageData = byteArray.right(byteArray.size() - sizeof(ParallelPixelStreamSegmentParameters));
         segment.imageData = imageData;

@@ -73,7 +73,7 @@ extern void dcStreamReset(DcSocket * socket);
 // (width, height). the origin (x, y) is relative to the full window represented
 // by all streams corresponding to <name>. totalWidth and totalHeight give the
 // full dimensions of the window.
-extern DcStreamParameters dcStreamGenerateParameters(std::string name, int sourceIndex, int x, int y, int width, int height, int totalWidth, int totalHeight);
+extern DcStreamParameters dcStreamGenerateParameters(std::string name, int x, int y, int width, int height, int totalWidth, int totalHeight);
 
 // generates a vector of parameter objects corresponding to segments contained
 // in (x, y, width, height). the parameters' dimensions will be approximately

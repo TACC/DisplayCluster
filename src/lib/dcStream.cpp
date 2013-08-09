@@ -133,7 +133,7 @@ void dcStreamReset(DcSocket * socket)
             int sourceIndex = j->second[k];
 
             // blank parameters object
-            DcStreamParameters parameters = dcStreamGenerateParameters(name, sourceIndex, 0, 0, 0, 0, 0, 0);
+            DcStreamParameters parameters = dcStreamGenerateParameters(name, sourceIndex, 0, 0, 0, 0, 0);
 
             // send the blank parameters object
             // this will trigger remote deletion of this segment
@@ -145,12 +145,12 @@ void dcStreamReset(DcSocket * socket)
     g_dcStreamSourceIndices.erase( i );
 }
 
-DcStreamParameters dcStreamGenerateParameters(std::string name, int sourceIndex, int x, int y, int width, int height, int totalWidth, int totalHeight)
+DcStreamParameters dcStreamGenerateParameters(std::string name, int x, int y, int width, int height, int totalWidth, int totalHeight)
 {
     DcStreamParameters parameters;
 
     parameters.name = name;
-    parameters.sourceIndex = sourceIndex;
+    parameters.sourceIndex = -1;   // let the library uniquify the index
     parameters.x = x;
     parameters.y = y;
     parameters.width = width;

@@ -179,7 +179,7 @@ void display()
     else
     {
         // use a single streaming segment for the full window
-        DcStreamParameters parameters = dcStreamGenerateParameters(dcStreamName, 0, 0,0,windowWidth,windowHeight, windowWidth,windowHeight);
+        DcStreamParameters parameters = dcStreamGenerateParameters(dcStreamName, 0,0,windowWidth,windowHeight, windowWidth,windowHeight);
 
         // finally, send it to DisplayCluster
         success = dcStreamSend(dcSocket, imageData, 0,0,windowWidth,0,windowHeight, RGBA, parameters);
