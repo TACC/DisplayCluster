@@ -310,7 +310,7 @@ bool NetworkListenerThread::bindInteraction()
     }
     else
     {
-        put_flog(LOG_WARN, "could not find window");
+        put_flog(LOG_DEBUG, "could not find window");
 
         return false;
     }
