@@ -596,7 +596,7 @@ void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
         interactionState.mouseY = (eventPos.y() - r.y()) / r.height();
 
         interactionState.mouseLeft = event->buttons().testFlag(Qt::LeftButton);
-        interactionState.mouseMiddle = event->buttons().testFlag(Qt::MiddleButton);
+        interactionState.mouseMiddle = event->buttons().testFlag(Qt::MidButton);
         interactionState.mouseRight = event->buttons().testFlag(Qt::RightButton);
         interactionState.type = InteractionState::EVT_MOVE;
 
@@ -630,7 +630,7 @@ void ContentWindowGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent * event
         interactionState.mouseY = (eventPos.y() - r.y()) / r.height();
 
         interactionState.mouseLeft = event->buttons().testFlag(Qt::LeftButton);
-        interactionState.mouseMiddle = event->buttons().testFlag(Qt::MiddleButton);
+        interactionState.mouseMiddle = event->buttons().testFlag(Qt::MidButton);
         interactionState.mouseRight = event->buttons().testFlag(Qt::RightButton);
         interactionState.type = InteractionState::EVT_PRESS;
 
@@ -743,7 +743,7 @@ void ContentWindowGraphicsItem::mouseReleaseEvent(QGraphicsSceneMouseEvent * eve
         interactionState.mouseY = (eventPos.y() - r.y()) / r.height();
 
         interactionState.mouseLeft = event->buttons().testFlag(Qt::LeftButton);
-        interactionState.mouseMiddle = event->buttons().testFlag(Qt::MiddleButton);
+        interactionState.mouseMiddle = event->buttons().testFlag(Qt::MidButton);
         interactionState.mouseRight = event->buttons().testFlag(Qt::RightButton);
         interactionState.type = InteractionState::EVT_RELEASE;
 
@@ -794,7 +794,7 @@ void ContentWindowGraphicsItem::wheelEvent(QGraphicsSceneWheelEvent * event)
         interactionState.mouseY = (eventPos.y() - r.y()) / r.height();
 
         interactionState.mouseLeft = event->buttons().testFlag(Qt::LeftButton);
-        interactionState.mouseMiddle = event->buttons().testFlag(Qt::MiddleButton);
+        interactionState.mouseMiddle = event->buttons().testFlag(Qt::MidButton);
         interactionState.mouseRight = event->buttons().testFlag(Qt::RightButton);
         interactionState.type = InteractionState::EVT_WHEEL;
         interactionState.dy = (double)event->delta() / 1440.;
