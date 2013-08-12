@@ -80,6 +80,8 @@ class ContentWindowGraphicsItem : public QGraphicsObject, public ContentWindowIn
         virtual void mouseDoubleClickEvent(QGraphicsSceneMouseEvent * event);
         virtual void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
         virtual void wheelEvent(QGraphicsSceneWheelEvent * event);
+        virtual void keyPressEvent(QKeyEvent *event);
+        virtual void keyReleaseEvent(QKeyEvent *event);
 
     private:
 

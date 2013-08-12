@@ -56,6 +56,7 @@ ContentWindowGraphicsItem::ContentWindowGraphicsItem(boost::shared_ptr<ContentWi
 
     // graphics items are movable
     setFlag(QGraphicsItem::ItemIsMovable, true);
+    setFlag(QGraphicsItem::ItemIsFocusable, true);
 
     // border based on if we're selected or not
     // use the -1 argument to force an update but not emit signals
@@ -801,4 +802,28 @@ void ContentWindowGraphicsItem::wheelEvent(QGraphicsSceneWheelEvent * event)
 
         setInteractionState(interactionState);
     }
+}
+
+void ContentWindowGraphicsItem::keyPressEvent(QKeyEvent *event)
+{
+    if(windowState_ != INTERACTION)
+        return;
+
+    InteractionState interactionState = interactionState_;
+    interactionState.type = InteractionState::EVT_KEY_PRESS;
+    interactionState.key = event->key();
+
+    setInteractionState(interactionState);
+}
+
+void ContentWindowGraphicsItem::keyReleaseEvent(QKeyEvent *event)
+{
+    if(windowState_ != INTERACTION)
+        return;
+
+    InteractionState interactionState = interactionState_;
+    interactionState.type = InteractionState::EVT_KEY_RELEASE;
+    interactionState.key = event->key();
+
+    setInteractionState(interactionState);
 }

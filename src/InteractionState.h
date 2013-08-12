@@ -11,12 +11,15 @@ struct InteractionState {
         EVT_MOVE,
         EVT_WHEEL,
         EVT_CLOSE,
+        EVT_KEY_PRESS,
+        EVT_KEY_RELEASE,
         EVT_NONE
     };
 
     double mouseX, mouseY, dx, dy;
     bool mouseLeft, mouseRight, mouseMiddle;
     EventType type;
+    int key;
 
     InteractionState()
     {
