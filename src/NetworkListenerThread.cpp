@@ -279,14 +279,15 @@ void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArra
 
         emit(updatedSVGStreamSource());
     }
-    else if(messageHeader.type == MESSAGE_TYPE_BIND_INTERACTION)
+    else if(messageHeader.type == MESSAGE_TYPE_BIND_INTERACTION ||
+            messageHeader.type == MESSAGE_TYPE_BIND_INTERACTION_EX )
     {
         std::string uri(messageHeader.uri);
 
         put_flog(LOG_INFO, "binding to %s", uri.c_str());
 
         interactionName_ = uri;
-
+        interactionExclusive_ = messageHeader.type == MESSAGE_TYPE_BIND_INTERACTION_EX;
         interactionBound_ = bindInteraction();
     }
 }
@@ -300,12 +301,22 @@ bool NetworkListenerThread::bindInteraction()
     {
         put_flog(LOG_DEBUG, "found window");
 
+        QMutexLocker locker( cwm->getInteractionBindMutex( ));
+
+        // if an interaction is already bound, don't bind this one if exclusive
+        // was requested
+        if( cwm->isInteractionBound() && interactionExclusive_ )
+        {
+            sendBindReply( false );
+            return false;
+        }
+
         // todo: disconnect any existing signal connections to the setInteractionState() slot
         // in case we're binding to another window in the same connection / socket
 
         // make connection to get interaction updates
-        connect(cwm.get(), SIGNAL(interactionStateChanged(InteractionState, ContentWindowInterface *)), this, SLOT(setInteractionState(InteractionState)), Qt::QueuedConnection);
-
+        cwm->bindInteraction( this, SLOT(setInteractionState(InteractionState)));
+        sendBindReply( true );
         return true;
     }
     else
@@ -314,6 +325,33 @@ bool NetworkListenerThread::bindInteraction()
 
         return false;
     }
+}
+
+void NetworkListenerThread::sendBindReply( bool successful )
+{
+    // send message header
+    MessageHeader mh;
+    mh.size = sizeof(bool);
+    mh.type = MESSAGE_TYPE_BIND_INTERACTION_REPLY;
+
+    int sent = tcpSocket_->write((const char *)&mh, sizeof(MessageHeader));
+
+    while(sent < (int)sizeof(MessageHeader))
+    {
+        sent += tcpSocket_->write((const char *)&mh + sent, sizeof(MessageHeader) - sent);
+    }
+
+    tcpSocket_->write((const char *)&successful, sizeof(bool));
+
+    // we want the message to be sent immediately
+    tcpSocket_->flush();
+
+    while(tcpSocket_->bytesToWrite() > 0)
+    {
+        tcpSocket_->waitForBytesWritten();
+    }
+
+    interactionName_.clear();
 }
 
 void NetworkListenerThread::sendInteractionState()

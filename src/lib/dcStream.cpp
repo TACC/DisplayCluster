@@ -482,7 +482,7 @@ bool dcStreamSendSVG(DcSocket * socket, std::string name, const char * svgData, 
     return success;
 }
 
-bool dcStreamBindInteraction(DcSocket * socket, std::string name)
+bool dcStreamBindInteraction(DcSocket * socket, std::string name, bool exclusive)
 {
     if(socket == NULL)
     {
@@ -504,7 +504,8 @@ bool dcStreamBindInteraction(DcSocket * socket, std::string name)
     // the message header
     MessageHeader mh;
     mh.size = 0;
-    mh.type = MESSAGE_TYPE_BIND_INTERACTION;
+    mh.type = exclusive ? MESSAGE_TYPE_BIND_INTERACTION_EX :
+                          MESSAGE_TYPE_BIND_INTERACTION;
 
     // add the truncated URI to the header
     size_t len = name.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
@@ -535,6 +536,11 @@ InteractionState dcStreamGetInteractionState(DcSocket * socket)
 int dcSocketDescriptor(DcSocket * socket)
 {
     return socket->socketDescriptor();
+}
+
+int dcStreamGetBindReply(DcSocket * socket)
+{
+    return socket->getInteractionBindReply();
 }
 
 bool dcHasNewInteractionState(DcSocket * socket)

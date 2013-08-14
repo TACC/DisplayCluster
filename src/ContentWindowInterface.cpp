@@ -43,6 +43,7 @@
 ContentWindowInterface::ContentWindowInterface(boost::shared_ptr<ContentWindowManager> contentWindowManager)
 {
     contentWindowManager_ = contentWindowManager;
+    boundInteractions_ = 0;
 
     // copy all members from contentWindowManager
     if(contentWindowManager != NULL)
@@ -604,4 +605,13 @@ void ContentWindowInterface::close(ContentWindowInterface * source)
 
         emit(closed(source));
     }
+}
+
+void ContentWindowInterface::bindInteraction( const QObject* receiver,
+                                              const char* slot )
+{
+    connect( this, SIGNAL(interactionStateChanged( InteractionState,
+                                                   ContentWindowInterface* )),
+             receiver, slot, Qt::QueuedConnection );
+    ++boundInteractions_;
 }

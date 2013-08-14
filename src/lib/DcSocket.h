@@ -64,6 +64,10 @@ class DcSocket : public QThread {
         // wait for count acks to be received
         void waitForAck(int count=1);
 
+        // -1 for no reply yet, 0 for not bound (if exclusive mode),
+        // 1 for successful bound
+        int getInteractionBindReply();
+
         InteractionState getInteractionState();
 
         int socketDescriptor() const;
@@ -90,6 +94,8 @@ class DcSocket : public QThread {
         // current interaction state
         QMutex interactionStateMutex_;
         InteractionState interactionState_;
+
+        QAtomicInt interactionReply_;
 
         // socket connections
         bool connect(const char * hostname);

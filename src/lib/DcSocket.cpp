@@ -42,6 +42,7 @@
 #include <QtNetwork/QTcpSocket>
 
 DcSocket::DcSocket(const char * hostname, bool async)
+    : interactionReply_( -1 )
 {
     // defaults
     socket_ = NULL;
@@ -97,6 +98,14 @@ void DcSocket::waitForAck(int count)
 
     if( async_ )
         ackSemaphore_.acquire(count);
+}
+
+int DcSocket::getInteractionBindReply()
+{
+    MESSAGE_TYPE type;
+    if( !receiveMessage_( type ))
+        return -1;
+    return interactionReply_;
 }
 
 InteractionState DcSocket::getInteractionState()
@@ -316,9 +325,13 @@ bool DcSocket::receiveMessage_( MESSAGE_TYPE& type )
         QMutexLocker locker(&interactionStateMutex_);
         interactionState_ = *(InteractionState *)(message.data());
     }
+    else if(type == MESSAGE_TYPE_BIND_INTERACTION_REPLY)
+    {
+        interactionReply_.fetchAndStoreAcquire( *(bool*)(message.data()) ? 1 : 0 );
+    }
     else
     {
-        put_flog(LOG_ERROR, "unknown message header type");
+        put_flog(LOG_ERROR, "unknown message header type %i", type);
         return false;
     }
     return true;

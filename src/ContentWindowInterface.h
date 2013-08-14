@@ -125,6 +125,12 @@ class ContentWindowInterface : public QObject {
 
         bool selected() const { return windowState_ == SELECTED; }
 
+        bool isInteractionBound() const { return boundInteractions_; }
+
+        void bindInteraction( const QObject* receiver, const char* slot );
+
+        QMutex* getInteractionBindMutex() { return &interactionBindMutex_; }
+
     public slots:
 
         // these methods set the local copies of the state variables if source != this
@@ -190,6 +196,9 @@ class ContentWindowInterface : public QObject {
         SizeState sizeState_;
 
         ControlState controlState_;
+
+        QMutex interactionBindMutex_;
+        int boundInteractions_;
 
         // highlighted timestamp
         boost::posix_time::ptime highlightedTimestamp_;
