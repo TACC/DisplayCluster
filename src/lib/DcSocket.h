@@ -66,7 +66,7 @@ class DcSocket : public QThread {
 
         // -1 for no reply yet, 0 for not bound (if exclusive mode),
         // 1 for successful bound
-        int getInteractionBindReply();
+        int hasInteraction();
 
         InteractionState getInteractionState();
 

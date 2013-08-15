@@ -70,6 +70,46 @@ int dcBytesPerPixel[] = { 3, 4, 4, 3, 4, 4 };
 
 DcImage dcStreamComputeJpegMapped(const DcImage & dcImage);
 
+bool streamBindInteraction_(DcSocket * socket, const std::string& name,
+                            bool exclusive)
+{
+    if(socket == NULL)
+    {
+        put_flog(LOG_ERROR, "socket is NULL");
+
+        return false;
+    }
+
+    if(socket->isConnected() != true)
+    {
+        put_flog(LOG_ERROR, "socket is not connected");
+
+        return false;
+    }
+
+    // this byte array will hold the entire message to be sent over the socket
+    QByteArray message;
+
+    // the message header
+    MessageHeader mh;
+    mh.size = 0;
+    mh.type = exclusive ? MESSAGE_TYPE_BIND_INTERACTION_EX :
+                          MESSAGE_TYPE_BIND_INTERACTION;
+
+    // add the truncated URI to the header
+    size_t len = name.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
+    mh.uri[len] = '\0';
+
+    message.append((const char *)&mh, sizeof(MessageHeader));
+
+    // queue the message to be sent
+    bool success = socket->queueMessage(message);
+
+    socket->waitForAck();
+
+    return success;
+}
+
 
 DcSocket * dcStreamConnect(const char * hostname, bool async)
 {
@@ -482,43 +522,14 @@ bool dcStreamSendSVG(DcSocket * socket, std::string name, const char * svgData, 
     return success;
 }
 
-bool dcStreamBindInteraction(DcSocket * socket, std::string name, bool exclusive)
+bool dcStreamBindInteraction(DcSocket * socket, std::string name)
 {
-    if(socket == NULL)
-    {
-        put_flog(LOG_ERROR, "socket is NULL");
+    return streamBindInteraction_( socket, name, false );
+}
 
-        return false;
-    }
-
-    if(socket->isConnected() != true)
-    {
-        put_flog(LOG_ERROR, "socket is not connected");
-
-        return false;
-    }
-
-    // this byte array will hold the entire message to be sent over the socket
-    QByteArray message;
-
-    // the message header
-    MessageHeader mh;
-    mh.size = 0;
-    mh.type = exclusive ? MESSAGE_TYPE_BIND_INTERACTION_EX :
-                          MESSAGE_TYPE_BIND_INTERACTION;
-
-    // add the truncated URI to the header
-    size_t len = name.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
-    mh.uri[len] = '\0';
-
-    message.append((const char *)&mh, sizeof(MessageHeader));
-
-    // queue the message to be sent
-    bool success = socket->queueMessage(message);
-
-    socket->waitForAck();
-
-    return success;
+bool dcStreamBindInteractionExclusive(DcSocket * socket, std::string name)
+{
+    return streamBindInteraction_( socket, name, true );
 }
 
 InteractionState dcStreamGetInteractionState(DcSocket * socket)
@@ -538,9 +549,9 @@ int dcSocketDescriptor(DcSocket * socket)
     return socket->socketDescriptor();
 }
 
-int dcStreamGetBindReply(DcSocket * socket)
+int dcStreamHasInteraction(DcSocket * socket)
 {
-    return socket->getInteractionBindReply();
+    return socket->hasInteraction();
 }
 
 bool dcHasNewInteractionState(DcSocket * socket)

@@ -97,7 +97,7 @@ class ContentWindowInterface : public QObject {
             INTERACTION   // interaction within the window may be forwarded to the content source
         };
 
-        ContentWindowInterface() { }
+        ContentWindowInterface() : boundInteractions_( 0 ) { }
         ContentWindowInterface(boost::shared_ptr<ContentWindowManager> contentWindowManager);
 
         boost::shared_ptr<ContentWindowManager> getContentWindowManager();
@@ -125,7 +125,7 @@ class ContentWindowInterface : public QObject {
 
         bool selected() const { return windowState_ == SELECTED; }
 
-        bool isInteractionBound() const { return boundInteractions_; }
+        bool isInteractionBound() const { return boundInteractions_ > 0; }
 
         void bindInteraction( const QObject* receiver, const char* slot );
 

@@ -40,10 +40,10 @@
 #include "ContentWindowManager.h"
 #include "main.h"
 
-ContentWindowInterface::ContentWindowInterface(boost::shared_ptr<ContentWindowManager> contentWindowManager)
+ContentWindowInterface::ContentWindowInterface(boost::shared_ptr<ContentWindowManager> contentWindowManager)\
+    : boundInteractions_( 0 )
 {
     contentWindowManager_ = contentWindowManager;
-    boundInteractions_ = 0;
 
     // copy all members from contentWindowManager
     if(contentWindowManager != NULL)

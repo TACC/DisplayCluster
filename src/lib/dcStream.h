@@ -110,8 +110,11 @@ extern void dcStreamIncrementFrameIndex();
 // streaming vector-based graphics.
 extern bool dcStreamSendSVG(DcSocket * socket, std::string name, const char * svgData, int svgSize);
 
-// exclusive binds only one stream source, check status with dcStreamGetBindReply()
-extern bool dcStreamBindInteraction(DcSocket * socket, std::string name, bool exclusive=false);
+extern bool dcStreamBindInteraction(DcSocket * socket, std::string name);
+
+// exclusive binds only one stream source for the same name,
+// check status with dcStreamHasInteraction()
+extern bool dcStreamBindInteractionExclusive(DcSocket * socket, std::string name);
 
 extern InteractionState dcStreamGetInteractionState(DcSocket * socket);
 
@@ -119,7 +122,7 @@ extern int dcSocketDescriptor(DcSocket * socket);
 
 // -1 for no reply yet, 0 for not bound (if exclusive mode),
 // 1 for successful bound
-extern int dcStreamGetBindReply(DcSocket * socket);
+extern int dcStreamHasInteraction(DcSocket * socket);
 
 extern bool dcHasNewInteractionState(DcSocket * socket);
 

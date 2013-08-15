@@ -100,7 +100,7 @@ void DcSocket::waitForAck(int count)
         ackSemaphore_.acquire(count);
 }
 
-int DcSocket::getInteractionBindReply()
+int DcSocket::hasInteraction()
 {
     MESSAGE_TYPE type;
     if( !receiveMessage_( type ))
