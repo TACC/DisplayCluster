@@ -36,6 +36,12 @@ else:
     print 'could not determine MPI rank!'
     exit(-4)
 
+# for RHEL: libjpegturbo is defaulted to /opt
+os.environ['LD_LIBRARY_PATH'] = '/opt/libjpeg-turbo/lib64' + os.pathsep + os.environ['LD_LIBRARY_PATH']
+
+# add our own lib folder
+os.environ['LD_LIBRARY_PATH'] += os.pathsep + dcPath + '/lib'
+
 if myRank == 0:
     # don't manipulate DISPLAY, just launch
     startCommand = dcPath + '/bin/displaycluster'

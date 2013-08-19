@@ -17,9 +17,6 @@ endif(COMMAND cmake_policy)
 # show all warnings
 set(CMAKE_CXX_FLAGS "-Wall")
 
-# keep the library path in installed executables
-SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-
 # build options
 option(BUILD_DISPLAYCLUSTER_LIBRARY "Build DisplayCluster library" OFF)
 option(BUILD_DESKTOPSTREAMER "Build DesktopStreamer application" OFF)
