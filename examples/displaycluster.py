@@ -36,12 +36,6 @@ else:
     print 'could not determine MPI rank!'
     exit(-4)
 
-# add our own lib folder
-if 'LD_LIBRARY_PATH' not in os.environ:
-    os.environ['LD_LIBRARY_PATH'] = dcPath + '/lib'
-else:
-    os.environ['LD_LIBRARY_PATH'] += os.pathsep + dcPath + '/lib'
-
 if myRank == 0:
     # don't manipulate DISPLAY, just launch
     startCommand = dcPath + '/bin/displaycluster'
