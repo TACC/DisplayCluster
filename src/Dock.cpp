@@ -93,6 +93,15 @@ ImageLoader::~ImageLoader()
 
 void ImageLoader::loadImage( const QString& fileName, const int index )
 {
+    if( fileName.endsWith( ".pyr" ))
+    {
+        QImageReader reader( fileName + "amid/0.jpg" );
+        QImage img = reader.read();
+        img.setText( "source", fileName );
+        flow_->setSlide( index, img );
+        return;
+    }
+
     QImageReader reader( fileName );
     if( reader.canRead( ))
     {
@@ -209,7 +218,7 @@ Dock::Dock()
         filters_.append( "*." + entry );
 
     filters_ << "*.mov" << "*.avi" << "*.mp4" << "*.mkv" << "*.mpg" << "*.flv"
-             << "*.wmv";
+             << "*.wmv" << "*.pyr";
 
     av_register_all();
 
@@ -317,7 +326,8 @@ void Dock::changeDirectory( const QString& dir )
     {
         QFileInfo fileInfo = dirList.at( i );
         const QString& fileName = currentDir_.absoluteFilePath( fileInfo.fileName( ));
-        addSlide_( fileName, fileInfo.fileName(), true, Qt::black, Qt::white );
+        if( !fileName.endsWith( ".pyramid" ))
+            addSlide_( fileName, fileInfo.fileName(), true, Qt::black, Qt::white );
     }
 
     flow_->setCenterIndex( slideIndex_[currentDir_.path()] );
