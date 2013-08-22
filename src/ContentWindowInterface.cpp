@@ -140,6 +140,44 @@ double ContentWindowInterface::getZoom()
     return zoom_;
 }
 
+void ContentWindowInterface::toggleWindowState()
+{
+    const CONTENT_TYPE type = getContentWindowManager()->getContent()->getType();
+
+    switch( type )
+    {
+    case CONTENT_TYPE_DYNAMIC_TEXTURE:
+    case CONTENT_TYPE_TEXTURE:
+    case CONTENT_TYPE_SVG:
+        windowState_ = windowState_ == UNSELECTED ? SELECTED : UNSELECTED;
+        break;
+
+    case CONTENT_TYPE_PIXEL_STREAM:
+    case CONTENT_TYPE_PARALLEL_PIXEL_STREAM:
+        windowState_ = windowState_ == UNSELECTED ? INTERACTION : UNSELECTED;
+        break;
+
+    case CONTENT_TYPE_MOVIE:
+    case CONTENT_TYPE_ANY:
+    default:
+        // move to next state
+        switch( windowState_ )
+        {
+        case UNSELECTED:
+            windowState_ = SELECTED;
+            break;
+        case SELECTED:
+            windowState_ = INTERACTION;
+            break;
+        case INTERACTION:
+            windowState_ = UNSELECTED;
+            break;
+        }
+    }
+
+    setWindowState( windowState_ );
+}
+
 ContentWindowInterface::WindowState ContentWindowInterface::getWindowState()
 {
     return windowState_;

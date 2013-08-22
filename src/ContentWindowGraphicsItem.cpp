@@ -348,7 +348,7 @@ void ContentWindowGraphicsItem::pan( PanGesture* gesture )
     if( getContentWindowManager()->getContent()->isDock( ))
     {
         const int offs = delta.x()/4;
-        g_dock->getFlow()->showSlide( g_dock->getFlow()->centerIndex() + offs );
+        g_dock->getFlow()->showSlide( g_dock->getFlow()->centerIndex() - offs );
         return;
     }
 
@@ -498,21 +498,7 @@ void ContentWindowGraphicsItem::tapAndHold( QTapAndHoldGesture* gesture )
     if( gesture->state() != Qt::GestureFinished )
         return;
 
-    // move to next state
-    switch( windowState_ )
-    {
-    case UNSELECTED:
-        windowState_ = SELECTED;
-        break;
-    case SELECTED:
-        windowState_ = INTERACTION;
-        break;
-    case INTERACTION:
-        windowState_ = UNSELECTED;
-        break;
-    }
-
-    setWindowState( windowState_ );
+    toggleWindowState();
 }
 
 void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
@@ -707,21 +693,7 @@ void ContentWindowGraphicsItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *
         return;
     }
 
-    // move to next state
-    switch(windowState_)
-    {
-        case UNSELECTED:
-            windowState_ = SELECTED;
-            break;
-        case SELECTED:
-            windowState_ = INTERACTION;
-            break;
-        case INTERACTION:
-            windowState_ = UNSELECTED;
-            break;
-    }
-
-    setWindowState(windowState_);
+    toggleWindowState();
 
     QGraphicsItem::mouseDoubleClickEvent(event);
 }

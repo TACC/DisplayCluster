@@ -113,9 +113,10 @@ class ContentWindowInterface : public QObject {
 
         void setControlState( const ControlState state ) { controlState_ = state; }
         ControlState getControlState() const { return controlState_; }
-
-        ContentWindowInterface::WindowState getWindowState();
         InteractionState getInteractionState();
+
+        void toggleWindowState();
+        ContentWindowInterface::WindowState getWindowState();
 
         // button dimensions
         void getButtonDimensions(float &width, float &height);
