@@ -39,6 +39,7 @@
 #include "Dock.h"
 #include "Pictureflow.h"
 #include "Content.h"
+#include "ContentFactory.h"
 #include "ContentWindowManager.h"
 #include "main.h"
 
@@ -213,13 +214,6 @@ void ImageLoader::loadImage( const QString& fileName, const int index )
 
 Dock::Dock()
 {
-    const QList<QByteArray>& imageFormats = QImageReader::supportedImageFormats();
-    foreach( const QByteArray entry, imageFormats )
-        filters_.append( "*." + entry );
-
-    filters_ << "*.mov" << "*.avi" << "*.mp4" << "*.mkv" << "*.mpg" << "*.flv"
-             << "*.wmv" << "*.pyr";
-
     av_register_all();
 
     flow_ = new PictureFlow;
@@ -276,7 +270,7 @@ void Dock::onItem()
 
     if( image.text( "dir" ).isEmpty( ))
     {
-        boost::shared_ptr< Content > c = Content::getContent( source.toStdString( ));
+        boost::shared_ptr< Content > c = ContentFactory::getContent( source.toStdString( ));
         if( c )
         {
             boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
@@ -297,7 +291,7 @@ void Dock::changeDirectory( const QString& dir )
 
     currentDir_ = dir;
     currentDir_.setFilter( QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot );
-    currentDir_.setNameFilters( filters_ );
+    currentDir_.setNameFilters( ContentFactory::getSupportedFilesFilter() );
     const QFileInfoList& fileList = currentDir_.entryInfoList();
 
     currentDir_.setFilter( QDir::Dirs | QDir::NoDotAndDotDot );

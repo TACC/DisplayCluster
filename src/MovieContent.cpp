@@ -48,6 +48,18 @@ CONTENT_TYPE MovieContent::getType()
     return CONTENT_TYPE_MOVIE;
 }
 
+const QStringList& MovieContent::getSupportedExtensions()
+{
+    static QStringList extensions;
+
+    if (extensions.empty())
+    {
+        extensions << "mov" << "avi" << "mp4" << "mkv" << "mpg" << "mpeg" << "flv" << "wmv";
+    }
+
+    return extensions;
+}
+
 void MovieContent::getFactoryObjectDimensions(int &width, int &height)
 {
     g_mainWindow->getGLWindow()->getMovieFactory().getObject(getURI())->getDimensions(width, height);

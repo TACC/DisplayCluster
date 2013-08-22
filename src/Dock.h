@@ -111,7 +111,6 @@ private:
     ImageLoader* loader_;
     QDir currentDir_;
     QPointF pos_;
-    QStringList filters_;
     QHash< QString, int > slideIndex_;
 
     void addSlide_( const QString& fileName, const QString& shortName,

@@ -52,6 +52,8 @@ class TextureContent : public Content {
 
         void getFactoryObjectDimensions(int &width, int &height);
 
+        static const QStringList& getSupportedExtensions();
+
     private:
         friend class boost::serialization::access;
 

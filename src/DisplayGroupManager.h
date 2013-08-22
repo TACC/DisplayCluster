@@ -60,6 +60,22 @@
     #include "SkeletonState.h"
 #endif
 
+
+// Serialize the QColor class via a free-function
+namespace boost {
+    namespace serialization {
+        template<class Archive>
+        void serialize(Archive & ar, QColor &color, const unsigned int version) {
+            unsigned char t;
+            t = color.red(); ar & t; color.setRed(t);
+            t = color.green(); ar & t; color.setGreen(t);
+            t = color.blue(); ar & t; color.setBlue(t);
+            t = color.alpha(); ar & t; color.setAlpha(t);
+        }
+    }
+}
+
+
 class ContentWindowManager;
 
 class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_shared_from_this<DisplayGroupManager> {
@@ -88,7 +104,16 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         // find the offset between the rank 0 clock and the rank 1 clock. recall the rank 1 clock is used across rank 1 - n.
         void calibrateTimestampOffset();
 
-    public slots:
+        // background content
+        void setBackgroundContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager);
+        boost::shared_ptr<ContentWindowManager> getBackgroundContentWindowManager() const;
+
+        // background
+        void initBackground();
+        QColor getBackgroundColor() const;
+        void setBackgroundColor(QColor color);
+
+public slots:
 
         // this can be invoked from other threads to construct a DisplayGroupInterface and move it to that thread
         boost::shared_ptr<DisplayGroupInterface> getDisplayGroupInterface(QThread * thread);
@@ -122,11 +147,17 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
             ar & options_;
             ar & markers_;
             ar & contentWindowManagers_;
+            ar & backgroundContent_;
+            ar & backgroundColor_;
 
 #if ENABLE_SKELETON_SUPPORT
             ar & skeletons_;
 #endif
         }
+
+        // background
+        boost::shared_ptr<ContentWindowManager> backgroundContent_;
+        QColor backgroundColor_;
 
         // options
         boost::shared_ptr<Options> options_;

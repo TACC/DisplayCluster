@@ -47,6 +47,7 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/assume_abstract.hpp>
+#include "ContentFactory.h"
 
 enum CONTENT_TYPE
 {
@@ -83,9 +84,6 @@ class Content : public QObject {
         // useful when a process has multiple GLWindows
         virtual void advance(boost::shared_ptr<ContentWindowManager>) { }
 
-        // get a Content object of the appropriate derived type based on the URI given
-        static boost::shared_ptr<Content> getContent(std::string uri);
-
     signals:
 
         void dimensionsChanged(int width, int height);
@@ -121,7 +119,7 @@ class pyContent {
 
         pyContent(const char * str)
         {
-            boost::shared_ptr<Content> c(Content::getContent(std::string(str)));
+            boost::shared_ptr<Content> c(ContentFactory::getContent(std::string(str)));
             ptr_ = c;
         }
 

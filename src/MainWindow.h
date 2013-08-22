@@ -49,6 +49,7 @@
 #include <boost/shared_ptr.hpp>
 
 class MultiTouchListener;
+class BackgroundWidget;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -82,6 +83,8 @@ class MainWindow : public QMainWindow {
 
         void finalize();
 
+        void showBackgroundWidget();
+
     signals:
 
         void updateGLWindowsFinished();
@@ -92,6 +95,7 @@ class MainWindow : public QMainWindow {
 #endif
 
     private:
+        void addContent(const QString &filename);
 
         std::vector<boost::shared_ptr<GLWindow> > glWindows_;
         boost::shared_ptr<GLWindow> activeGLWindow_;
@@ -104,6 +108,7 @@ class MainWindow : public QMainWindow {
 #if ENABLE_TUIO_TOUCH_LISTENER
         MultiTouchListener* touchListener_;
 #endif
+        BackgroundWidget* backgroundWidget_;
 };
 
 #endif

@@ -39,10 +39,12 @@
 #include "MainWindow.h"
 #include "main.h"
 #include "Content.h"
+#include "ContentFactory.h"
 #include "ContentWindowManager.h"
 #include "log.h"
 #include "DisplayGroupGraphicsViewProxy.h"
 #include "DisplayGroupListWidgetProxy.h"
+#include "BackgroundWidget.h"
 
 #if ENABLE_PYTHON_SUPPORT
     #include "PythonConsole.h"
@@ -57,6 +59,7 @@
 #endif
 
 MainWindow::MainWindow()
+: backgroundWidget_(0)
 {
     // defaults
     constrainAspectRatio_ = true;
@@ -118,6 +121,11 @@ MainWindow::MainWindow()
         QAction * computeImagePyramidAction = new QAction("Compute Image Pyramid", this);
         computeImagePyramidAction->setStatusTip("Compute image pyramid");
         connect(computeImagePyramidAction, SIGNAL(triggered()), this, SLOT(computeImagePyramid()));
+
+        // load background content action
+        QAction * backgroundAction = new QAction("Background", this);
+        backgroundAction->setStatusTip("Select the background color and content");
+        connect(backgroundAction, SIGNAL(triggered()), this, SLOT(showBackgroundWidget()));
 
 #if ENABLE_PYTHON_SUPPORT
         // Python console action
@@ -235,6 +243,7 @@ MainWindow::MainWindow()
         fileMenu->addAction(loadStateAction);
         fileMenu->addAction(computeImagePyramidAction);
         fileMenu->addAction(quitAction);
+        viewMenu->addAction(backgroundAction);
         viewMenu->addAction(constrainAspectRatioAction);
         viewMenu->addAction(showWindowBordersAction);
         viewMenu->addAction(showMouseCursorAction);
@@ -263,6 +272,7 @@ MainWindow::MainWindow()
         toolbar->addAction(saveStateAction);
         toolbar->addAction(loadStateAction);
         toolbar->addAction(computeImagePyramidAction);
+        toolbar->addAction(backgroundAction);
 #if ENABLE_PYTHON_SUPPORT
         toolbar->addAction(pythonConsoleAction);
 #endif
@@ -389,28 +399,33 @@ std::vector<boost::shared_ptr<GLWindow> > MainWindow::getGLWindows()
     return glWindows_;
 }
 
+void MainWindow::addContent(const QString& filename)
+{
+    boost::shared_ptr<Content> c = ContentFactory::getContent(filename.toStdString());
+
+    if(c != NULL)
+    {
+        boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
+
+        g_displayGroupManager->addContentWindowManager(cwm);
+
+        cwm->adjustSize( SIZE_1TO1 );
+    }
+    else
+    {
+        QMessageBox messageBox;
+        messageBox.setText("Unsupported file format.");
+        messageBox.exec();
+    }
+}
+
 void MainWindow::openContent()
 {
-    QString filename = QFileDialog::getOpenFileName(this);
+    QString filename = QFileDialog::getOpenFileName(this, tr("Choose content"), QString(), ContentFactory::getSupportedFilesFilterAsString());
 
     if(!filename.isEmpty())
     {
-        boost::shared_ptr<Content> c = Content::getContent(filename.toStdString());
-
-        if(c != NULL)
-        {
-            boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
-
-            g_displayGroupManager->addContentWindowManager(cwm);
-
-            cwm->adjustSize( SIZE_1TO1 );
-        }
-        else
-        {
-            QMessageBox messageBox;
-            messageBox.setText("Unsupported file format.");
-            messageBox.exec();
-        }
+        addContent(filename);
     }
 }
 
@@ -427,6 +442,7 @@ void MainWindow::openContentsDirectory()
     {
         QDir directory(directoryName);
         directory.setFilter(QDir::Files);
+        directory.setNameFilters( ContentFactory::getSupportedFilesFilter() );
 
         QFileInfoList list = directory.entryInfoList();
 
@@ -436,7 +452,7 @@ void MainWindow::openContentsDirectory()
         {
             QFileInfo fileInfo = list.at(i);
 
-            boost::shared_ptr<Content> c = Content::getContent(fileInfo.absoluteFilePath().toStdString());
+            boost::shared_ptr<Content> c = ContentFactory::getContent(fileInfo.absoluteFilePath().toStdString());
 
             if(c != NULL)
             {
@@ -459,6 +475,19 @@ void MainWindow::openContentsDirectory()
             }
         }
     }
+}
+
+void MainWindow::showBackgroundWidget()
+{
+    assert(g_mpiRank == 0 && "Background widget is intended only for rank 0 application");
+
+    if(!backgroundWidget_)
+    {
+        backgroundWidget_ = new BackgroundWidget(this);
+        backgroundWidget_->setModal(true);
+    }
+
+    backgroundWidget_->show();
 }
 
 void MainWindow::clearContents()

@@ -40,7 +40,12 @@
 #include "log.h"
 #include "main.h"
 
+#include <QDomElement>
+#include <fstream>
+
 Configuration::Configuration(const char * filename)
+: filename_(filename)
+, backgroundColor_(Qt::black)
 {
     put_flog(LOG_INFO, "loading %s", filename);
 
@@ -92,6 +97,8 @@ Configuration::Configuration(const char * filename)
         fullscreen_ = 0;
     }
 
+    put_flog(LOG_INFO, "dimensions: numTilesWidth = %i, numTilesHeight = %i, screenWidth = %i, screenHeight = %i, mullionWidth = %i, mullionHeight = %i. fullscreen = %i", numTilesWidth_, numTilesHeight_, screenWidth_, screenHeight_, mullionWidth_, mullionHeight_, fullscreen_);
+
     // dock start directory
     query_.setQuery("string(/configuration/dock/@directory)");
     query_.evaluateTo(&dockStartDir_);
@@ -99,7 +106,20 @@ Configuration::Configuration(const char * filename)
     if( dockStartDir_.isEmpty( ))
         dockStartDir_ = QDir::homePath();
 
-    put_flog(LOG_INFO, "dimensions: numTilesWidth = %i, numTilesHeight = %i, screenWidth = %i, screenHeight = %i, mullionWidth = %i, mullionHeight = %i. fullscreen = %i", numTilesWidth_, numTilesHeight_, screenWidth_, screenHeight_, mullionWidth_, mullionHeight_, fullscreen_);
+    // Background content URI
+    query_.setQuery("string(/configuration/background/@uri)");
+    query_.evaluateTo(&backgroundUri_);
+    backgroundUri_.remove(QRegExp("[\\n\\t\\r]"));
+
+    // Background color
+    query_.setQuery("string(/configuration/background/@color)");
+    if (query_.evaluateTo(&qstring))
+    {
+        qstring.remove(QRegExp("[\\n\\t\\r]"));
+        backgroundColor_.setNamedColor(qstring);
+        if(!backgroundColor_.isValid())
+            backgroundColor_ = Qt::black;
+    }
 
     // get tile parameters (if we're not rank 0)
     if(g_mpiRank > 0)
@@ -234,6 +254,61 @@ std::string Configuration::getMyDisplay()
 QString Configuration::getDockStartDir() const
 {
     return dockStartDir_;
+}
+
+QString Configuration::getBackgroundUri() const
+{
+    return backgroundUri_;
+}
+
+QColor Configuration::getBackgroundColor() const
+{
+    return backgroundColor_;
+}
+
+void Configuration::setBackgroundColor(const QColor &color)
+{
+    backgroundColor_ = color;
+}
+
+void Configuration::setBackgroundUri(const QString& uri)
+{
+    backgroundUri_ = uri;
+}
+
+bool Configuration::save()
+{
+    QDomDocument doc("XmlDoc");
+    QFile file(filename_);
+    if (!file.open(QIODevice::ReadOnly))
+    {
+        put_flog(LOG_ERROR, "could not open configuration xml file for saving");
+        return false;
+    }
+    doc.setContent(&file);
+    file.close();
+
+    QDomElement root = doc.documentElement();
+
+    QDomElement background = root.firstChildElement("background");
+    if (background.isNull())
+    {
+        background = doc.createElement("background");
+        root.appendChild(background);
+    }
+    background.setAttribute("uri", backgroundUri_);
+    background.setAttribute("color", backgroundColor_.name());
+
+    QString xml = doc.toString(4);
+    std::ofstream ofs(filename_.toStdString().c_str());
+
+    if(ofs.good())
+    {
+        ofs << xml.toStdString();
+        return true;
+    }
+    put_flog(LOG_ERROR, "could not write xml configuration file");
+    return false;
 }
 
 int Configuration::getMyNumTiles()
