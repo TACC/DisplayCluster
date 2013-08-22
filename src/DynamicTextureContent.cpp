@@ -47,6 +47,22 @@ CONTENT_TYPE DynamicTextureContent::getType()
     return CONTENT_TYPE_DYNAMIC_TEXTURE;
 }
 
+const QStringList& DynamicTextureContent::getSupportedExtensions()
+{
+    static QStringList extensions;
+
+    if (extensions.empty())
+    {
+        extensions << "pyr";
+
+        const QList<QByteArray>& imageFormats = QImageReader::supportedImageFormats();
+        foreach( const QByteArray entry, imageFormats )
+            extensions << entry;
+    }
+
+    return extensions;
+}
+
 void DynamicTextureContent::advance(boost::shared_ptr<ContentWindowManager> window)
 {
     if( blockAdvance_ )

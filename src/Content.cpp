@@ -38,10 +38,6 @@
 
 #include "Content.h"
 #include "ContentWindowManager.h"
-#include "TextureContent.h"
-#include "DynamicTextureContent.h"
-#include "SVGContent.h"
-#include "MovieContent.h"
 #include "main.h"
 #include "GLWindow.h"
 #include "log.h"
@@ -167,77 +163,4 @@ void Content::render(boost::shared_ptr<ContentWindowManager> window)
     }
 
     glPopMatrix();
-}
-
-boost::shared_ptr<Content> Content::getContent(std::string uri)
-{
-    // make sure file exists; otherwise use error image
-    if(QFile::exists(uri.c_str()) != true)
-    {
-        put_flog(LOG_ERROR, "could not find file %s", uri.c_str());
-
-        std::string errorImageFilename = std::string(g_displayClusterDir) + std::string("/data/") + std::string(ERROR_IMAGE_FILENAME);
-        boost::shared_ptr<Content> c(new TextureContent(errorImageFilename));
-
-        return c;
-    }
-
-    // convert to lower case for case-insensitivity in determining file type
-    QString fileTypeString = QString::fromStdString(uri).toLower();
-
-    // see if this is an image
-    QImageReader imageReader(uri.c_str());
-
-    // see if this is an SVG image (must do this first, since SVG can also be read as an image directly)
-    if(fileTypeString.endsWith(".svg"))
-    {
-        boost::shared_ptr<Content> c(new SVGContent(uri));
-
-        return c;
-    }
-    else if(imageReader.canRead() == true)
-    {
-        // get its size
-        QSize size = imageReader.size();
-
-        // small images will use Texture; larger images will use DynamicTexture
-        boost::shared_ptr<Content> c;
-
-        if(size.width() <= 4096 && size.height() <= 4096)
-        {
-            boost::shared_ptr<Content> temp(new TextureContent(uri));
-            c = temp;
-        }
-        else
-        {
-            boost::shared_ptr<Content> temp(new DynamicTextureContent(uri));
-            c = temp;
-        }
-
-        // set the size if valid
-        if(size.isValid() == true)
-        {
-            c->setDimensions(size.width(), size.height());
-        }
-
-        return c;
-    }
-    // see if this is a movie
-    // todo: need a better way to determine file type
-    else if(fileTypeString.endsWith(".mov") || fileTypeString.endsWith(".avi") || fileTypeString.endsWith(".mp4") || fileTypeString.endsWith(".mkv") || fileTypeString.endsWith(".mpg") || fileTypeString.endsWith(".flv") || fileTypeString.endsWith(".wmv"))
-    {
-        boost::shared_ptr<Content> c(new MovieContent(uri));
-
-        return c;
-    }
-    // see if this is an image pyramid
-    else if(fileTypeString.endsWith(".pyr"))
-    {
-        boost::shared_ptr<Content> c(new DynamicTextureContent(uri));
-
-        return c;
-    }
-
-    // otherwise, return NULL
-    return boost::shared_ptr<Content>();
 }

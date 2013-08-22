@@ -38,6 +38,7 @@
 
 #include "DisplayGroupManager.h"
 #include "ContentWindowManager.h"
+#include "ContentFactory.h"
 #include "Content.h"
 #include "main.h"
 #include "log.h"
@@ -239,6 +240,57 @@ void DisplayGroupManager::calibrateTimestampOffset()
 
         put_flog(LOG_DEBUG, "timestamp offset = %s", (boost::posix_time::to_simple_string(timestampOffset_)).c_str());
     }
+}
+
+void DisplayGroupManager::setBackgroundContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager)
+{
+    // This method can be used to remove the background by sending a NULL ptr
+    if (contentWindowManager != NULL)
+    {
+        // set display group in content window manager object
+        contentWindowManager->setDisplayGroupManager(shared_from_this());
+        contentWindowManager->adjustSize( SIZE_FULLSCREEN );
+    }
+
+    backgroundContent_ = contentWindowManager;
+
+    sendDisplayGroup();
+}
+
+boost::shared_ptr<ContentWindowManager> DisplayGroupManager::getBackgroundContentWindowManager() const
+{
+    return backgroundContent_;
+}
+
+void DisplayGroupManager::initBackground()
+{
+    assert(g_configuration != NULL && "initBackground() needs a valid configuration file loaded");
+
+    backgroundColor_ = g_configuration->getBackgroundColor();
+
+    if(!g_configuration->getBackgroundUri().isEmpty())
+    {
+        boost::shared_ptr<Content> c = ContentFactory::getContent(g_configuration->getBackgroundUri().toStdString());
+
+        if(c != NULL)
+        {
+            boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
+            g_displayGroupManager->setBackgroundContentWindowManager(cwm);
+        }
+    }
+}
+
+QColor DisplayGroupManager::getBackgroundColor() const
+{
+    return backgroundColor_;
+}
+
+void DisplayGroupManager::setBackgroundColor(QColor color)
+{
+    if(color == backgroundColor_)
+        return;
+    backgroundColor_ = color;
+    sendDisplayGroup();
 }
 
 boost::shared_ptr<DisplayGroupInterface> DisplayGroupManager::getDisplayGroupInterface(QThread * thread)
@@ -452,7 +504,7 @@ bool DisplayGroupManager::loadStateXMLFile(std::string filename)
             zoom = qstring.toDouble();
         }
 
-        boost::shared_ptr<Content> c = Content::getContent(uri);
+        boost::shared_ptr<Content> c = ContentFactory::getContent(uri);
 
         if(c != NULL)
         {
@@ -1030,6 +1082,10 @@ void DisplayGroupManager::advanceContents()
     for(unsigned int i=0; i<contentWindowManagers_.size(); i++)
     {
         contentWindowManagers_[i]->getContent()->advance(contentWindowManagers_[i]);
+    }
+    if (backgroundContent_)
+    {
+        backgroundContent_->getContent()->advance(backgroundContent_);
     }
 }
 

@@ -61,6 +61,8 @@ class Configuration {
         std::string getMyHost();
         std::string getMyDisplay();
         QString getDockStartDir() const;
+        QString getBackgroundUri() const;
+        QColor getBackgroundColor() const;
 
         int getMyNumTiles();
         int getTileX(int i);
@@ -68,8 +70,12 @@ class Configuration {
         int getTileI(int i);
         int getTileJ(int i);
 
-    private:
+        void setBackgroundColor(const QColor &color);
+        void setBackgroundUri(const QString &uri);
 
+        bool save();
+private:
+        QString filename_;
         QXmlQuery query_;
 
         int numTilesWidth_;
@@ -83,6 +89,8 @@ class Configuration {
         std::string host_;
         std::string display_;
         QString dockStartDir_;
+        QString backgroundUri_;
+        QColor backgroundColor_;
 
         int myNumTiles_;
         std::vector<int> tileX_;

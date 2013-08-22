@@ -47,6 +47,20 @@ CONTENT_TYPE TextureContent::getType()
     return CONTENT_TYPE_TEXTURE;
 }
 
+const QStringList& TextureContent::getSupportedExtensions()
+{
+    static QStringList extensions;
+
+    if (extensions.empty())
+    {
+        const QList<QByteArray>& imageFormats = QImageReader::supportedImageFormats();
+        foreach( const QByteArray entry, imageFormats )
+            extensions << entry;
+    }
+
+    return extensions;
+}
+
 void TextureContent::getFactoryObjectDimensions(int &width, int &height)
 {
     g_mainWindow->getGLWindow()->getTextureFactory().getObject(getURI())->getDimensions(width, height);

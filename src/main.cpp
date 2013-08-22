@@ -147,6 +147,11 @@ int main(int argc, char * argv[])
 
     g_mainWindow = new MainWindow();
 
+    if(g_mpiRank == 0)
+    {
+        g_displayGroupManager->initBackground(); // Must be done after everything else is setup (or in the MainWindow constructor)
+    }
+
     // enter Qt event loop
     g_app->exec();
 

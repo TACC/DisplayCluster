@@ -214,8 +214,10 @@ if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
     include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
     list(APPEND SRCS
+        src/BackgroundWidget.cpp
         src/Configuration.cpp
         src/Content.cpp
+        src/ContentFactory.cpp
         src/ContentWindowManager.cpp
         src/ContentWindowInterface.cpp
         src/ContentWindowGraphicsItem.cpp
@@ -254,6 +256,7 @@ if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
     )
 
     list(APPEND MOC_HEADERS
+        src/BackgroundWidget.h
         src/Content.h
         src/ContentWindowInterface.h
         src/DisplayGroupManager.h

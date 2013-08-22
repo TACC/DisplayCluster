@@ -47,6 +47,18 @@ CONTENT_TYPE SVGContent::getType()
     return CONTENT_TYPE_SVG;
 }
 
+const QStringList& SVGContent::getSupportedExtensions()
+{
+    static QStringList extensions;
+
+    if (extensions.empty())
+    {
+        extensions << "svg";
+    }
+
+    return extensions;
+}
+
 void SVGContent::getFactoryObjectDimensions(int &width, int &height)
 {
     g_mainWindow->getGLWindow()->getSVGFactory().getObject(getURI())->getDimensions(width, height);

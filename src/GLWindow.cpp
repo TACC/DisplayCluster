@@ -147,6 +147,18 @@ void GLWindow::paintGL()
         return;
     }
 
+    // Render background content window
+    boost::shared_ptr<ContentWindowManager> backgroundContentWindowManager = g_displayGroupManager->getBackgroundContentWindowManager();
+    if (backgroundContentWindowManager != NULL)
+    {
+        glPushMatrix();
+        glTranslatef(0.,0.,-0.999);
+
+        backgroundContentWindowManager->render();
+
+        glPopMatrix();
+    }
+
     // render content windows
     std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers = g_displayGroupManager->getContentWindowManagers();
 
@@ -269,7 +281,8 @@ void GLWindow::setOrthographicView()
     glMatrixMode(GL_MODELVIEW); 
     glLoadIdentity();	
 
-    glClearColor(0,0,0,0);
+    QColor color = g_displayGroupManager->getBackgroundColor();
+    glClearColor(color.redF(), color.greenF(), color.blueF(), color.alpha());
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
