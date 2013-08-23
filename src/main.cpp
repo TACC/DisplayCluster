@@ -147,6 +147,9 @@ int main(int argc, char * argv[])
 
     g_mainWindow = new MainWindow();
 
+    // wait for render comms to be ready for receiving and rendering background
+    MPI_Barrier(MPI_COMM_WORLD);
+
     if(g_mpiRank == 0)
     {
         g_displayGroupManager->initBackground(); // Must be done after everything else is setup (or in the MainWindow constructor)

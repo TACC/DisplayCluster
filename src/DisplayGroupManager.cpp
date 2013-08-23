@@ -278,6 +278,8 @@ void DisplayGroupManager::initBackground()
             g_displayGroupManager->setBackgroundContentWindowManager(cwm);
         }
     }
+    else
+        sendDisplayGroup();
 }
 
 QColor DisplayGroupManager::getBackgroundColor() const
@@ -1115,14 +1117,8 @@ void DisplayGroupManager::receiveDisplayGroup(MessageHeader messageHeader)
         exit(-1);
     }
 
-    // read to a new display group
-    boost::shared_ptr<DisplayGroupManager> displayGroupManager;
-
     boost::archive::binary_iarchive ia(iss);
-    ia >> displayGroupManager;
-
-    // overwrite old display group
-    g_displayGroupManager = displayGroupManager;
+    ia >> g_displayGroupManager;
 
     // free mpi buffer
     delete [] buf;
