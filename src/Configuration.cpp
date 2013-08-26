@@ -41,7 +41,6 @@
 #include "main.h"
 
 #include <QDomElement>
-#include <fstream>
 
 Configuration::Configuration(const char * filename)
 : filename_(filename)
@@ -116,9 +115,11 @@ Configuration::Configuration(const char * filename)
     if (query_.evaluateTo(&qstring))
     {
         qstring.remove(QRegExp("[\\n\\t\\r]"));
-        backgroundColor_.setNamedColor(qstring);
-        if(!backgroundColor_.isValid())
-            backgroundColor_ = Qt::black;
+
+        if(QColor::isValidColor(qstring))
+        {
+            backgroundColor_.setNamedColor(qstring);
+        }
     }
 
     // get tile parameters (if we're not rank 0)
@@ -299,16 +300,15 @@ bool Configuration::save()
     background.setAttribute("uri", backgroundUri_);
     background.setAttribute("color", backgroundColor_.name());
 
-    QString xml = doc.toString(4);
-    std::ofstream ofs(filename_.toStdString().c_str());
-
-    if(ofs.good())
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
     {
-        ofs << xml.toStdString();
-        return true;
+        put_flog(LOG_ERROR, "could not open configuration xml file for saving");
+        return false;
     }
-    put_flog(LOG_ERROR, "could not write xml configuration file");
-    return false;
+    QTextStream out(&file);
+    out << doc.toString(4);
+    file.close();
+    return true;
 }
 
 int Configuration::getMyNumTiles()
