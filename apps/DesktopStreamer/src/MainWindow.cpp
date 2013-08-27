@@ -293,7 +293,10 @@ void MainWindow::showDesktopSelectionWindow(bool set)
 
 void MainWindow::setParallelStreaming(bool set)
 {
+    if( set == parallelStreaming_ )
+        return;
     parallelStreaming_ = set;
+    sendQuit();
 }
 
 void MainWindow::shareDesktopUpdate()
@@ -336,8 +339,11 @@ void MainWindow::shareDesktopUpdate()
     // render mouse cursor
     QPoint mousePos = ( QCursor::pos() - QPoint( x_, y_ )) * deviceScale_ -
         QPoint( cursor_.width()/2, cursor_.height()/2);
-    QPainter painter( &image_ );
-    painter.drawImage( mousePos, cursor_ );
+
+    {
+        QPainter painter( &image_ );
+        painter.drawImage( mousePos, cursor_ );
+    }
 
     bool success;
 
