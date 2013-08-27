@@ -72,9 +72,9 @@ MainWindow::MainWindow()
 #if ENABLE_PYTHON_SUPPORT
         PythonConsole::init();
 #endif
-
         // rank 0 window setup
         resize(800,600);
+        setAcceptDrops(true);
 
         // create menus in menu bar
         QMenu * fileMenu = menuBar()->addMenu("&File");
@@ -429,51 +429,78 @@ void MainWindow::openContent()
     }
 }
 
+void MainWindow::estimateGridSize(unsigned int numElem, int &gridX, int &gridY)
+{
+    gridX = (int)(ceil(sqrt(numElem)));
+    gridY = (gridX*(gridX-1)>=(int)numElem) ? gridX-1 : gridX;
+}
+
+void MainWindow::addContentDirectory(const QString& directoryName, int gridX, int gridY)
+{
+    QDir directory(directoryName);
+    directory.setFilter(QDir::Files);
+    directory.setNameFilters( ContentFactory::getSupportedFilesFilter() );
+
+    QFileInfoList list = directory.entryInfoList();
+
+    // Prevent opening of folders with an excessively large number of items
+    if (list.size() > 16)
+    {
+        QString msg = "Opening this folder will create " + QString::number(list.size()) + " content elements. Are you sure you want to continue?";
+        QMessageBox::StandardButton reply = QMessageBox::question(this, "Warning", msg, QMessageBox::Yes|QMessageBox::No);
+        if (reply != QMessageBox::Yes)
+            return;
+    }
+
+    // If the grid size is unspecified, compute one large enough to hold all the elements
+    if (gridX <= 0 || gridY <= 0)
+    {
+        estimateGridSize(list.size(), gridX, gridY);
+    }
+
+    float w = 1./(float)gridX;
+    float h = 1./(float)gridY;
+
+    int contentIndex = 0;
+
+    for(int i=0; i<list.size() && contentIndex < gridX*gridY; i++)
+    {
+        QFileInfo fileInfo = list.at(i);
+
+        boost::shared_ptr<Content> c = ContentFactory::getContent(fileInfo.absoluteFilePath().toStdString());
+
+        if(c != NULL)
+        {
+            boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
+
+            g_displayGroupManager->addContentWindowManager(cwm);
+
+            int x = contentIndex % gridX;
+            int y = contentIndex / gridX;
+
+            cwm->setCoordinates(x*w, y*h, w, h);
+
+            contentIndex++;
+
+            put_flog(LOG_DEBUG, "added file %s", fileInfo.absoluteFilePath().toStdString().c_str());
+        }
+        else
+        {
+            put_flog(LOG_DEBUG, "ignoring unsupported file %s", fileInfo.absoluteFilePath().toStdString().c_str());
+        }
+    }
+}
+
 void MainWindow::openContentsDirectory()
 {
     QString directoryName = QFileDialog::getExistingDirectory(this);
 
-    int gridX = QInputDialog::getInt(this, "Grid X dimension", "Grid X dimension");
-    int gridY = QInputDialog::getInt(this, "Grid Y dimension", "Grid Y dimension");
-    float w = 1./(float)gridX;
-    float h = 1./(float)gridY;
-
     if(!directoryName.isEmpty())
     {
-        QDir directory(directoryName);
-        directory.setFilter(QDir::Files);
-        directory.setNameFilters( ContentFactory::getSupportedFilesFilter() );
+        int gridX = QInputDialog::getInt(this, "Grid X dimension", "Grid X dimension");
+        int gridY = QInputDialog::getInt(this, "Grid Y dimension", "Grid Y dimension");
 
-        QFileInfoList list = directory.entryInfoList();
-
-        int contentIndex = 0;
-
-        for(int i=0; i<list.size() && contentIndex < gridX*gridY; i++)
-        {
-            QFileInfo fileInfo = list.at(i);
-
-            boost::shared_ptr<Content> c = ContentFactory::getContent(fileInfo.absoluteFilePath().toStdString());
-
-            if(c != NULL)
-            {
-                boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
-
-                g_displayGroupManager->addContentWindowManager(cwm);
-
-                int x = contentIndex % gridX;
-                int y = contentIndex / gridX;
-
-                cwm->setCoordinates(x*w, y*h, w, h);
-
-                contentIndex++;
-
-                put_flog(LOG_DEBUG, "added file %s", fileInfo.absoluteFilePath().toStdString().c_str());
-            }
-            else
-            {
-                put_flog(LOG_DEBUG, "ignoring unsupported file %s", fileInfo.absoluteFilePath().toStdString().c_str());
-            }
-        }
+        addContentDirectory(directoryName, gridX, gridY);
     }
 }
 
@@ -523,12 +550,17 @@ void MainWindow::loadState()
 
     if(!filename.isEmpty())
     {
-        bool success = g_displayGroupManager->loadStateXMLFile(filename.toStdString());
+        loadState(filename);
+    }
+}
 
-        if(success != true)
-        {
-            QMessageBox::warning(this, "Error", "Could not load state file.", QMessageBox::Ok, QMessageBox::Ok);
-        }
+void MainWindow::loadState(const QString& filename)
+{
+    bool success = g_displayGroupManager->loadStateXMLFile(filename.toStdString());
+
+    if(!success)
+    {
+        QMessageBox::warning(this, "Error", "Could not load state file.", QMessageBox::Ok, QMessageBox::Ok);
     }
 }
 
@@ -583,6 +615,93 @@ void MainWindow::setEnableSkeletonTracking(bool enable)
     }
 }
 #endif
+
+QStringList MainWindow::extractValidContentUrls(const QMimeData* data)
+{
+    QStringList pathList;
+
+    if (data->hasUrls())
+    {
+        QList<QUrl> urlList = data->urls();
+
+        foreach (QUrl url, urlList)
+        {
+            QString extension = QFileInfo(url.toLocalFile().toLower()).suffix();
+            if (ContentFactory::getSupportedExtensions().contains(extension))
+                pathList.append(url.toLocalFile());
+        }
+    }
+
+    return pathList;
+}
+
+QStringList MainWindow::extractFolderUrls(const QMimeData* data)
+{
+    QStringList pathList;
+
+    if (data->hasUrls())
+    {
+        QList<QUrl> urlList = data->urls();
+
+        foreach (QUrl url, urlList)
+        {
+            if (QDir(url.toLocalFile()).exists())
+                pathList.append(url.toLocalFile());
+        }
+    }
+
+    return pathList;
+}
+
+QString MainWindow::extractStateFile(const QMimeData* data)
+{
+    QList<QUrl> urlList = data->urls();
+    if (urlList.size() == 1)
+    {
+        QUrl url = urlList[0];
+        QString extension = QFileInfo(url.toLocalFile().toLower()).suffix();
+        if (extension == "dcx")
+            return url.toLocalFile();
+    }
+    return QString();
+}
+
+void MainWindow::dragEnterEvent(QDragEnterEvent* event)
+{
+    QStringList pathList = extractValidContentUrls(event->mimeData());
+    QStringList dirList = extractFolderUrls(event->mimeData());
+    QString stateFile = extractStateFile(event->mimeData());
+
+    if (!pathList.empty() || !dirList.empty() || !stateFile.isNull())
+    {
+        event->acceptProposedAction();
+    }
+}
+
+void MainWindow::dropEvent(QDropEvent* event)
+{
+    QStringList pathList = extractValidContentUrls(event->mimeData());
+    foreach (QString url, pathList)
+    {
+        addContent(url);
+    }
+
+    QStringList dirList = extractFolderUrls(event->mimeData());
+    if (dirList.size() > 0)
+    {
+        QString url = dirList[0]; // Only one directory at a time
+
+        addContentDirectory(url);
+    }
+
+    QString stateFile = extractStateFile(event->mimeData());
+    if (!stateFile.isNull())
+    {
+        loadState(stateFile);
+    }
+
+    event->acceptProposedAction();
+}
 
 void MainWindow::updateGLWindows()
 {

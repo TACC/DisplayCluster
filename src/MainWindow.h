@@ -94,8 +94,20 @@ class MainWindow : public QMainWindow {
         void disableSkeletonTracking();
 #endif
 
+    protected:
+        void dragEnterEvent(QDragEnterEvent *event);
+        void dropEvent(QDropEvent *event);
+
     private:
         void addContent(const QString &filename);
+        void addContentDirectory(const QString &directoryName, int gridX=0, int gridY=0);
+        void loadState(const QString &filename);
+
+        void estimateGridSize(unsigned int numElem, int &gridX, int &gridY);
+
+        QStringList extractValidContentUrls(const QMimeData* data);
+        QStringList extractFolderUrls(const QMimeData *data);
+        QString extractStateFile(const QMimeData *data);
 
         std::vector<boost::shared_ptr<GLWindow> > glWindows_;
         boost::shared_ptr<GLWindow> activeGLWindow_;
