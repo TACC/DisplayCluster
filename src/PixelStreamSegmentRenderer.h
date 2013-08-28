@@ -36,48 +36,61 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef PIXEL_STREAM_SOURCE_H
-#define PIXEL_STREAM_SOURCE_H
+#ifndef PIXEL_STREAM_SEGMENT_RENDERER_H
+#define PIXEL_STREAM_SEGMENT_RENDERER_H
 
-#include "Factory.hpp"
-#include <QtGui>
+#include <boost/enable_shared_from_this.hpp>
+#include <QGLWidget>
+#include <QtConcurrentRun>
+#include <turbojpeg.h>
 
-class PixelStreamSource {
+class PixelStreamSegmentRenderer : public boost::enable_shared_from_this<PixelStreamSegmentRenderer> {
 
     public:
 
-        PixelStreamSource(std::string uri);
+        PixelStreamSegmentRenderer();
+        ~PixelStreamSegmentRenderer();
 
-        QByteArray getImageData(bool & updated);
-        void setImageData(QByteArray imageData);
+        void getDimensions(int &width, int &height);
+        bool render(float tX, float tY, float tW, float tH); // return true on successful render; false if no texture available
+        bool setImageData(QByteArray imageData); // returns true if load image thread was spawned; false if frame was dropped
+        bool getLoadImageDataThreadRunning();
+        void setAutoUpdateTexture(bool set);
+        void updateTextureIfAvailable();
 
-        void getDimensions(int &width, int &height, bool & updated);
-        void setDimensions(int width, int height);
+        // for use by loadImageDataThread()
+        tjhandle getHandle();
+        void imageReady(QImage image);
 
     private:
 
-        // pixel stream source identifier
+        // pixel stream identifier
         std::string uri_;
 
-        // image data, mutex for accessing it, and counter for updates
-        QMutex imageDataMutex_;
-        QByteArray imageData_;
-        long imageDataCount_;
+        // texture
+        GLuint textureId_;
+        int textureWidth_;
+        int textureHeight_;
+        bool textureBound_;
 
-        // imageDataCount of last retrieval via getImageData()
-        long getImageDataCount_;
+        // thread for generating images from image data
+        QFuture<void> loadImageDataThread_;
 
-        // dimensions, mutex for accessing it, and counter for updates
-        QMutex dimensionsMutex_;
-        int width_;
-        int height_;
-        long dimensionsCount_;
+        // libjpeg-turbo handle for decompression
+        tjhandle handle_;
 
-        // dimensionsCount of last retrieval via getDimensions()
-        long getDimensionsCount_;
+        // image, mutex, and ready status
+        QMutex imageReadyMutex_;
+        bool imageReady_;
+        QImage image_;
+
+        // whether updateTexture() should be called automatically every render() or not
+        // this can be set to false to allow for synchronization across multiple streams, for example.
+        bool autoUpdateTexture_;
+
+        void updateTexture(QImage & image);
 };
 
-// global pixel stream source factory
-extern Factory<PixelStreamSource> g_pixelStreamSourceFactory;
+extern void loadImageDataThread(boost::shared_ptr<PixelStreamSegmentRenderer> pixelStream, QByteArray imageData);
 
 #endif

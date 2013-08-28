@@ -44,6 +44,7 @@
 #include "Options.h"
 #include "Marker.h"
 #include "config.h"
+#include "Factory.hpp"
 #include <QtGui>
 #include <vector>
 #ifndef Q_MOC_RUN
@@ -60,6 +61,7 @@
     #include "SkeletonState.h"
 #endif
 
+#include "PixelStream.h"
 
 // Serialize the QColor class via a free-function
 namespace boost {
@@ -113,7 +115,7 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         QColor getBackgroundColor() const;
         void setBackgroundColor(QColor color);
 
-public slots:
+    public slots:
 
         // this can be invoked from other threads to construct a DisplayGroupInterface and move it to that thread
         boost::shared_ptr<DisplayGroupInterface> getDisplayGroupInterface(QThread * thread);
@@ -126,7 +128,7 @@ public slots:
         void sendDisplayGroup();
         void sendContentsDimensionsRequest();
         void sendPixelStreams();
-        void sendParallelPixelStreams();
+        void sendPixelStreamSegments(const std::vector<PixelStreamSegment> &segments, const std::string& uri);
         void sendSVGStreams();
         void sendFrameClockUpdate();
         void receiveFrameClockUpdate();
@@ -137,6 +139,9 @@ public slots:
 #if ENABLE_SKELETON_SUPPORT
         void setSkeletons(std::vector<boost::shared_ptr<SkeletonState> > skeletons);
 #endif
+        // Rank0 manages pixel stream events
+        void processPixelStreamSegment(QString uri, PixelStreamSegment segment);
+        void deletePixelStream(QString uri);
 
     private:
         friend class boost::serialization::access;
@@ -176,10 +181,13 @@ public slots:
         // rank 1 - rank 0 timestamp offset
         boost::posix_time::time_duration timestampOffset_;
 
+        // Rank0: Input buffer for PixelStreams
+        Factory<PixelStream> pixelStreamSourceFactory_;
+
+
         void receiveDisplayGroup(MessageHeader messageHeader);
         void receiveContentsDimensionsRequest(MessageHeader messageHeader);
         void receivePixelStreams(MessageHeader messageHeader);
-        void receiveParallelPixelStreams(MessageHeader messageHeader);
         void receiveSVGStreams(MessageHeader messageHeader);
 };
 

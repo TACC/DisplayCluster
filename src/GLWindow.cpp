@@ -104,11 +104,6 @@ Factory<PixelStream> & GLWindow::getPixelStreamFactory()
     return pixelStreamFactory_;
 }
 
-Factory<ParallelPixelStream> & GLWindow::getParallelPixelStreamFactory()
-{
-    return parallelPixelStreamFactory_;
-}
-
 void GLWindow::insertPurgeTextureId(GLuint textureId)
 {
     QMutexLocker locker(&purgeTexturesMutex_);
@@ -468,7 +463,6 @@ void GLWindow::finalize()
     svgFactory_.clear();
     movieFactory_.clear();
     pixelStreamFactory_.clear();
-    parallelPixelStreamFactory_.clear();
 
     purgeTextures();
 }

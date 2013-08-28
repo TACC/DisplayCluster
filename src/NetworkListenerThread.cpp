@@ -39,8 +39,7 @@
 #include "NetworkListenerThread.h"
 #include "main.h"
 #include "log.h"
-#include "PixelStreamSource.h"
-#include "ParallelPixelStream.h"
+#include "PixelStream.h"
 #include "SVGStreamSource.h"
 #include "ContentWindowManager.h"
 #include <stdint.h>
@@ -79,8 +78,10 @@ void NetworkListenerThread::initialize()
 
     // make connections
     connect(tcpSocket_, SIGNAL(disconnected()), this, SIGNAL(finished()));
-    connect(this, SIGNAL(updatedPixelStreamSource()), g_displayGroupManager.get(), SLOT(sendPixelStreams()), Qt::BlockingQueuedConnection);
     connect(this, SIGNAL(updatedSVGStreamSource()), g_displayGroupManager.get(), SLOT(sendSVGStreams()), Qt::BlockingQueuedConnection);
+
+    connect(this, SIGNAL(receivedPixelStreamSegement(QString, PixelStreamSegment)), g_displayGroupManager.get(), SLOT(processPixelStreamSegment(QString,PixelStreamSegment)), Qt::QueuedConnection);
+    connect(this, SIGNAL(receivedDeletePixelStream(QString)), g_displayGroupManager.get(), SLOT(deletePixelStream(QString)), Qt::QueuedConnection);
 
     // get a local DisplayGroupInterface to help manage interaction
     bool success = QMetaObject::invokeMethod(g_displayGroupManager.get(), "getDisplayGroupInterface", Qt::BlockingQueuedConnection, Q_RETURN_ARG(boost::shared_ptr<DisplayGroupInterface>, displayGroupInterface_), Q_ARG(QThread *, QThread::currentThread()));
@@ -212,48 +213,25 @@ void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArra
 {
     if(messageHeader.type == MESSAGE_TYPE_QUIT)
     {
-        std::string uri(messageHeader.uri);
+        QString uri(messageHeader.uri);
 
         QByteArray empty;
-        g_pixelStreamSourceFactory.getObject(uri)->setImageData(empty);
-        g_SVGStreamSourceFactory.getObject(uri)->setImageData(empty);
-        g_parallelPixelStreamSourceFactory.getObject(uri)->markDeleted();
+        g_SVGStreamSourceFactory.getObject(uri.toStdString())->setImageData(empty);
 
-        emit(updatedPixelStreamSource());
+        emit(receivedDeletePixelStream(uri));
         emit(updatedSVGStreamSource());
     }
     else if(messageHeader.type == MESSAGE_TYPE_PIXELSTREAM)
     {
-        // update pixel stream source
-        // keep this in this thread so we can have pixel stream source updating and sendPixelStreams() happening in parallel
-        // sendPixelStreams() slot executions may still stack up, but they'll each grab only the latest pixel stream data
-        std::string uri(messageHeader.uri);
-
-        g_pixelStreamSourceFactory.getObject(uri)->setImageData(byteArray);
-
-        emit(updatedPixelStreamSource());
-    }
-    else if(messageHeader.type == MESSAGE_TYPE_PIXELSTREAM_DIMENSIONS_CHANGED)
-    {
-        std::string uri(messageHeader.uri);
-
-        const int * dimensions = (const int *)byteArray.constData();
-
-        g_pixelStreamSourceFactory.getObject(uri)->setDimensions(dimensions[0], dimensions[1]);
-
-        emit(updatedPixelStreamSource());
-    }
-    else if(messageHeader.type == MESSAGE_TYPE_PARALLEL_PIXELSTREAM)
-    {
         // update parallel pixel stream source
-        // keep this in this thread so we can have parallel pixel stream source updating and sendParallelPixelStreams() happening in parallel
-        // sendParallelPixelStreams() runs in a polling loop on the main thread
-        std::string uri(messageHeader.uri);
+        // keep this in this thread so we can have parallel pixel stream source updating and sendPixelStreams() happening in parallel
+        // sendPixelStreams() runs in a polling loop on the main thread
+        QString uri(messageHeader.uri);
 
-        ParallelPixelStreamSegment segment;
+        PixelStreamSegment segment;
 
         // read parameters
-        ParallelPixelStreamSegmentParameters * parameters = (ParallelPixelStreamSegmentParameters *)(byteArray.data());
+        PixelStreamSegmentParameters * parameters = (PixelStreamSegmentParameters *)(byteArray.data());
         segment.parameters = *parameters;
 
         // just use a unique index for this stream in case the sender does not
@@ -262,10 +240,10 @@ void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArra
             segment.parameters.sourceIndex = socketDescriptor_;
 
         // read image data
-        QByteArray imageData = byteArray.right(byteArray.size() - sizeof(ParallelPixelStreamSegmentParameters));
+        QByteArray imageData = byteArray.right(byteArray.size() - sizeof(PixelStreamSegmentParameters));
         segment.imageData = imageData;
 
-        g_parallelPixelStreamSourceFactory.getObject(uri)->insertSegment(segment);
+        emit(receivedPixelStreamSegement(uri, segment));
 
         // no need to emit any signals since there's a polling loop in the main thread
     }

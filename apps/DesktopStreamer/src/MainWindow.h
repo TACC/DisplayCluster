@@ -47,12 +47,12 @@
 
 #define JPEG_QUALITY 75
 
-#include "../../../src/ParallelPixelStream.h"
+#include "../../../src/PixelStream.h"
 #include <QtGui>
 #include <QtNetwork/QTcpSocket>
 #include <string>
 
-ParallelPixelStreamSegment computeSegmentJpeg(const ParallelPixelStreamSegment & segment);
+void computeSegmentJpeg(PixelStreamSegment &segment);
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -113,7 +113,7 @@ class MainWindow : public QMainWindow {
         QByteArray previousImageData_;
 
         // for parallel pixel streaming
-        std::vector<ParallelPixelStreamSegment> segments_;
+        std::vector<PixelStreamSegment> segments_;
 
         QTimer shareDesktopUpdateTimer_;
 
@@ -122,10 +122,15 @@ class MainWindow : public QMainWindow {
 
         QTcpSocket tcpSocket_;
 
-        bool serialStream();
-        bool parallelStream();
-        void sendDimensions();
+        bool streamSegments();
         void sendQuit();
+
+        void setupSegments();
+        void setupSingleSegment();
+        void setupMultipleSegments();
+        void updateSegments();
+        void sendSegment(const PixelStreamSegment &segment);
+        void resetSegments();
 };
 
 #endif

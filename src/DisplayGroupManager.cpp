@@ -42,10 +42,7 @@
 #include "Content.h"
 #include "main.h"
 #include "log.h"
-#include "PixelStream.h"
-#include "PixelStreamSource.h"
 #include "PixelStreamContent.h"
-#include "ParallelPixelStreamContent.h"
 #include "SVGStreamSource.h"
 #include "SVGContent.h"
 #include "Dock.h"
@@ -78,6 +75,8 @@ DisplayGroupManager::DisplayGroupManager()
 #if ENABLE_SKELETON_SUPPORT
     qRegisterMetaType<std::vector< boost::shared_ptr<SkeletonState> > >("std::vector< boost::shared_ptr<SkeletonState> >");
 #endif
+    // For using PixelStreamSegment in QSignals
+    qRegisterMetaType<PixelStreamSegment>("PixelStreamSegment");
 }
 
 boost::shared_ptr<Options> DisplayGroupManager::getOptions() const
@@ -593,10 +592,6 @@ void DisplayGroupManager::receiveMessages()
             {
                 receivePixelStreams(mh);
             }
-            else if(mh.type == MESSAGE_TYPE_PARALLEL_PIXELSTREAM)
-            {
-                receiveParallelPixelStreams(mh);
-            }
             else if(mh.type == MESSAGE_TYPE_SVG_STREAM)
             {
                 receiveSVGStreams(mh);
@@ -705,195 +700,109 @@ void DisplayGroupManager::sendContentsDimensionsRequest()
 
 void DisplayGroupManager::sendPixelStreams()
 {
-    // iterate through all pixel streams and send updates if needed
-    std::map<std::string, boost::shared_ptr<PixelStreamSource> > map = g_pixelStreamSourceFactory.getMap();
-
-    for(std::map<std::string, boost::shared_ptr<PixelStreamSource> >::iterator it = map.begin(); it != map.end(); it++)
-    {
-        std::string uri = (*it).first;
-        boost::shared_ptr<PixelStreamSource> pixelStreamSource = (*it).second;
-
-        // get buffer
-        bool updated;
-        QByteArray imageData = pixelStreamSource->getImageData(updated);
-
-        if( imageData.isEmpty( ))
-        {
-            boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
-            if( cwm )
-                removeContentWindowManager( cwm );
-            continue;
-        }
-
-        if( updated )
-        {
-            // make sure Content/ContentWindowManager exists for the URI
-
-            // todo: this means as long as the pixel stream is updating, we'll have a window for it
-            // closing a window therefore will not terminate the pixel stream
-            if(getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM) == NULL)
-            {
-                put_flog(LOG_DEBUG, "adding pixel stream: %s", uri.c_str());
-
-                boost::shared_ptr<Content> c(new PixelStreamContent(uri));
-                boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
-
-                addContentWindowManager(cwm);
-            }
-
-            int size = imageData.size();
-
-            // send the header and the message
-            MessageHeader mh;
-            mh.size = size;
-            mh.type = MESSAGE_TYPE_PIXELSTREAM;
-
-            // add the truncated URI to the header
-            size_t len = uri.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
-            mh.uri[len] = '\0';
-
-            // the header is sent via a send, so that we can probe it on the render processes
-            for(int i=1; i<g_mpiSize; i++)
-            {
-                MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, i, 0, MPI_COMM_WORLD);
-            }
-
-            // broadcast the message
-            MPI_Bcast((void *)imageData.data(), size, MPI_BYTE, 0, MPI_COMM_WORLD);
-        }
-
-        // check for updated dimensions
-        int pixelStreamWidth, pixelStreamHeight;
-
-        pixelStreamSource->getDimensions(pixelStreamWidth, pixelStreamHeight, updated);
-
-        if(updated == true)
-        {
-            boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
-
-            if(cwm != NULL)
-            {
-                boost::shared_ptr<Content> c = cwm->getContent();
-
-                c->setDimensions(pixelStreamWidth, pixelStreamHeight);
-                cwm->adjustSize( SIZE_1TO1 );
-            }
-        }
-    }
-}
-
-void DisplayGroupManager::sendParallelPixelStreams()
-{
     // iterate through all parallel pixel streams and send updates if needed
-    std::map<std::string, boost::shared_ptr<ParallelPixelStream> > map = g_parallelPixelStreamSourceFactory.getMap();
+    std::map<std::string, boost::shared_ptr<PixelStream> > map = pixelStreamSourceFactory_.getMap();
 
-    for(std::map<std::string, boost::shared_ptr<ParallelPixelStream> >::iterator it = map.begin(); it != map.end(); it++)
+    for(std::map<std::string, boost::shared_ptr<PixelStream> >::iterator it = map.begin(); it != map.end(); it++)
     {
         std::string uri = (*it).first;
-        boost::shared_ptr<ParallelPixelStream> parallelPixelStreamSource = (*it).second;
-
-        if( parallelPixelStreamSource->isDeleted( ))
-        {
-            boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager(uri, CONTENT_TYPE_PARALLEL_PIXEL_STREAM);
-            if( cwm )
-                removeContentWindowManager( cwm );
-            continue;
-        }
+        boost::shared_ptr<PixelStream> pixelStreamSource = (*it).second;
 
         // get updated segments
         // if streaming synchronization is enabled, we need to send all segments; otherwise just the latest segments
-        std::vector<ParallelPixelStreamSegment> segments;
+        std::vector<PixelStreamSegment> segments;
 
-        if(options_->getEnableStreamingSynchronization() == true)
+        if(options_->getEnableStreamingSynchronization())
         {
-            segments = parallelPixelStreamSource->getAndPopAllSegments();
+            segments = pixelStreamSource->getAndPopAllSegments();
         }
         else
         {
-            segments = parallelPixelStreamSource->getAndPopLatestSegments();
+            segments = pixelStreamSource->getAndPopLatestSegments();
         }
 
         if(segments.size() > 0)
         {
+            int width = segments[0].parameters.totalWidth;
+            int height = segments[0].parameters.totalHeight;
+
+            boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
+
             // make sure Content/ContentWindowManager exists for the URI
-
-            const bool initial = !getContentWindowManager(uri, CONTENT_TYPE_PARALLEL_PIXEL_STREAM);
-
             // todo: this means as long as the parallel pixel stream is updating, we'll have a window for it
             // closing a window therefore will not terminate the parallel pixel stream
-            if(initial)
+            if(!cwm)
             {
                 put_flog(LOG_DEBUG, "adding parallel pixel stream: %s", uri.c_str());
 
-                boost::shared_ptr<Content> c(new ParallelPixelStreamContent(uri));
-                boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
+                boost::shared_ptr<Content> c(new PixelStreamContent(uri));
+                c->setDimensions(width, height);
+
+                cwm = boost::shared_ptr<ContentWindowManager>(new ContentWindowManager(c));
 
                 addContentWindowManager(cwm);
+
+                if( c->isDock( ))
+                {
+                    double w, h;
+                    cwm->getSize( w, h );
+                    cwm->setPosition( g_dock->getPos().x() - w/2.,
+                                      g_dock->getPos().y() - h/2. );
+                }
             }
-
-            // serialize the vector
-            std::ostringstream oss(std::ostringstream::binary);
-
-            // brace this so destructor is called on archive before we use the stream
+            else
             {
-                boost::archive::binary_oarchive oa(oss);
-                oa << segments;
-            }
-
-            // serialized data to string
-            std::string serializedString = oss.str();
-            int size = serializedString.size();
-
-            // send the header and the message
-            MessageHeader mh;
-            mh.size = size;
-            mh.type = MESSAGE_TYPE_PARALLEL_PIXELSTREAM;
-
-            // add the truncated URI to the header
-            size_t len = uri.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
-            mh.uri[len] = '\0';
-
-            // the header is sent via a send, so that we can probe it on the render processes
-            for(int i=1; i<g_mpiSize; i++)
-            {
-                MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, i, 0, MPI_COMM_WORLD);
-            }
-
-            // broadcast the message
-            MPI_Bcast((void *)serializedString.data(), size, MPI_BYTE, 0, MPI_COMM_WORLD);
-
-            // check for updated dimensions
-            int newWidth = segments[0].parameters.totalWidth;
-            int newHeight = segments[0].parameters.totalHeight;
-
-            boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager(uri, CONTENT_TYPE_PARALLEL_PIXEL_STREAM);
-
-            if(cwm != NULL)
-            {
+                // check for updated dimensions
                 boost::shared_ptr<Content> c = cwm->getContent();
 
                 int oldWidth, oldHeight;
                 c->getDimensions(oldWidth, oldHeight);
 
-                if(newWidth != oldWidth || newHeight != oldHeight)
+                if(width != oldWidth || height != oldHeight)
                 {
-                    c->setDimensions(newWidth, newHeight);
-                }
-
-                if( initial )
-                {
+                    c->setDimensions(width, height);
                     cwm->adjustSize( SIZE_1TO1 );
-                    if( c->isDock( ))
-                    {
-                        double w, h;
-                        cwm->getSize( w, h );
-                        cwm->setPosition( g_dock->getPos().x() - w/2.,
-                                          g_dock->getPos().y() - h/2. );
-                    }
                 }
             }
+            sendPixelStreamSegments(segments, uri);
         }
     }
+}
+
+void DisplayGroupManager::sendPixelStreamSegments(const std::vector<PixelStreamSegment> & segments, const std::string& uri)
+{
+    assert(!segments.empty() && "sendPixelStreamSegments() received an empty vector");
+
+    // serialize the vector
+    std::ostringstream oss(std::ostringstream::binary);
+
+    // brace this so destructor is called on archive before we use the stream
+    {
+        boost::archive::binary_oarchive oa(oss);
+        oa << segments;
+    }
+
+    // serialized data to string
+    std::string serializedString = oss.str();
+    int size = serializedString.size();
+
+    // send the header and the message
+    MessageHeader mh;
+    mh.size = size;
+    mh.type = MESSAGE_TYPE_PIXELSTREAM;
+
+    // add the truncated URI to the header
+    size_t len = uri.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
+    mh.uri[len] = '\0';
+
+    // the header is sent via a send, so that we can probe it on the render processes
+    for(int i=1; i<g_mpiSize; i++)
+    {
+        MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, i, 0, MPI_COMM_WORLD);
+    }
+
+    // broadcast the message
+    MPI_Bcast((void *)serializedString.data(), size, MPI_BYTE, 0, MPI_COMM_WORLD);
 }
 
 void DisplayGroupManager::sendSVGStreams()
@@ -1091,6 +1000,20 @@ void DisplayGroupManager::advanceContents()
     }
 }
 
+void DisplayGroupManager::processPixelStreamSegment(QString uri, PixelStreamSegment segment)
+{
+    pixelStreamSourceFactory_.getObject(uri.toStdString())->insertSegment(segment);
+}
+
+void DisplayGroupManager::deletePixelStream(QString uri)
+{
+    pixelStreamSourceFactory_.removeObject(uri.toStdString());
+
+    boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager(uri.toStdString(), CONTENT_TYPE_PIXEL_STREAM);
+    if( cwm )
+        removeContentWindowManager( cwm );
+}
+
 #if ENABLE_SKELETON_SUPPORT
 void DisplayGroupManager::setSkeletons(std::vector< boost::shared_ptr<SkeletonState> > skeletons)
 {
@@ -1176,24 +1099,6 @@ void DisplayGroupManager::receivePixelStreams(MessageHeader messageHeader)
     std::string uri = std::string(messageHeader.uri);
 
     // de-serialize...
-    g_mainWindow->getGLWindow()->getPixelStreamFactory().getObject(uri)->setImageData(QByteArray(buf, messageHeader.size));
-
-    // free mpi buffer
-    delete [] buf;
-}
-
-void DisplayGroupManager::receiveParallelPixelStreams(MessageHeader messageHeader)
-{
-    // receive serialized data
-    char * buf = new char[messageHeader.size];
-
-    // read message into the buffer
-    MPI_Bcast((void *)buf, messageHeader.size, MPI_BYTE, 0, MPI_COMM_WORLD);
-
-    // URI
-    std::string uri = std::string(messageHeader.uri);
-
-    // de-serialize...
     std::istringstream iss(std::istringstream::binary);
 
     if(iss.rdbuf()->pubsetbuf(buf, messageHeader.size) == NULL)
@@ -1203,7 +1108,7 @@ void DisplayGroupManager::receiveParallelPixelStreams(MessageHeader messageHeade
     }
 
     // read to a new segments vector
-    std::vector<ParallelPixelStreamSegment> segments;
+    std::vector<PixelStreamSegment> segments;
 
     boost::archive::binary_iarchive ia(iss);
     ia >> segments;
@@ -1211,11 +1116,11 @@ void DisplayGroupManager::receiveParallelPixelStreams(MessageHeader messageHeade
     // now, insert all segments
     for(unsigned int i=0; i<segments.size(); i++)
     {
-        g_mainWindow->getGLWindow()->getParallelPixelStreamFactory().getObject(uri)->insertSegment(segments[i]);
+        g_mainWindow->getGLWindow()->getPixelStreamFactory().getObject(uri)->insertSegment(segments[i]);
     }
 
     // update pixel streams corresponding to new segments
-    g_mainWindow->getGLWindow()->getParallelPixelStreamFactory().getObject(uri)->updatePixelStreams();
+    g_mainWindow->getGLWindow()->getPixelStreamFactory().getObject(uri)->updateSegmentRenderers();
 
     // free mpi buffer
     delete [] buf;

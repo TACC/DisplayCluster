@@ -242,12 +242,10 @@ if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
         src/NetworkListener.cpp
         src/NetworkListenerThread.cpp
         src/Options.cpp
-        src/ParallelPixelStream.cpp
-        src/ParallelPixelStreamContent.cpp
         src/Pictureflow.cpp
         src/PixelStream.cpp
         src/PixelStreamContent.cpp
-        src/PixelStreamSource.cpp
+        src/PixelStreamSegmentRenderer.cpp
         src/SVG.cpp
         src/SVGContent.cpp
         src/SVGStreamSource.cpp

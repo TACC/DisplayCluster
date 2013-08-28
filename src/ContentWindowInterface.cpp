@@ -153,7 +153,6 @@ void ContentWindowInterface::toggleWindowState()
         break;
 
     case CONTENT_TYPE_PIXEL_STREAM:
-    case CONTENT_TYPE_PARALLEL_PIXEL_STREAM:
         windowState_ = windowState_ == UNSELECTED ? INTERACTION : UNSELECTED;
         break;
 
