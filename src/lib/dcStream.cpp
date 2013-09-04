@@ -39,7 +39,7 @@
 #include "dcStream.h"
 #include "DcSocket.h"
 #include "../MessageHeader.h"
-#include "../ParallelPixelStreamSegmentParameters.h"
+#include "../PixelStreamSegmentParameters.h"
 #include "../log.h"
 #include <QtCore>
 #include <cmath>
@@ -348,8 +348,8 @@ bool dcStreamSendJpeg(DcSocket * socket, DcStreamParameters parameters, const ch
 
     // the message header
     MessageHeader mh;
-    mh.size = sizeof(ParallelPixelStreamSegmentParameters) + jpegSize;
-    mh.type = MESSAGE_TYPE_PARALLEL_PIXELSTREAM;
+    mh.size = sizeof(PixelStreamSegmentParameters) + jpegSize;
+    mh.type = MESSAGE_TYPE_PIXELSTREAM;
 
     // add the truncated URI to the header
     size_t len = parameters.name.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
@@ -358,7 +358,7 @@ bool dcStreamSendJpeg(DcSocket * socket, DcStreamParameters parameters, const ch
     message.append((const char *)&mh, sizeof(MessageHeader));
 
     // message part 1: parameters
-    ParallelPixelStreamSegmentParameters p;
+    PixelStreamSegmentParameters p;
 
     p.sourceIndex = parameters.sourceIndex;
     p.frameIndex = g_dcStreamFrameIndex;
@@ -369,7 +369,7 @@ bool dcStreamSendJpeg(DcSocket * socket, DcStreamParameters parameters, const ch
     p.totalWidth = parameters.totalWidth;
     p.totalHeight = parameters.totalHeight;
 
-    message.append((const char *)&p, sizeof(ParallelPixelStreamSegmentParameters));
+    message.append((const char *)&p, sizeof(PixelStreamSegmentParameters));
 
     // message part 2: image data
     if(jpegSize > 0)

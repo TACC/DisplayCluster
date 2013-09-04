@@ -45,7 +45,6 @@
 #include "SVG.h"
 #include "Movie.h"
 #include "PixelStream.h"
-#include "ParallelPixelStream.h"
 #include <QGLWidget>
 
 class GLWindow : public QGLWidget
@@ -62,7 +61,6 @@ class GLWindow : public QGLWidget
         Factory<SVG> & getSVGFactory();
         Factory<Movie> & getMovieFactory();
         Factory<PixelStream> & getPixelStreamFactory();
-        Factory<ParallelPixelStream> & getParallelPixelStreamFactory();
 
         void insertPurgeTextureId(GLuint textureId);
         void purgeTextures();
@@ -94,7 +92,6 @@ class GLWindow : public QGLWidget
         Factory<SVG> svgFactory_;
         Factory<Movie> movieFactory_;
         Factory<PixelStream> pixelStreamFactory_;
-        Factory<ParallelPixelStream> parallelPixelStreamFactory_;
 
         // mutex and vector of texture id's to purge
         // this allows other threads to trigger deletion of a texture during the main OpenGL thread execution

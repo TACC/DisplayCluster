@@ -69,8 +69,11 @@ class NetworkListenerThread : public QObject {
 
         void finished();
 
-        void updatedPixelStreamSource();
         void updatedSVGStreamSource();
+
+        void receivedDeletePixelStream(QString uri);
+
+        void receivedPixelStreamSegement(QString uri, PixelStreamSegment segment);
 
     private:
 

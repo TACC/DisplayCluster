@@ -50,48 +50,45 @@
     #include <stdint.h>
 #endif
 
-ParallelPixelStreamSegment computeSegmentJpeg(const ParallelPixelStreamSegment & segment)
-{
-    ParallelPixelStreamSegment newSegment = segment;
 
+void computeSegmentJpeg(PixelStreamSegment & segment)
+{
     QImage image = g_mainWindow->getImage();
 
     // use libjpeg-turbo for JPEG conversion
     tjhandle handle = tjInitCompress();
     int pixelFormat = TJPF_BGRX;
-    unsigned char ** jpegBuf;
     unsigned char * jpegBufPtr = NULL;
-    jpegBuf = &jpegBufPtr;
     unsigned long jpegSize = 0;
     int jpegSubsamp = TJSAMP_444;
     int jpegQual = JPEG_QUALITY;
     int flags = 0;
 
-    int success = tjCompress2(handle, image.scanLine(newSegment.parameters.y) + newSegment.parameters.x * image.depth()/8, newSegment.parameters.width, image.bytesPerLine(), newSegment.parameters.height, pixelFormat, jpegBuf, &jpegSize, jpegSubsamp, jpegQual, flags);
+    // Although tjCompress2 takes a non-const (uchar*) as a source image, it actually doesn't modify it, so the casting is safe
+    int success = tjCompress2(handle, (uchar*)image.constScanLine(segment.parameters.y) + segment.parameters.x * image.depth()/8, segment.parameters.width, image.bytesPerLine(), segment.parameters.height, pixelFormat, &jpegBufPtr, &jpegSize, jpegSubsamp, jpegQual, flags);
 
     if(success != 0)
     {
         put_flog(LOG_ERROR, "libjpeg-turbo image conversion failure");
 
-        return newSegment;
+        return;
     }
 
-    // move the JPEG buffer to a byte array and free the libjpeg-turbo allocated memory
-    QByteArray byteArray((char *)jpegBufPtr, jpegSize);
+    // move the JPEG buffer to a byte array
+    segment.imageData = QByteArray((char *)jpegBufPtr, jpegSize);
+
+    // free the libjpeg-turbo allocated memory
     free(jpegBufPtr);
 
-    // copy byte array to new segment
-    newSegment.imageData = byteArray;
-
-    return newSegment;
+    // TODO avoid this inefficient creation/destruction of context for each segment
+    tjDestroy(handle);
 }
 
 MainWindow::MainWindow()
+    : updatedDimensions_(true)
+    , deviceScale_(1.f)
+    , parallelStreaming_(false)
 {
-    // defaults
-    updatedDimensions_ = true;
-    parallelStreaming_ = false;
-    deviceScale_ = 1.f;
     cursor_ = QImage( ":/cursor.png" ).scaled( 20 * deviceScale_,
                                                20 * deviceScale_,
                                                Qt::KeepAspectRatio );
@@ -293,10 +290,12 @@ void MainWindow::showDesktopSelectionWindow(bool set)
 
 void MainWindow::setParallelStreaming(bool set)
 {
-    if( set == parallelStreaming_ )
-        return;
-    parallelStreaming_ = set;
-    sendQuit();
+    if (parallelStreaming_ != set)
+    {
+        parallelStreaming_ = set;
+        setupSegments();
+        sendQuit(); // reset the connection, avoids problems when changing the number of segments
+    }
 }
 
 void MainWindow::shareDesktopUpdate()
@@ -340,24 +339,15 @@ void MainWindow::shareDesktopUpdate()
     QPoint mousePos = ( QCursor::pos() - QPoint( x_, y_ )) * deviceScale_ -
         QPoint( cursor_.width()/2, cursor_.height()/2);
 
-    {
-        QPainter painter( &image_ );
-        painter.drawImage( mousePos, cursor_ );
-    }
+    QPainter painter( &image_ );
+    painter.drawImage( mousePos, cursor_ );
+    painter.end(); // Make sure to release the QImage before using it to update the segements
 
-    bool success;
+    // Jpeg compression
+    updateSegments();
 
-    if( parallelStreaming_ )
-    {
-        success = parallelStream();
-        // no need to watch for dimension changes; server handles it automatically
-    }
-    else
-    {
-        // stream as one big image
-        success = serialStream();
-        sendDimensions();
-    }
+    // no need to watch for dimension changes; server handles it automatically
+    bool success = streamSegments();
 
     // check for failure
     if( !success )
@@ -403,50 +393,6 @@ void MainWindow::shareDesktopUpdate()
     }
 }
 
-void MainWindow::sendDimensions()
-{
-    if( !updatedDimensions_ )
-        return;
-
-    // updated dimensions
-    const int dimensions[2] = {  int(width_*deviceScale_),
-                                 int(height_*deviceScale_) };
-    const int dimensionsSize = 2 * sizeof(int);
-
-    // header
-    MessageHeader mh;
-    mh.size = dimensionsSize;
-    mh.type = MESSAGE_TYPE_PIXELSTREAM_DIMENSIONS_CHANGED;
-
-    // add the truncated URI to the header
-    const size_t len = uri_.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
-    mh.uri[len] = '\0';
-
-    // send the header
-    int sent = tcpSocket_.write((const char *)&mh, sizeof(MessageHeader));
-    while(sent < (int)sizeof(MessageHeader))
-    {
-        sent += tcpSocket_.write((const char *)&mh + sent, sizeof(MessageHeader) - sent);
-    }
-
-    // send the message
-    sent = tcpSocket_.write((const char *)dimensions, dimensionsSize);
-    while(sent < dimensionsSize)
-    {
-        sent += tcpSocket_.write((const char *)dimensions + sent, dimensionsSize - sent);
-    }
-
-    // wait for acknowledgment
-    while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < 3)
-    {
-#ifndef _WIN32
-        usleep(10);
-#endif
-    }
-
-    tcpSocket_.read(3);
-    updatedDimensions_ = false;
-}
 
 void MainWindow::sendQuit()
 {
@@ -503,9 +449,40 @@ void MainWindow::updateCoordinates()
         g_desktopSelectionWindow->getDesktopSelectionView()->getDesktopSelectionRectangle()->setCoordinates( x_, y_, width_, height_ );
     }
 
-    // update ParallelPixelStreamSegment parameters, whether or not we are
-    // currently streaming in parallel. Users can toggle parallel streaming at
-    // any time
+    // Adapt the size of the segments
+    setupSegments();
+}
+
+void MainWindow::setupSegments()
+{
+    if (parallelStreaming_)
+        setupMultipleSegments();
+    else
+        setupSingleSegment();
+}
+
+void MainWindow::setupSingleSegment()
+{
+    segments_.clear();
+
+    const int w = width_ * deviceScale_;
+    const int h = height_ * deviceScale_;
+
+    PixelStreamSegment segment;
+
+    segment.parameters.sourceIndex = 0;
+    segment.parameters.x = 0;
+    segment.parameters.y = 0;
+    segment.parameters.width = w;
+    segment.parameters.height = h;
+    segment.parameters.totalWidth = w;
+    segment.parameters.totalHeight = h;
+
+    segments_.push_back(segment);
+}
+
+void MainWindow::setupMultipleSegments()
+{
     segments_.clear();
 
     // segment dimensions will be approximately this
@@ -522,7 +499,7 @@ void MainWindow::updateCoordinates()
     {
         for(int j=0; j<numSubdivisionsY; j++)
         {
-            ParallelPixelStreamSegment segment;
+            PixelStreamSegment segment;
 
             segment.parameters.sourceIndex = i*numSubdivisionsY + j;
             segment.parameters.x = i * (int)((float)w / (float)numSubdivisionsX);
@@ -537,139 +514,97 @@ void MainWindow::updateCoordinates()
     }
 }
 
-bool MainWindow::serialStream()
-{
-    // use libjpeg-turbo for JPEG conversion
-    tjhandle handle = tjInitCompress();
-    const int pixelFormat = TJPF_BGRX;
-    unsigned char* jpegBuf = NULL;
-    unsigned long jpegSize = 0;
-    int jpegSubsamp = TJSAMP_444;
-    int jpegQual = JPEG_QUALITY;
-    int flags = 0;
 
-    int success = tjCompress2(handle, image_.scanLine(0), image_.width(), image_.bytesPerLine(), image_.height(), pixelFormat, &jpegBuf, &jpegSize, jpegSubsamp, jpegQual, flags);
-
-    if(success != 0)
-    {
-        put_flog(LOG_ERROR, "libjpeg-turbo image conversion failure");
-        QMessageBox::warning(this, "Error", "Image conversion failure.", QMessageBox::Ok, QMessageBox::Ok);
-
-        return false;
-    }
-
-    // move the JPEG buffer to a byte array and free the libjpeg-turbo allocated memory
-    QByteArray byteArray((char *)jpegBuf, jpegSize);
-    free( jpegBuf );
-
-    if(byteArray != previousImageData_)
-    {
-        MessageHeader mh;
-        mh.size = byteArray.size();
-        mh.type = MESSAGE_TYPE_PIXELSTREAM;
-
-        // add the truncated URI to the header
-        size_t len = uri_.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
-        mh.uri[len] = '\0';
-
-        // send the header
-        int sent = tcpSocket_.write((const char *)&mh, sizeof(MessageHeader));
-
-        while(sent < (int)sizeof(MessageHeader))
-        {
-            sent += tcpSocket_.write((const char *)&mh + sent, sizeof(MessageHeader) - sent);
-        }
-
-        // send the message
-        sent = tcpSocket_.write((const char *)byteArray.data(), byteArray.size());
-
-        while(sent < byteArray.size())
-        {
-            sent += tcpSocket_.write((const char *)byteArray.data() + sent, byteArray.size() - sent);
-        }
-
-        previousImageData_ = byteArray;
-
-        // wait for acknowledgment
-        while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < 3)
-        {
-#ifndef _WIN32
-            usleep(10);
-#endif
-        }
-
-        tcpSocket_.read(3);
-    }
-
-    return true;
-}
-
-bool MainWindow::parallelStream()
+void MainWindow::updateSegments()
 {
     // frame index
     static int frameIndex = 0;
 
     // create JPEGs for each segment, in parallel
-    std::vector<ParallelPixelStreamSegment> segments = QtConcurrent::blockingMapped<std::vector<ParallelPixelStreamSegment> >(segments_, &computeSegmentJpeg);
+    QtConcurrent::blockingMap<std::vector<PixelStreamSegment> >(segments_, &computeSegmentJpeg);
 
-    // stream segments
-    // we have to stream all of them in case stream synchronization is on (we can't ignore unchanged segments... todo: fix this)
-    for(unsigned int i=0; i<segments.size(); i++)
+    for(unsigned int i=0; i<segments_.size(); i++)
     {
         // update frame index
-        segments[i].parameters.frameIndex = frameIndex;
-
-        // send the parameters and image data
-        MessageHeader mh;
-        mh.size = sizeof(ParallelPixelStreamSegmentParameters) + segments[i].imageData.size();
-        mh.type = MESSAGE_TYPE_PARALLEL_PIXELSTREAM;
-
-        // add the truncated URI to the header
-        size_t len = uri_.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
-        mh.uri[len] = '\0';
-
-        // send the header
-        int sent = tcpSocket_.write((const char *)&mh, sizeof(MessageHeader));
-
-        while(sent < (int)sizeof(MessageHeader))
-        {
-            sent += tcpSocket_.write((const char *)&mh + sent, sizeof(MessageHeader) - sent);
-        }
-
-        // send the message
-
-        // part 1: parameters
-        sent = tcpSocket_.write((const char *)&(segments[i].parameters), sizeof(ParallelPixelStreamSegmentParameters));
-
-        while(sent < (int)sizeof(ParallelPixelStreamSegmentParameters))
-        {
-            sent += tcpSocket_.write((const char *)&(segments[i].parameters) + sent, sizeof(ParallelPixelStreamSegmentParameters) - sent);
-        }
-
-        // part 2: image data
-        sent = tcpSocket_.write((const char *)segments[i].imageData.data(), segments[i].imageData.size());
-
-        while(sent < segments[i].imageData.size())
-        {
-            sent += tcpSocket_.write((const char *)segments[i].imageData.data() + sent, segments[i].imageData.size() - sent);
-        }
-
-        // wait for acknowledgment
-        while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < 3)
-        {
-#ifndef _WIN32
-            usleep(10);
-#endif
-        }
-
-        tcpSocket_.read(3);
+        segments_[i].parameters.frameIndex = frameIndex;
     }
-
-    // update segments vector
-    segments_ = segments;
 
     // increment frame index
     ++frameIndex;
+}
+
+
+bool MainWindow::streamSegments()
+{
+    // stream segments
+    // we have to stream all of them in case stream synchronization is on (we can't ignore unchanged segments... todo: fix this)
+    for(unsigned int i=0; i<segments_.size(); i++)
+    {
+        sendSegment(segments_[i]);
+    }
 
     return true;
+}
+
+void MainWindow::resetSegments()
+{
+    if( tcpSocket_.state() != QAbstractSocket::ConnectedState )
+        return;
+
+    for(unsigned int i=0; i<segments_.size(); i++)
+    {
+        PixelStreamSegment segment;
+        segment.parameters = segments_[i].parameters;
+        segment.parameters.width = 0;
+        segment.parameters.height = 0;
+        sendSegment(segment);
+    }
+}
+
+void MainWindow::sendSegment(const PixelStreamSegment& segment)
+{
+    // send the parameters and image data
+    MessageHeader mh;
+    mh.size = sizeof(PixelStreamSegmentParameters) + segment.imageData.size();
+    mh.type = MESSAGE_TYPE_PIXELSTREAM;
+
+    // add the truncated URI to the header
+    size_t len = uri_.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
+    mh.uri[len] = '\0';
+
+    // send the header
+    int sent = tcpSocket_.write((const char *)&mh, sizeof(MessageHeader));
+
+    while(sent < (int)sizeof(MessageHeader))
+    {
+        sent += tcpSocket_.write((const char *)&mh + sent, sizeof(MessageHeader) - sent);
+    }
+
+    // send the message
+
+    // part 1: parameters
+    sent = tcpSocket_.write((const char *)&(segment.parameters), sizeof(PixelStreamSegmentParameters));
+
+    while(sent < (int)sizeof(PixelStreamSegmentParameters))
+    {
+        sent += tcpSocket_.write((const char *)&(segment.parameters) + sent, sizeof(PixelStreamSegmentParameters) - sent);
+    }
+
+    // part 2: image data
+    sent = tcpSocket_.write((const char *)segment.imageData.data(), segment.imageData.size());
+
+    while(sent < segment.imageData.size())
+    {
+        sent += tcpSocket_.write((const char *)segment.imageData.data() + sent, segment.imageData.size() - sent);
+    }
+
+    // wait for acknowledgment
+    while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < 3)
+    {
+#ifndef _WIN32
+        usleep(10);
+#endif
+    }
+
+    tcpSocket_.read(3);
 }

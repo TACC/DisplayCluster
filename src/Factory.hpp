@@ -66,6 +66,13 @@ class Factory {
             return map_[uri];
         }
 
+        void removeObject(std::string uri)
+        {
+            QMutexLocker locker(&mapMutex_);
+
+            map_.erase(uri);
+        }
+
         std::map<std::string, boost::shared_ptr<T> > getMap()
         {
             QMutexLocker locker(&mapMutex_);

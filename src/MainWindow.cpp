@@ -301,7 +301,7 @@ MainWindow::MainWindow()
         contentsLayout->addWidget(dglwp->getListWidget());
 
         // timer will trigger polling of ParallelPixelStreams
-        connect(&parallelPixelStreamTimer_, SIGNAL(timeout()), g_displayGroupManager.get(), SLOT(sendParallelPixelStreams()));
+        connect(&parallelPixelStreamTimer_, SIGNAL(timeout()), g_displayGroupManager.get(), SLOT(sendPixelStreams()));
 
         // start the timer
         parallelPixelStreamTimer_.start(1000 / 30); // 30 fps
@@ -751,7 +751,6 @@ void MainWindow::updateGLWindows()
         glWindows_[0]->getSVGFactory().clearStaleObjects();
         glWindows_[0]->getMovieFactory().clearStaleObjects();
         glWindows_[0]->getPixelStreamFactory().clearStaleObjects();
-        glWindows_[0]->getParallelPixelStreamFactory().clearStaleObjects();
 
         glWindows_[0]->purgeTextures();
     }

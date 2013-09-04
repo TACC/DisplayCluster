@@ -36,23 +36,35 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "ParallelPixelStreamContent.h"
-#include "main.h"
-#include "ParallelPixelStream.h"
+#ifdef _WIN32
+    typedef __int32 int32_t;
+#else
+    #include <stdint.h>
+#endif
 
-BOOST_CLASS_EXPORT_GUID(ParallelPixelStreamContent, "ParallelPixelStreamContent")
+#define FRAME_INDEX_UNDEFINED -1
 
-CONTENT_TYPE ParallelPixelStreamContent::getType()
-{
-    return CONTENT_TYPE_PARALLEL_PIXEL_STREAM;
-}
+struct PixelStreamSegmentParameters {
 
-void ParallelPixelStreamContent::getFactoryObjectDimensions(int &width, int &height)
-{
-    g_mainWindow->getGLWindow()->getParallelPixelStreamFactory().getObject(getURI())->getDimensions(width, height);
-}
+    // source identifier
+    int32_t sourceIndex;
 
-void ParallelPixelStreamContent::renderFactoryObject(float tX, float tY, float tW, float tH)
-{
-    g_mainWindow->getGLWindow()->getParallelPixelStreamFactory().getObject(getURI())->render(tX, tY, tW, tH);
-}
+    // frame index (used for synchronization)
+    int32_t frameIndex;
+
+    // coordinates of segment (pixel coordinates)
+    int32_t x;
+    int32_t y;
+    int32_t width;
+    int32_t height;
+
+    // coordinates of total image
+    int32_t totalWidth;
+    int32_t totalHeight;
+
+    PixelStreamSegmentParameters()
+    {
+        // defaults
+        frameIndex = FRAME_INDEX_UNDEFINED;
+    }
+};

@@ -39,59 +39,142 @@
 #ifndef PIXEL_STREAM_H
 #define PIXEL_STREAM_H
 
+#include "PixelStreamSegmentParameters.h"
 #include "FactoryObject.h"
-#include <boost/enable_shared_from_this.hpp>
-#include <QGLWidget>
-#include <QtConcurrentRun>
-#include <turbojpeg.h>
+#include "PixelStreamSegmentRenderer.h"
+#include <QtGui>
+#include <boost/shared_ptr.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/serialization/binary_object.hpp>
+#include <boost/serialization/split_member.hpp>
+#include <string>
+#include <map>
+#include <vector>
 
-class PixelStream : public boost::enable_shared_from_this<PixelStream>, public FactoryObject {
+// define serialize method separately from PixelStreamSegmentParameters definition
+// so other (external) code can more easily include that header
+namespace boost {
+namespace serialization {
+
+template<class Archive>
+void serialize(Archive & ar, PixelStreamSegmentParameters & p, const unsigned int)
+{
+    ar & p.sourceIndex;
+    ar & p.frameIndex;
+    ar & p.x;
+    ar & p.y;
+    ar & p.width;
+    ar & p.height;
+    ar & p.totalWidth;
+    ar & p.totalHeight;
+}
+
+} // namespace serialization
+} // namespace boost
+
+struct PixelStreamSegment {
+
+    // parameters; kept in a separate struct to simplify network transmission
+    PixelStreamSegmentParameters parameters;
+
+    // image data for segment
+    QByteArray imageData;
+
+    private:
+        friend class boost::serialization::access;
+
+        template<class Archive>
+        void save(Archive & ar, const unsigned int) const
+        {
+            ar & parameters;
+
+            int size = imageData.size();
+            ar & size;
+
+            ar & boost::serialization::make_binary_object((void *)imageData.data(), imageData.size());
+        }
+
+        template<class Archive>
+        void load(Archive & ar, const unsigned int)
+        {
+            ar & parameters;
+
+            int size;
+            ar & size;
+            imageData.resize(size);
+
+            ar & boost::serialization::make_binary_object((void *)imageData.data(), size);
+        }
+
+        BOOST_SERIALIZATION_SPLIT_MEMBER()
+};
+
+class PixelStream : public FactoryObject {
 
     public:
 
         PixelStream(std::string uri);
-        ~PixelStream();
 
         void getDimensions(int &width, int &height);
-        bool render(float tX, float tY, float tW, float tH); // return true on successful render; false if no texture available
-        bool setImageData(QByteArray imageData); // returns true if load image thread was spawned; false if frame was dropped
-        bool getLoadImageDataThreadRunning();
-        void setAutoUpdateTexture(bool set);
-        void updateTextureIfAvailable();
+        void render(float tX, float tY, float tW, float tH);
 
-        // for use by loadImageDataThread()
-        tjhandle getHandle();
-        void imageReady(QImage image);
+        void insertSegment(PixelStreamSegment segment);
+
+        // retrieve latest segments and remove them (and older segments) from the map
+        std::vector<PixelStreamSegment> getAndPopLatestSegments();
+
+        // retrieve all segments and clear the map
+        std::vector<PixelStreamSegment> getAndPopAllSegments();
+
+        // retrieve all segments for the given frame index and clear older entries in the map
+        std::vector<PixelStreamSegment> getAndPopSegments(int frameIndex);
+
+        // update renderers to the latest segments
+        void updateSegmentRenderers();
 
     private:
 
-        // pixel stream identifier
+        // parallel pixel stream identifier
         std::string uri_;
 
-        // texture
-        GLuint textureId_;
-        int textureWidth_;
-        int textureHeight_;
-        bool textureBound_;
+        // dimensions of entire parallel pixel stream
+        int width_;
+        int height_;
 
-        // thread for generating images from image data
-        QFuture<void> loadImageDataThread_;
+        // segments mutex
+        QMutex segmentsMutex_;
 
-        // libjpeg-turbo handle for decompression
-        tjhandle handle_;
+        // for each source, vector of pixel stream segments
+        // use a vector here since it may allow for easier frame synchronization later
+        std::map<int, std::vector<PixelStreamSegment> > segments_;
 
-        // image, mutex, and ready status
-        QMutex imageReadyMutex_;
-        bool imageReady_;
-        QImage image_;
+        // for each source, pixel stream object for image decoding and parameters
+        std::map<int, boost::shared_ptr<PixelStreamSegmentRenderer> > segmentRenderers_;
+        std::map<int, PixelStreamSegmentParameters> pixelStreamParameters_;
 
-        // whether updateTexture() should be called automatically every render() or not
-        // this can be set to false to allow for synchronization across multiple streams, for example.
-        bool autoUpdateTexture_;
+        // determine if segment is visible on any of the screens of this process
+        bool isSegmentVisible(PixelStreamSegmentParameters parameters);
 
-        void updateTexture(QImage & image);
+        // get vector of source indices visible on any of the screens of this process
+        std::vector<int> getSourceIndicesVisible();
+
+        // get whether or not we have valid frame indices for all segments
+        bool getValidFrameIndices();
+
+        // clear old / stale pixel streams from map
+        //void clearStalePixelStreams();
+
+        // statistics
+        std::map<int, std::vector<QTime> > segmentsRenderTimes_;
+
+        void updateStatistics(int sourceIndex);
+        std::string getStatistics(int sourceIndex);
+
+        // Global streaming synchronization helper methods
+        int getGlobalLoadImageDataThreadsRunning();
+        int getGlobalLatestVisibleFrameIndex();
 };
 
-extern void loadImageDataThread(boost::shared_ptr<PixelStream> pixelStream, QByteArray imageData);
 
 #endif
