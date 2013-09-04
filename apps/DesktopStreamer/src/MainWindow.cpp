@@ -338,6 +338,7 @@ void MainWindow::shareDesktopUpdate()
     // render mouse cursor
     QPoint mousePos = ( QCursor::pos() - QPoint( x_, y_ )) * deviceScale_ -
         QPoint( cursor_.width()/2, cursor_.height()/2);
+
     QPainter painter( &image_ );
     painter.drawImage( mousePos, cursor_ );
     painter.end(); // Make sure to release the QImage before using it to update the segements
