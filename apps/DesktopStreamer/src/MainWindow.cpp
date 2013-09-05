@@ -53,7 +53,7 @@
 
 void computeSegmentJpeg(PixelStreamSegment & segment)
 {
-    QImage image = g_mainWindow->getImage();
+    const QImage image = g_mainWindow->getImage();
 
     // use libjpeg-turbo for JPEG conversion
     tjhandle handle = tjInitCompress();
@@ -65,7 +65,7 @@ void computeSegmentJpeg(PixelStreamSegment & segment)
     int flags = 0;
 
     // Although tjCompress2 takes a non-const (uchar*) as a source image, it actually doesn't modify it, so the casting is safe
-    int success = tjCompress2(handle, (uchar*)image.constScanLine(segment.parameters.y) + segment.parameters.x * image.depth()/8, segment.parameters.width, image.bytesPerLine(), segment.parameters.height, pixelFormat, &jpegBufPtr, &jpegSize, jpegSubsamp, jpegQual, flags);
+    int success = tjCompress2(handle, (uchar*)image.scanLine(segment.parameters.y) + segment.parameters.x * image.depth()/8, segment.parameters.width, image.bytesPerLine(), segment.parameters.height, pixelFormat, &jpegBufPtr, &jpegSize, jpegSubsamp, jpegQual, flags);
 
     if(success != 0)
     {

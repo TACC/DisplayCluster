@@ -116,10 +116,9 @@ Configuration::Configuration(const char * filename)
     {
         qstring.remove(QRegExp("[\\n\\t\\r]"));
 
-        if(QColor::isValidColor(qstring))
-        {
-            backgroundColor_.setNamedColor(qstring);
-        }
+        QColor newColor( qstring );
+        if( newColor.isValid( ))
+            backgroundColor_ = newColor;
     }
 
     // get tile parameters (if we're not rank 0)
