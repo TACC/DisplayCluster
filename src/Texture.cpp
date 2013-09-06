@@ -52,7 +52,7 @@ Texture::Texture(QString uri)
 
     if(image.isNull() == true)
     {
-        put_flog(LOG_ERROR, "error loading %s", uri_.constData());
+        put_flog(LOG_ERROR, "error loading %s", uri_.toLocal8Bit().constData());
         return;
     }
 

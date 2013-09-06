@@ -113,10 +113,10 @@ class PixelStream : public FactoryObject {
 
     private:
 
-        // parallel pixel stream identifier
+        // pixel stream identifier
         QString uri_;
 
-        // dimensions of entire parallel pixel stream
+        // dimensions of entire pixel stream
         int width_;
         int height_;
 

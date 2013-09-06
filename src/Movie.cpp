@@ -71,7 +71,7 @@ Movie::Movie(QString uri)
     // open movie file
     if(avformat_open_input(&avFormatContext_, uri.toAscii(), NULL, NULL) != 0)
     {
-        put_flog(LOG_ERROR, "could not open movie file %s", uri.constData());
+        put_flog(LOG_ERROR, "could not open movie file %s", uri.toLocal8Bit().constData());
         return;
     }
 

@@ -14,10 +14,11 @@ boost::shared_ptr<Content> ContentFactory::getContent(const QString& uri)
     // make sure file exists; otherwise use error image
     if( !QFile::exists( uri ))
     {
-        put_flog(LOG_ERROR, "could not find file %s", uri.constData());
+        put_flog(LOG_ERROR, "could not find file %s", uri.toLocal8Bit().constData());
 
-        const QString errorImageFilename( "%1%2%3" );
-        errorImageFilename.arg( QString::fromStdString( g_displayClusterDir )).arg( "/data/" ).arg( ERROR_IMAGE_FILENAME );
+        const QString errorImageFilename = QString( "%1%2%3" ).arg( QString::fromStdString( g_displayClusterDir ))
+                                                              .arg( "/data/" )
+                                                              .arg( ERROR_IMAGE_FILENAME );
         boost::shared_ptr<Content> c(new TextureContent(errorImageFilename));
 
         return c;
@@ -80,9 +81,10 @@ boost::shared_ptr<Content> ContentFactory::getContent(const QString& uri)
         return c;
     }
 
-    put_flog(LOG_ERROR, "Unsupported or invalid file %s", uri.constData());
-    const QString errorImageFilename( "%1%2%3" );
-    errorImageFilename.arg( QString::fromStdString( g_displayClusterDir )).arg( "/data/" ).arg( ERROR_IMAGE_FILENAME );
+    put_flog(LOG_ERROR, "Unsupported or invalid file %s", uri.toLocal8Bit().constData());
+    const QString errorImageFilename = QString( "%1%2%3" ).arg( QString::fromStdString( g_displayClusterDir ))
+                                                          .arg( "/data/" )
+                                                          .arg( ERROR_IMAGE_FILENAME );
     boost::shared_ptr<Content> c(new TextureContent(errorImageFilename));
     return c;
 }

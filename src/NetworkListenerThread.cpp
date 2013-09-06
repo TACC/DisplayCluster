@@ -223,8 +223,8 @@ void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArra
     }
     else if(messageHeader.type == MESSAGE_TYPE_PIXELSTREAM)
     {
-        // update parallel pixel stream source
-        // keep this in this thread so we can have parallel pixel stream source updating and sendPixelStreams() happening in parallel
+        // update pixel stream source
+        // keep this in this thread so we can have pixel stream source updating and sendPixelStreams() happening in parallel
         // sendPixelStreams() runs in a polling loop on the main thread
         QString uri(messageHeader.uri);
 
@@ -262,7 +262,7 @@ void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArra
     {
         const QString uri(messageHeader.uri);
 
-        put_flog(LOG_INFO, "binding to %s", uri.constData());
+        put_flog(LOG_INFO, "binding to %s", uri.toLocal8Bit().constData());
 
         interactionName_ = uri;
         interactionExclusive_ = messageHeader.type == MESSAGE_TYPE_BIND_INTERACTION_EX;

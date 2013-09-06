@@ -300,11 +300,11 @@ MainWindow::MainWindow()
         DisplayGroupListWidgetProxy * dglwp = new DisplayGroupListWidgetProxy(g_displayGroupManager);
         contentsLayout->addWidget(dglwp->getListWidget());
 
-        // timer will trigger polling of ParallelPixelStreams
-        connect(&parallelPixelStreamTimer_, SIGNAL(timeout()), g_displayGroupManager.get(), SLOT(sendPixelStreams()));
+        // timer will trigger polling of PixelStreams
+        connect(&pixelStreamTimer_, SIGNAL(timeout()), g_displayGroupManager.get(), SLOT(sendPixelStreams()));
 
         // start the timer
-        parallelPixelStreamTimer_.start(1000 / 30); // 30 fps
+        pixelStreamTimer_.start(1000 / 30); // 30 fps
 
         show();
     }

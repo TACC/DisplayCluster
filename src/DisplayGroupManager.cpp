@@ -440,7 +440,7 @@ bool DisplayGroupManager::loadStateXMLFile(std::string filename)
             // remove any whitespace
             uri = qstring.trimmed();
 
-            put_flog(LOG_DEBUG, "found content window with URI %s", uri.constData());
+            put_flog(LOG_DEBUG, "found content window with URI %s", uri.toLocal8Bit().constData());
         }
 
         if(uri.isEmpty())
@@ -700,7 +700,7 @@ void DisplayGroupManager::sendContentsDimensionsRequest()
 
 void DisplayGroupManager::sendPixelStreams()
 {
-    // iterate through all parallel pixel streams and send updates if needed
+    // iterate through all pixel streams and send updates if needed
     std::map<QString, boost::shared_ptr<PixelStream> > map = pixelStreamSourceFactory_.getMap();
 
     for(std::map<QString, boost::shared_ptr<PixelStream> >::iterator it = map.begin(); it != map.end(); it++)
@@ -730,11 +730,11 @@ void DisplayGroupManager::sendPixelStreams()
         boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
 
         // make sure Content/ContentWindowManager exists for the URI
-        // todo: this means as long as the parallel pixel stream is updating, we'll have a window for it
-        // closing a window therefore will not terminate the parallel pixel stream
+        // todo: this means as long as the pixel stream is updating, we'll have a window for it
+        // closing a window therefore will not terminate the pixel stream
         if(!cwm)
         {
-            put_flog(LOG_DEBUG, "adding parallel pixel stream: %s", uri.constData());
+            put_flog(LOG_DEBUG, "adding pixel stream: %s", uri.toLocal8Bit().constData());
 
             boost::shared_ptr<Content> c(new PixelStreamContent(uri));
             c->setDimensions(width, height);
@@ -826,7 +826,7 @@ void DisplayGroupManager::sendSVGStreams()
             // closing a window therefore will not terminate the SVG stream
             if(getContentWindowManager(uri, CONTENT_TYPE_SVG) == NULL)
             {
-                put_flog(LOG_DEBUG, "adding SVG stream: %s", uri.constData());
+                put_flog(LOG_DEBUG, "adding SVG stream: %s", uri.toLocal8Bit().constData());
 
                 boost::shared_ptr<Content> c(new SVGContent(uri));
                 boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
@@ -839,7 +839,7 @@ void DisplayGroupManager::sendSVGStreams()
 
             if(svgRenderer.load(imageData) != true || svgRenderer.isValid() == false)
             {
-                put_flog(LOG_ERROR, "error loading %s", uri.constData());
+                put_flog(LOG_ERROR, "error loading %s", uri.toLocal8Bit().constData());
                 continue;
             }
 

@@ -283,6 +283,7 @@ void Dock::onItem()
         {
             boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
             g_displayGroupManager->addContentWindowManager( cwm );
+            cwm->adjustSize( SIZE_1TO1 );
         }
         QtConcurrent::run( closeDock, this );
         return;

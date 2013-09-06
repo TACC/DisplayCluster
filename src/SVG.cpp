@@ -60,7 +60,7 @@ SVG::SVG(QString uri)
 
     if(file.open(QIODevice::ReadOnly) != true)
     {
-        put_flog(LOG_WARN, "could not open file %s", uri.constData());
+        put_flog(LOG_WARN, "could not open file %s", uri.toLocal8Bit().constData());
         return;
     }
 
@@ -145,7 +145,7 @@ bool SVG::setImageData(QByteArray imageData)
 {
     if(svgRenderer_.load(imageData) != true || svgRenderer_.isValid() == false)
     {
-        put_flog(LOG_ERROR, "error loading %s", uri_.constData());
+        put_flog(LOG_ERROR, "error loading %s", uri_.toLocal8Bit().constData());
         return false;
     }
 

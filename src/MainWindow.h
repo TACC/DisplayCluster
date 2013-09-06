@@ -114,8 +114,8 @@ class MainWindow : public QMainWindow {
 
         bool constrainAspectRatio_;
 
-        // polling timer for updating parallel pixel streams
-        QTimer parallelPixelStreamTimer_;
+        // polling timer for updating pixel streams
+        QTimer pixelStreamTimer_;
 
 #if ENABLE_TUIO_TOUCH_LISTENER
         MultiTouchListener* touchListener_;
