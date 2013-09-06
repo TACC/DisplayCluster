@@ -44,9 +44,32 @@
 #include "MovieContent.h"
 #include "main.h"
 
+namespace
+{
 void closeDock( Dock* dock )
 {
     dock->close();
+}
+
+QImage createSlideImage_( const QSize& size, const QString& fileName,
+                          const bool isDir, const QColor& bgcolor1,
+                          const QColor& bgcolor2 )
+{
+    QImage img( size, QImage::Format_RGB32 );
+    img.setText( "source", fileName );
+    if( isDir)
+        img.setText( "dir", "true" );
+    QPainter painter( &img );
+    QPoint p1( img.width()*4/10, 0 );
+    QPoint p2( img.width()*6/10, img.height( ));
+    QLinearGradient linearGrad( p1, p2 );
+    linearGrad.setColorAt( 0, bgcolor1 );
+    linearGrad.setColorAt( 1, bgcolor2 );
+    painter.setBrush(linearGrad);
+    painter.fillRect( 0, 0, img.width(), img.height(), QBrush(linearGrad));
+    painter.end();
+    return img;
+}
 }
 
 
@@ -96,6 +119,14 @@ ImageLoader::~ImageLoader()
 void ImageLoader::loadImage( const QString& fileName, const int index )
 {
     const QString extension = QFileInfo(fileName).suffix().toLower();
+
+    if( extension == "dcx" )
+    {
+        QImage img = createSlideImage_( flow_->slideSize(), fileName, false,
+                                        Qt::darkCyan, Qt::cyan );
+        flow_->setSlide( index, img );
+        return;
+    }
 
     if( extension == "pyr" )
     {
@@ -276,20 +307,27 @@ void Dock::onItem()
     const QImage& image = flow_->slide( flow_->centerIndex( ));
     const QString& source = image.text( "source" );
 
-    if( image.text( "dir" ).isEmpty( ))
+    if( !image.text( "dir" ).isEmpty( ))
     {
-        boost::shared_ptr< Content > c = ContentFactory::getContent( source );
-        if( c )
-        {
-            boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
-            g_displayGroupManager->addContentWindowManager( cwm );
-            cwm->adjustSize( SIZE_1TO1 );
-        }
-        QtConcurrent::run( closeDock, this );
+        changeDirectory( source );
         return;
     }
 
-    changeDirectory( source );
+    const QString extension = QFileInfo(source).suffix().toLower();
+    if( extension == "dcx" )
+    {
+        g_displayGroupManager->loadStateXMLFile( source.toStdString( ));
+        return;
+    }
+
+    boost::shared_ptr< Content > c = ContentFactory::getContent( source );
+    if( c )
+    {
+        boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
+        g_displayGroupManager->addContentWindowManager( cwm );
+        cwm->adjustSize( SIZE_1TO1 );
+    }
+    QtConcurrent::run( closeDock, this );
 }
 
 void Dock::changeDirectory( const QString& dir )
@@ -300,7 +338,9 @@ void Dock::changeDirectory( const QString& dir )
 
     currentDir_ = dir;
     currentDir_.setFilter( QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot );
-    currentDir_.setNameFilters( ContentFactory::getSupportedFilesFilter() );
+    QStringList filters = ContentFactory::getSupportedFilesFilter();
+    filters.append( "*.dcx" );
+    currentDir_.setNameFilters( filters );
     const QFileInfoList& fileList = currentDir_.entryInfoList();
 
     currentDir_.setFilter( QDir::Dirs | QDir::NoDotAndDotDot );
@@ -313,24 +353,33 @@ void Dock::changeDirectory( const QString& dir )
     if( hasRootDir)
     {
         QString upFolder = rootDir.path();
-        addSlide_( upFolder, "UP: " + upFolder, true, Qt::darkGray,
-                   Qt::lightGray );
+        QImage img = createSlideImage_( flow_->slideSize(), upFolder, true,
+                                        Qt::darkGray, Qt::lightGray );
+        flow_->addSlide( img, "UP: " + upFolder );
     }
 
     for( int i = 0; i < fileList.size(); ++i )
     {
         QFileInfo fileInfo = fileList.at( i );
-        const QString& fileName = currentDir_.absoluteFilePath( fileInfo.fileName( ));
+        const QString& fileName =
+                            currentDir_.absoluteFilePath( fileInfo.fileName( ));
         emit renderPreview( fileName, flow_->slideCount( ));
-        addSlide_( fileName, fileInfo.fileName(), false, Qt::black, Qt::white );
+        QImage img = createSlideImage_( flow_->slideSize(), fileName, false,
+                                        Qt::black, Qt::white );
+        flow_->addSlide( img, fileInfo.fileName( ));
     }
 
     for( int i = 0; i < dirList.size(); ++i )
     {
         QFileInfo fileInfo = dirList.at( i );
-        const QString& fileName = currentDir_.absoluteFilePath( fileInfo.fileName( ));
+        const QString& fileName =
+                            currentDir_.absoluteFilePath( fileInfo.fileName( ));
         if( !fileName.endsWith( ".pyramid" ))
-            addSlide_( fileName, fileInfo.fileName(), true, Qt::black, Qt::white );
+        {
+            QImage img = createSlideImage_( flow_->slideSize(), fileName, true,
+                                            Qt::black, Qt::white );
+            flow_->addSlide( img, fileInfo.fileName( ));
+        }
     }
 
     flow_->setCenterIndex( slideIndex_[currentDir_.path()] );
@@ -339,24 +388,4 @@ void Dock::changeDirectory( const QString& dir )
 PictureFlow* Dock::getFlow() const
 {
     return flow_;
-}
-
-void Dock::addSlide_( const QString& fileName, const QString& shortName,
-                      const bool isDir, const QColor& bgcolor1,
-                      const QColor& bgcolor2 )
-{
-    QImage img( flow_->slideSize(), QImage::Format_RGB32 );
-    img.setText( "source", fileName );
-    if( isDir)
-        img.setText( "dir", "true" );
-    QPainter painter( &img );
-    QPoint p1( img.width()*4/10, 0 );
-    QPoint p2( img.width()*6/10, img.height( ));
-    QLinearGradient linearGrad( p1, p2 );
-    linearGrad.setColorAt( 0, bgcolor1 );
-    linearGrad.setColorAt( 1, bgcolor2 );
-    painter.setBrush(linearGrad);
-    painter.fillRect( 0, 0, img.width(), img.height(), QBrush(linearGrad));
-    painter.end();
-    flow_->addSlide( img, shortName );
 }

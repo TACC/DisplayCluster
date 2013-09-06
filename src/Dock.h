@@ -112,11 +112,6 @@ private:
     QDir currentDir_;
     QPointF pos_;
     QHash< QString, int > slideIndex_;
-
-    void addSlide_( const QString& fileName, const QString& shortName,
-                    const bool isDir, const QColor& bgcolor1,
-                    const QColor& bgcolor2 );
-
 };
 
 #endif
