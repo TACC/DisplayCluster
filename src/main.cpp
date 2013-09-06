@@ -153,6 +153,8 @@ int main(int argc, char * argv[])
     if(g_mpiRank == 0)
     {
         g_displayGroupManager->initBackground(); // Must be done after everything else is setup (or in the MainWindow constructor)
+        if( argc == 2 )
+            g_displayGroupManager->loadStateXMLFile( argv[1] );
     }
 
     // enter Qt event loop

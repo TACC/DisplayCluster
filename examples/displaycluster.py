@@ -5,6 +5,7 @@
 # installation if necessary
 
 import os
+import sys
 import xml.etree.ElementTree as ET
 import subprocess
 import shlex
@@ -38,7 +39,10 @@ else:
 
 if myRank == 0:
     # don't manipulate DISPLAY, just launch
-    startCommand = dcPath + '/bin/displaycluster'
+    params = ' '
+    if len(sys.argv) == 2 :
+        params += sys.argv[1]
+    startCommand = dcPath + '/bin/displaycluster' + params
     subprocess.call(shlex.split(startCommand))
 else:
     # configuration.xml gives the display
