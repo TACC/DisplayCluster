@@ -123,7 +123,7 @@ void NetworkListenerThread::process()
         socketReceiveMessage();
 
         // if we tried and failed to bind interaction events, try again... maybe the window was created after this new message
-        if(interactionName_.empty() != true && interactionBound_ == false)
+        if(!interactionName_.isEmpty() && !interactionBound_)
         {
             put_flog(LOG_DEBUG, "attempting to bind interaction events again...");
 
@@ -132,7 +132,7 @@ void NetworkListenerThread::process()
     }
 
     // send messages if needed
-    if(updatedInteractionState_ == true)
+    if(updatedInteractionState_)
     {
         sendInteractionState();
 
@@ -216,7 +216,7 @@ void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArra
         QString uri(messageHeader.uri);
 
         QByteArray empty;
-        g_SVGStreamSourceFactory.getObject(uri.toStdString())->setImageData(empty);
+        g_SVGStreamSourceFactory.getObject(uri)->setImageData(empty);
 
         emit(receivedDeletePixelStream(uri));
         emit(updatedSVGStreamSource());
@@ -251,7 +251,7 @@ void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArra
     {
         // update SVG stream source
         // similar to pixel streaming above
-        std::string uri(messageHeader.uri);
+        const QString uri(messageHeader.uri);
 
         g_SVGStreamSourceFactory.getObject(uri)->setImageData(byteArray);
 
@@ -260,9 +260,9 @@ void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArra
     else if(messageHeader.type == MESSAGE_TYPE_BIND_INTERACTION ||
             messageHeader.type == MESSAGE_TYPE_BIND_INTERACTION_EX )
     {
-        std::string uri(messageHeader.uri);
+        const QString uri(messageHeader.uri);
 
-        put_flog(LOG_INFO, "binding to %s", uri.c_str());
+        put_flog(LOG_INFO, "binding to %s", uri.constData());
 
         interactionName_ = uri;
         interactionExclusive_ = messageHeader.type == MESSAGE_TYPE_BIND_INTERACTION_EX;

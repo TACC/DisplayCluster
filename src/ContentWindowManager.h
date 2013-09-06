@@ -45,8 +45,6 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/weak_ptr.hpp>
 #include <boost/date_time/posix_time/time_serialize.hpp>
 

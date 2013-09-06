@@ -9,25 +9,22 @@
 #include "SVGContent.h"
 #include "MovieContent.h"
 
-boost::shared_ptr<Content> ContentFactory::getContent(std::string uri)
+boost::shared_ptr<Content> ContentFactory::getContent(const QString& uri)
 {
     // make sure file exists; otherwise use error image
-    if(QFile::exists(uri.c_str()) != true)
+    if( !QFile::exists( uri ))
     {
-        put_flog(LOG_ERROR, "could not find file %s", uri.c_str());
+        put_flog(LOG_ERROR, "could not find file %s", uri.constData());
 
-        std::string errorImageFilename = std::string(g_displayClusterDir) + std::string("/data/") + std::string(ERROR_IMAGE_FILENAME);
+        const QString errorImageFilename( "%1%2%3" );
+        errorImageFilename.arg( QString::fromStdString( g_displayClusterDir )).arg( "/data/" ).arg( ERROR_IMAGE_FILENAME );
         boost::shared_ptr<Content> c(new TextureContent(errorImageFilename));
 
         return c;
     }
 
     // convert to lower case for case-insensitivity in determining file type
-    QString fileTypeString = QString::fromStdString(uri).toLower();
-    QString extension = QFileInfo(fileTypeString).suffix();
-
-    // see if this is an image
-    QImageReader imageReader(uri.c_str());
+    const QString extension = QFileInfo(uri).suffix().toLower();
 
     // see if this is an SVG image (must do this first, since SVG can also be read as an image directly)
     if(SVGContent::getSupportedExtensions().contains(extension))
@@ -36,8 +33,10 @@ boost::shared_ptr<Content> ContentFactory::getContent(std::string uri)
 
         return c;
     }
-    // see if this is a regular image
-    else if(imageReader.canRead() == true)
+
+    // see if this is an image
+    QImageReader imageReader(uri);
+    if(imageReader.canRead())
     {
         // get its size
         QSize size = imageReader.size();
@@ -64,23 +63,28 @@ boost::shared_ptr<Content> ContentFactory::getContent(std::string uri)
 
         return c;
     }
+
     // see if this is an image pyramid
-    else if(extension == "pyr")
+    if(extension == "pyr")
     {
         boost::shared_ptr<Content> c(new DynamicTextureContent(uri));
 
         return c;
     }
+
     // see if this is a movie
-    else if(MovieContent::getSupportedExtensions().contains(extension))
+    if(MovieContent::getSupportedExtensions().contains(extension))
     {
         boost::shared_ptr<Content> c(new MovieContent(uri));
 
         return c;
     }
 
-    // otherwise, return NULL
-    return boost::shared_ptr<Content>();
+    put_flog(LOG_ERROR, "Unsupported or invalid file %s", uri.constData());
+    const QString errorImageFilename( "%1%2%3" );
+    errorImageFilename.arg( QString::fromStdString( g_displayClusterDir )).arg( "/data/" ).arg( ERROR_IMAGE_FILENAME );
+    boost::shared_ptr<Content> c(new TextureContent(errorImageFilename));
+    return c;
 }
 
 const QStringList& ContentFactory::getSupportedExtensions()

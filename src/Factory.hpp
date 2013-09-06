@@ -51,7 +51,7 @@ class Factory {
 
     public:
 
-        boost::shared_ptr<T> getObject(std::string uri)
+        boost::shared_ptr<T> getObject(const QString& uri)
         {
             QMutexLocker locker(&mapMutex_);
 
@@ -66,14 +66,14 @@ class Factory {
             return map_[uri];
         }
 
-        void removeObject(std::string uri)
+        void removeObject(const QString& uri)
         {
             QMutexLocker locker(&mapMutex_);
 
             map_.erase(uri);
         }
 
-        std::map<std::string, boost::shared_ptr<T> > getMap()
+        std::map<QString, boost::shared_ptr<T> > getMap()
         {
             QMutexLocker locker(&mapMutex_);
 
@@ -91,7 +91,7 @@ class Factory {
         {
             QMutexLocker locker(&mapMutex_);
 
-            typename std::map<std::string, boost::shared_ptr<T> >::iterator it = map_.begin();
+            typename std::map<QString, boost::shared_ptr<T> >::iterator it = map_.begin();
 
             while(it != map_.end())
             {
@@ -112,7 +112,7 @@ class Factory {
         QMutex mapMutex_;
 
         // all existing objects
-        std::map<std::string, boost::shared_ptr<T> > map_;
+        std::map<QString, boost::shared_ptr<T> > map_;
 };
 
 #endif

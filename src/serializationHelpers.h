@@ -36,55 +36,53 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MARKER_H
-#define MARKER_H
+#ifndef SERIALIZATION_HELPERS_H
+#define SERIALIZATION_HELPERS_H
 
-#define MARKER_IMAGE_FILENAME "marker.png"
+#include "PixelStreamSegmentParameters.h"
+#include <QtGui/QColor>
+#include <QtCore/QString>
 
-// this is a fraction of the tiled display width of 1
-#define MARKER_WIDTH 0.0025
+#include <boost/serialization/nvp.hpp>
+#include <boost/serialization/split_free.hpp>
 
-// number of seconds before a marker stops being rendered
-#define MARKER_TIMEOUT_SECONDS 5
+namespace boost
+{
+namespace serialization
+{
 
-#include <QtGui>
-#include <QGLWidget>
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/date_time/posix_time/time_serialize.hpp>
+template< class Archive >
+void serialize( Archive &ar, QColor& color, const unsigned int )
+{
+    unsigned char t;
+    t = color.red(); ar & t; color.setRed(t);
+    t = color.green(); ar & t; color.setGreen(t);
+    t = color.blue(); ar & t; color.setBlue(t);
+    t = color.alpha(); ar & t; color.setAlpha(t);
+}
 
-class Marker : public QObject {
-    Q_OBJECT
+template< class Archive >
+void save( Archive& ar, const QString& s, const unsigned int )
+{
+    std::string stdStr = s.toStdString();
+    ar << boost::serialization::make_nvp( "value", stdStr );
+}
 
-    public:
+template< class Archive >
+void load( Archive& ar, QString& s, const unsigned int )
+{
+    std::string stdStr;
+    ar >> make_nvp( "value", stdStr );
+    s = QString::fromStdString(stdStr);
+}
 
-        Marker();
+template< class Archive >
+void serialize( Archive& ar, QString& s, const unsigned int version )
+{
+    boost::serialization::split_free( ar, s, version );
+}
 
-        void setPosition(float x, float y);
-        void getPosition(float &x, float &y);
-
-        bool getActive();
-
-        void render();
-
-    signals:
-        void positionChanged();
-
-    private:
-        friend class boost::serialization::access;
-
-        template<class Archive>
-        void serialize(Archive & ar, const unsigned int)
-        {
-            ar & x_;
-            ar & y_;
-            ar & updatedTimestamp_;
-        }
-
-        float x_;
-        float y_;
-        boost::posix_time::ptime updatedTimestamp_;
-
-        static GLuint textureId_;
-};
+}
+}
 
 #endif

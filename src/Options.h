@@ -41,8 +41,7 @@
 
 #include "config.h"
 #include <QtGui>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
+#include <boost/serialization/access.hpp>
 
 class Options : public QObject {
     Q_OBJECT

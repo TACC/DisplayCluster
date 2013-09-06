@@ -41,12 +41,11 @@
 
 #include "Content.h"
 #include <boost/serialization/base_object.hpp>
-#include <boost/serialization/export.hpp>
 
 class PixelStreamContent : public Content {
 
     public:
-        PixelStreamContent(std::string uri = "") : Content(uri) { }
+        PixelStreamContent(const QString& uri = "") : Content(uri) { }
 
         CONTENT_TYPE getType();
 

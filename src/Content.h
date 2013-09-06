@@ -44,9 +44,10 @@
 #include <string>
 #include <QtGui>
 #include <boost/shared_ptr.hpp>
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/assume_abstract.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
-#include <boost/serialization/assume_abstract.hpp>
 #include "ContentFactory.h"
 
 enum CONTENT_TYPE
@@ -66,9 +67,9 @@ class Content : public QObject {
 
     public:
 
-        Content(std::string uri = "");
+        Content(QString uri = "");
 
-        const std::string& getURI() const;
+        const QString& getURI() const;
 
         virtual CONTENT_TYPE getType() = 0;
 
@@ -99,7 +100,7 @@ class Content : public QObject {
             ar & blockAdvance_;
         }
 
-        std::string uri_;
+        QString uri_;
         int width_;
         int height_;
         bool blockAdvance_;
@@ -118,7 +119,7 @@ class pyContent {
 
         pyContent(const char * str)
         {
-            boost::shared_ptr<Content> c(ContentFactory::getContent(std::string(str)));
+            boost::shared_ptr<Content> c(ContentFactory::getContent(QString::fromAscii(str)));
             ptr_ = c;
         }
 
@@ -134,7 +135,7 @@ class pyContent {
 
         const char * getURI()
         {
-            return (const char *)ptr_->getURI().c_str();
+            return ptr_->getURI().toAscii();
         }
 
     protected:

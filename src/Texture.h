@@ -46,7 +46,7 @@ class Texture : public FactoryObject {
 
     public:
 
-        Texture(std::string uri);
+        Texture(QString uri);
         ~Texture();
 
         void getDimensions(int &width, int &height);
@@ -55,7 +55,7 @@ class Texture : public FactoryObject {
     private:
 
         // image location
-        std::string uri_;
+        QString uri_;
 
         // original image dimensions
         int imageWidth_;

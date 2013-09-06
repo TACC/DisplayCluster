@@ -85,7 +85,7 @@ std::vector<boost::shared_ptr<ContentWindowManager> > DisplayGroupInterface::get
     return contentWindowManagers_;
 }
 
-boost::shared_ptr<ContentWindowManager> DisplayGroupInterface::getContentWindowManager(std::string uri, CONTENT_TYPE contentType)
+boost::shared_ptr<ContentWindowManager> DisplayGroupInterface::getContentWindowManager(const QString& uri, CONTENT_TYPE contentType)
 {
     for(unsigned int i=0; i<contentWindowManagers_.size(); i++)
     {

@@ -51,7 +51,7 @@
     #include <GL/glu.h>
 #endif
 
-DynamicTexture::DynamicTexture(std::string uri, boost::shared_ptr<DynamicTexture> parent, float parentX, float parentY, float parentW, float parentH, int childIndex)
+DynamicTexture::DynamicTexture(QString uri, boost::shared_ptr<DynamicTexture> parent, float parentX, float parentY, float parentW, float parentH, int childIndex)
 {
     // defaults
     depth_ = 0;
@@ -87,9 +87,9 @@ DynamicTexture::DynamicTexture(std::string uri, boost::shared_ptr<DynamicTexture
         treePath_.push_back(0);
 
         // see if this is an image pyramid metadata filename
-        if(uri.find(".pyr") != std::string::npos)
+        if(uri.endsWith(".pyr"))
         {
-            std::ifstream ifs(uri.c_str());
+            std::ifstream ifs(uri.toAscii());
 
             // read the whole line
             std::string lineString;
@@ -179,11 +179,11 @@ void DynamicTexture::loadImage(bool convertToGLFormat)
         // root node
         if(depth_ == 0)
         {
-            image_.load(uri_.c_str());
+            image_.load(uri_);
 
-            if(image_.isNull() == true)
+            if(image_.isNull())
             {
-                put_flog(LOG_ERROR, "error loading %s", uri_.c_str());
+                put_flog(LOG_ERROR, "error loading %s", uri_.constData());
             }
         }
         else
@@ -215,7 +215,7 @@ void DynamicTexture::loadImage(bool convertToGLFormat)
         {
             // we could not get a valid image_ from a parent
             // try alternative methods of reading it using QImageReader
-            QImageReader imageReader(root->uri_.c_str());
+            QImageReader imageReader(root->uri_);
 
             if(imageReader.canRead() == true)
             {
@@ -253,7 +253,7 @@ void DynamicTexture::loadImage(bool convertToGLFormat)
                     // failed to load the clipped image
                     put_flog(LOG_DEBUG, "failed to read clipped region of image; attempting to read clipped and scaled region of image");
 
-                    QImageReader imageScaledReader(root->uri_.c_str());
+                    QImageReader imageScaledReader(root->uri_);
                     imageScaledReader.setClipRect(rootRect);
                     imageScaledReader.setScaledSize(QSize(TEXTURE_SIZE, TEXTURE_SIZE));
                     scaledImage_ = imageScaledReader.read();

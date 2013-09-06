@@ -46,7 +46,7 @@ class SVGStreamSource {
 
     public:
 
-        SVGStreamSource(std::string uri);
+        SVGStreamSource(QString uri);
 
         QByteArray getImageData(bool & updated);
         void setImageData(QByteArray imageData);
@@ -54,7 +54,7 @@ class SVGStreamSource {
     private:
 
         // SVG stream source identifier
-        std::string uri_;
+        QString uri_;
 
         // image data, mutex for accessing it, and counter for updates
         QMutex imageDataMutex_;

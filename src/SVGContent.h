@@ -41,12 +41,11 @@
 
 #include "Content.h"
 #include <boost/serialization/base_object.hpp>
-#include <boost/serialization/export.hpp>
 
 class SVGContent : public Content {
 
     public:
-        SVGContent(std::string uri = "") : Content(uri) { }
+        SVGContent(QString uri = "") : Content(uri) { }
 
         CONTENT_TYPE getType();
 

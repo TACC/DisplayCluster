@@ -43,7 +43,7 @@
 #include "log.h"
 #include <QGLWidget>
 
-Content::Content(std::string uri)
+Content::Content(QString uri)
 {
     uri_ = uri;
     width_ = 0;
@@ -51,7 +51,7 @@ Content::Content(std::string uri)
     blockAdvance_ = false;
 }
 
-const std::string& Content::getURI() const
+const QString& Content::getURI() const
 {
     return uri_;
 }

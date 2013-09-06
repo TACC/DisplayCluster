@@ -1,6 +1,8 @@
 #ifndef INTERACTION_STATE_H
 #define INTERACTION_STATE_H
 
+#include <boost/serialization/access.hpp>
+
 // the state of interaction within a window (mouse emulation)
 struct InteractionState {
     enum EventType
@@ -26,6 +28,21 @@ struct InteractionState {
         mouseX = mouseY = dx = dy = 0.;
         mouseLeft = mouseRight = mouseMiddle = false;
         type = EVT_NONE;
+    }
+
+    friend class boost::serialization::access;
+
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int)
+    {
+        ar & mouseX;
+        ar & mouseY;
+        ar & dx;
+        ar & dy;
+        ar & mouseLeft;
+        ar & mouseRight;
+        ar & mouseMiddle;
+        ar & type;
     }
 };
 

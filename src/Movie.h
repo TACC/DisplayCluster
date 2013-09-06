@@ -68,7 +68,7 @@ class Movie : public FactoryObject {
 
     public:
 
-        Movie(std::string uri);
+        Movie(QString uri);
         ~Movie();
 
         void getDimensions(int &width, int &height);
@@ -83,7 +83,7 @@ class Movie : public FactoryObject {
         bool initialized_;
 
         // image location
-        std::string uri_;
+        QString uri_;
 
         // texture
         GLuint textureId_;

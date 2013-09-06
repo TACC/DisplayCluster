@@ -39,6 +39,7 @@
 #include "SVGContent.h"
 #include "main.h"
 #include "SVG.h"
+#include <boost/serialization/export.hpp>
 
 BOOST_CLASS_EXPORT_GUID(SVGContent, "SVGContent")
 

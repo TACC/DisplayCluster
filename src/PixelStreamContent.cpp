@@ -39,6 +39,7 @@
 #include "PixelStreamContent.h"
 #include "main.h"
 #include "PixelStream.h"
+#include <boost/serialization/export.hpp>
 
 BOOST_CLASS_EXPORT_GUID(PixelStreamContent, "PixelStreamContent")
 

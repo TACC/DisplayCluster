@@ -40,7 +40,7 @@
 #include "main.h"
 #include "log.h"
 
-Texture::Texture(std::string uri)
+Texture::Texture(QString uri)
 {
     // defaults
     textureBound_ = false;
@@ -48,11 +48,11 @@ Texture::Texture(std::string uri)
     // assign values
     uri_ = uri;
 
-    QImage image(uri_.c_str());
+    QImage image(uri_);
 
     if(image.isNull() == true)
     {
-        put_flog(LOG_ERROR, "error loading %s", uri_.c_str());
+        put_flog(LOG_ERROR, "error loading %s", uri_.constData());
         return;
     }
 

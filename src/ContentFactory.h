@@ -11,7 +11,7 @@ class ContentFactory
 public:
 
     // get a Content object of the appropriate derived type based on the URI given
-    static boost::shared_ptr<Content> getContent(std::string uri);
+    static boost::shared_ptr<Content> getContent(const QString& uri);
 
     static const QStringList& getSupportedExtensions();
     static const QStringList& getSupportedFilesFilter();

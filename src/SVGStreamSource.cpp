@@ -38,7 +38,7 @@
 
 #include "SVGStreamSource.h"
 
-SVGStreamSource::SVGStreamSource(std::string uri)
+SVGStreamSource::SVGStreamSource(QString uri)
 {
     // defaults
     imageDataCount_ = 0;

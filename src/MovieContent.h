@@ -41,12 +41,11 @@
 
 #include "Content.h"
 #include <boost/serialization/base_object.hpp>
-#include <boost/serialization/export.hpp>
 
 class MovieContent : public Content {
 
     public:
-        MovieContent(std::string uri = "") : Content(uri) { }
+        MovieContent(QString uri = "") : Content(uri) { }
 
         CONTENT_TYPE getType();
 

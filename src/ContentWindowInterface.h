@@ -67,25 +67,6 @@ enum SizeState
     SIZE_CUSTOM
 };
 
-// allow serialization of InteractionState
-namespace boost {
-    namespace serialization {
-
-        template<class Archive>
-        void serialize(Archive & ar, InteractionState & is, const unsigned int version)
-        {
-            ar & is.mouseX;
-            ar & is.mouseY;
-            ar & is.dx;
-            ar & is.dy;
-            ar & is.mouseLeft;
-            ar & is.mouseRight;
-            ar & is.mouseMiddle;
-            ar & is.type;
-        }
-    }
-}
-
 class ContentWindowInterface : public QObject {
     Q_OBJECT
 

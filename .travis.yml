@@ -7,11 +7,11 @@ script:
  - mkdir Debug
  - cd Debug
  - cmake .. -DCI_BUILD_COMMIT=$TRAVIS_COMMIT -DCMAKE_BUILD_TYPE=Debug
- - env TRAVIS=1 make -j8 DisplayCluster-test ARGS=-V
+ - env TRAVIS=1 make -j8 tests ARGS=-V
  - mkdir ../Release
  - cd ../Release
  - cmake .. -DCI_BUILD_COMMIT=$TRAVIS_COMMIT -DCMAKE_BUILD_TYPE=Release
- - env TRAVIS=1 make -j8 DisplayCluster-test ARGS=-V
+ - env TRAVIS=1 make -j8 tests ARGS=-V
 before_install:
  - sudo apt-get update -qq
  - sudo apt-get install -qq autoconf automake cmake freeglut3-dev git git-svn libavcodec-dev libavformat-dev libavutil-dev libboost-date-time-dev libboost-serialization-dev libjpeg-turbo8-dev libopenmpi-dev libswscale-dev libturbojpeg libxmu-dev pkg-config subversion 

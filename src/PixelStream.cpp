@@ -41,7 +41,7 @@
 #include "ContentWindowManager.h"
 #include "log.h"
 
-PixelStream::PixelStream(std::string uri)
+PixelStream::PixelStream(QString uri)
     : uri_(uri)
     , width_(0)
     , height_ (0)

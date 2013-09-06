@@ -39,6 +39,7 @@
 #include "TextureContent.h"
 #include "main.h"
 #include "Texture.h"
+#include <boost/serialization/export.hpp>
 
 BOOST_CLASS_EXPORT_GUID(TextureContent, "TextureContent")
 

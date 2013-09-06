@@ -40,6 +40,7 @@
 #include "main.h"
 #include "Movie.h"
 #include "ContentWindowManager.h"
+#include <boost/serialization/export.hpp>
 
 BOOST_CLASS_EXPORT_GUID(MovieContent, "MovieContent")
 

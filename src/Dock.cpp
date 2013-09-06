@@ -41,6 +41,7 @@
 #include "Content.h"
 #include "ContentFactory.h"
 #include "ContentWindowManager.h"
+#include "MovieContent.h"
 #include "main.h"
 
 void closeDock( Dock* dock )
@@ -94,7 +95,9 @@ ImageLoader::~ImageLoader()
 
 void ImageLoader::loadImage( const QString& fileName, const int index )
 {
-    if( fileName.endsWith( ".pyr" ))
+    const QString extension = QFileInfo(fileName).suffix().toLower();
+
+    if( extension == "pyr" )
     {
         QImageReader reader( fileName + "amid/0.jpg" );
         QImage img = reader.read();
@@ -111,6 +114,11 @@ void ImageLoader::loadImage( const QString& fileName, const int index )
         flow_->setSlide( index, img );
         return;
     }
+    else if( reader.error() != QImageReader::UnsupportedFormatError )
+        return;
+
+    if( !MovieContent::getSupportedExtensions().contains( extension ))
+        return;
 
     AVFormatContext* avFormatContext;
     if( avformat_open_input( &avFormatContext, fileName.toAscii(), 0, 0 ) != 0 )
@@ -270,13 +278,13 @@ void Dock::onItem()
 
     if( image.text( "dir" ).isEmpty( ))
     {
-        boost::shared_ptr< Content > c = ContentFactory::getContent( source.toStdString( ));
+        boost::shared_ptr< Content > c = ContentFactory::getContent( source );
         if( c )
         {
             boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
             g_displayGroupManager->addContentWindowManager( cwm );
-            QtConcurrent::run( closeDock, this );
         }
+        QtConcurrent::run( closeDock, this );
         return;
     }
 

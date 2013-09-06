@@ -40,7 +40,7 @@
 #include "main.h"
 #include "log.h"
 
-Movie::Movie(std::string uri)
+Movie::Movie(QString uri)
 {
     initialized_ = false;
 
@@ -69,9 +69,9 @@ Movie::Movie(std::string uri)
     av_register_all();
 
     // open movie file
-    if(avformat_open_input(&avFormatContext_, uri.c_str(), NULL, NULL) != 0)
+    if(avformat_open_input(&avFormatContext_, uri.toAscii(), NULL, NULL) != 0)
     {
-        put_flog(LOG_ERROR, "could not open movie file %s", uri.c_str());
+        put_flog(LOG_ERROR, "could not open movie file %s", uri.constData());
         return;
     }
 
@@ -83,7 +83,7 @@ Movie::Movie(std::string uri)
     }
 
     // dump format information to stderr
-    av_dump_format(avFormatContext_, 0, uri.c_str(), 0);
+    av_dump_format(avFormatContext_, 0, uri.toAscii(), 0);
 
     // find the first video stream
     streamIdx_ = -1;

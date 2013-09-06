@@ -401,7 +401,7 @@ std::vector<boost::shared_ptr<GLWindow> > MainWindow::getGLWindows()
 
 void MainWindow::addContent(const QString& filename)
 {
-    boost::shared_ptr<Content> c = ContentFactory::getContent(filename.toStdString());
+    boost::shared_ptr<Content> c = ContentFactory::getContent(filename);
 
     if(c != NULL)
     {
@@ -467,7 +467,7 @@ void MainWindow::addContentDirectory(const QString& directoryName, int gridX, in
     {
         QFileInfo fileInfo = list.at(i);
 
-        boost::shared_ptr<Content> c = ContentFactory::getContent(fileInfo.absoluteFilePath().toStdString());
+        boost::shared_ptr<Content> c = ContentFactory::getContent(fileInfo.absoluteFilePath());
 
         if(c != NULL)
         {
@@ -577,7 +577,7 @@ void MainWindow::computeImagePyramid()
 
         put_flog(LOG_DEBUG, "got image pyramid path %s", imagePyramidPath.c_str());
 
-        boost::shared_ptr<DynamicTexture> dt(new DynamicTexture(imageFilename.toStdString()));
+        boost::shared_ptr<DynamicTexture> dt(new DynamicTexture(imageFilename));
         dt->computeImagePyramid(imagePyramidPath);
 
         put_flog(LOG_DEBUG, "done");

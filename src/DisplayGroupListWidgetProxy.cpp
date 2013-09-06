@@ -113,7 +113,7 @@ void DisplayGroupListWidgetProxy::refreshListWidget()
     {
         // add to list view
         ContentWindowListWidgetItem * newItem = new ContentWindowListWidgetItem(contentWindowManagers_[i]);
-        newItem->setText(contentWindowManagers_[i]->getContent()->getURI().c_str());
+        newItem->setText(contentWindowManagers_[i]->getContent()->getURI());
 
         listWidget_->insertItem(0, newItem);
     }

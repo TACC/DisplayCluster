@@ -58,7 +58,7 @@ class DisplayGroupInterface : public QObject {
         boost::shared_ptr<DisplayGroupManager> getDisplayGroupManager();
 
         std::vector<boost::shared_ptr<ContentWindowManager> > getContentWindowManagers();
-        boost::shared_ptr<ContentWindowManager> getContentWindowManager(std::string uri, CONTENT_TYPE contentType=CONTENT_TYPE_ANY);
+        boost::shared_ptr<ContentWindowManager> getContentWindowManager(const QString& uri, CONTENT_TYPE contentType=CONTENT_TYPE_ANY);
 
         // remove all current ContentWindowManagers and add the vector of provided ContentWindowManagers
         void setContentWindowManagers(std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers);

@@ -125,7 +125,7 @@ bool BackgroundWidget::setBackgroundContentFromUri(const QString& filename)
 {
     if(!filename.isEmpty())
     {
-        boost::shared_ptr<Content> c = ContentFactory::getContent(filename.toStdString());
+        boost::shared_ptr<Content> c = ContentFactory::getContent(filename);
 
         if(c != NULL)
         {

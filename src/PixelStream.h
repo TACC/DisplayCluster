@@ -39,39 +39,17 @@
 #ifndef PIXEL_STREAM_H
 #define PIXEL_STREAM_H
 
-#include "PixelStreamSegmentParameters.h"
 #include "FactoryObject.h"
+#include "PixelStreamSegmentParameters.h"
 #include "PixelStreamSegmentRenderer.h"
 #include <QtGui>
 #include <boost/shared_ptr.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/binary_object.hpp>
 #include <boost/serialization/split_member.hpp>
 #include <string>
 #include <map>
 #include <vector>
 
-// define serialize method separately from PixelStreamSegmentParameters definition
-// so other (external) code can more easily include that header
-namespace boost {
-namespace serialization {
-
-template<class Archive>
-void serialize(Archive & ar, PixelStreamSegmentParameters & p, const unsigned int)
-{
-    ar & p.sourceIndex;
-    ar & p.frameIndex;
-    ar & p.x;
-    ar & p.y;
-    ar & p.width;
-    ar & p.height;
-    ar & p.totalWidth;
-    ar & p.totalHeight;
-}
-
-} // namespace serialization
-} // namespace boost
 
 struct PixelStreamSegment {
 
@@ -114,7 +92,7 @@ class PixelStream : public FactoryObject {
 
     public:
 
-        PixelStream(std::string uri);
+        PixelStream(QString uri);
 
         void getDimensions(int &width, int &height);
         void render(float tX, float tY, float tW, float tH);
@@ -136,7 +114,7 @@ class PixelStream : public FactoryObject {
     private:
 
         // parallel pixel stream identifier
-        std::string uri_;
+        QString uri_;
 
         // dimensions of entire parallel pixel stream
         int width_;

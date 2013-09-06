@@ -46,7 +46,7 @@
     #include <GL/glu.h>
 #endif
 
-SVG::SVG(std::string uri)
+SVG::SVG(QString uri)
 {
     // defaults
     imageWidth_ = 0;
@@ -56,11 +56,11 @@ SVG::SVG(std::string uri)
     uri_ = uri;
 
     // open file corresponding to URI
-    QFile file(uri.c_str());
+    QFile file(uri);
 
     if(file.open(QIODevice::ReadOnly) != true)
     {
-        put_flog(LOG_WARN, "could not open file %s", uri.c_str());
+        put_flog(LOG_WARN, "could not open file %s", uri.constData());
         return;
     }
 
@@ -90,7 +90,7 @@ void SVG::render(float tX, float tY, float tW, float tH)
     QRectF fullRect = getProjectedPixelRect(false); // corresponds to original [tX, tY, tW, tH]
 
     // if we're not visible or we don't have a valid SVG, we're done...
-    if(screenRect.isEmpty() == true || svgRenderer_.isValid() != true)
+    if(screenRect.isEmpty() || !svgRenderer_.isValid())
     {
         // clear existing FBO for this OpenGL window
         fbos_.erase(g_mainWindow->getActiveGLWindow());
@@ -145,7 +145,7 @@ bool SVG::setImageData(QByteArray imageData)
 {
     if(svgRenderer_.load(imageData) != true || svgRenderer_.isValid() == false)
     {
-        put_flog(LOG_ERROR, "error loading %s", uri_.c_str());
+        put_flog(LOG_ERROR, "error loading %s", uri_.constData());
         return false;
     }
 

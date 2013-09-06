@@ -52,8 +52,6 @@
 // files, do not process <boost/type_traits/has_operator.hpp>
 #  include <boost/shared_ptr.hpp>
 #  include <boost/enable_shared_from_this.hpp>
-#  include <boost/archive/binary_oarchive.hpp>
-#  include <boost/archive/binary_iarchive.hpp>
 #  include <boost/date_time/posix_time/posix_time.hpp>
 #endif
 
@@ -62,20 +60,7 @@
 #endif
 
 #include "PixelStream.h"
-
-// Serialize the QColor class via a free-function
-namespace boost {
-    namespace serialization {
-        template<class Archive>
-        void serialize(Archive & ar, QColor &color, const unsigned int version) {
-            unsigned char t;
-            t = color.red(); ar & t; color.setRed(t);
-            t = color.green(); ar & t; color.setGreen(t);
-            t = color.blue(); ar & t; color.setBlue(t);
-            t = color.alpha(); ar & t; color.setAlpha(t);
-        }
-    }
-}
+#include "serializationHelpers.h"
 
 
 class ContentWindowManager;
@@ -128,7 +113,7 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         void sendDisplayGroup();
         void sendContentsDimensionsRequest();
         void sendPixelStreams();
-        void sendPixelStreamSegments(const std::vector<PixelStreamSegment> &segments, const std::string& uri);
+        void sendPixelStreamSegments(const std::vector<PixelStreamSegment> &segments, const QString& uri);
         void sendSVGStreams();
         void sendFrameClockUpdate();
         void receiveFrameClockUpdate();

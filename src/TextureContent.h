@@ -41,12 +41,11 @@
 
 #include "Content.h"
 #include <boost/serialization/base_object.hpp>
-#include <boost/serialization/export.hpp>
 
 class TextureContent : public Content {
 
     public:
-        TextureContent(std::string uri = "") : Content(uri) { }
+        TextureContent(QString uri = "") : Content(uri) { }
 
         CONTENT_TYPE getType();
 

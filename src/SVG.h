@@ -52,7 +52,7 @@ class SVG : public FactoryObject {
 
     public:
 
-        SVG(std::string uri);
+        SVG(QString uri);
         ~SVG();
 
         void getDimensions(int &width, int &height);
@@ -62,7 +62,7 @@ class SVG : public FactoryObject {
     private:
 
         // image location
-        std::string uri_;
+        QString uri_;
 
         // SVG renderer
         QRectF svgExtents_;

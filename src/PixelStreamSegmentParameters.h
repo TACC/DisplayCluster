@@ -36,11 +36,16 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
+#ifndef PIXELSTREAMSEGMENTPARAMETERS_H
+#define PIXELSTREAMSEGMENTPARAMETERS_H
+
 #ifdef _WIN32
     typedef __int32 int32_t;
 #else
     #include <stdint.h>
 #endif
+
+#include <boost/serialization/access.hpp>
 
 #define FRAME_INDEX_UNDEFINED -1
 
@@ -67,4 +72,21 @@ struct PixelStreamSegmentParameters {
         // defaults
         frameIndex = FRAME_INDEX_UNDEFINED;
     }
+
+    friend class boost::serialization::access;
+
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int)
+    {
+        ar & sourceIndex;
+        ar & frameIndex;
+        ar & x;
+        ar & y;
+        ar & width;
+        ar & height;
+        ar & totalWidth;
+        ar & totalHeight;
+    }
 };
+
+#endif

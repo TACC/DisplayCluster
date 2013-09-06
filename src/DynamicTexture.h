@@ -56,7 +56,7 @@ class DynamicTexture : public boost::enable_shared_from_this<DynamicTexture>, pu
 
     public:
 
-        DynamicTexture(std::string uri = "", boost::shared_ptr<DynamicTexture> parent = boost::shared_ptr<DynamicTexture>(), float parentX=0., float parentY=0., float parentW=0., float parentH=0., int childIndex=0);
+        DynamicTexture(QString uri = "", boost::shared_ptr<DynamicTexture> parent = boost::shared_ptr<DynamicTexture>(), float parentX=0., float parentY=0., float parentW=0., float parentH=0., int childIndex=0);
         ~DynamicTexture();
 
         void loadImage(bool convertToGLFormat=true); // thread needs access to this method
@@ -71,7 +71,7 @@ class DynamicTexture : public boost::enable_shared_from_this<DynamicTexture>, pu
         int depth_;
 
         // for root only: image location
-        std::string uri_;
+        QString uri_;
 
         // image pyramid parameters
         std::string imagePyramidPath_;

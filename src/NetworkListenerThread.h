@@ -82,7 +82,7 @@ class NetworkListenerThread : public QObject {
 
         boost::shared_ptr<DisplayGroupInterface> displayGroupInterface_;
 
-        std::string interactionName_;
+        QString interactionName_;
         bool interactionBound_;
         bool interactionExclusive_;
 
