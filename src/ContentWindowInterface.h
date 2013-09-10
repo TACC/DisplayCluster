@@ -74,8 +74,7 @@ class ContentWindowInterface : public QObject {
 
         enum WindowState {
             UNSELECTED,   // the window is not selected and interaction changes its position/size
-            SELECTED,     // the window is selected and interaction modifies its zoom/pan
-            INTERACTION   // interaction within the window may be forwarded to the content source
+            SELECTED     // the window is selected and interaction may be forwarded to the ContentInteractionDelegate
         };
 
         ContentWindowInterface() : boundInteractions_( 0 ) { }

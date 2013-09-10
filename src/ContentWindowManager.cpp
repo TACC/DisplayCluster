@@ -40,6 +40,13 @@
 #include "Content.h"
 #include "DisplayGroupManager.h"
 #include "main.h"
+#include "ContentInteractionDelegate.h"
+
+// Specialized delegate implementations
+#include "PixelStreamInteractionDelegate.h"
+#include "DockInteractionDelegate.h"
+#include "ZoomInteractionDelegate.h"
+
 
 ContentWindowManager::ContentWindowManager(boost::shared_ptr<Content> content)
 {
@@ -58,9 +65,6 @@ ContentWindowManager::ContentWindowManager(boost::shared_ptr<Content> content)
     // default to no zoom
     zoom_ = 1.;
 
-    // default window state
-    windowState_ = UNSELECTED;
-
     controlState_ = STATE_LOOP;
 
     // set content object
@@ -68,6 +72,31 @@ ContentWindowManager::ContentWindowManager(boost::shared_ptr<Content> content)
 
     // receive updates to content dimensions
     connect(content.get(), SIGNAL(dimensionsChanged(int, int)), this, SLOT(setContentDimensions(int, int)));
+
+    if (g_mpiRank == 0)
+    {
+        interactionDelegate_ = createInteractionDelegateFromContentType();
+    }
+}
+
+ContentInteractionDelegate* ContentWindowManager::createInteractionDelegateFromContentType()
+{
+    ContentInteractionDelegate* delegate = 0;
+
+    if (getContent()->getType() == CONTENT_TYPE_PIXEL_STREAM)
+    {
+        if (getContent()->isDock())
+            delegate = new DockInteractionDelegate(this);
+        else
+            delegate = new PixelStreamInteractionDelegate(this);
+    }
+    else
+    {
+        // Default
+        delegate = new ZoomInteractionDelegate(this);
+    }
+
+    return delegate;
 }
 
 boost::shared_ptr<Content> ContentWindowManager::getContent()
@@ -109,6 +138,11 @@ void ContentWindowManager::setDisplayGroupManager(boost::shared_ptr<DisplayGroup
     }
 }
 
+ContentInteractionDelegate* ContentWindowManager::getInteractionDelegate()
+{
+    return interactionDelegate_;
+}
+
 void ContentWindowManager::moveToFront(ContentWindowInterface * source)
 {
     ContentWindowInterface::moveToFront(source);
@@ -143,7 +177,7 @@ void ContentWindowManager::render()
         showWindowBorders = dgm->getOptions()->getShowWindowBorders();
     }
 
-    if(showWindowBorders || windowState_ != UNSELECTED )
+    if(showWindowBorders || selected() )
     {
         double horizontalBorder = 5. / (double)g_configuration->getTotalHeight(); // 5 pixels
 
@@ -158,17 +192,9 @@ void ContentWindowManager::render()
         glPushAttrib(GL_CURRENT_BIT);
 
         // color the border based on window state
-        if(windowState_ == UNSELECTED)
-        {
-            glColor4f(1,1,1,1);
-        }
-        else if(windowState_ == SELECTED)
+        if(selected())
         {
             glColor4f(1,0,0,1);
-        }
-        else if(windowState_ == INTERACTION)
-        {
-            glColor4f(0,1,0,1);
         }
         else
         {

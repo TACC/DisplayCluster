@@ -85,17 +85,8 @@ class ContentWindowGraphicsItem : public QGraphicsObject, public ContentWindowIn
 
     private:
 
-        void gestureEvent( QGestureEvent *event );
-        void swipe( QSwipeGesture *gesture );
-        void pan( PanGesture* gesture) ;
-        void pinch( QPinchGesture* gesture );
-        void doubleTap( DoubleTapGesture* gesture );
-        void tap( QTapGesture* gesture );
-        void tapAndHold( QTapAndHoldGesture* gesture );
-
-        // resizing state
+        // manipulation state
         bool resizing_;
-
         bool moving_;
 
         // counter used to determine stacking order in the UI

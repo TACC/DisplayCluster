@@ -218,6 +218,7 @@ if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
         src/Configuration.cpp
         src/Content.cpp
         src/ContentFactory.cpp
+        src/ContentInteractionDelegate.cpp
         src/ContentWindowManager.cpp
         src/ContentWindowInterface.cpp
         src/ContentWindowGraphicsItem.cpp
@@ -230,6 +231,7 @@ if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
         src/DisplayGroupGraphicsView.cpp
         src/DisplayGroupListWidgetProxy.cpp
         src/Dock.cpp
+        src/DockInteractionDelegate.cpp
         src/DynamicTexture.cpp
         src/DynamicTextureContent.cpp
         src/FactoryObject.cpp
@@ -245,29 +247,35 @@ if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
         src/Pictureflow.cpp
         src/PixelStream.cpp
         src/PixelStreamContent.cpp
+        src/PixelStreamInteractionDelegate.cpp
         src/PixelStreamSegmentRenderer.cpp
         src/SVG.cpp
         src/SVGContent.cpp
         src/SVGStreamSource.cpp
         src/Texture.cpp
         src/TextureContent.cpp
+        src/ZoomInteractionDelegate.cpp
     )
 
     list(APPEND MOC_HEADERS
         src/BackgroundWidget.h
         src/Content.h
+        src/ContentInteractionDelegate.h
         src/ContentWindowInterface.h
         src/DisplayGroupManager.h
         src/DisplayGroupInterface.h
         src/DisplayGroupGraphicsViewProxy.h
         src/DisplayGroupListWidgetProxy.h
         src/Dock.h
+        src/DockInteractionDelegate.h
         src/MainWindow.h
         src/Marker.h
         src/NetworkListener.h
         src/NetworkListenerThread.h
         src/Options.h
         src/Pictureflow.h
+        src/PixelStreamInteractionDelegate.h
+        src/ZoomInteractionDelegate.h
     )
 
     # add OPTIONS hacks for Qt's MOC processing of Boost headers, for compiler errors with some versions of Boost
