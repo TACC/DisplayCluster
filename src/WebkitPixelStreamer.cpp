@@ -1,3 +1,42 @@
+/*********************************************************************/
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/* All rights reserved.                                              */
+/*                                                                   */
+/* Redistribution and use in source and binary forms, with or        */
+/* without modification, are permitted provided that the following   */
+/* conditions are met:                                               */
+/*                                                                   */
+/*   1. Redistributions of source code must retain the above         */
+/*      copyright notice, this list of conditions and the following  */
+/*      disclaimer.                                                  */
+/*                                                                   */
+/*   2. Redistributions in binary form must reproduce the above      */
+/*      copyright notice, this list of conditions and the following  */
+/*      disclaimer in the documentation and/or other materials       */
+/*      provided with the distribution.                              */
+/*                                                                   */
+/*    THIS  SOFTWARE IS PROVIDED  BY THE  UNIVERSITY OF  TEXAS AT    */
+/*    AUSTIN  ``AS IS''  AND ANY  EXPRESS OR  IMPLIED WARRANTIES,    */
+/*    INCLUDING, BUT  NOT LIMITED  TO, THE IMPLIED  WARRANTIES OF    */
+/*    MERCHANTABILITY  AND FITNESS FOR  A PARTICULAR  PURPOSE ARE    */
+/*    DISCLAIMED.  IN  NO EVENT SHALL THE UNIVERSITY  OF TEXAS AT    */
+/*    AUSTIN OR CONTRIBUTORS BE  LIABLE FOR ANY DIRECT, INDIRECT,    */
+/*    INCIDENTAL,  SPECIAL, EXEMPLARY,  OR  CONSEQUENTIAL DAMAGES    */
+/*    (INCLUDING, BUT  NOT LIMITED TO,  PROCUREMENT OF SUBSTITUTE    */
+/*    GOODS  OR  SERVICES; LOSS  OF  USE,  DATA,  OR PROFITS;  OR    */
+/*    BUSINESS INTERRUPTION) HOWEVER CAUSED  AND ON ANY THEORY OF    */
+/*    LIABILITY, WHETHER  IN CONTRACT, STRICT  LIABILITY, OR TORT    */
+/*    (INCLUDING NEGLIGENCE OR OTHERWISE)  ARISING IN ANY WAY OUT    */
+/*    OF  THE  USE OF  THIS  SOFTWARE,  EVEN  IF ADVISED  OF  THE    */
+/*    POSSIBILITY OF SUCH DAMAGE.                                    */
+/*                                                                   */
+/* The views and conclusions contained in the software and           */
+/* documentation are those of the authors and should not be          */
+/* interpreted as representing official policies, either expressed   */
+/* or implied, of The University of Texas at Austin.                 */
+/*********************************************************************/
+
 #include "WebkitPixelStreamer.h"
 
 #include <QtWebKit/QWebFrame>
@@ -23,11 +62,6 @@ WebkitPixelStreamer::WebkitPixelStreamer(DisplayGroupManager *displayGroupManage
 
     image_ = QImage( webView_->page()->viewportSize(), QImage::Format_ARGB32 );
 
-//    connect(webView_->page(), SIGNAL(repaintRequested(QRect)), this, SLOT(updateRegion(QRect)));
-//    connect(webView_->page(), SIGNAL(geometryChangeRequested(QRect)), this, SLOT(updateRegion(QRect)));
-//    connect(webView_->page(), SIGNAL(contentsChanged()), this, SLOT(update()));
-//    connect(webView_->page()->mainFrame(), SIGNAL(pageChanged()), this, SLOT(update()));
-
     timer_ = new QTimer();
     connect(timer_, SIGNAL(timeout()), this, SLOT(update()));
     timer_->start(30);
@@ -45,9 +79,6 @@ void WebkitPixelStreamer::setUrl(QString url)
 {
     webView_->load( QUrl(url) );
 }
-
-#include <string>
-#include <QtWebKit/QWebElement>
 
 
 void WebkitPixelStreamer::updateInteractionState(InteractionState interactionState)
@@ -107,27 +138,6 @@ void WebkitPixelStreamer::update()
         emit segmentUpdated(uri_, segment);
     }
 }
-
-//void WebkitPixelStreamer::updateRegion(const QRect & dirtyRect)
-//{
-//    QWebPage* page = webView_->page();
-//    if( !page->viewportSize().isEmpty())
-//    {
-//        QPainter painter( &image_ );
-//        page->mainFrame()->render( &painter, dirtyRect );
-//        painter.end();
-
-//        PixelStreamSegment segment;
-//        segment.parameters = makeSegmentHeader();
-//        // TODO remove this crappy compression when merging with Daniel's no-compression codebase
-//        computeSegmentJpeg(image_, segment);
-
-//        ++frameIndex_;
-
-//        emit segmentUpdated(uri_, segment);
-//    }
-//}
-
 
 PixelStreamSegmentParameters WebkitPixelStreamer::makeSegmentHeader()
 {
