@@ -56,6 +56,8 @@
     SkeletonThread * g_skeletonThread = NULL;
 #endif
 
+#include "LocalPixelStreamerManager.h"
+
 std::string g_displayClusterDir;
 QApplication * g_app = NULL;
 int g_mpiRank = -1;
@@ -64,9 +66,10 @@ MPI_Comm g_mpiRenderComm;
 Configuration * g_configuration = NULL;
 boost::shared_ptr<DisplayGroupManager> g_displayGroupManager;
 MainWindow * g_mainWindow = NULL;
-NetworkListener * g_networkListener = NULL;
 long g_frameCount = 0;
-Dock* g_dock = 0;
+// Rank0
+LocalPixelStreamerManager* g_localPixelStreamers = 0;
+NetworkListener * g_networkListener = 0;
 
 int main(int argc, char * argv[])
 {
@@ -143,6 +146,7 @@ int main(int argc, char * argv[])
     if(g_mpiRank == 0)
     {
         g_networkListener = new NetworkListener();
+        g_localPixelStreamers = new LocalPixelStreamerManager(g_displayGroupManager.get());
     }
 
     g_mainWindow = new MainWindow();
@@ -174,7 +178,11 @@ int main(int argc, char * argv[])
     if(g_mpiRank == 0)
     {
         g_displayGroupManager->sendQuit();
+        delete g_networkListener;
+        delete g_localPixelStreamers;
     }
+
+    delete g_configuration;
 
     // clean up the MPI environment after the Qt event loop exits
     MPI_Finalize();

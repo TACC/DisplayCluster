@@ -73,7 +73,7 @@ class ContentWindowManager : public ContentWindowInterface, public boost::enable
         // GLWindow rendering
         void render();
 
-protected:
+    protected:
         friend class boost::serialization::access;
 
         template<class Archive>
@@ -97,8 +97,6 @@ protected:
         }
 
     private:
-        ContentInteractionDelegate* createInteractionDelegateFromContentType();
-
         boost::shared_ptr<Content> content_;
 
         boost::weak_ptr<DisplayGroupManager> displayGroupManager_;

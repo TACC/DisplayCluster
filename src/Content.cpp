@@ -70,11 +70,6 @@ void Content::setDimensions(int width, int height)
     emit(dimensionsChanged(width_, height_));
 }
 
-bool Content::isDock() const
-{
-    return getURI() == "menu";
-}
-
 void Content::render(boost::shared_ptr<ContentWindowManager> window)
 {
     // get parameters from window

@@ -41,7 +41,7 @@
 #include "main.h"
 #include "ContentWindowManager.h"
 #include "ContentWindowGraphicsItem.h"
-#include "Dock.h"
+#include "LocalPixelStreamerManager.h"
 
 DisplayGroupGraphicsView::DisplayGroupGraphicsView()
 {
@@ -139,10 +139,7 @@ void DisplayGroupGraphicsView::tapAndHold( QTapAndHoldGesture* gesture )
     if( dynamic_cast< ContentWindowGraphicsItem* >( item ))
         return;
 
-    if( !g_dock )
-        g_dock = new Dock;
-    g_dock->open();
-    g_dock->setPos( pos );
+    g_localPixelStreamers->openDockAt(pos);
 }
 
 void DisplayGroupGraphicsView::resizeEvent(QResizeEvent * event)

@@ -44,7 +44,6 @@
 
 // Specialized delegate implementations
 #include "PixelStreamInteractionDelegate.h"
-#include "DockInteractionDelegate.h"
 #include "ZoomInteractionDelegate.h"
 
 
@@ -75,28 +74,15 @@ ContentWindowManager::ContentWindowManager(boost::shared_ptr<Content> content)
 
     if (g_mpiRank == 0)
     {
-        interactionDelegate_ = createInteractionDelegateFromContentType();
-    }
-}
-
-ContentInteractionDelegate* ContentWindowManager::createInteractionDelegateFromContentType()
-{
-    ContentInteractionDelegate* delegate = 0;
-
-    if (getContent()->getType() == CONTENT_TYPE_PIXEL_STREAM)
-    {
-        if (getContent()->isDock())
-            delegate = new DockInteractionDelegate(this);
+        if (getContent()->getType() == CONTENT_TYPE_PIXEL_STREAM)
+        {
+            interactionDelegate_ = new PixelStreamInteractionDelegate(this);
+        }
         else
-            delegate = new PixelStreamInteractionDelegate(this);
+        {
+            interactionDelegate_ = new ZoomInteractionDelegate(this);
+        }
     }
-    else
-    {
-        // Default
-        delegate = new ZoomInteractionDelegate(this);
-    }
-
-    return delegate;
 }
 
 boost::shared_ptr<Content> ContentWindowManager::getContent()
@@ -132,6 +118,7 @@ void ContentWindowManager::setDisplayGroupManager(boost::shared_ptr<DisplayGroup
         connect(this, SIGNAL(centerChanged(double, double, ContentWindowInterface *)), displayGroupManager.get(), SLOT(sendDisplayGroup()));
         connect(this, SIGNAL(zoomChanged(double, ContentWindowInterface *)), displayGroupManager.get(), SLOT(sendDisplayGroup()));
         connect(this, SIGNAL(windowStateChanged(ContentWindowInterface::WindowState, ContentWindowInterface *)), displayGroupManager.get(), SLOT(sendDisplayGroup()));
+        // TODO check: do we really need to serialize and MPI send the InteractionState? Isn't it used on Rank0 only?
         connect(this, SIGNAL(interactionStateChanged(InteractionState, ContentWindowInterface *)), displayGroupManager.get(), SLOT(sendDisplayGroup()));
 
         // we don't call sendDisplayGroup() on movedToFront() or destroyed() since it happens already

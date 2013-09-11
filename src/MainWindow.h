@@ -84,6 +84,7 @@ class MainWindow : public QMainWindow {
         void finalize();
 
         void showBackgroundWidget();
+        void openWebBrowser();
 
     signals:
 

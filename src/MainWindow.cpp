@@ -45,6 +45,7 @@
 #include "DisplayGroupGraphicsViewProxy.h"
 #include "DisplayGroupListWidgetProxy.h"
 #include "BackgroundWidget.h"
+#include "LocalPixelStreamerManager.h"
 
 #if ENABLE_PYTHON_SUPPORT
     #include "PythonConsole.h"
@@ -126,6 +127,11 @@ MainWindow::MainWindow()
         QAction * backgroundAction = new QAction("Background", this);
         backgroundAction->setStatusTip("Select the background color and content");
         connect(backgroundAction, SIGNAL(triggered()), this, SLOT(showBackgroundWidget()));
+
+        // Open webbrowser action
+        QAction * webbrowserAction = new QAction("Web Browser", this);
+        webbrowserAction->setStatusTip("Open a web browser");
+        connect(webbrowserAction, SIGNAL(triggered()), this, SLOT(openWebBrowser()));
 
 #if ENABLE_PYTHON_SUPPORT
         // Python console action
@@ -238,6 +244,7 @@ MainWindow::MainWindow()
         // add actions to menus
         fileMenu->addAction(openContentAction);
         fileMenu->addAction(openContentsDirectoryAction);
+        fileMenu->addAction(webbrowserAction);
         fileMenu->addAction(clearContentsAction);
         fileMenu->addAction(saveStateAction);
         fileMenu->addAction(loadStateAction);
@@ -273,6 +280,7 @@ MainWindow::MainWindow()
         toolbar->addAction(loadStateAction);
         toolbar->addAction(computeImagePyramidAction);
         toolbar->addAction(backgroundAction);
+        toolbar->addAction(webbrowserAction);
 #if ENABLE_PYTHON_SUPPORT
         toolbar->addAction(pythonConsoleAction);
 #endif
@@ -515,6 +523,23 @@ void MainWindow::showBackgroundWidget()
     }
 
     backgroundWidget_->show();
+}
+
+void MainWindow::openWebBrowser()
+{
+    static int webbrowserCounter = 0;
+    bool ok;
+    QString url = QInputDialog::getText(this, tr("New WebBrowser Content"),
+                                         tr("URL:"), QLineEdit::Normal,
+                                         "http://www.google.ch", &ok);
+    if (ok && !url.isEmpty())
+    {
+        bool success = g_localPixelStreamers->createWebBrowser("WebBrowser"+QString::number(webbrowserCounter++), url);
+        if(!success)
+        {
+            QMessageBox::warning(this, "Error", "A WebBrowser with this uri already exists.", QMessageBox::Ok, QMessageBox::Ok);
+        }
+    }
 }
 
 void MainWindow::clearContents()

@@ -47,19 +47,20 @@
 #include <boost/shared_ptr.hpp>
 #include <mpi.h>
 
-class Dock;
+class LocalPixelStreamerManager;
 
 extern std::string g_displayClusterDir;
 extern QApplication * g_app;
 extern int g_mpiRank;
-extern Dock* g_dock;
 extern int g_mpiSize;
 extern MPI_Comm g_mpiRenderComm;
 extern Configuration * g_configuration;
 extern boost::shared_ptr<DisplayGroupManager> g_displayGroupManager;
 extern MainWindow * g_mainWindow;
-extern NetworkListener * g_networkListener;
 extern long g_frameCount;
+// Rank0
+extern NetworkListener * g_networkListener;
+extern LocalPixelStreamerManager* g_localPixelStreamers;
 
 #if ENABLE_SKELETON_SUPPORT
     class SkeletonThread;

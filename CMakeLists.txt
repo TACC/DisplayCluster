@@ -57,6 +57,7 @@ set(QT_USE_QTSVG TRUE)
 set(QT_USE_QTXMLPATTERNS TRUE)
 set(QT_USE_QTXML TRUE)
 set(QT_USE_QTNETWORK TRUE)
+set(QT_USE_QTWEBKIT TRUE)
 
 if(WIN32)
   set(QT_USE_QTMAIN TRUE)
@@ -230,13 +231,14 @@ if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
         src/DisplayGroupGraphicsViewProxy.cpp
         src/DisplayGroupGraphicsView.cpp
         src/DisplayGroupListWidgetProxy.cpp
-        src/Dock.cpp
-        src/DockInteractionDelegate.cpp
+        src/DockPixelStreamer.cpp
         src/DynamicTexture.cpp
         src/DynamicTextureContent.cpp
         src/FactoryObject.cpp
         src/GLWindow.cpp
         src/log.cpp
+        src/LocalPixelStreamer.cpp
+        src/LocalPixelStreamerManager.cpp
         src/main.cpp
         src/MainWindow.cpp
         src/Movie.cpp
@@ -249,11 +251,13 @@ if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
         src/PixelStreamContent.cpp
         src/PixelStreamInteractionDelegate.cpp
         src/PixelStreamSegmentRenderer.cpp
+        src/PixelStreamSegmentJpegCompressor.cpp
         src/SVG.cpp
         src/SVGContent.cpp
         src/SVGStreamSource.cpp
         src/Texture.cpp
         src/TextureContent.cpp
+        src/WebkitPixelStreamer.cpp
         src/ZoomInteractionDelegate.cpp
     )
 
@@ -266,8 +270,9 @@ if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
         src/DisplayGroupInterface.h
         src/DisplayGroupGraphicsViewProxy.h
         src/DisplayGroupListWidgetProxy.h
-        src/Dock.h
-        src/DockInteractionDelegate.h
+        src/DockPixelStreamer.h
+        src/LocalPixelStreamer.h
+        src/LocalPixelStreamerManager.h
         src/MainWindow.h
         src/Marker.h
         src/NetworkListener.h
@@ -275,6 +280,7 @@ if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
         src/Options.h
         src/Pictureflow.h
         src/PixelStreamInteractionDelegate.h
+        src/WebkitPixelStreamer.h
         src/ZoomInteractionDelegate.h
     )
 

@@ -111,7 +111,6 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         void receiveMessages();
 
         void sendDisplayGroup();
-        void sendContentsDimensionsRequest();
         void sendPixelStreams();
         void sendPixelStreamSegments(const std::vector<PixelStreamSegment> &segments, const QString& uri);
         void sendSVGStreams();
@@ -174,6 +173,11 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         void receiveContentsDimensionsRequest(MessageHeader messageHeader);
         void receivePixelStreams(MessageHeader messageHeader);
         void receiveSVGStreams(MessageHeader messageHeader);
+
+    signals:
+        // Rank0 signals pixel streams events
+        void pixelStreamViewAdded(QString uri, boost::shared_ptr<ContentWindowManager> contentWindowManager);
+        void pixelStreamViewClosed(QString uri);
 };
 
 #endif

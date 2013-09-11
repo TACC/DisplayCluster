@@ -9,12 +9,15 @@ PixelStreamInteractionDelegate::PixelStreamInteractionDelegate(ContentWindowMana
 
 void PixelStreamInteractionDelegate::tap(QTapGesture *gesture)
 {
-    InteractionState interactionState = getGestureInteractionState(gesture);
+    if ( gesture->state() == Qt::GestureFinished )
+    {
+        InteractionState interactionState = getGestureInteractionState(gesture);
 
-    interactionState.mouseLeft = true;
-    interactionState.type = InteractionState::EVT_CLICK;
+        interactionState.mouseLeft = true;
+        interactionState.type = InteractionState::EVT_CLICK;
 
-    contentWindowManager_->setInteractionState(interactionState);
+        contentWindowManager_->setInteractionState(interactionState);
+    }
 }
 
 void PixelStreamInteractionDelegate::doubleTap(DoubleTapGesture *gesture)
