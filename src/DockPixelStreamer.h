@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2013, The University of Texas at Austin.            */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,82 +37,83 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DOCK_H
-#define DOCK_H
+#ifndef DOCKPIXELSTREAMER_H
+#define DOCKPIXELSTREAMER_H
+
+#include "LocalPixelStreamer.h"
 
 #include <QtCore/QDir>
 #include <QtCore/QObject>
 #include <QtCore/QThread>
 #include <QtCore/QHash>
 #include <QtGui/QImage>
-#include <dcStream.h>
+
 
 class PictureFlow;
 
-
-class ImageStreamer : public QObject
+// TODO make this class extend QRunnable!!
+class AsyncImageLoader : public QObject
 {
     Q_OBJECT
 
-    DcSocket* dcSocket;
-
 public:
-    ImageStreamer();
-    ~ImageStreamer();
-
-public slots:
-    void connect();
-    void disconnect();
-    void send( const QImage& image );
-};
-
-class ImageLoader : public QObject
-{
-    Q_OBJECT
-
-    PictureFlow* flow_;
-
-public:
-    ImageLoader( PictureFlow* flow );
-    ~ImageLoader();
+    AsyncImageLoader(QSize defaultSize);
 
 public slots:
     void loadImage( const QString& fileName, const int index );
+
+signals:
+    void imageLoaded(int index, QImage image);
+
+private:
+    QSize defaultSize_;
 };
 
 
-class Dock : public QObject
+
+class DockPixelStreamer : public LocalPixelStreamer
 {
     Q_OBJECT
 
 public:
-    Dock();
-    ~Dock();
-    PictureFlow* getFlow() const;
+
+    DockPixelStreamer(DisplayGroupManager* displayGroupManager);
+    ~DockPixelStreamer();
+
+    static QString getUniqueURI();
+
+    virtual void updateInteractionState(InteractionState interactionState);
 
     void open();
-    void close();
 
     void onItem();
 
-    void setPos( const QPointF& pos ) { pos_ = pos; }
-    QPointF getPos() const { return pos_; }
+    void setOpeningPos( const QPointF& pos ) { posOpening_ = pos; }
+    QPointF getOpeningPos() const { return posOpening_; }
 
-Q_SIGNALS:
-    void started();
-    void finished();
+public slots:
+    void update(const QImage &image);
+
+signals:
     void renderPreview( const QString& fileName, const int index );
+    void close(QString selfUri);
 
 private:
-    void changeDirectory( const QString& dir );
-    QThread streamThread_;
+
     QThread loadThread_;
+
     PictureFlow* flow_;
-    ImageStreamer* streamer_;
-    ImageLoader* loader_;
+    AsyncImageLoader* loader_;
+
     QDir currentDir_;
-    QPointF pos_;
+    QPointF posOpening_;
     QHash< QString, int > slideIndex_;
+
+    int frameIndex_;
+
+    void changeDirectory( const QString& dir );
+
+    PixelStreamSegmentParameters makeSegmentHeader();
 };
 
-#endif
+#endif // DOCKPIXELSTREAMER_H

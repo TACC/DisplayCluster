@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2013, The University of Texas at Austin.            */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,7 +37,8 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "Dock.h"
+#include "DockPixelStreamer.h"
+
 #include "Pictureflow.h"
 #include "Content.h"
 #include "ContentFactory.h"
@@ -44,13 +46,12 @@
 #include "MovieContent.h"
 #include "main.h"
 
+#include "PixelStreamSegmentJpegCompressor.h"
+
+#define DOCK_UNIQUE_URI "menu"
+
 namespace
 {
-void closeDock( Dock* dock )
-{
-    dock->close();
-}
-
 QImage createSlideImage_( const QSize& size, const QString& fileName,
                           const bool isDir, const QColor& bgcolor1,
                           const QColor& bgcolor2 )
@@ -73,76 +74,240 @@ QImage createSlideImage_( const QSize& size, const QString& fileName,
 }
 
 
-ImageStreamer::ImageStreamer()
-    : dcSocket( 0 )
+QString DockPixelStreamer::getUniqueURI()
+{
+    return QString(DOCK_UNIQUE_URI);
+}
+
+DockPixelStreamer::DockPixelStreamer(DisplayGroupManager *displayGroupManager)
+    : LocalPixelStreamer(displayGroupManager, QString(DOCK_UNIQUE_URI))
+    , frameIndex_(0)
+{
+    connect(this, SIGNAL(close(QString)), displayGroupManager, SLOT(deletePixelStream(QString)));
+
+    av_register_all();
+
+    flow_ = new PictureFlow;
+    flow_->resize( g_configuration->getTotalWidth()/8,
+                   g_configuration->getTotalHeight()/8 );
+    const int height = flow_->height() * .8;
+    flow_->setSlideSize( QSize( 0.6 * height, height ));
+    flow_->setBackgroundColor( Qt::darkGray );
+
+    connect( flow_, SIGNAL( imageUpdated( const QImage& )), this, SLOT( update( const QImage& )));
+
+
+    loader_ = new AsyncImageLoader(flow_->slideSize());
+    loader_->moveToThread( &loadThread_ );
+    connect( loader_, SIGNAL(imageLoaded(int, QImage)),
+             flow_, SLOT(setSlide( int, QImage )));
+    connect( this, SIGNAL(renderPreview( const QString&, const int )),
+             loader_, SLOT(loadImage( const QString&, const int )));
+    loadThread_.start();
+
+
+    changeDirectory( g_configuration->getDockStartDir( ));
+}
+
+DockPixelStreamer::~DockPixelStreamer()
+{
+    loadThread_.quit();
+    loadThread_.wait();
+    delete flow_;
+    delete loader_;
+}
+
+
+void DockPixelStreamer::updateInteractionState(InteractionState interactionState)
+{
+    if (interactionState.type == InteractionState::EVT_CLICK)
+    {
+        // xPos is click position in (pixel) units inside the dock
+        const int xPos = interactionState.mouseX * flow_->size().width();
+
+        // mid is half the width of the dock in (pixel) units
+        const int dockHalfWidth = flow_->size().width() / 2;
+
+        // SlideMid is half the slide width in pixels
+        const int slideHalfWidth = flow_->slideSize().width() / 2;
+
+        if( xPos > dockHalfWidth-slideHalfWidth && xPos < dockHalfWidth+slideHalfWidth )
+        {
+            onItem();
+        }
+        else
+        {
+            if( xPos > dockHalfWidth )
+              flow_->showNext();
+            else
+              flow_->showPrevious();
+        }
+    }
+
+    else if (interactionState.type == InteractionState::EVT_MOVE || interactionState.type == InteractionState::EVT_WHEEL)
+    {
+        const int offs = interactionState.dx * flow_->size().width() / 4;
+        flow_->showSlide( flow_->centerIndex() - offs );
+    }
+}
+
+
+void DockPixelStreamer::open()
+{
+    flow_->triggerRender();
+}
+
+void DockPixelStreamer::onItem()
+{
+    const QImage& image = flow_->slide( flow_->centerIndex( ));
+    const QString& source = image.text( "source" );
+
+    if( image.text( "dir" ).isEmpty( ))
+    {
+        const QString extension = QFileInfo(source).suffix().toLower();
+        if( extension == "dcx" )
+        {
+            g_displayGroupManager->loadStateXMLFile( source.toStdString( ));
+
+            emit(close(getUniqueURI()));
+        }
+        else {
+            boost::shared_ptr< Content > c = ContentFactory::getContent( source );
+            if( c )
+            {
+                boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
+                g_displayGroupManager->addContentWindowManager( cwm );
+
+                emit(close(getUniqueURI()));
+            }
+        }
+    }
+    else
+    {
+        changeDirectory( source );
+    }
+}
+
+void DockPixelStreamer::update(const QImage& image)
+{
+    PixelStreamSegment segment;
+    segment.parameters = makeSegmentHeader();
+
+    // TODO remove this crappy compression when merging with Daniel's no-compression codebase
+    computeSegmentJpeg(image, segment);
+
+    ++frameIndex_;
+
+    emit segmentUpdated(uri_, segment);
+}
+
+PixelStreamSegmentParameters DockPixelStreamer::makeSegmentHeader()
+{
+    PixelStreamSegmentParameters parameters;
+
+    parameters.sourceIndex = 0;
+    parameters.frameIndex = frameIndex_;
+
+    parameters.totalHeight = flow_->size().height();
+    parameters.totalWidth = flow_->size().width();
+
+    parameters.height = parameters.totalHeight;
+    parameters.width = parameters.totalWidth;
+
+    parameters.x = 0;
+    parameters.y = 0;
+
+    return parameters;
+}
+
+
+void DockPixelStreamer::changeDirectory( const QString& dir )
+{
+    slideIndex_[currentDir_.path()] = flow_->centerIndex();
+
+    flow_->clear();
+
+    currentDir_ = dir;
+    currentDir_.setFilter( QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot );
+    QStringList filters = ContentFactory::getSupportedFilesFilter();
+    filters.append( "*.dcx" );
+    currentDir_.setNameFilters( filters );
+    const QFileInfoList& fileList = currentDir_.entryInfoList();
+
+    currentDir_.setFilter( QDir::Dirs | QDir::NoDotAndDotDot );
+    currentDir_.setNameFilters( QStringList( ));
+    const QFileInfoList& dirList = currentDir_.entryInfoList();
+
+    QDir rootDir = dir;
+    const bool hasRootDir = rootDir.cdUp();
+
+    if( hasRootDir)
+    {
+        QString upFolder = rootDir.path();
+        QImage img = createSlideImage_( flow_->slideSize(), upFolder, true,
+                                        Qt::darkGray, Qt::lightGray );
+        flow_->addSlide( img, "UP: " + upFolder );
+    }
+
+    for( int i = 0; i < fileList.size(); ++i )
+    {
+        QFileInfo fileInfo = fileList.at( i );
+        const QString& fileName = currentDir_.absoluteFilePath( fileInfo.fileName( ));
+        QImage img = createSlideImage_( flow_->slideSize(), fileName, false,
+                                        Qt::black, Qt::white );
+        flow_->addSlide( img, fileInfo.fileName( ));
+        emit renderPreview( fileName, flow_->slideCount( ));
+    }
+
+    for( int i = 0; i < dirList.size(); ++i )
+    {
+        QFileInfo fileInfo = dirList.at( i );
+        const QString& fileName = currentDir_.absoluteFilePath( fileInfo.fileName( ));
+        if( !fileName.endsWith( ".pyramid" ))
+        {
+            QImage img = createSlideImage_( flow_->slideSize(), fileName, true,
+                                            Qt::black, Qt::white );
+            flow_->addSlide( img, fileInfo.fileName( ));
+        }
+    }
+
+    flow_->setCenterIndex( slideIndex_[currentDir_.path()] );
+}
+
+
+
+AsyncImageLoader::AsyncImageLoader(QSize defaultSize)
+    : defaultSize_(defaultSize)
 {
 }
 
-ImageStreamer::~ImageStreamer()
-{
-    dcStreamDisconnect( dcSocket );
-}
-
-void ImageStreamer::connect()
-{
-    dcSocket = dcStreamConnect( "localhost" );
-}
-
-void ImageStreamer::disconnect()
-{
-    dcStreamDisconnect( dcSocket );
-    dcSocket = 0;
-}
-
-void ImageStreamer::send( const QImage& image )
-{
-    if( !dcSocket )
-        return;
-
-    DcStreamParameters parameters = dcStreamGenerateParameters( "menu",
-        0, 0, image.width(), image.height(), image.width(), image.height( ));
-
-    dcStreamSend (dcSocket, (unsigned char*)image.bits(), 0, 0,
-                         image.width(),0,image.height(), RGBA, parameters );
-}
-
-
-ImageLoader::ImageLoader( PictureFlow* flow )
-    : flow_( flow )
-{
-}
-
-ImageLoader::~ImageLoader()
-{
-}
-
-void ImageLoader::loadImage( const QString& fileName, const int index )
+void AsyncImageLoader::loadImage( const QString& fileName, const int index )
 {
     const QString extension = QFileInfo(fileName).suffix().toLower();
 
     if( extension == "dcx" )
     {
-        QImage img = createSlideImage_( flow_->slideSize(), fileName, false,
+        QImage image = createSlideImage_( defaultSize_, fileName, false,
                                         Qt::darkCyan, Qt::cyan );
-        flow_->setSlide( index, img );
+        emit imageLoaded(index, image);
         return;
     }
 
     if( extension == "pyr" )
     {
         QImageReader reader( fileName + "amid/0.jpg" );
-        QImage img = reader.read();
-        img.setText( "source", fileName );
-        flow_->setSlide( index, img );
+        QImage image = reader.read();
+        image.setText( "source", fileName );
+        emit imageLoaded(index, image);
         return;
     }
 
     QImageReader reader( fileName );
     if( reader.canRead( ))
     {
-        QImage img = reader.read();
-        img.setText( "source", fileName );
-        flow_->setSlide( index, img );
+        QImage image = reader.read();
+        image.setText( "source", fileName );
+        emit imageLoaded(index, image);
         return;
     }
     else if( reader.error() != QImageReader::UnsupportedFormatError )
@@ -240,7 +405,7 @@ void ImageLoader::loadImage( const QString& fileName, const int index )
         av_free_packet( &packet );
 
         image.setText( "source", fileName );
-        flow_->setSlide( index, image );
+        emit imageLoaded(index, image);
         break;
     }
 
@@ -248,144 +413,4 @@ void ImageLoader::loadImage( const QString& fileName, const int index )
     sws_freeContext( swsContext );
     av_free( avFrame );
     av_free( avFrameRGB );
-}
-
-
-Dock::Dock()
-{
-    av_register_all();
-
-    flow_ = new PictureFlow;
-    flow_->resize( g_configuration->getTotalWidth()/8,
-                   g_configuration->getTotalHeight()/8 );
-    const int height = flow_->height() * .8;
-    flow_->setSlideSize( QSize( 0.6 * height, height ));
-    flow_->setBackgroundColor( Qt::darkGray );
-
-    streamer_ = new ImageStreamer;
-    streamer_->moveToThread( &streamThread_ );
-    connect( flow_, SIGNAL( imageUpdated( const QImage& )),
-             streamer_, SLOT( send( const QImage& )));
-    connect( &streamThread_, SIGNAL(finished()), streamer_, SLOT(disconnect( )));
-    connect( this, SIGNAL(started()), streamer_, SLOT(connect( )));
-    connect( this, SIGNAL(finished()), streamer_, SLOT(disconnect( )));
-    streamThread_.start();
-
-    loader_ = new ImageLoader( flow_ );
-    loader_->moveToThread( &loadThread_ );
-    connect( this, SIGNAL(renderPreview( const QString&, const int )),
-             loader_, SLOT(loadImage( const QString&, const int )));
-    loadThread_.start();
-
-    changeDirectory( g_configuration->getDockStartDir( ));
-}
-
-Dock::~Dock()
-{
-    streamThread_.quit();
-    loadThread_.quit();
-    streamThread_.wait();
-    loadThread_.wait();
-    delete flow_;
-    delete streamer_;
-    delete loader_;
-}
-
-void Dock::open()
-{
-    emit started();
-    flow_->triggerRender();
-}
-
-void Dock::close()
-{
-    emit finished();
-}
-
-void Dock::onItem()
-{
-    const QImage& image = flow_->slide( flow_->centerIndex( ));
-    const QString& source = image.text( "source" );
-
-    if( !image.text( "dir" ).isEmpty( ))
-    {
-        changeDirectory( source );
-        return;
-    }
-
-    const QString extension = QFileInfo(source).suffix().toLower();
-    if( extension == "dcx" )
-    {
-        g_displayGroupManager->loadStateXMLFile( source.toStdString( ));
-        return;
-    }
-
-    boost::shared_ptr< Content > c = ContentFactory::getContent( source );
-    if( c )
-    {
-        boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
-        g_displayGroupManager->addContentWindowManager( cwm );
-        cwm->adjustSize( SIZE_1TO1 );
-    }
-    QtConcurrent::run( closeDock, this );
-}
-
-void Dock::changeDirectory( const QString& dir )
-{
-    slideIndex_[currentDir_.path()] = flow_->centerIndex();
-
-    flow_->clear();
-
-    currentDir_ = dir;
-    currentDir_.setFilter( QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot );
-    QStringList filters = ContentFactory::getSupportedFilesFilter();
-    filters.append( "*.dcx" );
-    currentDir_.setNameFilters( filters );
-    const QFileInfoList& fileList = currentDir_.entryInfoList();
-
-    currentDir_.setFilter( QDir::Dirs | QDir::NoDotAndDotDot );
-    currentDir_.setNameFilters( QStringList( ));
-    const QFileInfoList& dirList = currentDir_.entryInfoList();
-
-    QDir rootDir = dir;
-    const bool hasRootDir = rootDir.cdUp();
-
-    if( hasRootDir)
-    {
-        QString upFolder = rootDir.path();
-        QImage img = createSlideImage_( flow_->slideSize(), upFolder, true,
-                                        Qt::darkGray, Qt::lightGray );
-        flow_->addSlide( img, "UP: " + upFolder );
-    }
-
-    for( int i = 0; i < fileList.size(); ++i )
-    {
-        QFileInfo fileInfo = fileList.at( i );
-        const QString& fileName =
-                            currentDir_.absoluteFilePath( fileInfo.fileName( ));
-        emit renderPreview( fileName, flow_->slideCount( ));
-        QImage img = createSlideImage_( flow_->slideSize(), fileName, false,
-                                        Qt::black, Qt::white );
-        flow_->addSlide( img, fileInfo.fileName( ));
-    }
-
-    for( int i = 0; i < dirList.size(); ++i )
-    {
-        QFileInfo fileInfo = dirList.at( i );
-        const QString& fileName =
-                            currentDir_.absoluteFilePath( fileInfo.fileName( ));
-        if( !fileName.endsWith( ".pyramid" ))
-        {
-            QImage img = createSlideImage_( flow_->slideSize(), fileName, true,
-                                            Qt::black, Qt::white );
-            flow_->addSlide( img, fileInfo.fileName( ));
-        }
-    }
-
-    flow_->setCenterIndex( slideIndex_[currentDir_.path()] );
-}
-
-PictureFlow* Dock::getFlow() const
-{
-    return flow_;
 }

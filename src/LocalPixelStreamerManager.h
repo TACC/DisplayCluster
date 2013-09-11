@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,36 +37,50 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MAIN_H
-#define MAIN_H
+#ifndef LOCALPIXELSTREAMERMANAGER_H
+#define LOCALPIXELSTREAMERMANAGER_H
 
-#include "Configuration.h"
-#include "MainWindow.h"
-#include "DisplayGroupManager.h"
-#include "NetworkListener.h"
-#include "config.h"
+#include <map>
 #include <boost/shared_ptr.hpp>
-#include <mpi.h>
+#include <QMutex>
+#include <QObject>
+#include <QPointF>
 
-class LocalPixelStreamerManager;
+class LocalPixelStreamer;
+class DisplayGroupManager;
+class ContentWindowManager;
+class DockPixelStreamer;
 
-extern std::string g_displayClusterDir;
-extern QApplication * g_app;
-extern int g_mpiRank;
-extern int g_mpiSize;
-extern MPI_Comm g_mpiRenderComm;
-extern Configuration * g_configuration;
-extern boost::shared_ptr<DisplayGroupManager> g_displayGroupManager;
-extern MainWindow * g_mainWindow;
-extern long g_frameCount;
-// Rank0
-extern NetworkListener * g_networkListener;
-extern LocalPixelStreamerManager* g_localPixelStreamers;
+class LocalPixelStreamerManager : public QObject
+{
+Q_OBJECT
 
-#if ENABLE_SKELETON_SUPPORT
-    class SkeletonThread;
+public:
+    LocalPixelStreamerManager(DisplayGroupManager *displayGroupManager);
 
-    extern SkeletonThread * g_skeletonThread;
-#endif
+    bool createWebBrowser(QString uri, QString url);
 
-#endif
+    bool isDockOpen();
+    void openDockAt(QPointF pos);
+    DockPixelStreamer* getDockInstance();
+
+    void clear();
+
+public slots:
+
+    void removePixelStreamer(QString uri);
+
+    void bindPixelStreamerInteraction(QString uri, boost::shared_ptr<ContentWindowManager> cwm);
+
+private:
+
+    // all existing objects
+    std::map<QString, boost::shared_ptr<LocalPixelStreamer> > map_;
+
+    // To connect new LocalPixelStreamers
+    DisplayGroupManager *displayGroupManager_;
+
+    void setWindowManagerPosition(boost::shared_ptr<ContentWindowManager> cwm, QPointF pos);
+};
+
+#endif // LOCALPIXELSTREAMERMANAGER_H

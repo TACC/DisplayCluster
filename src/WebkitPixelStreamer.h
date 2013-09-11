@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,36 +37,41 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MAIN_H
-#define MAIN_H
+#ifndef WEBKITPIXELSTREAMER_H
+#define WEBKITPIXELSTREAMER_H
 
-#include "Configuration.h"
-#include "MainWindow.h"
-#include "DisplayGroupManager.h"
-#include "NetworkListener.h"
-#include "config.h"
-#include <boost/shared_ptr.hpp>
-#include <mpi.h>
+#include "LocalPixelStreamer.h"
+#include <QString>
+#include <QImage>
 
-class LocalPixelStreamerManager;
+class QWebView;
+class QTimer;
+class QRect;
 
-extern std::string g_displayClusterDir;
-extern QApplication * g_app;
-extern int g_mpiRank;
-extern int g_mpiSize;
-extern MPI_Comm g_mpiRenderComm;
-extern Configuration * g_configuration;
-extern boost::shared_ptr<DisplayGroupManager> g_displayGroupManager;
-extern MainWindow * g_mainWindow;
-extern long g_frameCount;
-// Rank0
-extern NetworkListener * g_networkListener;
-extern LocalPixelStreamerManager* g_localPixelStreamers;
+class WebkitPixelStreamer : public LocalPixelStreamer
+{
+    Q_OBJECT
 
-#if ENABLE_SKELETON_SUPPORT
-    class SkeletonThread;
+public:
+    WebkitPixelStreamer(DisplayGroupManager* displayGroupManager, QString uri);
+    ~WebkitPixelStreamer();
 
-    extern SkeletonThread * g_skeletonThread;
-#endif
+    void setUrl(QString url);
 
-#endif
+public slots:
+    virtual void updateInteractionState(InteractionState interactionState);
+
+    void update();
+
+private:
+
+    QWebView* webView_;
+    QTimer* timer_;
+    int frameIndex_;
+
+    QImage image_;
+
+    PixelStreamSegmentParameters makeSegmentHeader();
+};
+
+#endif // WEBKITPIXELSTREAMER_H

@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,36 +37,12 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MAIN_H
-#define MAIN_H
+#ifndef PIXELSTREAMSEGMENTJPEGCOMPRESSOR_H
+#define PIXELSTREAMSEGMENTJPEGCOMPRESSOR_H
 
-#include "Configuration.h"
-#include "MainWindow.h"
-#include "DisplayGroupManager.h"
-#include "NetworkListener.h"
-#include "config.h"
-#include <boost/shared_ptr.hpp>
-#include <mpi.h>
+#include <QImage>
+#include "PixelStreamSegment.h"
 
-class LocalPixelStreamerManager;
+void computeSegmentJpeg(const QImage image, PixelStreamSegment & segment);
 
-extern std::string g_displayClusterDir;
-extern QApplication * g_app;
-extern int g_mpiRank;
-extern int g_mpiSize;
-extern MPI_Comm g_mpiRenderComm;
-extern Configuration * g_configuration;
-extern boost::shared_ptr<DisplayGroupManager> g_displayGroupManager;
-extern MainWindow * g_mainWindow;
-extern long g_frameCount;
-// Rank0
-extern NetworkListener * g_networkListener;
-extern LocalPixelStreamerManager* g_localPixelStreamers;
-
-#if ENABLE_SKELETON_SUPPORT
-    class SkeletonThread;
-
-    extern SkeletonThread * g_skeletonThread;
-#endif
-
-#endif
+#endif // PIXELSTREAMSEGMENTJPEGCOMPRESSOR_H

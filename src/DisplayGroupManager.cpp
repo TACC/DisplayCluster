@@ -45,15 +45,12 @@
 #include "PixelStreamContent.h"
 #include "SVGStreamSource.h"
 #include "SVGContent.h"
-#include "Dock.h"
 #include <sstream>
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/shared_ptr.hpp>
 #include <boost/serialization/utility.hpp>
 #include <boost/date_time/posix_time/time_serialize.hpp>
 #include <boost/algorithm/string.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
 #include <mpi.h>
 #include <QDomDocument>
 #include <fstream>
@@ -138,8 +135,10 @@ void DisplayGroupManager::addContentWindowManager(boost::shared_ptr<ContentWindo
 
         sendDisplayGroup();
 
-        // make sure we have its dimensions so we can constrain its aspect ratio
-        sendContentsDimensionsRequest();
+        if (contentWindowManager->getContent()->getType() == CONTENT_TYPE_PIXEL_STREAM)
+        {
+            emit(pixelStreamViewAdded(QString(contentWindowManager->getContent()->getURI()), contentWindowManager));
+        }
     }
 }
 
@@ -149,6 +148,12 @@ void DisplayGroupManager::removeContentWindowManager(boost::shared_ptr<ContentWi
 
     if(source != this)
     {
+        // Notify the (local) pixel stream source of the deletion of the window so the source can be removed too
+        if (contentWindowManager->getContent()->getType() == CONTENT_TYPE_PIXEL_STREAM)
+        {
+            emit(pixelStreamViewClosed(QString(contentWindowManager->getContent()->getURI())));
+        }
+
         // set null display group in content window manager object
         contentWindowManager->setDisplayGroupManager(boost::shared_ptr<DisplayGroupManager>());
 
@@ -584,10 +589,6 @@ void DisplayGroupManager::receiveMessages()
             {
                 receiveDisplayGroup(mh);
             }
-            else if(mh.type == MESSAGE_TYPE_CONTENTS_DIMENSIONS)
-            {
-                receiveContentsDimensionsRequest(mh);
-            }
             else if(mh.type == MESSAGE_TYPE_PIXELSTREAM)
             {
                 receivePixelStreams(mh);
@@ -645,59 +646,6 @@ void DisplayGroupManager::sendDisplayGroup()
     MPI_Bcast((void *)serializedString.data(), size, MPI_BYTE, 0, MPI_COMM_WORLD);
 }
 
-void DisplayGroupManager::sendContentsDimensionsRequest()
-{
-    if(g_mpiSize < 2)
-    {
-        put_flog(LOG_WARN, "cannot get contents dimension update for g_mpiSize == %i", g_mpiSize);
-        return;
-    }
-
-    // send the header and the message
-    MessageHeader mh;
-    mh.type = MESSAGE_TYPE_CONTENTS_DIMENSIONS;
-
-    // the header is sent via a send, so that we can probe it on the render processes
-    for(int i=1; i<g_mpiSize; i++)
-    {
-        MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, i, 0, MPI_COMM_WORLD);
-    }
-
-    // now, receive response from rank 1
-    MPI_Status status;
-    MPI_Recv((void *)&mh, sizeof(MessageHeader), MPI_BYTE, 1, 0, MPI_COMM_WORLD, &status);
-
-    // receive serialized data
-    char * buf = new char[mh.size];
-
-    // read message into the buffer
-    MPI_Recv((void *)buf, mh.size, MPI_BYTE, 1, 0, MPI_COMM_WORLD, &status);
-
-    // de-serialize...
-    std::istringstream iss(std::istringstream::binary);
-
-    if(iss.rdbuf()->pubsetbuf(buf, mh.size) == NULL)
-    {
-        put_flog(LOG_FATAL, "rank %i: error setting stream buffer", g_mpiRank);
-        exit(-1);
-    }
-
-    // read to a new vector
-    std::vector<std::pair<int, int> > dimensions;
-
-    boost::archive::binary_iarchive ia(iss);
-    ia >> dimensions;
-
-    // overwrite old dimensions
-    for(unsigned int i=0; i<dimensions.size() && i<contentWindowManagers_.size(); i++)
-    {
-        contentWindowManagers_[i]->getContent()->setDimensions(dimensions[i].first, dimensions[i].second);
-    }
-
-    // free mpi buffer
-    delete [] buf;
-}
-
 void DisplayGroupManager::sendPixelStreams()
 {
     // iterate through all pixel streams and send updates if needed
@@ -740,29 +688,19 @@ void DisplayGroupManager::sendPixelStreams()
             c->setDimensions(width, height);
             cwm = boost::shared_ptr<ContentWindowManager>(new ContentWindowManager(c));
             addContentWindowManager(cwm);
-
-            if( c->isDock( ))
-            {
-                double w, h;
-                cwm->getSize( w, h );
-                cwm->setPosition( g_dock->getPos().x() - w/2.,
-                                  g_dock->getPos().y() - h/2. );
-            }
         }
         else
         {
             // check for updated dimensions
             boost::shared_ptr<Content> c = cwm->getContent();
-            if( !c->isDock( ))
-            {
-                int oldWidth, oldHeight;
-                c->getDimensions(oldWidth, oldHeight);
 
-                if(width != oldWidth || height != oldHeight)
-                {
-                    c->setDimensions(width, height);
-                    cwm->adjustSize( SIZE_1TO1 );
-                }
+            int oldWidth, oldHeight;
+            c->getDimensions(oldWidth, oldHeight);
+
+            if(width != oldWidth || height != oldHeight)
+            {
+                c->setDimensions(width, height);
+                cwm->adjustSize( SIZE_1TO1 );
             }
         }
         sendPixelStreamSegments(segments, uri);
@@ -1043,46 +981,6 @@ void DisplayGroupManager::receiveDisplayGroup(MessageHeader messageHeader)
 
     // free mpi buffer
     delete [] buf;
-}
-
-void DisplayGroupManager::receiveContentsDimensionsRequest(MessageHeader messageHeader)
-{
-    if(g_mpiRank == 1)
-    {
-        // get dimensions of Content objects associated with each ContentWindowManager
-        // note that we must use g_displayGroupManager to access content window managers since earlier updates (in the same frame)
-        // of this display group may have occurred, and g_displayGroupManager would have then been replaced
-        std::vector<std::pair<int, int> > dimensions;
-
-        for(unsigned int i=0; i<g_displayGroupManager->contentWindowManagers_.size(); i++)
-        {
-            int w,h;
-            g_displayGroupManager->contentWindowManagers_[i]->getContent()->getFactoryObjectDimensions(w, h);
-
-            dimensions.push_back(std::pair<int,int>(w,h));
-        }
-
-        // serialize
-        std::ostringstream oss(std::ostringstream::binary);
-
-        // brace this so destructor is called on archive before we use the stream
-        {
-            boost::archive::binary_oarchive oa(oss);
-            oa << dimensions;
-        }
-
-        // serialized data to string
-        std::string serializedString = oss.str();
-        int size = serializedString.size();
-
-        // send the header and the message
-        MessageHeader mh;
-        mh.size = size;
-        mh.type = MESSAGE_TYPE_CONTENTS_DIMENSIONS;
-
-        MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, 0, 0, MPI_COMM_WORLD);
-        MPI_Send((void *)serializedString.data(), size, MPI_BYTE, 0, 0, MPI_COMM_WORLD);
-    }
 }
 
 void DisplayGroupManager::receivePixelStreams(MessageHeader messageHeader)

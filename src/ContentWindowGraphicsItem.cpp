@@ -43,8 +43,6 @@
 #include "DisplayGroupGraphicsView.h"
 #include "main.h"
 #include "Gestures.h"
-#include "Dock.h"
-#include "Pictureflow.h"
 #include "ContentInteractionDelegate.h"
 
 qreal ContentWindowGraphicsItem::zCounter_ = 0;

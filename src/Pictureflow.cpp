@@ -1066,7 +1066,7 @@ void PictureFlow::addSlide(const QPixmap& pixmap, const QString& caption)
   addSlide(pixmap.toImage(), caption);
 }
 
-void PictureFlow::setSlide(int index, const QImage& image)
+void PictureFlow::setSlide(int index, QImage image)
 {
   if((index >= 0) && (index < slideCount()))
   {
@@ -1117,7 +1117,6 @@ void PictureFlow::render()
   QWidget::render( &painter );
   painter.end();
 
-  image = QGLWidget::convertToGLFormat(image);
   emit imageUpdated( image );
 }
 

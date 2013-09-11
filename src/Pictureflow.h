@@ -132,7 +132,7 @@ public slots:
     Sets an image for specified slide. If the slide already exists,
     it will be replaced.
   */
-  void setSlide(int index, const QImage& image);
+  void setSlide(int index, QImage image);
 
   /*!
     Sets a pixmap for specified slide. If the slide already exists,
