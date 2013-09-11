@@ -220,10 +220,6 @@ InteractionState PixelStreamInteractionDelegate::getGestureInteractionState(cons
     double x, y, w, h;
     contentWindowManager_->getCoordinates(x, y, w, h);
 
-    // Touchpad dimensions
-    const double tWidth = g_configuration->getTotalWidth();
-    const double tHeight = g_configuration->getTotalHeight();
-
     InteractionState interactionState;
     interactionState.mouseX = (gesture->position().x() - x) / w;
     interactionState.mouseY = (gesture->position().y() - y) / h;
