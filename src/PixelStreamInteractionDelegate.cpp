@@ -40,7 +40,7 @@ void PixelStreamInteractionDelegate::pan(PanGesture *gesture)
         break;
     case Qt::GestureUpdated:
         interactionState.type = InteractionState::EVT_MOVE;
-        setPanGesureNormalizedDelta(gesture, interactionState);
+        setPanGestureNormalizedDelta(gesture, interactionState);
         break;
     case Qt::GestureFinished:
         interactionState.type = InteractionState::EVT_RELEASE;
@@ -225,6 +225,22 @@ InteractionState PixelStreamInteractionDelegate::getGestureInteractionState(cons
     const double tHeight = g_configuration->getTotalHeight();
 
     InteractionState interactionState;
+    interactionState.mouseX = (gesture->position().x() - x) / w;
+    interactionState.mouseY = (gesture->position().y() - y) / h;
+    return interactionState;
+}
+
+InteractionState PixelStreamInteractionDelegate::getGestureInteractionState(const QTapGesture *gesture)
+{
+    // Bounding rectangle
+    double x, y, w, h;
+    contentWindowManager_->getCoordinates(x, y, w, h);
+
+    // Touchpad dimensions
+    const double tWidth = g_configuration->getTotalWidth();
+    const double tHeight = g_configuration->getTotalHeight();
+
+    InteractionState interactionState;
     interactionState.mouseX = (gesture->position().x() / tWidth - x) / w;
     interactionState.mouseY = (gesture->position().y() / tHeight - y) / h;
 
@@ -248,7 +264,7 @@ InteractionState PixelStreamInteractionDelegate::getGestureInteractionState(cons
     return interactionState;
 }
 
-void PixelStreamInteractionDelegate::setPanGesureNormalizedDelta(const PanGesture* gesture, InteractionState& interactionState)
+void PixelStreamInteractionDelegate::setPanGestureNormalizedDelta(const PanGesture* gesture, InteractionState& interactionState)
 {
     // Bounding rectangle
     double w, h;

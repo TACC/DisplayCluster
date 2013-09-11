@@ -36,8 +36,9 @@ private:
 
     template<typename T>
     InteractionState getGestureInteractionState(const T *gesture);
+    InteractionState getGestureInteractionState(const QTapGesture *gesture);
     InteractionState getGestureInteractionState(const QPinchGesture *gesture);
-    void setPanGesureNormalizedDelta(const PanGesture *gesture, InteractionState &interactionState);
+    void setPanGestureNormalizedDelta(const PanGesture *gesture, InteractionState &interactionState);
 };
 
 #endif // PIXELSTREAMINTERACTIONDELEGATE_H
