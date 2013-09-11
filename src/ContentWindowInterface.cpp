@@ -41,7 +41,8 @@
 #include "main.h"
 
 ContentWindowInterface::ContentWindowInterface(boost::shared_ptr<ContentWindowManager> contentWindowManager)\
-    : boundInteractions_( 0 )
+    : windowState_(UNSELECTED)
+    , boundInteractions_( 0 )
 {
     contentWindowManager_ = contentWindowManager;
 
@@ -142,39 +143,7 @@ double ContentWindowInterface::getZoom()
 
 void ContentWindowInterface::toggleWindowState()
 {
-    const CONTENT_TYPE type = getContentWindowManager()->getContent()->getType();
-
-    switch( type )
-    {
-    case CONTENT_TYPE_DYNAMIC_TEXTURE:
-    case CONTENT_TYPE_TEXTURE:
-    case CONTENT_TYPE_SVG:
-        windowState_ = windowState_ == UNSELECTED ? SELECTED : UNSELECTED;
-        break;
-
-    case CONTENT_TYPE_PIXEL_STREAM:
-        windowState_ = windowState_ == UNSELECTED ? INTERACTION : UNSELECTED;
-        break;
-
-    case CONTENT_TYPE_MOVIE:
-    case CONTENT_TYPE_ANY:
-    default:
-        // move to next state
-        switch( windowState_ )
-        {
-        case UNSELECTED:
-            windowState_ = SELECTED;
-            break;
-        case SELECTED:
-            windowState_ = INTERACTION;
-            break;
-        case INTERACTION:
-            windowState_ = UNSELECTED;
-            break;
-        }
-    }
-
-    setWindowState( windowState_ );
+    setWindowState( windowState_ == UNSELECTED ? SELECTED : UNSELECTED );
 }
 
 ContentWindowInterface::WindowState ContentWindowInterface::getWindowState()
