@@ -81,7 +81,6 @@ QString DockPixelStreamer::getUniqueURI()
 
 DockPixelStreamer::DockPixelStreamer(DisplayGroupManager *displayGroupManager)
     : LocalPixelStreamer(displayGroupManager, QString(DOCK_UNIQUE_URI))
-    , frameIndex_(0)
 {
     connect(this, SIGNAL(close(QString)), displayGroupManager, SLOT(deletePixelStream(QString)), Qt::QueuedConnection);
 
@@ -197,30 +196,18 @@ void DockPixelStreamer::update(const QImage& image)
     // TODO remove this crappy compression when merging with Daniel's no-compression codebase
     computeSegmentJpeg(image, segment);
 
-    ++frameIndex_;
-
     emit segmentUpdated(uri_, segment);
 }
 
 PixelStreamSegmentParameters DockPixelStreamer::makeSegmentHeader()
 {
     PixelStreamSegmentParameters parameters;
-
-    parameters.sourceIndex = 0;
-    parameters.frameIndex = frameIndex_;
-
     parameters.totalHeight = flow_->size().height();
     parameters.totalWidth = flow_->size().width();
-
     parameters.height = parameters.totalHeight;
     parameters.width = parameters.totalWidth;
-
-    parameters.x = 0;
-    parameters.y = 0;
-
     return parameters;
 }
-
 
 void DockPixelStreamer::changeDirectory( const QString& dir )
 {

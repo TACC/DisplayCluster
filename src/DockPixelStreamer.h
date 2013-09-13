@@ -109,8 +109,6 @@ private:
     QPointF posOpening_;
     QHash< QString, int > slideIndex_;
 
-    int frameIndex_;
-
     void changeDirectory( const QString& dir );
 
     PixelStreamSegmentParameters makeSegmentHeader();
