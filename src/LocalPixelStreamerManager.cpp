@@ -101,20 +101,9 @@ bool LocalPixelStreamerManager::isDockOpen()
 
 void LocalPixelStreamerManager::openDockAt(QPointF pos)
 {
-    if (isDockOpen())
-    {
-        boost::shared_ptr<ContentWindowManager> cwm = displayGroupManager_->getContentWindowManager(DockPixelStreamer::getUniqueURI());
-        if (cwm)
-        {
-            setWindowManagerPosition(cwm, pos);
-        }
-    }
-    else
-    {
-        DockPixelStreamer* dock = getDockInstance();
-        dock->setOpeningPos( pos );
-        dock->open();
-    }
+    DockPixelStreamer* dock = getDockInstance();
+    dock->setOpeningPos( pos );
+    dock->open();
 }
 
 void LocalPixelStreamerManager::clear()
@@ -124,7 +113,7 @@ void LocalPixelStreamerManager::clear()
 
 void LocalPixelStreamerManager::removePixelStreamer(QString uri)
 {
-    if(map_.count(uri))
+    if(map_.count(uri) && uri != DockPixelStreamer::getUniqueURI())
     {
         map_.erase(uri);
     }

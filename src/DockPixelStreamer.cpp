@@ -83,7 +83,7 @@ DockPixelStreamer::DockPixelStreamer(DisplayGroupManager *displayGroupManager)
     : LocalPixelStreamer(displayGroupManager, QString(DOCK_UNIQUE_URI))
     , frameIndex_(0)
 {
-    connect(this, SIGNAL(close(QString)), displayGroupManager, SLOT(deletePixelStream(QString)));
+    connect(this, SIGNAL(close(QString)), displayGroupManager, SLOT(deletePixelStream(QString)), Qt::QueuedConnection);
 
     av_register_all();
 
@@ -257,7 +257,7 @@ void DockPixelStreamer::changeDirectory( const QString& dir )
         QImage img = createSlideImage_( flow_->slideSize(), fileName, false,
                                         Qt::black, Qt::white );
         flow_->addSlide( img, fileInfo.fileName( ));
-        emit renderPreview( fileName, flow_->slideCount( ));
+        emit renderPreview( fileName, flow_->slideCount()-1 );
     }
 
     for( int i = 0; i < dirList.size(); ++i )
