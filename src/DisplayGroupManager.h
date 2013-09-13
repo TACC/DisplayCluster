@@ -111,6 +111,7 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         void receiveMessages();
 
         void sendDisplayGroup();
+        void sendContentsDimensionsRequest();
         void sendPixelStreams();
         void sendPixelStreamSegments(const std::vector<PixelStreamSegment> &segments, const QString& uri);
         void sendSVGStreams();
