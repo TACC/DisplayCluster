@@ -119,7 +119,7 @@ bool PixelStreamSegmentRenderer::render(float tX, float tY, float tW, float tH)
     return true;
 }
 
-bool PixelStreamSegmentRenderer::setImageData(QByteArray imageData)
+bool PixelStreamSegmentRenderer::setImageData(QByteArray imageData, bool compressed, int w, int h)
 {
     // drop frames if we're currently processing
     if(loadImageDataThread_.isRunning() == true)
@@ -127,7 +127,7 @@ bool PixelStreamSegmentRenderer::setImageData(QByteArray imageData)
         return false;
     }
 
-    loadImageDataThread_ = QtConcurrent::run(loadImageDataThread, shared_from_this(), imageData);
+    loadImageDataThread_ = QtConcurrent::run(loadImageDataThread, shared_from_this(), imageData, compressed, w, h);
 
     return true;
 }
@@ -203,10 +203,18 @@ void PixelStreamSegmentRenderer::updateTexture(QImage & image)
     }
 }
 
-void loadImageDataThread(boost::shared_ptr<PixelStreamSegmentRenderer> pixelStream, QByteArray imageData)
+void loadImageDataThread(boost::shared_ptr<PixelStreamSegmentRenderer> pixelStreamRenderer, const QByteArray imageData, bool compressed, int w, int h)
 {
+    if( !compressed )
+    {
+        QImage image((const uchar*)imageData.data(), w, h, QImage::Format_RGB32);
+        image.detach();
+        pixelStreamRenderer->imageReady(image);
+        return;
+    }
+
     // use libjpeg-turbo for JPEG conversion
-    tjhandle handle = pixelStream->getHandle();
+    tjhandle handle = pixelStreamRenderer->getHandle();
 
     // get information from header
     int width, height, jpegSubsamp;
@@ -233,5 +241,5 @@ void loadImageDataThread(boost::shared_ptr<PixelStreamSegmentRenderer> pixelStre
         return;
     }
 
-    pixelStream->imageReady(image);
+    pixelStreamRenderer->imageReady(image);
 }

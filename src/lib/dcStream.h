@@ -54,6 +54,8 @@ struct DcStreamParameters  {
     int height;
     int totalWidth;
     int totalHeight;
+    bool compress;  // use jpeg compression or raw image for send, default true
+    int quality;    // 0 worst quality, 100 best & lossless jpeg, default 75
 };
 
 enum PIXEL_FORMAT { RGB=0, RGBA=1, ARGB=2, BGR=3, BGRA=4, ABGR=5 };
@@ -73,33 +75,29 @@ extern void dcStreamReset(DcSocket * socket);
 // (width, height). the origin (x, y) is relative to the full window represented
 // by all streams corresponding to <name>. totalWidth and totalHeight give the
 // full dimensions of the window.
-extern DcStreamParameters dcStreamGenerateParameters(std::string name, int x, int y, int width, int height, int totalWidth, int totalHeight);
+extern DcStreamParameters dcStreamGenerateParameters(std::string name, int x, int y, int width, int height, int totalWidth, int totalHeight, bool compress=true);
 
 // generates a vector of parameter objects corresponding to segments contained
 // in (x, y, width, height). the parameters' dimensions will be approximately
 // nominalSegmentWidth x nominalSegmentHeight. source indices begin with
 // firstSourceIndex.
-extern std::vector<DcStreamParameters> dcStreamGenerateParameters(std::string name, int firstSourceIndex, int nominalSegmentWidth, int nominalSegmentHeight, int x, int y, int width, int height, int totalWidth, int totalHeight);
+extern std::vector<DcStreamParameters> dcStreamGenerateParameters(std::string name, int firstSourceIndex, int nominalSegmentWidth, int nominalSegmentHeight, int x, int y, int width, int height, int totalWidth, int totalHeight, bool compress=true);
 
 // generates a segment corresponding to parameters from imageBuffer and sends
 // it to a DisplayCluster instance over socket. (imageX, imageY, imageWidth,
 // imageHeight) give the origin and dimensions of the image relative to the full
 // represented by all streams corresponding to <name>. imagePitch is the bytes
 // per line in imageBuffer. pixelFormat gives the format of the buffer.
-extern bool dcStreamSend(DcSocket * socket, unsigned char * imageBuffer, int imageX, int imageY, int imageWidth, int imagePitch, int imageHeight, PIXEL_FORMAT pixelFormat, DcStreamParameters parameters);
+extern bool dcStreamSend(DcSocket * socket, unsigned char * imageBuffer, int size, int imageX, int imageY, int imageWidth, int imagePitch, int imageHeight, PIXEL_FORMAT pixelFormat, DcStreamParameters parameters);
 
 // the same as above, excepts sends a group of segments corresponding to the
 // given vector of parameters. compression of segment image data is parallel.
 extern bool dcStreamSend(DcSocket * socket, unsigned char * imageBuffer, int imageX, int imageY, int imageWidth, int imagePitch, int imageHeight, PIXEL_FORMAT pixelFormat, std::vector<DcStreamParameters> parameters);
 
-// sends a compressed JPEG image corresponding to parameters and sends it to a
-// DisplayCluster instance over socket. if waitForAck is true, this function
-// will block until an acknowledgment is received.
-extern bool dcStreamSendJpeg(DcSocket * socket, DcStreamParameters parameters, const char * jpegData, int jpegSize, bool waitForAck=true);
-
-// computes a compressed JPEG image corresponding to imageBuffer. results are
-// stored in jpegData and jpegSize.
-extern bool dcStreamComputeJpeg(unsigned char * imageBuffer, int width, int pitch, int height, PIXEL_FORMAT pixelFormat, char ** jpegData, int & jpegSize);
+// sends a compressed JPEG image or an uncompressed raw image corresponding to
+// parameters and sends it to a DisplayCluster instance over socket. If
+// waitForAck is true, this function will block until an acknowledgment is received.
+extern bool dcStreamSendImage(DcSocket * socket, DcStreamParameters parameters, const unsigned char * buffer, int size, bool waitForAck=true);
 
 // increment the frame index for all segments sent by this process. this is
 // used for frame synchronization.

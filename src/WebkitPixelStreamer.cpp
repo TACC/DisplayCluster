@@ -47,7 +47,6 @@
 #include <QTimer>
 
 #include "log.h"
-#include "PixelStreamSegmentJpegCompressor.h"
 
 #define WEPPAGE_DEFAULT_WIDTH   1280
 #define WEBPAGE_DEFAULT_HEIGHT  1024
@@ -205,8 +204,9 @@ void WebkitPixelStreamer::update()
 
         PixelStreamSegment segment;
         segment.parameters = makeSegmentHeader();
-        // TODO remove this crappy compression when merging with Daniel's no-compression codebase
-        computeSegmentJpeg(image_, segment);
+
+        segment.imageData = QByteArray::fromRawData((const char*)image_.bits(), image_.byteCount());
+        segment.imageData.detach();
 
         ++frameIndex_;
 
@@ -229,6 +229,8 @@ PixelStreamSegmentParameters WebkitPixelStreamer::makeSegmentHeader()
 
     parameters.x = 0;
     parameters.y = 0;
+
+    parameters.compressed = false;
 
     return parameters;
 }

@@ -61,7 +61,8 @@ struct DcImage {
     int pitch;
     int height;
     PIXEL_FORMAT pixelFormat;
-    char * jpegData;
+    int quality;
+    unsigned char * jpegData;
     int jpegSize;
 };
 
@@ -69,6 +70,87 @@ struct DcImage {
 int dcBytesPerPixel[] = { 3, 4, 4, 3, 4, 4 };
 
 DcImage dcStreamComputeJpegMapped(const DcImage & dcImage);
+
+// computes a compressed JPEG image corresponding to imageBuffer. results are
+// stored in jpegData and jpegSize.
+bool computeJpeg_(unsigned char * imageBuffer, int width, int pitch, int height,
+                  PIXEL_FORMAT pixelFormat, int quality, unsigned char ** jpegData, int & jpegSize)
+{
+    // use libjpeg-turbo for JPEG conversion
+
+    // use a new handle each time for thread-safety
+    tjhandle tjHandle = tjInitCompress();
+
+    // compute pitch if necessary, assuming imageBuffer isn't padded
+    if(pitch == 0)
+    {
+        pitch = width * dcBytesPerPixel[pixelFormat];
+    }
+
+    // map pixel format to the libjpeg-turbo equivalent
+    int tjPixelFormat;
+
+    // enum PIXEL_FORMAT { RGB, RGBA, ARGB, BGR, BGRA, ABGR };
+    switch(pixelFormat)
+    {
+        case RGB:
+            tjPixelFormat = TJPF_RGB;
+            break;
+        case RGBA:
+            tjPixelFormat = TJPF_RGBX;
+            break;
+        case ARGB:
+            tjPixelFormat = TJPF_XRGB;
+            break;
+        case BGR:
+            tjPixelFormat = TJPF_BGR;
+            break;
+        case BGRA:
+            tjPixelFormat = TJPF_BGRX;
+            break;
+        case ABGR:
+            tjPixelFormat = TJPF_XBGR;
+            break;
+        default:
+            put_flog(LOG_ERROR, "unknown pixel format");
+            return false;
+    }
+
+    unsigned char ** tjJpegBuf;
+    unsigned char * tjJpegBufPtr = NULL;
+    tjJpegBuf = &tjJpegBufPtr;
+    unsigned long tjJpegSize = 0;
+    int tjJpegSubsamp = TJSAMP_444;
+    int tjJpegQual = quality;
+    int tjFlags = TJFLAG_BOTTOMUP;
+
+    int success = tjCompress2(tjHandle, imageBuffer, width, pitch, height, tjPixelFormat, tjJpegBuf, &tjJpegSize, tjJpegSubsamp, tjJpegQual, tjFlags);
+
+    if(success != 0)
+    {
+        put_flog(LOG_ERROR, "libjpeg-turbo image conversion failure");
+
+        jpegSize = 0;
+
+        // destroy libjpeg-turbo handle
+        tjDestroy(tjHandle);
+
+        return false;
+    }
+
+    // move the JPEG buffer to our own memory and free the libjpeg-turbo allocated memory
+    *jpegData = (unsigned char *)realloc((void *)*jpegData, tjJpegSize);
+    memcpy(*jpegData, tjJpegBufPtr, tjJpegSize);
+    tjFree(tjJpegBufPtr);
+
+    jpegSize = tjJpegSize;
+
+    // destroy libjpeg-turbo handle
+    tjDestroy(tjHandle);
+
+    return true;
+}
+
 
 bool streamBindInteraction_(DcSocket * socket, const std::string& name,
                             bool exclusive)
@@ -177,7 +259,7 @@ void dcStreamReset(DcSocket * socket)
 
             // send the blank parameters object
             // this will trigger remote deletion of this segment
-            dcStreamSendJpeg(socket, parameters, NULL, 0);
+            dcStreamSendImage(socket, parameters, NULL, 0);
         }
     }
 
@@ -185,7 +267,7 @@ void dcStreamReset(DcSocket * socket)
     g_dcStreamSourceIndices.erase( i );
 }
 
-DcStreamParameters dcStreamGenerateParameters(std::string name, int x, int y, int width, int height, int totalWidth, int totalHeight)
+DcStreamParameters dcStreamGenerateParameters(std::string name, int x, int y, int width, int height, int totalWidth, int totalHeight, bool compress)
 {
     DcStreamParameters parameters;
 
@@ -197,11 +279,13 @@ DcStreamParameters dcStreamGenerateParameters(std::string name, int x, int y, in
     parameters.height = height;
     parameters.totalWidth = totalWidth;
     parameters.totalHeight = totalHeight;
+    parameters.quality = 75;
+    parameters.compress = compress;
 
     return parameters;
 }
 
-std::vector<DcStreamParameters> dcStreamGenerateParameters(std::string name, int firstSourceIndex, int nominalSegmentWidth, int nominalSegmentHeight, int x, int y, int width, int height, int totalWidth, int totalHeight)
+std::vector<DcStreamParameters> dcStreamGenerateParameters(std::string name, int firstSourceIndex, int nominalSegmentWidth, int nominalSegmentHeight, int x, int y, int width, int height, int totalWidth, int totalHeight, bool compress)
 {
     // segment dimensions will be approximately nominalSegmentWidth x nominalSegmentHeight
 
@@ -226,6 +310,8 @@ std::vector<DcStreamParameters> dcStreamGenerateParameters(std::string name, int
             p.height = (int)((float)height / (float)numSubdivisionsY);
             p.totalWidth = totalWidth;
             p.totalHeight = totalHeight;
+            p.quality = 75;
+            p.compress = compress;
 
             parameters.push_back(p);
 
@@ -236,8 +322,13 @@ std::vector<DcStreamParameters> dcStreamGenerateParameters(std::string name, int
     return parameters;
 }
 
-bool dcStreamSend(DcSocket * socket, unsigned char * imageBuffer, int imageX, int imageY, int imageWidth, int imagePitch, int imageHeight, PIXEL_FORMAT pixelFormat, DcStreamParameters parameters)
+bool dcStreamSend(DcSocket * socket, unsigned char * imageBuffer, int size, int imageX, int imageY, int imageWidth, int imagePitch, int imageHeight, PIXEL_FORMAT pixelFormat, DcStreamParameters parameters)
 {
+    if( !parameters.compress )
+    {
+        return dcStreamSendImage(socket, parameters, imageBuffer, size);
+    }
+
     // compute imagePitch if necessary, assuming imageBuffer isn't padded
     if(imagePitch == 0)
     {
@@ -247,10 +338,10 @@ bool dcStreamSend(DcSocket * socket, unsigned char * imageBuffer, int imageX, in
     // compute JPEG from imageBuffer corresponding to parameters
     unsigned char * segmentImageBuffer = imageBuffer + (parameters.y - imageY)*imagePitch + (parameters.x - imageX)*dcBytesPerPixel[pixelFormat];
 
-    char * jpegData = NULL;
+    unsigned char * jpegData = NULL;
     int jpegSize = 0;
 
-    bool success = dcStreamComputeJpeg(segmentImageBuffer, parameters.width, imagePitch, parameters.height, pixelFormat, &jpegData, jpegSize);
+    bool success = computeJpeg_(segmentImageBuffer, parameters.width, imagePitch, parameters.height, pixelFormat, parameters.quality, &jpegData, jpegSize);
 
     if(success == false)
     {
@@ -258,7 +349,7 @@ bool dcStreamSend(DcSocket * socket, unsigned char * imageBuffer, int imageX, in
         return false;
     }
 
-    success = dcStreamSendJpeg(socket, parameters, jpegData, jpegSize);
+    success = dcStreamSendImage(socket, parameters, jpegData, jpegSize);
 
     free(jpegData);
     return success;
@@ -288,6 +379,7 @@ bool dcStreamSend(DcSocket * socket, unsigned char * imageBuffer, int imageX, in
         d.pitch = imagePitch;
         d.height = parameters[i].height;
         d.pixelFormat = pixelFormat;
+        d.quality = parameters[i].quality;
         d.jpegData = NULL;
         d.jpegSize = 0;
 
@@ -310,7 +402,7 @@ bool dcStreamSend(DcSocket * socket, unsigned char * imageBuffer, int imageX, in
         }
         else
         {
-            bool sendSuccess = dcStreamSendJpeg(socket, parameters[i], dcImages[i].jpegData, dcImages[i].jpegSize, false);
+            bool sendSuccess = dcStreamSendImage(socket, parameters[i], dcImages[i].jpegData, dcImages[i].jpegSize, false);
 
             if(sendSuccess == false)
             {
@@ -327,7 +419,7 @@ bool dcStreamSend(DcSocket * socket, unsigned char * imageBuffer, int imageX, in
     return allSuccess;
 }
 
-bool dcStreamSendJpeg(DcSocket * socket, DcStreamParameters parameters, const char * jpegData, int jpegSize, bool waitForAck)
+bool dcStreamSendImage(DcSocket * socket, DcStreamParameters parameters, const unsigned char * buffer, int size, bool waitForAck)
 {
     if(socket == NULL)
     {
@@ -348,7 +440,7 @@ bool dcStreamSendJpeg(DcSocket * socket, DcStreamParameters parameters, const ch
 
     // the message header
     MessageHeader mh;
-    mh.size = sizeof(PixelStreamSegmentParameters) + jpegSize;
+    mh.size = sizeof(PixelStreamSegmentParameters) + size;
     mh.type = MESSAGE_TYPE_PIXELSTREAM;
 
     // add the truncated URI to the header
@@ -368,13 +460,14 @@ bool dcStreamSendJpeg(DcSocket * socket, DcStreamParameters parameters, const ch
     p.height = parameters.height;
     p.totalWidth = parameters.totalWidth;
     p.totalHeight = parameters.totalHeight;
+    p.compressed = parameters.compress;
 
     message.append((const char *)&p, sizeof(PixelStreamSegmentParameters));
 
     // message part 2: image data
-    if(jpegSize > 0)
+    if(size > 0)
     {
-        message.append(jpegData, jpegSize);
+        message.append((const char *)buffer, size);
     }
 
     // queue the message to be sent
@@ -394,83 +487,6 @@ bool dcStreamSendJpeg(DcSocket * socket, DcStreamParameters parameters, const ch
     }
 
     return success;
-}
-
-bool dcStreamComputeJpeg(unsigned char * imageBuffer, int width, int pitch, int height, PIXEL_FORMAT pixelFormat, char ** jpegData, int & jpegSize)
-{
-    // use libjpeg-turbo for JPEG conversion
-
-    // use a new handle each time for thread-safety
-    tjhandle tjHandle = tjInitCompress();
-
-    // compute pitch if necessary, assuming imageBuffer isn't padded
-    if(pitch == 0)
-    {
-        pitch = width * dcBytesPerPixel[pixelFormat];
-    }
-
-    // map pixel format to the libjpeg-turbo equivalent
-    int tjPixelFormat;
-
-    // enum PIXEL_FORMAT { RGB, RGBA, ARGB, BGR, BGRA, ABGR };
-    switch(pixelFormat)
-    {
-        case RGB:
-            tjPixelFormat = TJPF_RGB;
-            break;
-        case RGBA:
-            tjPixelFormat = TJPF_RGBX;
-            break;
-        case ARGB:
-            tjPixelFormat = TJPF_XRGB;
-            break;
-        case BGR:
-            tjPixelFormat = TJPF_BGR;
-            break;
-        case BGRA:
-            tjPixelFormat = TJPF_BGRX;
-            break;
-        case ABGR:
-            tjPixelFormat = TJPF_XBGR;
-            break;
-        default:
-            put_flog(LOG_ERROR, "unknown pixel format");
-            return false;
-    }
-
-    unsigned char ** tjJpegBuf;
-    unsigned char * tjJpegBufPtr = NULL;
-    tjJpegBuf = &tjJpegBufPtr;
-    unsigned long tjJpegSize = 0;
-    int tjJpegSubsamp = TJSAMP_444;
-    int tjJpegQual = 75;
-    int tjFlags = TJFLAG_BOTTOMUP;
-
-    int success = tjCompress2(tjHandle, imageBuffer, width, pitch, height, tjPixelFormat, tjJpegBuf, &tjJpegSize, tjJpegSubsamp, tjJpegQual, tjFlags);
-
-    if(success != 0)
-    {
-        put_flog(LOG_ERROR, "libjpeg-turbo image conversion failure");
-
-        jpegSize = 0;
-
-        // destroy libjpeg-turbo handle
-        tjDestroy(tjHandle);
-
-        return false;
-    }
-
-    // move the JPEG buffer to our own memory and free the libjpeg-turbo allocated memory
-    *jpegData = (char *)realloc((void *)*jpegData, tjJpegSize);
-    memcpy(*jpegData, tjJpegBufPtr, tjJpegSize);
-    tjFree(tjJpegBufPtr);
-
-    jpegSize = tjJpegSize;
-
-    // destroy libjpeg-turbo handle
-    tjDestroy(tjHandle);
-
-    return true;
 }
 
 void dcStreamIncrementFrameIndex()
@@ -563,7 +579,9 @@ DcImage dcStreamComputeJpegMapped(const DcImage & dcImage)
 {
     DcImage newDcImage = dcImage;
 
-    dcStreamComputeJpeg(newDcImage.imageBuffer, newDcImage.width, newDcImage.pitch, newDcImage.height, newDcImage.pixelFormat, &newDcImage.jpegData, newDcImage.jpegSize);
+    computeJpeg_(newDcImage.imageBuffer, newDcImage.width, newDcImage.pitch,
+                 newDcImage.height, newDcImage.pixelFormat, newDcImage.quality,
+                 &newDcImage.jpegData, newDcImage.jpegSize);
 
     return newDcImage;
 }

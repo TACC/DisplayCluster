@@ -14,6 +14,7 @@
 
 std::string dcStreamName = "SimpleStreamer";
 bool dcParallelStreaming = false;
+bool dcCompressStreaming = true;
 int dcSegmentSize = 512;
 bool dcInteraction = false;
 char * dcHostname = NULL;
@@ -51,6 +52,9 @@ int main(int argc, char **argv)
                     break;
                 case 'i':
                     dcInteraction = true;
+                    break;
+                case 'u':
+                    dcCompressStreaming = false;
                     break;
                 default:
                     syntax(argv[0]);
@@ -123,6 +127,7 @@ void syntax(char * app)
     std::cerr << " -p                   enable parallel streaming (default disabled)" << std::endl;
     std::cerr << " -s <segment size>    set parallel streaming segment size (default 512)" << std::endl;
     std::cerr << " -i                   enable interaction events (default disabled)" << std::endl;
+    std::cerr << " -u                   enable uncompressed streaming (default disabled)" << std::endl;
 
     exit(1);
 }
@@ -163,7 +168,8 @@ void display()
     int windowHeight = glutGet(GLUT_WINDOW_HEIGHT);
 
     // grab the image data from OpenGL
-    unsigned char * imageData = (unsigned char *)malloc(windowWidth * windowHeight * 4);
+    const int imageSize = windowWidth * windowHeight * 4;
+    unsigned char * imageData = (unsigned char *)malloc(imageSize);
     glReadPixels(0,0,windowWidth,windowHeight, GL_RGBA, GL_UNSIGNED_BYTE, (void *)imageData);
 
     bool success;
@@ -171,7 +177,7 @@ void display()
     if(dcParallelStreaming == true)
     {
         // use a streaming segment size of roughly <dcSegmentSize> x <dcSegmentSize> pixels
-        std::vector<DcStreamParameters> parameters = dcStreamGenerateParameters(dcStreamName, 0, dcSegmentSize,dcSegmentSize, 0,0,windowWidth,windowHeight, windowWidth,windowHeight);
+        std::vector<DcStreamParameters> parameters = dcStreamGenerateParameters(dcStreamName, 0, dcSegmentSize,dcSegmentSize, 0,0,windowWidth,windowHeight, windowWidth,windowHeight, dcCompressStreaming);
 
         // finally, send it to DisplayCluster
         success = dcStreamSend(dcSocket, imageData, 0,0,windowWidth,0,windowHeight, RGBA, parameters);
@@ -179,10 +185,10 @@ void display()
     else
     {
         // use a single streaming segment for the full window
-        DcStreamParameters parameters = dcStreamGenerateParameters(dcStreamName, 0,0,windowWidth,windowHeight, windowWidth,windowHeight);
+        DcStreamParameters parameters = dcStreamGenerateParameters(dcStreamName, 0,0,windowWidth,windowHeight, windowWidth,windowHeight, dcCompressStreaming);
 
         // finally, send it to DisplayCluster
-        success = dcStreamSend(dcSocket, imageData, 0,0,windowWidth,0,windowHeight, RGBA, parameters);
+        success = dcStreamSend(dcSocket, imageData, imageSize, 0,0,windowWidth,0,windowHeight, RGBA, parameters);
     }
 
     if(success == false)

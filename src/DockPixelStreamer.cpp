@@ -46,8 +46,6 @@
 #include "MovieContent.h"
 #include "main.h"
 
-#include "PixelStreamSegmentJpegCompressor.h"
-
 #define DOCK_UNIQUE_URI "menu"
 
 namespace
@@ -193,8 +191,8 @@ void DockPixelStreamer::update(const QImage& image)
     PixelStreamSegment segment;
     segment.parameters = makeSegmentHeader();
 
-    // TODO remove this crappy compression when merging with Daniel's no-compression codebase
-    computeSegmentJpeg(image, segment);
+    segment.imageData = QByteArray::fromRawData((const char*)image.bits(), image.byteCount());
+    segment.imageData.detach();
 
     emit segmentUpdated(uri_, segment);
 }
@@ -206,6 +204,7 @@ PixelStreamSegmentParameters DockPixelStreamer::makeSegmentHeader()
     parameters.totalWidth = flow_->size().width();
     parameters.height = parameters.totalHeight;
     parameters.width = parameters.totalWidth;
+    parameters.compressed = false;
     return parameters;
 }
 

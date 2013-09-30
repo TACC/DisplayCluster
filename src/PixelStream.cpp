@@ -364,7 +364,8 @@ void PixelStream::updateSegmentRenderers()
         // auto texture uploading depending on synchronous setting
         segmentRenderers_[sourceIndex]->setAutoUpdateTexture(!enableStreamingSynchronization);
 
-        bool success = segmentRenderers_[sourceIndex]->setImageData(segments[i].imageData);
+        bool success = segmentRenderers_[sourceIndex]->setImageData(segments[i].imageData, segments[i].parameters.compressed,
+                                                                    segments[i].parameters.width, segments[i].parameters.height);
 
         if(success)
         {

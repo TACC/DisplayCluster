@@ -67,6 +67,8 @@ struct PixelStreamSegmentParameters {
     int32_t totalWidth;
     int32_t totalHeight;
 
+    bool compressed;
+
     // Default constructor
     PixelStreamSegmentParameters()
         : sourceIndex(0)
@@ -77,6 +79,7 @@ struct PixelStreamSegmentParameters {
         , height(0)
         , totalWidth(0)
         , totalHeight(0)
+        , compressed(true)
     {
     }
 
@@ -93,6 +96,7 @@ struct PixelStreamSegmentParameters {
         ar & height;
         ar & totalWidth;
         ar & totalHeight;
+        ar & compressed;
     }
 };
 
