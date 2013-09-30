@@ -74,6 +74,9 @@ class PixelStream : public FactoryObject {
         // update renderers to the latest segments
         void updateSegmentRenderers();
 
+        // Has sender requested the view dimensions to be changed
+        bool changeViewDimensionsRequested();
+
     private:
 
         // pixel stream identifier
@@ -82,6 +85,12 @@ class PixelStream : public FactoryObject {
         // dimensions of entire pixel stream
         int width_;
         int height_;
+
+        // Number of segments
+        int segmentCount_;
+
+        // Sender requests the view dimensions to be changed
+        bool changeViewDimensionsRequested_;
 
         // segments mutex
         QMutex segmentsMutex_;

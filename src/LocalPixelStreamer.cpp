@@ -40,15 +40,18 @@
 #include "LocalPixelStreamer.h"
 #include "main.h"
 
-LocalPixelStreamer::LocalPixelStreamer(DisplayGroupManager *displayGroupManager, QString uri)
+LocalPixelStreamer::LocalPixelStreamer(QString uri)
     : uri_(uri)
 {
-    connect(this, SIGNAL(segmentUpdated(QString,PixelStreamSegment)), displayGroupManager, SLOT(processPixelStreamSegment(QString,PixelStreamSegment)));
-    connect(this, SIGNAL(streamClosed(QString)), displayGroupManager, SLOT(deletePixelStream(QString)));
 }
 
 LocalPixelStreamer::~LocalPixelStreamer()
 {
     emit(streamClosed(uri_));
+}
+
+QString LocalPixelStreamer::getUri() const
+{
+    return uri_;
 }
 

@@ -65,12 +65,15 @@ class NetworkListenerThread : public QObject {
 
         void setInteractionState(InteractionState interactionState);
 
+        void removePixelStreamer(QString uri);
+
     signals:
 
         void finished();
 
         void updatedSVGStreamSource();
 
+        void receivedOpenPixelStream(QString uri, int width, int height);
         void receivedDeletePixelStream(QString uri);
 
         void receivedPixelStreamSegement(QString uri, PixelStreamSegment segment);
@@ -81,6 +84,8 @@ class NetworkListenerThread : public QObject {
         QTcpSocket * tcpSocket_;
 
         boost::shared_ptr<DisplayGroupInterface> displayGroupInterface_;
+
+        QString pixelStreamUri_;
 
         QString interactionName_;
         bool interactionBound_;

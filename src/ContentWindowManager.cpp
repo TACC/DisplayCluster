@@ -155,6 +155,25 @@ void ContentWindowManager::close(ContentWindowInterface * source)
     }
 }
 
+void ContentWindowManager::centerPositionAround(double x, double y, bool constrainToWindowBorders)
+{
+    double newX = x - 0.5 * w_;
+    double newY = y - 0.5 * h_;
+
+    if (constrainToWindowBorders)
+    {
+        if (newX + w_ > 1.0)
+            newX = 1.0-w_;
+        if (newY + h_ > 1.0)
+            newY = 1.0-h_;
+
+        newX = std::max(0.0, newX);
+        newY = std::max(0.0, newY);
+    }
+
+    setPosition(newX, newY);
+}
+
 void ContentWindowManager::render()
 {
     content_->render(shared_from_this());

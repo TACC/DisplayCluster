@@ -87,6 +87,11 @@ class Factory {
             map_.clear();
         }
 
+        bool contains(const QString& uri) const
+        {
+            return map_.count(uri);
+        }
+
         void clearStaleObjects()
         {
             QMutexLocker locker(&mapMutex_);

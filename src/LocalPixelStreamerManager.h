@@ -70,8 +70,6 @@ public slots:
 
     void removePixelStreamer(QString uri);
 
-    void bindPixelStreamerInteraction(QString uri, boost::shared_ptr<ContentWindowManager> cwm);
-
 private:
 
     // all existing objects
@@ -81,6 +79,7 @@ private:
     DisplayGroupManager *displayGroupManager_;
 
     void setWindowManagerPosition(boost::shared_ptr<ContentWindowManager> cwm, QPointF pos);
+    void bindPixelStreamerInteraction(LocalPixelStreamer* streamer);
 };
 
 #endif // LOCALPIXELSTREAMERMANAGER_H

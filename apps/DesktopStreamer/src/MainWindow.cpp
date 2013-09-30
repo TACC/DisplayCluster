@@ -85,7 +85,7 @@ void computeSegmentJpeg(PixelStreamSegment & segment)
 }
 
 MainWindow::MainWindow()
-    : updatedDimensions_(true)
+    : updatedDimensions_(false)
     , deviceScale_(1.f)
     , parallelStreaming_(false)
 {
@@ -269,9 +269,6 @@ void MainWindow::shareDesktop(bool set)
         return;
     }
 
-    // make sure dimensions get updated
-    updatedDimensions_ = true;
-
     shareDesktopUpdateTimer_.start(SHARE_DESKTOP_UPDATE_DELAY);
 }
 
@@ -294,7 +291,6 @@ void MainWindow::setParallelStreaming(bool set)
     {
         parallelStreaming_ = set;
         setupSegments();
-        sendQuit(); // reset the connection, avoids problems when changing the number of segments
     }
 }
 
@@ -344,7 +340,8 @@ void MainWindow::shareDesktopUpdate()
     painter.end(); // Make sure to release the QImage before using it to update the segements
 
     // Jpeg compression
-    updateSegments();
+    updateSegments(updatedDimensions_);
+    updatedDimensions_ = false;
 
     // no need to watch for dimension changes; server handles it automatically
     bool success = streamSegments();
@@ -477,6 +474,7 @@ void MainWindow::setupSingleSegment()
     segment.parameters.height = h;
     segment.parameters.totalWidth = w;
     segment.parameters.totalHeight = h;
+    segment.parameters.segmentCount = 1;
     segment.parameters.compressed = true;
 
     segments_.push_back(segment);
@@ -509,6 +507,7 @@ void MainWindow::setupMultipleSegments()
             segment.parameters.height = (int)((float)h / (float)numSubdivisionsY);
             segment.parameters.totalWidth = w;
             segment.parameters.totalHeight = h;
+            segment.parameters.segmentCount = numSubdivisionsX*numSubdivisionsY;
             segment.parameters.compressed = true;
 
             segments_.push_back(segment);
@@ -517,7 +516,7 @@ void MainWindow::setupMultipleSegments()
 }
 
 
-void MainWindow::updateSegments()
+void MainWindow::updateSegments(bool requestViewAdjustment)
 {
     // frame index
     static int frameIndex = 0;
@@ -529,6 +528,7 @@ void MainWindow::updateSegments()
     {
         // update frame index
         segments_[i].parameters.frameIndex = frameIndex;
+        segments_[i].parameters.requestViewAdjustment = requestViewAdjustment;
     }
 
     // increment frame index

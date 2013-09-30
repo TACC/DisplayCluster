@@ -77,26 +77,24 @@ class DockPixelStreamer : public LocalPixelStreamer
 
 public:
 
-    DockPixelStreamer(DisplayGroupManager* displayGroupManager);
+    DockPixelStreamer();
     ~DockPixelStreamer();
 
-    static QString getUniqueURI();
+    virtual QSize size() const;
 
-    virtual void updateInteractionState(InteractionState interactionState);
+    static QString getUniqueURI();
 
     void open();
 
     void onItem();
 
-    void setOpeningPos( const QPointF& pos ) { posOpening_ = pos; }
-    QPointF getOpeningPos() const { return posOpening_; }
-
 public slots:
     void update(const QImage &image);
 
+    virtual void updateInteractionState(InteractionState interactionState);
+
 signals:
     void renderPreview( const QString& fileName, const int index );
-    void close(QString selfUri);
 
 private:
 
@@ -106,7 +104,6 @@ private:
     AsyncImageLoader* loader_;
 
     QDir currentDir_;
-    QPointF posOpening_;
     QHash< QString, int > slideIndex_;
 
     void changeDirectory( const QString& dir );

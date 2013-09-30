@@ -80,8 +80,11 @@ void NetworkListenerThread::initialize()
     connect(tcpSocket_, SIGNAL(disconnected()), this, SIGNAL(finished()));
     connect(this, SIGNAL(updatedSVGStreamSource()), g_displayGroupManager.get(), SLOT(sendSVGStreams()), Qt::BlockingQueuedConnection);
 
+    connect(this, SIGNAL(receivedOpenPixelStream(QString, int, int)), g_displayGroupManager.get(), SLOT(openPixelStream(QString, int, int)), Qt::QueuedConnection);
     connect(this, SIGNAL(receivedPixelStreamSegement(QString, PixelStreamSegment)), g_displayGroupManager.get(), SLOT(processPixelStreamSegment(QString,PixelStreamSegment)), Qt::QueuedConnection);
     connect(this, SIGNAL(receivedDeletePixelStream(QString)), g_displayGroupManager.get(), SLOT(deletePixelStream(QString)), Qt::QueuedConnection);
+
+    connect(g_displayGroupManager.get(), SIGNAL(pixelStreamViewClosed(QString)), this, SLOT(removePixelStreamer(QString)));
 
     // get a local DisplayGroupInterface to help manage interaction
     bool success = QMetaObject::invokeMethod(g_displayGroupManager.get(), "getDisplayGroupInterface", Qt::BlockingQueuedConnection, Q_RETURN_ARG(boost::shared_ptr<DisplayGroupInterface>, displayGroupInterface_), Q_ARG(QThread *, QThread::currentThread()));
@@ -211,14 +214,18 @@ void NetworkListenerThread::setInteractionState(InteractionState interactionStat
 
 void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArray byteArray)
 {
+    QString uri(messageHeader.uri);
+
     if(messageHeader.type == MESSAGE_TYPE_QUIT)
     {
-        QString uri(messageHeader.uri);
-
         QByteArray empty;
         g_SVGStreamSourceFactory.getObject(uri)->setImageData(empty);
 
-        emit(receivedDeletePixelStream(uri));
+        if (pixelStreamUri_ == uri)
+        {
+            emit(receivedDeletePixelStream(uri));
+            pixelStreamUri_ = QString();
+        }
         emit(updatedSVGStreamSource());
     }
     else if(messageHeader.type == MESSAGE_TYPE_PIXELSTREAM)
@@ -226,8 +233,6 @@ void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArra
         // update pixel stream source
         // keep this in this thread so we can have pixel stream source updating and sendPixelStreams() happening in parallel
         // sendPixelStreams() runs in a polling loop on the main thread
-        QString uri(messageHeader.uri);
-
         PixelStreamSegment segment;
 
         // read parameters
@@ -243,15 +248,27 @@ void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArra
         QByteArray imageData = byteArray.right(byteArray.size() - sizeof(PixelStreamSegmentParameters));
         segment.imageData = imageData;
 
-        emit(receivedPixelStreamSegement(uri, segment));
+        if (pixelStreamUri_.isEmpty())
+        {
+            emit(receivedOpenPixelStream(uri, segment.parameters.totalWidth, segment.parameters.totalHeight));
 
+            pixelStreamUri_ = uri;
+        }
+
+        if (pixelStreamUri_ == uri)
+        {
+            emit(receivedPixelStreamSegement(uri, segment));
+        }
+        else
+        {
+            put_flog(LOG_INFO, "received PixelStreamSegement from incorrect uri: %s", uri.toLocal8Bit().constData());
+        }
         // no need to emit any signals since there's a polling loop in the main thread
     }
     else if(messageHeader.type == MESSAGE_TYPE_SVG_STREAM)
     {
         // update SVG stream source
         // similar to pixel streaming above
-        const QString uri(messageHeader.uri);
 
         g_SVGStreamSourceFactory.getObject(uri)->setImageData(byteArray);
 
@@ -260,13 +277,19 @@ void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArra
     else if(messageHeader.type == MESSAGE_TYPE_BIND_INTERACTION ||
             messageHeader.type == MESSAGE_TYPE_BIND_INTERACTION_EX )
     {
-        const QString uri(messageHeader.uri);
-
         put_flog(LOG_INFO, "binding to %s", uri.toLocal8Bit().constData());
 
         interactionName_ = uri;
         interactionExclusive_ = messageHeader.type == MESSAGE_TYPE_BIND_INTERACTION_EX;
         interactionBound_ = bindInteraction();
+    }
+}
+
+void NetworkListenerThread::removePixelStreamer(QString uri)
+{
+    if (uri == pixelStreamUri_)
+    {
+        emit(finished());
     }
 }
 

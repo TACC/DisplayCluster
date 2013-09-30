@@ -42,18 +42,21 @@
 
 #include <QString>
 #include <QObject>
+#include <QSize>
 
 #include "PixelStreamSegment.h"
 #include "InteractionState.h"
-
-class DisplayGroupManager;
 
 class LocalPixelStreamer : public QObject {
     Q_OBJECT
 
 public:
-    LocalPixelStreamer(DisplayGroupManager* displayGroupManager, QString uri);
+    LocalPixelStreamer(QString uri);
     virtual ~LocalPixelStreamer();
+
+    virtual QSize size() const = 0;
+
+    QString getUri() const;
 
 public slots:
     virtual void updateInteractionState(InteractionState interactionState) = 0;

@@ -54,6 +54,7 @@ struct DcStreamParameters  {
     int height;
     int totalWidth;
     int totalHeight;
+    int segmentCount;
     bool compress;  // use jpeg compression or raw image for send, default true
     int quality;    // 0 worst quality, 100 best & lossless jpeg, default 75
 };

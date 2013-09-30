@@ -56,8 +56,8 @@
 
 
 
-WebkitPixelStreamer::WebkitPixelStreamer(DisplayGroupManager *displayGroupManager, QString uri)
-    : LocalPixelStreamer(displayGroupManager, uri)
+WebkitPixelStreamer::WebkitPixelStreamer(QString uri)
+    : LocalPixelStreamer(uri)
     , webView_(0)
     , timer_(0)
     , frameIndex_(0)
@@ -186,6 +186,11 @@ void WebkitPixelStreamer::updateInteractionState(InteractionState interactionSta
         webView_->page()->setViewportSize( newSize );
         webView_->setZoomFactor(zoomFactor);
     }
+}
+
+QSize WebkitPixelStreamer::size() const
+{
+    return webView_->page()->viewportSize();
 }
 
 void WebkitPixelStreamer::update()

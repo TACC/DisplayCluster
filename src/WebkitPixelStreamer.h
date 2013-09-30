@@ -54,8 +54,10 @@ class WebkitPixelStreamer : public LocalPixelStreamer
     Q_OBJECT
 
 public:
-    WebkitPixelStreamer(DisplayGroupManager* displayGroupManager, QString uri);
+    WebkitPixelStreamer(QString uri);
     ~WebkitPixelStreamer();
+
+    virtual QSize size() const;
 
     void setUrl(QString url);
 

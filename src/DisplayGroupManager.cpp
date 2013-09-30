@@ -135,12 +135,9 @@ void DisplayGroupManager::addContentWindowManager(boost::shared_ptr<ContentWindo
 
         sendDisplayGroup();
 
-        if (contentWindowManager->getContent()->getType() == CONTENT_TYPE_PIXEL_STREAM)
+        if (contentWindowManager->getContent()->getType() != CONTENT_TYPE_PIXEL_STREAM)
         {
-            emit(pixelStreamViewAdded(QString(contentWindowManager->getContent()->getURI()), contentWindowManager));
-        }
-        else
-        {
+            // TODO initialize all content dimensions on creation so we can remove this procedure
             // make sure we have its dimensions so we can constrain its aspect ratio
             sendContentsDimensionsRequest();
         }
@@ -156,7 +153,9 @@ void DisplayGroupManager::removeContentWindowManager(boost::shared_ptr<ContentWi
         // Notify the (local) pixel stream source of the deletion of the window so the source can be removed too
         if (contentWindowManager->getContent()->getType() == CONTENT_TYPE_PIXEL_STREAM)
         {
-            emit(pixelStreamViewClosed(QString(contentWindowManager->getContent()->getURI())));
+            QString uri = contentWindowManager->getContent()->getURI();
+            deletePixelStream(uri);
+            emit(pixelStreamViewClosed(uri));
         }
 
         // set null display group in content window manager object
@@ -734,38 +733,35 @@ void DisplayGroupManager::sendPixelStreams()
         if(segments.empty())
             continue;
 
-        int width = segments[0].parameters.totalWidth;
-        int height = segments[0].parameters.totalHeight;
+        int width, height;
+        pixelStreamSource->getDimensions(width, height);
+        bool changeViewSize = pixelStreamSource->changeViewDimensionsRequested();
 
-        boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
+        adjustPixelStreamContentDimensions(uri, width, height, changeViewSize);
 
-        // make sure Content/ContentWindowManager exists for the URI
-        // todo: this means as long as the pixel stream is updating, we'll have a window for it
-        // closing a window therefore will not terminate the pixel stream
-        if(!cwm)
+        sendPixelStreamSegments(segments, uri);
+    }
+}
+
+void DisplayGroupManager::adjustPixelStreamContentDimensions(QString uri, int width, int height, bool changeViewSize)
+{
+    boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
+    if(cwm)
+    {
+        // check for updated dimensions
+        boost::shared_ptr<Content> c = cwm->getContent();
+
+        int oldWidth, oldHeight;
+        c->getDimensions(oldWidth, oldHeight);
+
+        if(width != oldWidth || height != oldHeight)
         {
-            put_flog(LOG_DEBUG, "adding pixel stream: %s", uri.toLocal8Bit().constData());
-
-            boost::shared_ptr<Content> c(new PixelStreamContent(uri));
             c->setDimensions(width, height);
-            cwm = boost::shared_ptr<ContentWindowManager>(new ContentWindowManager(c));
-            addContentWindowManager(cwm);
-        }
-        else
-        {
-            // check for updated dimensions
-            boost::shared_ptr<Content> c = cwm->getContent();
-
-            int oldWidth, oldHeight;
-            c->getDimensions(oldWidth, oldHeight);
-
-            if(width != oldWidth || height != oldHeight)
+            if (changeViewSize)
             {
-                c->setDimensions(width, height);
                 cwm->adjustSize( SIZE_1TO1 );
             }
         }
-        sendPixelStreamSegments(segments, uri);
     }
 }
 
@@ -1000,12 +996,35 @@ void DisplayGroupManager::advanceContents()
 
 void DisplayGroupManager::processPixelStreamSegment(QString uri, PixelStreamSegment segment)
 {
-    pixelStreamSourceFactory_.getObject(uri)->insertSegment(segment);
+    // Only accept segments if we already have a pixelstream
+    if (pixelStreamSourceFactory_.contains(uri))
+        pixelStreamSourceFactory_.getObject(uri)->insertSegment(segment);
+}
+
+void DisplayGroupManager::openPixelStream(QString uri, int width, int height)
+{
+    // Create a pixel stream receiver
+    pixelStreamSourceFactory_.getObject(uri);
+
+    // add a Content/ContentWindowManager for this URI
+    boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
+
+    if(!cwm)
+    {
+        put_flog(LOG_DEBUG, "adding pixel stream: %s", uri.toLocal8Bit().constData());
+
+        boost::shared_ptr<Content> c(new PixelStreamContent(uri));
+        c->setDimensions(width, height);
+        cwm = boost::shared_ptr<ContentWindowManager>(new ContentWindowManager(c));
+        addContentWindowManager(cwm);
+    }
 }
 
 void DisplayGroupManager::deletePixelStream(QString uri)
 {
     pixelStreamSourceFactory_.removeObject(uri);
+
+    put_flog(LOG_DEBUG, "deleting pixel stream: %s", uri.toLocal8Bit().constData());
 
     boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
     if( cwm )

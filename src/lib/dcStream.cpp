@@ -279,6 +279,7 @@ DcStreamParameters dcStreamGenerateParameters(std::string name, int x, int y, in
     parameters.height = height;
     parameters.totalWidth = totalWidth;
     parameters.totalHeight = totalHeight;
+    parameters.segmentCount = 1;
     parameters.quality = 75;
     parameters.compress = compress;
 
@@ -310,6 +311,7 @@ std::vector<DcStreamParameters> dcStreamGenerateParameters(std::string name, int
             p.height = (int)((float)height / (float)numSubdivisionsY);
             p.totalWidth = totalWidth;
             p.totalHeight = totalHeight;
+            p.segmentCount = numSubdivisionsX*numSubdivisionsY;
             p.quality = 75;
             p.compress = compress;
 
@@ -460,6 +462,7 @@ bool dcStreamSendImage(DcSocket * socket, DcStreamParameters parameters, const u
     p.height = parameters.height;
     p.totalWidth = parameters.totalWidth;
     p.totalHeight = parameters.totalHeight;
+    p.segmentCount = parameters.segmentCount;
     p.compressed = parameters.compress;
 
     message.append((const char *)&p, sizeof(PixelStreamSegmentParameters));

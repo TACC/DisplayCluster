@@ -39,7 +39,7 @@
 #ifndef MAIN_WINDOW_H
 #define MAIN_WINDOW_H
 
-#define SUPPORTED_NETWORK_PROTOCOL_VERSION 6
+#define SUPPORTED_NETWORK_PROTOCOL_VERSION 7
 
 #define SHARE_DESKTOP_UPDATE_DELAY 1
 
@@ -128,7 +128,7 @@ class MainWindow : public QMainWindow {
         void setupSegments();
         void setupSingleSegment();
         void setupMultipleSegments();
-        void updateSegments();
+        void updateSegments(bool requestViewAdjustment);
         void sendSegment(const PixelStreamSegment &segment);
         void resetSegments();
 };
