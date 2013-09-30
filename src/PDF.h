@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,50 +37,48 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef SVG_H
-#define SVG_H
+#ifndef PDF_H
+#define PDF_H
 
 #include "FactoryObject.h"
-#include <QtSvg>
-#include <QGLWidget>
+#include <QString>
 #include <QGLFramebufferObject>
-#include <boost/shared_ptr.hpp>
-#include <map>
 
-class GLWindow;
+namespace Poppler {
+    class Document;
+    class Page;
+}
 
-class SVG : public FactoryObject {
+class PDF : public FactoryObject
+{
+public:
+    PDF(QString uri);
+    ~PDF();
 
-    public:
+    void getDimensions(int &width, int &height) const;
+    void render(float tX, float tY, float tW, float tH);
+    void setPage(int pageNumber);
+    int getPageCount() const;
 
-        SVG(QString uri);
-        ~SVG();
+private:
 
-        void getDimensions(int &width, int &height);
-        void render(float tX, float tY, float tW, float tH);
-        bool setImageData(QByteArray imageData);
+    // document location
+    QString uri_;
 
-    private:
+    Poppler::Document* pdfDoc_;
+    Poppler::Page* pdfPage_;
+    int pdfPageNumber;
 
-        // image location
-        QString uri_;
+    // texture information
+    QRect textureRect_;
+    GLuint textureId_;
 
-        // SVG renderer
-        QRectF svgExtents_;
-        QSvgRenderer svgRenderer_;
+    void openDocument(QString filename);
+    void closeDocument();
+    void closePage();
 
-        std::map<boost::shared_ptr<GLWindow>, boost::shared_ptr<QGLFramebufferObject> > fbos_;
-
-        // current rasterized image dimensions
-        int imageWidth_;
-        int imageHeight_;
-
-        // texture information
-        QRectF textureRect_;
-        QSizeF textureSize_;
-        GLuint textureId_;
-
-        void generateTexture(QRectF screenRect, QRectF fullRect, float tX, float tY, float tW, float tH);
+    void generateTexture(QRectF screenRect, QRectF fullRect, float tX, float tY, float tW, float tH);
+    void deleteTexture();
 };
 
-#endif
+#endif // PDF_H

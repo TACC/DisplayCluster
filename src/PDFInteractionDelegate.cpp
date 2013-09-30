@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,50 +37,50 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef SVG_H
-#define SVG_H
+#include "PDFInteractionDelegate.h"
+#include "ContentWindowManager.h"
+#include "PDFContent.h"
+#include "main.h"
 
-#include "FactoryObject.h"
-#include <QtSvg>
-#include <QGLWidget>
-#include <QGLFramebufferObject>
-#include <boost/shared_ptr.hpp>
-#include <map>
+PDFInteractionDelegate::PDFInteractionDelegate(ContentWindowManager *cwm)
+    : ZoomInteractionDelegate(cwm)
+{
+    assert(contentWindowManager_->getContent()->getType() == CONTENT_TYPE_PDF);
+}
 
-class GLWindow;
 
-class SVG : public FactoryObject {
+void PDFInteractionDelegate::tap(QTapGesture *gesture)
+{
+    if ( gesture->state() == Qt::GestureFinished )
+    {
+        double x, y, w, h;
+        contentWindowManager_->getCoordinates(x, y, w, h);
 
-    public:
+        double winCenterX = (x + 0.5 * w) * g_configuration->getTotalWidth();
 
-        SVG(QString uri);
-        ~SVG();
+        if (gesture->position().x() > winCenterX)
+            getPDFContent()->nextPage();
+        else
+            getPDFContent()->previousPage();
+    }
+}
 
-        void getDimensions(int &width, int &height);
-        void render(float tX, float tY, float tW, float tH);
-        bool setImageData(QByteArray imageData);
+PDFContent *PDFInteractionDelegate::getPDFContent()
+{
+    return static_cast<PDFContent*>(contentWindowManager_->getContent().get());
+}
 
-    private:
 
-        // image location
-        QString uri_;
+void PDFInteractionDelegate::swipe(QSwipeGesture *gesture)
+{
+    if (gesture->horizontalDirection() == QSwipeGesture::Left)
+    {
+        getPDFContent()->previousPage();
+    }
+    else if (gesture->horizontalDirection() == QSwipeGesture::Right)
+    {
+        getPDFContent()->nextPage();
+    }
+}
 
-        // SVG renderer
-        QRectF svgExtents_;
-        QSvgRenderer svgRenderer_;
 
-        std::map<boost::shared_ptr<GLWindow>, boost::shared_ptr<QGLFramebufferObject> > fbos_;
-
-        // current rasterized image dimensions
-        int imageWidth_;
-        int imageHeight_;
-
-        // texture information
-        QRectF textureRect_;
-        QSizeF textureSize_;
-        GLuint textureId_;
-
-        void generateTexture(QRectF screenRect, QRectF fullRect, float tX, float tY, float tW, float tH);
-};
-
-#endif

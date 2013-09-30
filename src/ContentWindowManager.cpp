@@ -45,6 +45,7 @@
 // Specialized delegate implementations
 #include "PixelStreamInteractionDelegate.h"
 #include "ZoomInteractionDelegate.h"
+#include "PDFInteractionDelegate.h"
 
 
 ContentWindowManager::ContentWindowManager(boost::shared_ptr<Content> content)
@@ -77,6 +78,10 @@ ContentWindowManager::ContentWindowManager(boost::shared_ptr<Content> content)
         if (getContent()->getType() == CONTENT_TYPE_PIXEL_STREAM)
         {
             interactionDelegate_ = new PixelStreamInteractionDelegate(this);
+        }
+        else if (getContent()->getType() == CONTENT_TYPE_PDF)
+        {
+            interactionDelegate_ = new PDFInteractionDelegate(this);
         }
         else
         {

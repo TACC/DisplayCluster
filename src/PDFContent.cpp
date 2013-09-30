@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,50 +37,59 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef SVG_H
-#define SVG_H
+#include "PDFContent.h"
+#include "main.h"
+#include <boost/serialization/export.hpp>
 
-#include "FactoryObject.h"
-#include <QtSvg>
-#include <QGLWidget>
-#include <QGLFramebufferObject>
-#include <boost/shared_ptr.hpp>
-#include <map>
+BOOST_CLASS_EXPORT_GUID(PDFContent, "PDFContent")
 
-class GLWindow;
+CONTENT_TYPE PDFContent::getType()
+{
+    return CONTENT_TYPE_PDF;
+}
 
-class SVG : public FactoryObject {
+const QStringList& PDFContent::getSupportedExtensions()
+{
+    static QStringList extensions;
 
-    public:
+    if (extensions.empty())
+    {
+        extensions << "pdf";
+    }
 
-        SVG(QString uri);
-        ~SVG();
+    return extensions;
+}
 
-        void getDimensions(int &width, int &height);
-        void render(float tX, float tY, float tW, float tH);
-        bool setImageData(QByteArray imageData);
+void PDFContent::setPageCount(int count)
+{
+    pageCount_ = count;
+}
 
-    private:
+void PDFContent::nextPage()
+{
+    if (pageNumber_ < pageCount_-1)
+    {
+        ++pageNumber_;
+        emit(pageChanged());
+    }
+}
 
-        // image location
-        QString uri_;
+void PDFContent::previousPage()
+{
+    if (pageNumber_ > 0)
+    {
+        --pageNumber_;
+        emit(pageChanged());
+    }
+}
 
-        // SVG renderer
-        QRectF svgExtents_;
-        QSvgRenderer svgRenderer_;
+void PDFContent::getFactoryObjectDimensions(int &width, int &height)
+{
+    g_mainWindow->getGLWindow()->getPDFFactory().getObject(getURI())->getDimensions(width, height);
+}
 
-        std::map<boost::shared_ptr<GLWindow>, boost::shared_ptr<QGLFramebufferObject> > fbos_;
-
-        // current rasterized image dimensions
-        int imageWidth_;
-        int imageHeight_;
-
-        // texture information
-        QRectF textureRect_;
-        QSizeF textureSize_;
-        GLuint textureId_;
-
-        void generateTexture(QRectF screenRect, QRectF fullRect, float tX, float tY, float tW, float tH);
-};
-
-#endif
+void PDFContent::renderFactoryObject(float tX, float tY, float tW, float tH)
+{
+    g_mainWindow->getGLWindow()->getPDFFactory().getObject(getURI())->setPage(pageNumber_);
+    g_mainWindow->getGLWindow()->getPDFFactory().getObject(getURI())->render(tX, tY, tW, tH);
+}

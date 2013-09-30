@@ -40,11 +40,6 @@
 #include "main.h"
 #include "log.h"
 
-#ifdef __APPLE__
-    #include <OpenGL/glu.h>
-#else
-    #include <GL/glu.h>
-#endif
 
 SVG::SVG(QString uri)
 {
@@ -86,8 +81,8 @@ void SVG::render(float tX, float tY, float tW, float tH)
     updateRenderedFrameCount();
 
     // get on-screen and full rectangle corresponding to the window
-    QRectF screenRect = getProjectedPixelRect(true);
-    QRectF fullRect = getProjectedPixelRect(false); // corresponds to original [tX, tY, tW, tH]
+    QRectF screenRect = g_mainWindow->getGLWindow()->getProjectedPixelRect(true);
+    QRectF fullRect = g_mainWindow->getGLWindow()->getProjectedPixelRect(false); // corresponds to original [tX, tY, tW, tH]
 
     // if we're not visible or we don't have a valid SVG, we're done...
     if(screenRect.isEmpty() || !svgRenderer_.isValid())
@@ -217,59 +212,3 @@ void SVG::generateTexture(QRectF screenRect, QRectF fullRect, float tX, float tY
     textureId_ = fbo->texture();
 }
 
-QRectF SVG::getProjectedPixelRect(bool onScreenOnly)
-{
-    // get four corners in object space (recall we're in normalized 0->1 dimensions)
-    double x[4][3];
-
-    x[0][0] = 0.;
-    x[0][1] = 0.;
-    x[0][2] = 0.;
-
-    x[1][0] = 1.;
-    x[1][1] = 0.;
-    x[1][2] = 0.;
-
-    x[2][0] = 1.;
-    x[2][1] = 1.;
-    x[2][2] = 0.;
-
-    x[3][0] = 0.;
-    x[3][1] = 1.;
-    x[3][2] = 0.;
-
-    // get four corners in screen space
-    GLdouble modelview[16];
-    glGetDoublev(GL_MODELVIEW_MATRIX, modelview);
-
-    GLdouble projection[16];
-    glGetDoublev(GL_PROJECTION_MATRIX, projection);
-
-    GLint viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
-
-    GLdouble xWin[4][3];
-
-    for(int i=0; i<4; i++)
-    {
-        gluProject(x[i][0], x[i][1], x[i][2], modelview, projection, viewport, &xWin[i][0], &xWin[i][1], &xWin[i][2]);
-
-        if(onScreenOnly == true)
-        {
-            // clamp to on-screen portion
-            if(xWin[i][0] < 0.)
-                xWin[i][0] = 0.;
-
-            if(xWin[i][0] > (double)g_mainWindow->getGLWindow()->width())
-                xWin[i][0] = (double)g_mainWindow->getGLWindow()->width();
-
-            if(xWin[i][1] < 0.)
-                xWin[i][1] = 0.;
-
-            if(xWin[i][1] > (double)g_mainWindow->getGLWindow()->height())
-                xWin[i][1] = (double)g_mainWindow->getGLWindow()->height();
-        }
-    }
-
-    return QRectF(QPointF(xWin[0][0], (double)g_mainWindow->getGLWindow()->height() - xWin[0][1]), QPointF(xWin[2][0], (double)g_mainWindow->getGLWindow()->height() - xWin[2][1]));
-}

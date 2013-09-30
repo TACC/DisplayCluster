@@ -47,6 +47,8 @@
 #include "DynamicTextureContent.h"
 #include "SVGContent.h"
 #include "MovieContent.h"
+#include "PDFContent.h"
+#include "PDF.h"
 
 boost::shared_ptr<Content> ContentFactory::getContent(const QString& uri)
 {
@@ -65,6 +67,27 @@ boost::shared_ptr<Content> ContentFactory::getContent(const QString& uri)
 
     // convert to lower case for case-insensitivity in determining file type
     const QString extension = QFileInfo(uri).suffix().toLower();
+
+
+    // See if this is a PDF document
+    if(PDFContent::getSupportedExtensions().contains(extension))
+    {
+        int width, height, pageCount;
+        {
+            PDF pdf(uri);
+            pdf.getDimensions(width, height);
+            pageCount = pdf.getPageCount();
+        }
+
+        PDFContent* pdfContent = new PDFContent(uri);
+        pdfContent->setDimensions(width, height);
+        pdfContent->setPageCount(pageCount);
+
+        pdfContent->connect(pdfContent, SIGNAL(pageChanged()), g_displayGroupManager.get(), SLOT(sendDisplayGroup()), Qt::QueuedConnection);
+
+        boost::shared_ptr<Content> c(pdfContent);
+        return c;
+    }
 
     // see if this is an SVG image (must do this first, since SVG can also be read as an image directly)
     if(SVGContent::getSupportedExtensions().contains(extension))
@@ -134,6 +157,7 @@ const QStringList& ContentFactory::getSupportedExtensions()
 
     if (extensions.empty())
     {
+        extensions.append(PDFContent::getSupportedExtensions());
         extensions.append(SVGContent::getSupportedExtensions());
         extensions.append(TextureContent::getSupportedExtensions());
         extensions.append(DynamicTextureContent::getSupportedExtensions());

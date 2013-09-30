@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,50 +37,47 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef SVG_H
-#define SVG_H
+#ifndef PDFCONTENT_H
+#define PDFCONTENT_H
 
-#include "FactoryObject.h"
-#include <QtSvg>
-#include <QGLWidget>
-#include <QGLFramebufferObject>
-#include <boost/shared_ptr.hpp>
-#include <map>
+#include "Content.h"
+#include <boost/serialization/base_object.hpp>
 
-class GLWindow;
+class PDFContent : public Content
+{
+    Q_OBJECT
 
-class SVG : public FactoryObject {
+public:
+    PDFContent(QString uri = "") : Content(uri), pageNumber_(0), pageCount_(0) { }
 
-    public:
+    CONTENT_TYPE getType();
 
-        SVG(QString uri);
-        ~SVG();
+    void getFactoryObjectDimensions(int &width, int &height);
 
-        void getDimensions(int &width, int &height);
-        void render(float tX, float tY, float tW, float tH);
-        bool setImageData(QByteArray imageData);
+    static const QStringList& getSupportedExtensions();
 
-    private:
+    void setPageCount(int count);
+    void nextPage();
+    void previousPage();
 
-        // image location
-        QString uri_;
+signals:
+    void pageChanged();
 
-        // SVG renderer
-        QRectF svgExtents_;
-        QSvgRenderer svgRenderer_;
+private:
+    friend class boost::serialization::access;
 
-        std::map<boost::shared_ptr<GLWindow>, boost::shared_ptr<QGLFramebufferObject> > fbos_;
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int)
+    {
+        // serialize base class information
+        ar & boost::serialization::base_object<Content>(*this);
+        ar & pageNumber_;
+    }
 
-        // current rasterized image dimensions
-        int imageWidth_;
-        int imageHeight_;
+    int pageNumber_;
+    int pageCount_;
 
-        // texture information
-        QRectF textureRect_;
-        QSizeF textureSize_;
-        GLuint textureId_;
-
-        void generateTexture(QRectF screenRect, QRectF fullRect, float tX, float tY, float tW, float tH);
+    void renderFactoryObject(float tX, float tY, float tW, float tH);
 };
 
-#endif
+#endif // PDFCONTENT_H

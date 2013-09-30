@@ -24,6 +24,7 @@ option(ENABLE_TUIO_TOUCH_LISTENER "Enable TUIO touch listener for multi-touch ev
 option(ENABLE_JOYSTICK_SUPPORT "Enable joystick support" OFF)
 option(ENABLE_SKELETON_SUPPORT "EXPERIMENTAL: Enable skeleton tracking interface support" OFF)
 option(ENABLE_PYTHON_SUPPORT "Enable Python support" OFF)
+option(ENABLE_PDF_SUPPORT "Enable Pdf support using Poppler" OFF)
 
 if(APPLE)
   # WAR needed when CMAKE_OSX_SYSROOT is set to find /usr/include/turbojpeg.h
@@ -208,6 +209,22 @@ if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
 
         set(MOC_HEADERS ${MOC_HEADERS} src/DisplayGroupPython.h)
         set(MOC_HEADERS ${MOC_HEADERS} src/PythonConsole.h)
+    endif()
+
+    if(ENABLE_PDF_SUPPORT)
+      find_package(Poppler REQUIRED)
+      include_directories(${POPPLER_QT_INCLUDE_DIR})
+      list(APPEND LIBS ${POPPLER_LIBRARIES})
+
+      list(APPEND SRCS
+        src/PDF.cpp
+        src/PDFContent.cpp
+        src/PDFInteractionDelegate.cpp
+      )
+      list(APPEND MOC_HEADERS
+        src/PDFContent.h
+        src/PDFInteractionDelegate.h
+      )
     endif()
 
     # process config file

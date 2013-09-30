@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,50 +37,25 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef SVG_H
-#define SVG_H
+#ifndef PDFINTERACTIONDELEGATE_H
+#define PDFINTERACTIONDELEGATE_H
 
-#include "FactoryObject.h"
-#include <QtSvg>
-#include <QGLWidget>
-#include <QGLFramebufferObject>
-#include <boost/shared_ptr.hpp>
-#include <map>
+#include "ZoomInteractionDelegate.h"
 
-class GLWindow;
+class PDFContent;
 
-class SVG : public FactoryObject {
+class PDFInteractionDelegate : public ZoomInteractionDelegate
+{
+    Q_OBJECT
 
-    public:
+public:
+    PDFInteractionDelegate(ContentWindowManager *cwm);
 
-        SVG(QString uri);
-        ~SVG();
+    virtual void tap(QTapGesture *gesture);
+    virtual void swipe(QSwipeGesture *gesture);
 
-        void getDimensions(int &width, int &height);
-        void render(float tX, float tY, float tW, float tH);
-        bool setImageData(QByteArray imageData);
-
-    private:
-
-        // image location
-        QString uri_;
-
-        // SVG renderer
-        QRectF svgExtents_;
-        QSvgRenderer svgRenderer_;
-
-        std::map<boost::shared_ptr<GLWindow>, boost::shared_ptr<QGLFramebufferObject> > fbos_;
-
-        // current rasterized image dimensions
-        int imageWidth_;
-        int imageHeight_;
-
-        // texture information
-        QRectF textureRect_;
-        QSizeF textureSize_;
-        GLuint textureId_;
-
-        void generateTexture(QRectF screenRect, QRectF fullRect, float tX, float tY, float tW, float tH);
+private:
+    PDFContent* getPDFContent();
 };
 
-#endif
+#endif // PDFINTERACTIONDELEGATE_H

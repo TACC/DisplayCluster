@@ -42,6 +42,7 @@
 #include "Factory.hpp"
 #include "Texture.h"
 #include "DynamicTexture.h"
+#include "PDF.h"
 #include "SVG.h"
 #include "Movie.h"
 #include "PixelStream.h"
@@ -58,6 +59,7 @@ class GLWindow : public QGLWidget
 
         Factory<Texture> & getTextureFactory();
         Factory<DynamicTexture> & getDynamicTextureFactory();
+        Factory<PDF> &getPDFFactory();
         Factory<SVG> & getSVGFactory();
         Factory<Movie> & getMovieFactory();
         Factory<PixelStream> & getPixelStreamFactory();
@@ -78,7 +80,9 @@ class GLWindow : public QGLWidget
 
         void finalize();
 
-    private:
+        QRectF getProjectedPixelRect(bool onScreenOnly);
+
+private:
 
         int tileIndex_;
 
@@ -89,6 +93,7 @@ class GLWindow : public QGLWidget
 
         Factory<Texture> textureFactory_;
         Factory<DynamicTexture> dynamicTextureFactory_;
+        Factory<PDF> pdfFactory_;
         Factory<SVG> svgFactory_;
         Factory<Movie> movieFactory_;
         Factory<PixelStream> pixelStreamFactory_;

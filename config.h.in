@@ -5,6 +5,7 @@
 #cmakedefine01 ENABLE_JOYSTICK_SUPPORT
 #cmakedefine01 ENABLE_SKELETON_SUPPORT
 #cmakedefine01 ENABLE_PYTHON_SUPPORT
+#cmakedefine01 ENABLE_PDF_SUPPORT
 
 
 #endif

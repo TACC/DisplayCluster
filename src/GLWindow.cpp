@@ -89,6 +89,11 @@ Factory<DynamicTexture> & GLWindow::getDynamicTextureFactory()
     return dynamicTextureFactory_;
 }
 
+Factory<PDF> & GLWindow::getPDFFactory()
+{
+    return pdfFactory_;
+}
+
 Factory<SVG> & GLWindow::getSVGFactory()
 {
     return svgFactory_;
@@ -460,6 +465,7 @@ void GLWindow::finalize()
 {
     textureFactory_.clear();
     dynamicTextureFactory_.clear();
+    pdfFactory_.clear();
     svgFactory_.clear();
     movieFactory_.clear();
     pixelStreamFactory_.clear();
@@ -526,4 +532,52 @@ void GLWindow::renderTestPattern()
 
     glPopMatrix();
     glPopAttrib();
+}
+
+
+QRectF GLWindow::getProjectedPixelRect(bool onScreenOnly)
+{
+    // get four corners in object space (recall we're in normalized 0->1 dimensions)
+    double x[4][3] =
+    {
+        {0.,0.,0.},
+        {1.,0.,0.},
+        {1.,1.,0.},
+        {0.,1.,0.}
+    };
+
+    // get four corners in screen space
+    GLdouble modelview[16];
+    glGetDoublev(GL_MODELVIEW_MATRIX, modelview);
+
+    GLdouble projection[16];
+    glGetDoublev(GL_PROJECTION_MATRIX, projection);
+
+    GLint viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+
+    GLdouble xWin[4][3];
+
+    for(int i=0; i<4; i++)
+    {
+        gluProject(x[i][0], x[i][1], x[i][2], modelview, projection, viewport, &xWin[i][0], &xWin[i][1], &xWin[i][2]);
+
+        if(onScreenOnly == true)
+        {
+            // clamp to on-screen portion
+            if(xWin[i][0] < 0.)
+                xWin[i][0] = 0.;
+
+            if(xWin[i][0] > (double)width())
+                xWin[i][0] = (double)width();
+
+            if(xWin[i][1] < 0.)
+                xWin[i][1] = 0.;
+
+            if(xWin[i][1] > (double)height())
+                xWin[i][1] = (double)height();
+        }
+    }
+
+    return QRectF(QPointF(xWin[0][0], (double)height() - xWin[0][1]), QPointF(xWin[2][0], (double)height() - xWin[2][1]));
 }

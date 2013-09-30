@@ -4,6 +4,7 @@ include(System)
 list(APPEND FIND_PACKAGES_DEFINES ${SYSTEM})
 
 find_package(MPI )
+find_package(Poppler 0.24)
 find_package(Boost 1.41.0 REQUIRED date_time serialization)
 find_package(LibJpegTurbo 1.2.1 REQUIRED)
 find_package(FFMPEG  REQUIRED)
@@ -28,6 +29,21 @@ if(MPI_name)
   link_directories(${${MPI_name}_LIBRARY_DIRS})
   if(NOT "${${MPI_name}_INCLUDE_DIRS}" MATCHES "-NOTFOUND")
     include_directories(${${MPI_name}_INCLUDE_DIRS})
+  endif()
+endif()
+
+if(Poppler_FOUND)
+  set(Poppler_name Poppler)
+endif()
+if(POPPLER_FOUND)
+  set(Poppler_name POPPLER)
+endif()
+if(Poppler_name)
+  list(APPEND FIND_PACKAGES_DEFINES DISPLAYCLUSTER_USE_POPPLER)
+  set(FIND_PACKAGES_FOUND "${FIND_PACKAGES_FOUND} Poppler")
+  link_directories(${${Poppler_name}_LIBRARY_DIRS})
+  if(NOT "${${Poppler_name}_INCLUDE_DIRS}" MATCHES "-NOTFOUND")
+    include_directories(${${Poppler_name}_INCLUDE_DIRS})
   endif()
 endif()
 
@@ -138,7 +154,7 @@ endif()
 
 set(DISPLAYCLUSTER_BUILD_DEBS autoconf;automake;cmake;freeglut3-dev;git;git-svn;libavcodec-dev;libavformat-dev;libavutil-dev;libboost-date-time-dev;libboost-serialization-dev;libjpeg-turbo8-dev;libopenmpi-dev;libswscale-dev;libturbojpeg;libxmu-dev;pkg-config;subversion)
 
-set(DISPLAYCLUSTER_DEPENDS MPI;Boost;LibJpegTurbo;FFMPEG;OpenGL;Qt4;TUIO;GLUT)
+set(DISPLAYCLUSTER_DEPENDS MPI;Poppler;Boost;LibJpegTurbo;FFMPEG;OpenGL;Qt4;TUIO;GLUT)
 
 # Write defines.h and options.cmake
 if(NOT PROJECT_INCLUDE_NAME)
