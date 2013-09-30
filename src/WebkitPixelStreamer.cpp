@@ -41,6 +41,8 @@
 
 #include <QtWebKit/QWebFrame>
 #include <QtWebKit/QWebView>
+#include <QtWebKit/QWebElement>
+#include <QKeyEvent>
 
 #include <QTimer>
 
@@ -49,6 +51,10 @@
 
 #define WEPPAGE_DEFAULT_WIDTH   1280
 #define WEBPAGE_DEFAULT_HEIGHT  1024
+#define WEBPAGE_DEFAULT_ZOOM    2.0
+#define WEPPAGE_MIN_WIDTH   (WEPPAGE_DEFAULT_WIDTH/2)
+#define WEBPAGE_MIN_HEIGHT  (WEBPAGE_DEFAULT_HEIGHT/2)
+
 
 
 WebkitPixelStreamer::WebkitPixelStreamer(DisplayGroupManager *displayGroupManager, QString uri)
@@ -58,9 +64,11 @@ WebkitPixelStreamer::WebkitPixelStreamer(DisplayGroupManager *displayGroupManage
     , frameIndex_(0)
 {
     webView_ = new QWebView();
-    webView_->page()->setViewportSize( QSize( WEPPAGE_DEFAULT_WIDTH, WEBPAGE_DEFAULT_HEIGHT ));
+    webView_->page()->setViewportSize( QSize( WEPPAGE_DEFAULT_WIDTH*WEBPAGE_DEFAULT_ZOOM, WEBPAGE_DEFAULT_HEIGHT*WEBPAGE_DEFAULT_ZOOM ));
+    webView_->setZoomFactor(WEBPAGE_DEFAULT_ZOOM);
 
-    image_ = QImage( webView_->page()->viewportSize(), QImage::Format_ARGB32 );
+    webView_->settings()->setAttribute(QWebSettings::PluginsEnabled, true);
+    webView_->settings()->setAttribute(QWebSettings::FrameFlatteningEnabled, true);
 
     timer_ = new QTimer();
     connect(timer_, SIGNAL(timeout()), this, SLOT(update()));
@@ -77,12 +85,16 @@ WebkitPixelStreamer::~WebkitPixelStreamer()
 
 void WebkitPixelStreamer::setUrl(QString url)
 {
+    QMutexLocker locker(&mutex_);
+
     webView_->load( QUrl(url) );
 }
 
 
 void WebkitPixelStreamer::updateInteractionState(InteractionState interactionState)
 {
+    QMutexLocker locker(&mutex_);
+
     QWebPage* page = webView_->page();
 
     int x = interactionState.mouseX*page->viewportSize().width();
@@ -99,16 +111,47 @@ void WebkitPixelStreamer::updateInteractionState(InteractionState interactionSta
 
     if (interactionState.type == InteractionState::EVT_CLICK)
     {
-        QWebHitTestResult hitResult = pFrame->hitTestContent(pointerPos);
-        if (!hitResult.linkUrl().isEmpty())
+        // History navigation (until swipe gestures are fixed)
+        if (interactionState.mouseX < 0.02)
         {
-            webView_->load(hitResult.linkUrl());
+            webView_->back();
+            return;
+        }
+        else if (interactionState.mouseX > 0.98)
+        {
+            webView_->forward();
+            return;
+        }
+
+        QWebHitTestResult hitResult = pFrame->hitTestContent(pointerPos);
+
+        if ( !hitResult.isNull() )
+        {
+            if (!hitResult.linkUrl().isEmpty())
+            {
+                webView_->load(hitResult.linkUrl());
+            }
+            else
+            {
+                hitResult.element().evaluateJavaScript("this.click()");
+
+                if (hitResult.isContentEditable())
+                {
+                    hitResult.element().setFocus();
+                    // Ugly hack to work around a focus problem: some input fields receive
+                    // focus yet key events are still directed to a different INPUT field..
+                    if (hitResult.element().tagName()== "INPUT")
+                        hitResult.element().evaluateJavaScript("this.value = this.value");
+                }
+            }
         }
     }
+
     else if (interactionState.type == InteractionState::EVT_MOVE || interactionState.type == InteractionState::EVT_WHEEL)
     {
         pFrame->scroll(-dx,-dy);
     }
+
     else if (interactionState.type == InteractionState::EVT_SWIPE_LEFT)
     {
         webView_->back();
@@ -117,13 +160,45 @@ void WebkitPixelStreamer::updateInteractionState(InteractionState interactionSta
     {
         webView_->forward();
     }
+
+    else if (interactionState.type == InteractionState::EVT_KEY_PRESS)
+    {
+        QKeyEvent myEvent(QEvent::KeyPress, interactionState.key,
+                          (Qt::KeyboardModifiers)interactionState.modifiers,
+                          QString::fromStdString(interactionState.text)
+                          );
+        page->event(&myEvent);
+    }
+    else if (interactionState.type == InteractionState::EVT_KEY_RELEASE)
+    {
+        QKeyEvent myEvent(QEvent::KeyRelease, interactionState.key,
+                          (Qt::KeyboardModifiers)interactionState.modifiers,
+                          QString::fromStdString(interactionState.text)
+                          );
+        page->event(&myEvent);
+    }
+
+    else if (interactionState.type == InteractionState::EVT_VIEW_SIZE_CHANGED)
+    {
+        QSize newSize( std::max((int)interactionState.dx, WEPPAGE_MIN_WIDTH), std::max((int)interactionState.dy, WEBPAGE_MIN_HEIGHT) );
+
+        double zoomFactor = (double)newSize.width() / (double)WEPPAGE_DEFAULT_WIDTH;
+
+        webView_->page()->setViewportSize( newSize );
+        webView_->setZoomFactor(zoomFactor);
+    }
 }
 
 void WebkitPixelStreamer::update()
 {
+    QMutexLocker locker(&mutex_);
+
     QWebPage* page = webView_->page();
     if( !page->viewportSize().isEmpty())
     {
+        if (image_.size() != page->viewportSize())
+	        image_ = QImage( page->viewportSize(), QImage::Format_ARGB32 );
+
         QPainter painter( &image_ );
         page->mainFrame()->render( &painter );
         painter.end();

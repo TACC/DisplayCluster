@@ -280,6 +280,10 @@ bool ContentWindowGraphicsItem::sceneEvent( QEvent* event )
     case QEvent::Gesture:
         getContentWindowManager()->getInteractionDelegate()->gestureEvent( static_cast< QGestureEvent* >( event ));
         return true;
+    case QEvent::KeyPress:
+        // Override default behaviour to process TAB key events
+        keyPressEvent(static_cast<QKeyEvent *>(event));
+        return true;
     default:
         return QGraphicsObject::sceneEvent( event );
     }

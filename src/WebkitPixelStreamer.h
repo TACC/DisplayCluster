@@ -43,6 +43,7 @@
 #include "LocalPixelStreamer.h"
 #include <QString>
 #include <QImage>
+#include <QMutex>
 
 class QWebView;
 class QTimer;
@@ -67,6 +68,7 @@ private:
 
     QWebView* webView_;
     QTimer* timer_;
+    QMutex mutex_;
     int frameIndex_;
 
     QImage image_;

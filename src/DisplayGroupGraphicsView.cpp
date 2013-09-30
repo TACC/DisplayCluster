@@ -65,7 +65,7 @@ void DisplayGroupGraphicsView::grabGestures()
     viewport()->grabGesture(Qt::TapAndHoldGesture);
     //viewport()->grabGesture(Qt::PanGesture);
     //viewport()->grabGesture(Qt::PinchGesture);
-    //viewport()->grabGesture(Qt::SwipeGesture);
+    viewport()->grabGesture(Qt::SwipeGesture);
 }
 
 bool DisplayGroupGraphicsView::viewportEvent( QEvent* event )

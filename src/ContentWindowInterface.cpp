@@ -332,6 +332,8 @@ void ContentWindowInterface::setCoordinates(double x, double y, double w, double
         fixAspectRatio(source);
 
         emit(coordinatesChanged(x_, y_, w_, h_, source));
+
+        setInteractionStateToNewDimensions();
     }
 }
 
@@ -380,6 +382,8 @@ void ContentWindowInterface::setSize(double w, double h, ContentWindowInterface 
         fixAspectRatio(source);
 
         emit(sizeChanged(w_, h_, source));
+
+        setInteractionStateToNewDimensions();
     }
 }
 
@@ -611,6 +615,15 @@ void ContentWindowInterface::close(ContentWindowInterface * source)
 
         emit(closed(source));
     }
+}
+
+void ContentWindowInterface::setInteractionStateToNewDimensions()
+{
+    InteractionState state;
+    state.type = InteractionState::EVT_VIEW_SIZE_CHANGED;
+    state.dx = w_ * g_configuration->getTotalWidth();
+    state.dy = h_ * g_configuration->getTotalHeight();
+    setInteractionState(state);
 }
 
 void ContentWindowInterface::bindInteraction( const QObject* receiver,

@@ -149,6 +149,8 @@ class ContentWindowInterface : public QObject {
 
     protected:
 
+        void setInteractionStateToNewDimensions();
+
         // optional: reference to ContentWindowManager for non-ContentWindowManager objects
         boost::weak_ptr<ContentWindowManager> contentWindowManager_;
 
