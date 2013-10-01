@@ -79,10 +79,12 @@ ContentWindowManager::ContentWindowManager(boost::shared_ptr<Content> content)
         {
             interactionDelegate_ = new PixelStreamInteractionDelegate(this);
         }
+#if ENABLE_PDF_SUPPORT
         else if (getContent()->getType() == CONTENT_TYPE_PDF)
         {
             interactionDelegate_ = new PDFInteractionDelegate(this);
         }
+#endif
         else
         {
             interactionDelegate_ = new ZoomInteractionDelegate(this);
