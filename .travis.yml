@@ -14,4 +14,4 @@ script:
  - env TRAVIS=1 make -j8 tests ARGS=-V
 before_install:
  - sudo apt-get update -qq
- - sudo apt-get install -qq autoconf automake cmake freeglut3-dev git git-svn libavcodec-dev libavformat-dev libavutil-dev libboost-date-time-dev libboost-serialization-dev libjpeg-turbo8-dev libopenmpi-dev libswscale-dev libturbojpeg libxmu-dev pkg-config subversion 
+ - sudo apt-get install -qq autoconf automake cmake freeglut3-dev git git-review git-svn libavcodec-dev libavformat-dev libavutil-dev libboost-date-time-dev libboost-serialization-dev libjpeg-turbo8-dev libopenmpi-dev libswscale-dev libturbojpeg libxmu-dev ninja-build pkg-config subversion  || /bin/true

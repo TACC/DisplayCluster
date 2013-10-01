@@ -45,7 +45,9 @@
 // Specialized delegate implementations
 #include "PixelStreamInteractionDelegate.h"
 #include "ZoomInteractionDelegate.h"
-#include "PDFInteractionDelegate.h"
+#if ENABLE_PDF_SUPPORT
+#  include "PDFInteractionDelegate.h"
+#endif
 
 
 ContentWindowManager::ContentWindowManager(boost::shared_ptr<Content> content)

@@ -138,9 +138,9 @@ bool DisplayGroupGraphicsScene::event(QEvent *event)
         // Override default behaviour to process TAB key events
         QGraphicsScene::keyPressEvent(k);
 
-        if (k->key() == Qt::Key_Backtab
-            || (k->key() == Qt::Key_Tab && (k->modifiers() & Qt::ShiftModifier))
-            || (k->key() == Qt::Key_Tab) )
+        if( k->key() == Qt::Key_Backtab ||
+            k->key() == Qt::Key_Tab ||
+           (k->key() == Qt::Key_Tab && (k->modifiers() & Qt::ShiftModifier)))
         {
             event->accept();
         }
