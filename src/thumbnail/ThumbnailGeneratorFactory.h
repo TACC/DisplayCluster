@@ -37,69 +37,29 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DOCKPIXELSTREAMER_H
-#define DOCKPIXELSTREAMER_H
+#ifndef THUMBNAILGENERATORFACTORY_H
+#define THUMBNAILGENERATORFACTORY_H
 
-#include "LocalPixelStreamer.h"
+#include <QString>
+#include <QSize>
+#include <boost/shared_ptr.hpp>
 
-#include <QtCore/QDir>
-#include <QtCore/QObject>
-#include <QtCore/QThread>
-#include <QtCore/QHash>
-#include <QtCore/QVector>
-#include <QtCore/QLinkedList>
-#include <QtGui/QImage>
+class ThumbnailGenerator;
+class FolderThumbnailGenerator;
 
-class PictureFlow;
-class AsyncImageLoader;
+typedef boost::shared_ptr<ThumbnailGenerator> ThumbnailGeneratorPtr;
+typedef boost::shared_ptr<FolderThumbnailGenerator> FolderThumbnailGeneratorPtr;
 
-class DockPixelStreamer : public LocalPixelStreamer
+class ThumbnailGeneratorFactory
 {
-    Q_OBJECT
-
 public:
+    ThumbnailGeneratorFactory();
 
-    DockPixelStreamer();
-    ~DockPixelStreamer();
+    static ThumbnailGeneratorPtr getGenerator(const QString& filename, const QSize& size);
 
-    virtual QSize size() const;
+    static ThumbnailGeneratorPtr getDefaultGenerator(const QSize& size);
 
-    static QString getUniqueURI();
-
-    void open();
-
-    void onItem();
-
-public slots:
-    void update(const QImage &image);
-    void loadThumbnails(int newCenterIndex);
-    void loadNextThumbnailInList();
-
-    virtual void updateInteractionState(InteractionState interactionState);
-
-signals:
-    void renderPreview( const QString& fileName, const int index );
-
-private:
-
-    QThread loadThread_;
-
-    PictureFlow* flow_;
-    AsyncImageLoader* loader_;
-
-    QDir currentDir_;
-    QHash< QString, int > slideIndex_;
-
-    typedef QPair<bool, QString> SlideImageLoadingStatus;
-    QVector<SlideImageLoadingStatus> slideImagesLoaded_;
-    QLinkedList<int> slideImagesToLoad_;
-
-    PixelStreamSegmentParameters makeSegmentHeader();
-    bool openFile(const QString &filename);
-    void changeDirectory( const QString& dir );
-    void addRootDirToFlow();
-    void addFilesToFlow();
-    void addFoldersToFlow();
+    static FolderThumbnailGeneratorPtr getFolderGenerator(const QSize& size);
 };
 
-#endif // DOCKPIXELSTREAMER_H
+#endif // THUMBNAILGENERATORFACTORY_H

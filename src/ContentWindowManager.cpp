@@ -159,6 +159,12 @@ void ContentWindowManager::close(ContentWindowInterface * source)
     }
 }
 
+void ContentWindowManager::getWindowCenterPosition(double &x, double &y)
+{
+    x = x_ + 0.5 * w_;
+    y = y_ + 0.5 * h_;
+}
+
 void ContentWindowManager::centerPositionAround(double x, double y, bool constrainToWindowBorders)
 {
     double newX = x - 0.5 * w_;

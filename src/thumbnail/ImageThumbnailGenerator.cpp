@@ -37,69 +37,48 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DOCKPIXELSTREAMER_H
-#define DOCKPIXELSTREAMER_H
+#include "ImageThumbnailGenerator.h"
 
-#include "LocalPixelStreamer.h"
+#include <QFileInfo>
+#include <QImageReader>
 
-#include <QtCore/QDir>
-#include <QtCore/QObject>
-#include <QtCore/QThread>
-#include <QtCore/QHash>
-#include <QtCore/QVector>
-#include <QtCore/QLinkedList>
-#include <QtGui/QImage>
+#include "log.h"
 
-class PictureFlow;
-class AsyncImageLoader;
+#define SIZEOF_MEGABYTE  (1024*1024)
+#define MAX_IMAGE_FILE_SIZE (100*SIZEOF_MEGABYTE)
 
-class DockPixelStreamer : public LocalPixelStreamer
+ImageThumbnailGenerator::ImageThumbnailGenerator(const QSize &size)
+    : ThumbnailGenerator(size)
 {
-    Q_OBJECT
+}
 
-public:
+QImage ImageThumbnailGenerator::generate(const QString &filename) const
+{
+    QImage img;
 
-    DockPixelStreamer();
-    ~DockPixelStreamer();
+    QImageReader reader( filename );
+    if( reader.canRead( ))
+    {
+        if (QFileInfo(filename).size() < MAX_IMAGE_FILE_SIZE)
+        {
+            img = reader.read();
+            img = img.scaled(size_, aspectRatioMode_);
+        }
+        else
+        {
+            img = createLargeImagePlaceholder();
+        }
+        addMetadataToImage(img, filename);
+        return img;
+    }
 
-    virtual QSize size() const;
+    put_flog(LOG_ERROR, "could not open image file: %s", filename.toLatin1().constData());
+    return createErrorImage("image");
+}
 
-    static QString getUniqueURI();
-
-    void open();
-
-    void onItem();
-
-public slots:
-    void update(const QImage &image);
-    void loadThumbnails(int newCenterIndex);
-    void loadNextThumbnailInList();
-
-    virtual void updateInteractionState(InteractionState interactionState);
-
-signals:
-    void renderPreview( const QString& fileName, const int index );
-
-private:
-
-    QThread loadThread_;
-
-    PictureFlow* flow_;
-    AsyncImageLoader* loader_;
-
-    QDir currentDir_;
-    QHash< QString, int > slideIndex_;
-
-    typedef QPair<bool, QString> SlideImageLoadingStatus;
-    QVector<SlideImageLoadingStatus> slideImagesLoaded_;
-    QLinkedList<int> slideImagesToLoad_;
-
-    PixelStreamSegmentParameters makeSegmentHeader();
-    bool openFile(const QString &filename);
-    void changeDirectory( const QString& dir );
-    void addRootDirToFlow();
-    void addFilesToFlow();
-    void addFoldersToFlow();
-};
-
-#endif // DOCKPIXELSTREAMER_H
+QImage ImageThumbnailGenerator::createLargeImagePlaceholder() const
+{
+    QImage img = createGradientImage( Qt::darkBlue, Qt::white );
+    paintText(img, "LARGE\nIMAGE");
+    return img;
+}

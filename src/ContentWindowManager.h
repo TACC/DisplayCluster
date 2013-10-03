@@ -70,6 +70,7 @@ class ContentWindowManager : public ContentWindowInterface, public boost::enable
         void moveToFront(ContentWindowInterface * source=NULL);
         void close(ContentWindowInterface * source=NULL);
 
+        void getWindowCenterPosition(double &x, double &y);
         void centerPositionAround(double x, double y, bool constrainToWindowBorders);
 
         // GLWindow rendering

@@ -180,6 +180,7 @@ public slots:
 
 signals:
   void centerIndexChanged(int index);
+  void targetIndexChanged(int index);
   void imageUpdated( const QImage& image );
 
 protected:

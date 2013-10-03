@@ -37,69 +37,77 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DOCKPIXELSTREAMER_H
-#define DOCKPIXELSTREAMER_H
+#include "ThumbnailGeneratorFactory.h"
 
-#include "LocalPixelStreamer.h"
+#include "config.h"
+#if ENABLE_PDF_SUPPORT
+#  include "thumbnail/PDFThumbnailGenerator.h"
+#  include "PDFContent.h"
+#endif
 
-#include <QtCore/QDir>
-#include <QtCore/QObject>
-#include <QtCore/QThread>
-#include <QtCore/QHash>
-#include <QtCore/QVector>
-#include <QtCore/QLinkedList>
-#include <QtGui/QImage>
+#include "thumbnail/DefaultThumbnailGenerator.h"
+#include "thumbnail/FolderThumbnailGenerator.h"
+#include "thumbnail/ImageThumbnailGenerator.h"
+#include "thumbnail/MovieThumbnailGenerator.h"
+#include "thumbnail/PyramidThumbnailGenerator.h"
+#include "thumbnail/StateThumbnailGenerator.h"
 
-class PictureFlow;
-class AsyncImageLoader;
+#include "MovieContent.h"
+#include "TextureContent.h"
+#include "DynamicTextureContent.h"
 
-class DockPixelStreamer : public LocalPixelStreamer
+#include <QImageReader>
+
+
+ThumbnailGeneratorFactory::ThumbnailGeneratorFactory()
 {
-    Q_OBJECT
+}
 
-public:
+ThumbnailGeneratorPtr ThumbnailGeneratorFactory::getGenerator(const QString &filename, const QSize &size)
+{
+    const QString& extension = QFileInfo(filename).suffix().toLower();
 
-    DockPixelStreamer();
-    ~DockPixelStreamer();
+    if (!filename.isEmpty() && QDir(filename).exists())
+    {
+        return ThumbnailGeneratorPtr(new FolderThumbnailGenerator(size));
+    }
 
-    virtual QSize size() const;
+    if( extension == "dcx" )
+    {
+        return ThumbnailGeneratorPtr(new StateThumbnailGenerator(size));
+    }
 
-    static QString getUniqueURI();
+    if( MovieContent::getSupportedExtensions().contains( extension ))
+    {
+        return ThumbnailGeneratorPtr(new MovieThumbnailGenerator(size));
+    }
 
-    void open();
+    if( TextureContent::getSupportedExtensions().contains( extension ))
+    {
+        return ThumbnailGeneratorPtr(new ImageThumbnailGenerator(size));
+    }
 
-    void onItem();
+    if( DynamicTextureContent::getSupportedExtensions().contains( extension ))
+    {
+        return ThumbnailGeneratorPtr(new PyramidThumbnailGenerator(size));
+    }
 
-public slots:
-    void update(const QImage &image);
-    void loadThumbnails(int newCenterIndex);
-    void loadNextThumbnailInList();
+#if ENABLE_PDF_SUPPORT
+    if( PDFContent::getSupportedExtensions().contains( extension ))
+    {
+        return ThumbnailGeneratorPtr(new PDFThumbnailGenerator(size));
+    }
+#endif
 
-    virtual void updateInteractionState(InteractionState interactionState);
+    return ThumbnailGeneratorPtr(new DefaultThumbnailGenerator(size));
+}
 
-signals:
-    void renderPreview( const QString& fileName, const int index );
+ThumbnailGeneratorPtr ThumbnailGeneratorFactory::getDefaultGenerator(const QSize &size)
+{
+    return ThumbnailGeneratorPtr(new DefaultThumbnailGenerator(size));
+}
 
-private:
-
-    QThread loadThread_;
-
-    PictureFlow* flow_;
-    AsyncImageLoader* loader_;
-
-    QDir currentDir_;
-    QHash< QString, int > slideIndex_;
-
-    typedef QPair<bool, QString> SlideImageLoadingStatus;
-    QVector<SlideImageLoadingStatus> slideImagesLoaded_;
-    QLinkedList<int> slideImagesToLoad_;
-
-    PixelStreamSegmentParameters makeSegmentHeader();
-    bool openFile(const QString &filename);
-    void changeDirectory( const QString& dir );
-    void addRootDirToFlow();
-    void addFilesToFlow();
-    void addFoldersToFlow();
-};
-
-#endif // DOCKPIXELSTREAMER_H
+FolderThumbnailGeneratorPtr ThumbnailGeneratorFactory::getFolderGenerator(const QSize &size)
+{
+    return FolderThumbnailGeneratorPtr(new FolderThumbnailGenerator(size));
+}

@@ -231,6 +231,7 @@ public:
   PictureFlowState* state;
   bool dirty;
   QWidget* widget;
+  PictureFlowAnimator* animator;
 
   virtual void init() = 0;
   virtual void paint() = 0;
@@ -385,7 +386,7 @@ void PictureFlowAnimator::update()
   fi = qMin(fi, max);
 
   int ia = IANGLE_MAX * (fi-max/2) / (max*2);
-  speed = 512 + 16384 * (PFREAL_ONE+fsin(ia))/PFREAL_ONE;
+  speed = 4096 + 16384 * (PFREAL_ONE+fsin(ia))/PFREAL_ONE;
 #endif
 
   frame += speed*step;
@@ -934,7 +935,7 @@ void PictureFlowSoftwareRenderer::renderCaption()
         painter.drawText( QRect( 0, state->slideHeight, buffer.width(),
                                  (buffer.height() - state->slideHeight)),
                           Qt::AlignCenter,
-                          state->captions[state->centerIndex]);
+                          state->captions[animator->target]);
     }
     painter.end();
 }
@@ -968,14 +969,15 @@ PictureFlow::PictureFlow(QWidget* parent): QWidget(parent)
   d->state->reset();
   d->state->reposition();
 
-  d->renderer = new PictureFlowSoftwareRenderer;
-  d->renderer->state = d->state;
-  d->renderer->widget = this;
-  d->renderer->init();
-
   d->animator = new PictureFlowAnimator;
   d->animator->state = d->state;
   QObject::connect(&d->animator->animateTimer, SIGNAL(timeout()), this, SLOT(updateAnimation()));
+
+  d->renderer = new PictureFlowSoftwareRenderer;
+  d->renderer->state = d->state;
+  d->renderer->widget = this;
+  d->renderer->animator = d->animator;
+  d->renderer->init();
 
   QObject::connect(&d->triggerTimer, SIGNAL(timeout()), this, SLOT(render()));
 
@@ -1145,6 +1147,8 @@ void PictureFlow::showPrevious()
 
   if(step < 0)
     d->animator->target = qMax(0, center - 2);
+
+  emit(targetIndexChanged(d->animator->target));
 }
 
 void PictureFlow::showNext()
@@ -1161,6 +1165,8 @@ void PictureFlow::showNext()
 
   if(step > 0)
     d->animator->target = qMin(center + 2, slideCount()-1);
+
+  emit(targetIndexChanged(d->animator->target));
 }
 
 void PictureFlow::showSlide(int index)
@@ -1171,6 +1177,8 @@ void PictureFlow::showSlide(int index)
     return;
 
   d->animator->start(index);
+
+  emit(targetIndexChanged(d->animator->target));
 }
 
 void PictureFlow::keyPressEvent(QKeyEvent* event)

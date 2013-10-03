@@ -59,7 +59,7 @@ ContentPtr ContentFactory::getContent(const QString& uri)
     // make sure file exists; otherwise use error image
     if( !QFile::exists( uri ))
     {
-        put_flog(LOG_ERROR, "could not find file %s", uri.toLocal8Bit().constData());
+        put_flog(LOG_ERROR, "could not find file '%s'", uri.toLocal8Bit().constData());
 
         const QString errorImageFilename = QString( "%1/%2" ).arg( QString::fromStdString( g_displayClusterDir ))
                                                              .arg( ERROR_IMAGE_FILENAME );

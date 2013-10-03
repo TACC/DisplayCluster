@@ -220,6 +220,7 @@ if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
         src/PDF.cpp
         src/PDFContent.cpp
         src/PDFInteractionDelegate.cpp
+        src/thumbnail/PDFThumbnailGenerator.cpp
       )
       list(APPEND MOC_HEADERS
         src/PDFContent.h
@@ -232,6 +233,7 @@ if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
     include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
     list(APPEND SRCS
+        src/AsyncImageLoader.cpp
         src/BackgroundWidget.cpp
         src/Configuration.cpp
         src/Content.cpp
@@ -271,6 +273,7 @@ if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
         src/PixelStreamSegmentRenderer.cpp
         src/PixelStreamSegmentJpegCompressor.cpp
         src/State.cpp
+        src/StatePreview.cpp
         src/SVG.cpp
         src/SVGContent.cpp
         src/SVGStreamSource.cpp
@@ -278,9 +281,18 @@ if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
         src/TextureContent.cpp
         src/WebkitPixelStreamer.cpp
         src/ZoomInteractionDelegate.cpp
+        src/thumbnail/DefaultThumbnailGenerator.cpp
+        src/thumbnail/FolderThumbnailGenerator.cpp
+        src/thumbnail/ImageThumbnailGenerator.cpp
+        src/thumbnail/MovieThumbnailGenerator.cpp
+        src/thumbnail/PyramidThumbnailGenerator.cpp
+        src/thumbnail/StateThumbnailGenerator.cpp
+        src/thumbnail/ThumbnailGenerator.cpp
+        src/thumbnail/ThumbnailGeneratorFactory.cpp
     )
 
     list(APPEND MOC_HEADERS
+        src/AsyncImageLoader.h
         src/BackgroundWidget.h
         src/Content.h
         src/ContentInteractionDelegate.h

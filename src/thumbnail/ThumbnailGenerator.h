@@ -37,69 +37,30 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DOCKPIXELSTREAMER_H
-#define DOCKPIXELSTREAMER_H
+#ifndef THUMBNAILGENERATOR_H
+#define THUMBNAILGENERATOR_H
 
-#include "LocalPixelStreamer.h"
+#include <QString>
+#include <QImage>
+#include <QSize>
+#include <QColor>
 
-#include <QtCore/QDir>
-#include <QtCore/QObject>
-#include <QtCore/QThread>
-#include <QtCore/QHash>
-#include <QtCore/QVector>
-#include <QtCore/QLinkedList>
-#include <QtGui/QImage>
-
-class PictureFlow;
-class AsyncImageLoader;
-
-class DockPixelStreamer : public LocalPixelStreamer
+class ThumbnailGenerator
 {
-    Q_OBJECT
-
 public:
+    ThumbnailGenerator(const QSize& size);
+    virtual ~ThumbnailGenerator() {}
 
-    DockPixelStreamer();
-    ~DockPixelStreamer();
+    virtual QImage generate(const QString& filename) const = 0;
 
-    virtual QSize size() const;
+protected:
+    QSize size_;
+    Qt::AspectRatioMode aspectRatioMode_;
 
-    static QString getUniqueURI();
-
-    void open();
-
-    void onItem();
-
-public slots:
-    void update(const QImage &image);
-    void loadThumbnails(int newCenterIndex);
-    void loadNextThumbnailInList();
-
-    virtual void updateInteractionState(InteractionState interactionState);
-
-signals:
-    void renderPreview( const QString& fileName, const int index );
-
-private:
-
-    QThread loadThread_;
-
-    PictureFlow* flow_;
-    AsyncImageLoader* loader_;
-
-    QDir currentDir_;
-    QHash< QString, int > slideIndex_;
-
-    typedef QPair<bool, QString> SlideImageLoadingStatus;
-    QVector<SlideImageLoadingStatus> slideImagesLoaded_;
-    QLinkedList<int> slideImagesToLoad_;
-
-    PixelStreamSegmentParameters makeSegmentHeader();
-    bool openFile(const QString &filename);
-    void changeDirectory( const QString& dir );
-    void addRootDirToFlow();
-    void addFilesToFlow();
-    void addFoldersToFlow();
+    void addMetadataToImage(QImage& img, const QString &url) const;
+    QImage createErrorImage(const QString& message) const;
+    QImage createGradientImage(const QColor &bgcolor1, const QColor &bgcolor2) const;
+    void paintText(QImage &img, const QString &text) const;
 };
 
-#endif // DOCKPIXELSTREAMER_H
+#endif // THUMBNAILGENERATOR_H

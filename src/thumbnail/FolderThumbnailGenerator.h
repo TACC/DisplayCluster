@@ -37,69 +37,29 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DOCKPIXELSTREAMER_H
-#define DOCKPIXELSTREAMER_H
+#ifndef FOLDERTHUMBNAILGENERATOR_H
+#define FOLDERTHUMBNAILGENERATOR_H
 
-#include "LocalPixelStreamer.h"
+#include "thumbnail/ThumbnailGenerator.h"
 
-#include <QtCore/QDir>
-#include <QtCore/QObject>
-#include <QtCore/QThread>
-#include <QtCore/QHash>
-#include <QtCore/QVector>
-#include <QtCore/QLinkedList>
-#include <QtGui/QImage>
+#include <QFileInfoList>
 
-class PictureFlow;
-class AsyncImageLoader;
-
-class DockPixelStreamer : public LocalPixelStreamer
+class FolderThumbnailGenerator : public ThumbnailGenerator
 {
-    Q_OBJECT
-
 public:
+    FolderThumbnailGenerator(const QSize &size);
 
-    DockPixelStreamer();
-    ~DockPixelStreamer();
+    virtual QImage generate(const QString& filename) const;
 
-    virtual QSize size() const;
+    QImage generatePlaceholderImage(QDir dir) const;
+    QImage generateUpFolderImage(QDir dir) const;
 
-    static QString getUniqueURI();
-
-    void open();
-
-    void onItem();
-
-public slots:
-    void update(const QImage &image);
-    void loadThumbnails(int newCenterIndex);
-    void loadNextThumbnailInList();
-
-    virtual void updateInteractionState(InteractionState interactionState);
-
-signals:
-    void renderPreview( const QString& fileName, const int index );
-
-private:
-
-    QThread loadThread_;
-
-    PictureFlow* flow_;
-    AsyncImageLoader* loader_;
-
-    QDir currentDir_;
-    QHash< QString, int > slideIndex_;
-
-    typedef QPair<bool, QString> SlideImageLoadingStatus;
-    QVector<SlideImageLoadingStatus> slideImagesLoaded_;
-    QLinkedList<int> slideImagesToLoad_;
-
-    PixelStreamSegmentParameters makeSegmentHeader();
-    bool openFile(const QString &filename);
-    void changeDirectory( const QString& dir );
-    void addRootDirToFlow();
-    void addFilesToFlow();
-    void addFoldersToFlow();
+protected:
+    void addMetadataToImage(QImage& img, const QString &url) const;
+    QImage createFolderImage(QDir dir, bool generateThumbnails) const;
+    QVector<QRectF> calculatePlacement(int nX, int nY, float padding, float totalWidth, float totalHeight) const;
+    void paintThumbnailsMosaic(QImage &img, const QFileInfoList &fileList) const;
+    QFileInfoList getSupportedFilesInDir(QDir dir) const;
 };
 
-#endif // DOCKPIXELSTREAMER_H
+#endif // FOLDERTHUMBNAILGENERATOR_H
