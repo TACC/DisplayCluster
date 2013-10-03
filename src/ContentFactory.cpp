@@ -52,24 +52,23 @@
 #  include "PDF.h"
 #endif
 
-boost::shared_ptr<Content> ContentFactory::getContent(const QString& uri)
+#define ERROR_IMAGE_FILENAME "data/error.png"
+
+ContentPtr ContentFactory::getContent(const QString& uri)
 {
     // make sure file exists; otherwise use error image
     if( !QFile::exists( uri ))
     {
         put_flog(LOG_ERROR, "could not find file %s", uri.toLocal8Bit().constData());
 
-        const QString errorImageFilename = QString( "%1%2%3" ).arg( QString::fromStdString( g_displayClusterDir ))
-                                                              .arg( "/data/" )
-                                                              .arg( ERROR_IMAGE_FILENAME );
-        boost::shared_ptr<Content> c(new TextureContent(errorImageFilename));
-
-        return c;
+        const QString errorImageFilename = QString( "%1/%2" ).arg( QString::fromStdString( g_displayClusterDir ))
+                                                             .arg( ERROR_IMAGE_FILENAME );
+        boost::shared_ptr<Content> content(new TextureContent(errorImageFilename));
+        return content;
     }
 
     // convert to lower case for case-insensitivity in determining file type
     const QString extension = QFileInfo(uri).suffix().toLower();
-
 
 #if ENABLE_PDF_SUPPORT
     // See if this is a PDF document
@@ -88,17 +87,16 @@ boost::shared_ptr<Content> ContentFactory::getContent(const QString& uri)
 
         pdfContent->connect(pdfContent, SIGNAL(pageChanged()), g_displayGroupManager.get(), SLOT(sendDisplayGroup()), Qt::QueuedConnection);
 
-        boost::shared_ptr<Content> c(pdfContent);
-        return c;
+        ContentPtr content(pdfContent);
+        return content;
     }
 #endif
 
     // see if this is an SVG image (must do this first, since SVG can also be read as an image directly)
     if(SVGContent::getSupportedExtensions().contains(extension))
     {
-        boost::shared_ptr<Content> c(new SVGContent(uri));
-
-        return c;
+        ContentPtr content(new SVGContent(uri));
+        return content;
     }
 
     // see if this is an image
@@ -109,50 +107,47 @@ boost::shared_ptr<Content> ContentFactory::getContent(const QString& uri)
         QSize size = imageReader.size();
 
         // small images will use Texture; larger images will use DynamicTexture
-        boost::shared_ptr<Content> c;
+        boost::shared_ptr<Content> content;
 
         if(size.width() <= 4096 && size.height() <= 4096)
         {
-            boost::shared_ptr<Content> temp(new TextureContent(uri));
-            c = temp;
+            ContentPtr temp(new TextureContent(uri));
+            content = temp;
         }
         else
         {
-            boost::shared_ptr<Content> temp(new DynamicTextureContent(uri));
-            c = temp;
+            ContentPtr temp(new DynamicTextureContent(uri));
+            content = temp;
         }
 
         // set the size if valid
         if(size.isValid() == true)
         {
-            c->setDimensions(size.width(), size.height());
+            content->setDimensions(size.width(), size.height());
         }
 
-        return c;
+        return content;
     }
 
     // see if this is an image pyramid
     if(extension == "pyr")
     {
-        boost::shared_ptr<Content> c(new DynamicTextureContent(uri));
-
-        return c;
+        ContentPtr content(new DynamicTextureContent(uri));
+        return content;
     }
 
     // see if this is a movie
     if(MovieContent::getSupportedExtensions().contains(extension))
     {
-        boost::shared_ptr<Content> c(new MovieContent(uri));
-
-        return c;
+        ContentPtr content(new MovieContent(uri));
+        return content;
     }
 
     put_flog(LOG_ERROR, "Unsupported or invalid file %s", uri.toLocal8Bit().constData());
-    const QString errorImageFilename = QString( "%1%2%3" ).arg( QString::fromStdString( g_displayClusterDir ))
-                                                          .arg( "/data/" )
-                                                          .arg( ERROR_IMAGE_FILENAME );
-    boost::shared_ptr<Content> c(new TextureContent(errorImageFilename));
-    return c;
+    const QString errorImageFilename = QString( "%1/%2" ).arg( QString::fromStdString( g_displayClusterDir ))
+                                                         .arg( ERROR_IMAGE_FILENAME );
+    ContentPtr content(new TextureContent(errorImageFilename));
+    return content;
 }
 
 const QStringList& ContentFactory::getSupportedExtensions()

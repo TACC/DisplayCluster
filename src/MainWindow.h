@@ -39,9 +39,6 @@
 #ifndef MAIN_WINDOW_H
 #define MAIN_WINDOW_H
 
-// increment this whenever when serialized state information changes
-#define CONTENTS_FILE_VERSION_NUMBER 1
-
 #include "config.h"
 #include "GLWindow.h"
 #include <QtGui>

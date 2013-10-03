@@ -46,8 +46,6 @@
 #include "MovieContent.h"
 #include "main.h"
 
-#define DOCK_UNIQUE_URI "menu"
-
 namespace
 {
 QImage createSlideImage_( const QSize& size, const QString& fileName,
@@ -74,11 +72,11 @@ QImage createSlideImage_( const QSize& size, const QString& fileName,
 
 QString DockPixelStreamer::getUniqueURI()
 {
-    return QString(DOCK_UNIQUE_URI);
+    return "Dock";
 }
 
 DockPixelStreamer::DockPixelStreamer()
-    : LocalPixelStreamer(QString(DOCK_UNIQUE_URI))
+    : LocalPixelStreamer(getUniqueURI())
 {
     av_register_all();
 
@@ -91,7 +89,6 @@ DockPixelStreamer::DockPixelStreamer()
 
     connect( flow_, SIGNAL( imageUpdated( const QImage& )), this, SLOT( update( const QImage& )));
 
-
     loader_ = new AsyncImageLoader(flow_->slideSize());
     loader_->moveToThread( &loadThread_ );
     connect( loader_, SIGNAL(imageLoaded(int, QImage)),
@@ -99,7 +96,6 @@ DockPixelStreamer::DockPixelStreamer()
     connect( this, SIGNAL(renderPreview( const QString&, const int )),
              loader_, SLOT(loadImage( const QString&, const int )));
     loadThread_.start();
-
 
     changeDirectory( g_configuration->getDockStartDir( ));
 }
@@ -167,7 +163,7 @@ void DockPixelStreamer::onItem()
         const QString extension = QFileInfo(source).suffix().toLower();
         if( extension == "dcx" )
         {
-            g_displayGroupManager->loadStateXMLFile( source.toStdString( ));
+            g_displayGroupManager->loadStateXMLFile( source );
 
             emit(streamClosed(getUniqueURI()));
         }

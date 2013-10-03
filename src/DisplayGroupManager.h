@@ -45,6 +45,7 @@
 #include "Marker.h"
 #include "config.h"
 #include "Factory.hpp"
+#include "State.h"
 #include <QtGui>
 #include <vector>
 #ifndef Q_MOC_RUN
@@ -105,8 +106,8 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         // this can be invoked from other threads to construct a DisplayGroupInterface and move it to that thread
         boost::shared_ptr<DisplayGroupInterface> getDisplayGroupInterface(QThread * thread);
 
-        bool saveStateXMLFile(std::string filename);
-        bool loadStateXMLFile(std::string filename);
+        bool saveStateXMLFile( const QString& filename );
+        bool loadStateXMLFile( const QString& filename );
 
         void receiveMessages();
 
@@ -128,7 +129,7 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         void processPixelStreamSegment(QString uri, PixelStreamSegment segment);
         void openPixelStream(QString uri, int width, int height);
         void adjustPixelStreamContentDimensions(QString uri, int width, int height, bool changeViewSize);
-        void deletePixelStream(QString uri);
+        void deletePixelStream(const QString& uri);
 
     private:
         friend class boost::serialization::access;
@@ -171,11 +172,12 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         // Rank0: Input buffer for PixelStreams
         Factory<PixelStream> pixelStreamSourceFactory_;
 
+        State state_;
 
-        void receiveDisplayGroup(MessageHeader messageHeader);
-        void receiveContentsDimensionsRequest(MessageHeader messageHeader);
-        void receivePixelStreams(MessageHeader messageHeader);
-        void receiveSVGStreams(MessageHeader messageHeader);
+        void receiveDisplayGroup(const MessageHeader& messageHeader);
+        void receiveContentsDimensionsRequest(const MessageHeader& messageHeader);
+        void receivePixelStreams(const MessageHeader& messageHeader);
+        void receiveSVGStreams(const MessageHeader& messageHeader);
 
     signals:
         // Rank0 signals pixel streams events

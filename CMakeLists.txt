@@ -270,6 +270,7 @@ if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
         src/PixelStreamInteractionDelegate.cpp
         src/PixelStreamSegmentRenderer.cpp
         src/PixelStreamSegmentJpegCompressor.cpp
+        src/State.cpp
         src/SVG.cpp
         src/SVGContent.cpp
         src/SVGStreamSource.cpp

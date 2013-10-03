@@ -39,8 +39,6 @@
 #ifndef CONTENT_H
 #define CONTENT_H
 
-#define ERROR_IMAGE_FILENAME "error.png"
-
 #include "ContentFactory.h"
 #include "ContentType.h"
 

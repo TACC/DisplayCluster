@@ -71,8 +71,8 @@ class DisplayGroupInterface : public QObject {
         virtual void addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
         virtual void removeContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
         virtual void moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
-        virtual void saveState(std::string filename, DisplayGroupInterface * source=NULL);
-        virtual void loadState(std::string filename, DisplayGroupInterface * source=NULL);
+        virtual void saveState(const QString& filename, DisplayGroupInterface * source=NULL);
+        virtual void loadState(const QString& filename, DisplayGroupInterface * source=NULL);
 
     signals:
 
@@ -81,8 +81,8 @@ class DisplayGroupInterface : public QObject {
         void contentWindowManagerAdded(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
         void contentWindowManagerRemoved(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
         void contentWindowManagerMovedToFront(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
-        void stateSaved(std::string filename, DisplayGroupInterface * source=NULL);
-        void stateLoaded(std::string filename, DisplayGroupInterface * source=NULL);
+        void stateSaved(QString filename, DisplayGroupInterface * source=NULL);
+        void stateLoaded(QString filename, DisplayGroupInterface * source=NULL);
 
     protected:
 

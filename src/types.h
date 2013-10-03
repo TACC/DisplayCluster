@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Daniel Nachbaur <daniel.nachbaur@epfl.ch>     */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,53 +37,19 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MARKER_H
-#define MARKER_H
+#ifndef TYPES_H
+#define TYPES_H
 
-// this is a fraction of the tiled display width of 1
-#define MARKER_WIDTH 0.0025
+#include <vector>
+#include <boost/shared_ptr.hpp>
 
-// number of seconds before a marker stops being rendered
-#define MARKER_TIMEOUT_SECONDS 5
+class Content;
+class ContentWindowManager;
 
-#include <QtGui>
-#include <QGLWidget>
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/date_time/posix_time/time_serialize.hpp>
+typedef boost::shared_ptr< Content > ContentPtr;
+typedef boost::shared_ptr< ContentWindowManager > ContentWindowManagerPtr;
 
-class Marker : public QObject {
-    Q_OBJECT
+typedef std::vector< ContentWindowManagerPtr > ContentWindowManagerPtrs;
 
-    public:
-
-        Marker();
-
-        void setPosition(float x, float y);
-        void getPosition(float &x, float &y);
-
-        bool getActive();
-
-        void render();
-
-    signals:
-        void positionChanged();
-
-    private:
-        friend class boost::serialization::access;
-
-        template<class Archive>
-        void serialize(Archive & ar, const unsigned int)
-        {
-            ar & x_;
-            ar & y_;
-            ar & updatedTimestamp_;
-        }
-
-        float x_;
-        float y_;
-        boost::posix_time::ptime updatedTimestamp_;
-
-        static GLuint textureId_;
-};
 
 #endif

@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Daniel Nachbaur <daniel.nachbaur@epfl.ch>     */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -35,54 +36,49 @@
 /* interpreted as representing official policies, either expressed   */
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
+#ifndef STATE_H
+#define STATE_H
 
-#ifndef MARKER_H
-#define MARKER_H
+#include "types.h"
 
-// this is a fraction of the tiled display width of 1
-#define MARKER_WIDTH 0.0025
+class QDomDocument;
+class QDomElement;
+class QString;
+class QXmlQuery;
 
-// number of seconds before a marker stops being rendered
-#define MARKER_TIMEOUT_SECONDS 5
+/**
+ * A state is the collection of opened contents which can be saved and
+ * restored using this class. It will save positions and dimensions of each
+ * content and also content-specific information which is required to restore
+ * a previous state saved by the user.
+ */
+class State
+{
+public:
+    State();
 
-#include <QtGui>
-#include <QGLWidget>
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/date_time/posix_time/time_serialize.hpp>
+    /**
+     * Save the given content windows with their positions, dimensions, etc. to
+     * the given file in XML format.
+     */
+    bool saveXML( const QString& filename,
+                  const ContentWindowManagerPtrs& contentWindowManagers );
 
-class Marker : public QObject {
-    Q_OBJECT
+    /**
+     * Load content windows stored in the given XML file and return them in the
+     * given list of contentWindowManagers.
+     */
+    bool loadXML( const QString& filename,
+                  ContentWindowManagerPtrs& contentWindowManagers );
+private:
+    void saveVersion_( QDomDocument& doc, QDomElement& root );
+    void saveContentWindow_( QDomDocument& doc, QDomElement& root,
+                             const ContentWindowManagerPtr contentWindowManager );
 
-    public:
-
-        Marker();
-
-        void setPosition(float x, float y);
-        void getPosition(float &x, float &y);
-
-        bool getActive();
-
-        void render();
-
-    signals:
-        void positionChanged();
-
-    private:
-        friend class boost::serialization::access;
-
-        template<class Archive>
-        void serialize(Archive & ar, const unsigned int)
-        {
-            ar & x_;
-            ar & y_;
-            ar & updatedTimestamp_;
-        }
-
-        float x_;
-        float y_;
-        boost::posix_time::ptime updatedTimestamp_;
-
-        static GLuint textureId_;
+    bool checkVersion_( QXmlQuery& query ) const;
+    ContentPtr loadContent_( QXmlQuery& query, const int index ) const;
+    ContentWindowManagerPtr restoreContent_( QXmlQuery& query,
+                                             ContentPtr content, const int index ) const;
 };
 
 #endif

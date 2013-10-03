@@ -40,6 +40,8 @@
 #ifndef CONTENTFACTORY_H
 #define CONTENTFACTORY_H
 
+#include "types.h"
+
 #include <QStringList>
 #include <boost/shared_ptr.hpp>
 
@@ -50,7 +52,7 @@ class ContentFactory
 public:
 
     // get a Content object of the appropriate derived type based on the URI given
-    static boost::shared_ptr<Content> getContent(const QString& uri);
+    static ContentPtr getContent(const QString& uri);
 
     static const QStringList& getSupportedExtensions();
     static const QStringList& getSupportedFilesFilter();

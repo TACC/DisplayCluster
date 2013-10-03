@@ -72,8 +72,9 @@ public slots:
 
 private:
 
+    typedef std::map<QString, boost::shared_ptr<LocalPixelStreamer> > Streamers;
     // all existing objects
-    std::map<QString, boost::shared_ptr<LocalPixelStreamer> > map_;
+    Streamers map_;
 
     // To connect new LocalPixelStreamers
     DisplayGroupManager *displayGroupManager_;

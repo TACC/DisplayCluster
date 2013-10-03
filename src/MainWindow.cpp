@@ -473,7 +473,7 @@ void MainWindow::addContentDirectory(const QString& directoryName, int gridX, in
 
     for(int i=0; i<list.size() && contentIndex < gridX*gridY; i++)
     {
-        QFileInfo fileInfo = list.at(i);
+        const QFileInfo& fileInfo = list.at(i);
 
         boost::shared_ptr<Content> c = ContentFactory::getContent(fileInfo.absoluteFilePath());
 
@@ -554,13 +554,13 @@ void MainWindow::saveState()
     if(!filename.isEmpty())
     {
         // make sure filename has .dcx extension
-        if(filename.endsWith(".dcx") != true)
+        if(!filename.endsWith(".dcx"))
         {
             put_flog(LOG_DEBUG, "appended .dcx filename extension");
             filename.append(".dcx");
         }
 
-        bool success = g_displayGroupManager->saveStateXMLFile(filename.toStdString());
+        bool success = g_displayGroupManager->saveStateXMLFile(filename);
 
         if(success != true)
         {
@@ -581,7 +581,7 @@ void MainWindow::loadState()
 
 void MainWindow::loadState(const QString& filename)
 {
-    bool success = g_displayGroupManager->loadStateXMLFile(filename.toStdString());
+    bool success = g_displayGroupManager->loadStateXMLFile(filename);
 
     if(!success)
     {
@@ -693,9 +693,9 @@ QString MainWindow::extractStateFile(const QMimeData* data)
 
 void MainWindow::dragEnterEvent(QDragEnterEvent* event)
 {
-    QStringList pathList = extractValidContentUrls(event->mimeData());
-    QStringList dirList = extractFolderUrls(event->mimeData());
-    QString stateFile = extractStateFile(event->mimeData());
+    const QStringList& pathList = extractValidContentUrls(event->mimeData());
+    const QStringList& dirList = extractFolderUrls(event->mimeData());
+    const QString& stateFile = extractStateFile(event->mimeData());
 
     if (!pathList.empty() || !dirList.empty() || !stateFile.isNull())
     {
@@ -705,13 +705,13 @@ void MainWindow::dragEnterEvent(QDragEnterEvent* event)
 
 void MainWindow::dropEvent(QDropEvent* event)
 {
-    QStringList pathList = extractValidContentUrls(event->mimeData());
+    const QStringList& pathList = extractValidContentUrls(event->mimeData());
     foreach (QString url, pathList)
     {
         addContent(url);
     }
 
-    QStringList dirList = extractFolderUrls(event->mimeData());
+    const QStringList& dirList = extractFolderUrls(event->mimeData());
     if (dirList.size() > 0)
     {
         QString url = dirList[0]; // Only one directory at a time
@@ -719,7 +719,7 @@ void MainWindow::dropEvent(QDropEvent* event)
         addContentDirectory(url);
     }
 
-    QString stateFile = extractStateFile(event->mimeData());
+    const QString& stateFile = extractStateFile(event->mimeData());
     if (!stateFile.isNull())
     {
         loadState(stateFile);
@@ -750,7 +750,7 @@ void MainWindow::updateGLWindows()
     }
 
     // render all GLWindows
-    for(unsigned int i=0; i<glWindows_.size(); i++)
+    for(size_t i=0; i<glWindows_.size(); i++)
     {
         activeGLWindow_ = glWindows_[i];
         glWindows_[i]->updateGL();
@@ -760,7 +760,7 @@ void MainWindow::updateGLWindows()
     MPI_Barrier(g_mpiRenderComm);
 
     // swap buffers on all windows
-    for(unsigned int i=0; i<glWindows_.size(); i++)
+    for(size_t i=0; i<glWindows_.size(); i++)
     {
         glWindows_[i]->swapBuffers();
     }
@@ -788,7 +788,7 @@ void MainWindow::updateGLWindows()
 
 void MainWindow::finalize()
 {
-    for(unsigned int i=0; i<glWindows_.size(); i++)
+    for(size_t i=0; i<glWindows_.size(); i++)
     {
         glWindows_[i]->finalize();
     }

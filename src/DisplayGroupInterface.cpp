@@ -60,16 +60,16 @@ DisplayGroupInterface::DisplayGroupInterface(boost::shared_ptr<DisplayGroupManag
     connect(this, SIGNAL(contentWindowManagerAdded(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), displayGroupManager.get(), SLOT(addContentWindowManager(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), Qt::QueuedConnection);
     connect(this, SIGNAL(contentWindowManagerRemoved(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), displayGroupManager.get(), SLOT(removeContentWindowManager(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), Qt::QueuedConnection);
     connect(this, SIGNAL(contentWindowManagerMovedToFront(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), displayGroupManager.get(), SLOT(moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), Qt::QueuedConnection);
-    connect(this, SIGNAL(stateSaved(std::string, DisplayGroupInterface *)), displayGroupManager.get(), SLOT(saveState(std::string, DisplayGroupInterface *)), Qt::QueuedConnection);
-    connect(this, SIGNAL(stateLoaded(std::string, DisplayGroupInterface *)), displayGroupManager.get(), SLOT(loadState(std::string, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect(this, SIGNAL(stateSaved(QString, DisplayGroupInterface *)), displayGroupManager.get(), SLOT(saveState(QString, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect(this, SIGNAL(stateLoaded(QString, DisplayGroupInterface *)), displayGroupManager.get(), SLOT(loadState(QString, DisplayGroupInterface *)), Qt::QueuedConnection);
 
     // connect signals on the DisplayGroupManager to slots on this
     // use queued connections for thread-safety
     connect(displayGroupManager.get(), SIGNAL(contentWindowManagerAdded(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), this, SLOT(addContentWindowManager(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), Qt::QueuedConnection);
     connect(displayGroupManager.get(), SIGNAL(contentWindowManagerRemoved(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), this, SLOT(removeContentWindowManager(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), Qt::QueuedConnection);
     connect(displayGroupManager.get(), SIGNAL(contentWindowManagerMovedToFront(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), this, SLOT(moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), Qt::QueuedConnection);
-    connect(displayGroupManager.get(), SIGNAL(stateSaved(std::string, DisplayGroupInterface *)), this, SLOT(saveState(std::string, DisplayGroupInterface *)), Qt::QueuedConnection);
-    connect(displayGroupManager.get(), SIGNAL(stateLoaded(std::string, DisplayGroupInterface *)), this, SLOT(loadState(std::string, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect(displayGroupManager.get(), SIGNAL(stateSaved(QString, DisplayGroupInterface *)), this, SLOT(saveState(QString, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect(displayGroupManager.get(), SIGNAL(stateLoaded(QString, DisplayGroupInterface *)), this, SLOT(loadState(QString, DisplayGroupInterface *)), Qt::QueuedConnection);
 
     // destruction
     connect(displayGroupManager.get(), SIGNAL(destroyed(QObject *)), this, SLOT(deleteLater()));
@@ -87,9 +87,10 @@ std::vector<boost::shared_ptr<ContentWindowManager> > DisplayGroupInterface::get
 
 boost::shared_ptr<ContentWindowManager> DisplayGroupInterface::getContentWindowManager(const QString& uri, CONTENT_TYPE contentType)
 {
-    for(unsigned int i=0; i<contentWindowManagers_.size(); i++)
+    for(size_t i=0; i<contentWindowManagers_.size(); i++)
     {
-        if(contentWindowManagers_[i]->getContent()->getURI() == uri && (contentType == CONTENT_TYPE_ANY || contentWindowManagers_[i]->getContent()->getType() == contentType))
+        if( contentWindowManagers_[i]->getContent()->getURI() == uri &&
+           (contentType == CONTENT_TYPE_ANY || contentWindowManagers_[i]->getContent()->getType() == contentType))
         {
             return contentWindowManagers_[i];
         }
@@ -198,7 +199,7 @@ void DisplayGroupInterface::moveContentWindowManagerToFront(boost::shared_ptr<Co
     }
 }
 
-void DisplayGroupInterface::saveState(std::string filename, DisplayGroupInterface * source)
+void DisplayGroupInterface::saveState(const QString& filename, DisplayGroupInterface * source)
 {
     if(source == this)
     {
@@ -225,7 +226,7 @@ void DisplayGroupInterface::saveState(std::string filename, DisplayGroupInterfac
     }
 }
 
-void DisplayGroupInterface::loadState(std::string filename, DisplayGroupInterface * source)
+void DisplayGroupInterface::loadState(const QString& filename, DisplayGroupInterface * source)
 {
     if(source == this)
     {
