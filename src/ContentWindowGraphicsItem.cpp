@@ -75,131 +75,20 @@ QRectF ContentWindowGraphicsItem::boundingRect() const
 
 void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGraphicsItem * option, QWidget * widget)
 {
-    boost::shared_ptr<ContentWindowManager> contentWindowManager = getContentWindowManager();
-
-    if(!contentWindowManager)
+    if( !getContentWindowManager( ))
         return;
 
-    QPen pen;
-    if(selected())
-        pen.setColor(QColor(255,0,0));
-    else
-        pen.setColor(QColor(0,0,0));
+    drawFrame_( painter );
 
-    // draw & fill rectangle
-    painter->setPen(pen);
-    painter->setBrush( QBrush(QColor(0, 0, 0, 128)));
-    painter->drawRect(boundingRect());
+    drawCloseButton_( painter );
 
-    // button dimensions
-    float buttonWidth, buttonHeight;
-    getButtonDimensions(buttonWidth, buttonHeight);
+    drawResizeIndicator_( painter );
 
-    const qreal& x = x_;
-    const qreal& y = y_;
-    const qreal& w = w_;
-    const qreal& h = h_;
+    drawFullscreenButton_( painter );
 
-    // draw close button
-    QRectF closeRect(x + w - buttonWidth, y, buttonWidth, buttonHeight);
-    pen.setColor(QColor(255,0,0));
-    painter->setPen(pen);
-    painter->drawRect(closeRect);
-    painter->drawLine(QPointF(x + w - buttonWidth, y), QPointF(x + w, y + buttonHeight));
-    painter->drawLine(QPointF(x + w, y), QPointF(x + w - buttonWidth, y + buttonHeight));
+    drawMovieControls_( painter );
 
-    // resize indicator
-    QRectF resizeRect(x + w - buttonWidth, y + h - buttonHeight, buttonWidth, buttonHeight);
-    pen.setColor(QColor(128,128,128));
-    painter->setPen(pen);
-    painter->drawRect(resizeRect);
-    painter->drawLine(QPointF(x + w, y + h - buttonHeight), QPointF(x + w - buttonWidth, y + h));
-
-    // fullscreen button
-    QRectF fullscreenRect(x, y + h - buttonHeight, buttonWidth, buttonHeight);
-    painter->setPen(pen);
-    painter->drawRect(fullscreenRect);
-
-    if( contentWindowManager->getContent()->getType() == CONTENT_TYPE_MOVIE &&
-        g_displayGroupManager->getOptions()->getShowMovieControls( ))
-    {
-        // play/pause
-        QRectF playPauseRect(x + w/2 - buttonWidth, y + h - buttonHeight,
-                              buttonWidth, buttonHeight);
-        pen.setColor(QColor(contentWindowManager->getControlState() & STATE_PAUSED ? 128 :200,0,0));
-        painter->setPen(pen);
-        painter->fillRect(playPauseRect, pen.color());
-
-        // loop
-        QRectF loopRect(x + w/2, y + h - buttonHeight,
-                        buttonWidth, buttonHeight);
-        pen.setColor(QColor(0,contentWindowManager->getControlState() & STATE_LOOP ? 200 :128,0));
-        painter->setPen(pen);
-        painter->fillRect(loopRect, pen.color());
-    }
-
-    // text label
-
-    // set the font
-    float fontSize = 24.;
-
-    QFont font;
-    font.setPixelSize(fontSize);
-    painter->setFont(font);
-
-    // color the text black
-    pen.setColor(QColor(0,0,0));
-    painter->setPen(pen);
-
-    // scale the text size down to the height of the graphics view
-    // and, calculate the bounding rectangle for the text based on this scale
-    // the dimensions of the view need to be corrected for the tiled display aspect ratio
-    // recall the tiled display UI is only part of the graphics view since we show it at the correct aspect ratio
-    float viewWidth = (float)scene()->views()[0]->width();
-    float viewHeight = (float)scene()->views()[0]->height();
-
-    float tiledDisplayAspect = (float)g_configuration->getTotalWidth() / (float)g_configuration->getTotalHeight();
-
-    if(viewWidth / viewHeight > tiledDisplayAspect)
-    {
-        viewWidth = viewHeight * tiledDisplayAspect;
-    }
-    else if(viewWidth / viewHeight <= tiledDisplayAspect)
-    {
-        viewHeight = viewWidth / tiledDisplayAspect;
-    }
-
-    float verticalTextScale = 1. / viewHeight;
-    float horizontalTextScale = viewHeight / viewWidth * verticalTextScale;
-
-    painter->scale(horizontalTextScale, verticalTextScale);
-
-    QRectF textBoundingRect = QRectF(x / horizontalTextScale, y / verticalTextScale, w / horizontalTextScale, h / verticalTextScale);
-
-    // get the label and render it
-    QString label(contentWindowManager->getContent()->getURI());
-    QString labelSection = label.section("/", -1, -1).prepend(" ");
-    painter->drawText(textBoundingRect, Qt::AlignLeft | Qt::AlignTop, labelSection);
-
-    // draw window info at smaller scale
-    verticalTextScale *= 0.5;
-    horizontalTextScale *= 0.5;
-
-    painter->scale(0.5, 0.5);
-
-    textBoundingRect = QRectF((x+buttonWidth) / horizontalTextScale, y / verticalTextScale, (w-buttonWidth) / horizontalTextScale, h / verticalTextScale);
-
-    QString coordinatesLabel = QString(" (") + QString::number(x_, 'f', 2) + QString(" ,") + QString::number(y_, 'f', 2) + QString(", ") + QString::number(w_, 'f', 2) + QString(", ") + QString::number(h_, 'f', 2) + QString(")\n");
-    QString zoomCenterLabel = QString(" zoom = ") + QString::number(zoom_, 'f', 2) + QString(" @ (") + QString::number(centerX_, 'f', 2) + QString(", ") + QString::number(centerY_, 'f', 2) + QString(")");
-    QString interactionLabel = QString(" x: ") +
-            QString::number(interactionState_.mouseX, 'f', 2) +
-            QString(" y: ") + QString::number(interactionState_.mouseY, 'f', 2) +
-            QString(" mouseLeft: ") + QString::number((int) interactionState_.mouseLeft, 'b', 1) +
-            QString(" mouseMiddle: ") + QString::number((int) interactionState_.mouseMiddle, 'b', 1) +
-            QString(" mouseRight: ") + QString::number((int) interactionState_.mouseRight, 'b', 1);
-
-    QString windowInfoLabel = coordinatesLabel + zoomCenterLabel + interactionLabel;
-    painter->drawText(textBoundingRect, Qt::AlignLeft | Qt::AlignBottom, windowInfoLabel);
+    drawTextLabel_( painter );
 }
 
 void ContentWindowGraphicsItem::adjustSize( const SizeState state,
@@ -291,7 +180,7 @@ bool ContentWindowGraphicsItem::sceneEvent( QEvent* event )
 
 
 void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
-{    
+{
     // handle mouse movements differently depending on selected mode of item
     if(!selected())
     {
@@ -503,4 +392,154 @@ void ContentWindowGraphicsItem::keyReleaseEvent(QKeyEvent *event)
             cwm->getInteractionDelegate()->keyReleaseEvent(event);
         }
     }
+}
+
+void ContentWindowGraphicsItem::drawCloseButton_( QPainter* painter )
+{
+    float buttonWidth, buttonHeight;
+    getButtonDimensions(buttonWidth, buttonHeight);
+
+    QRectF closeRect(x_ + w_ - buttonWidth, y_, buttonWidth, buttonHeight);
+    QPen pen;
+    pen.setColor(QColor(255,0,0));
+    painter->setPen(pen);
+    painter->drawRect(closeRect);
+    painter->drawLine(QPointF(x_ + w_ - buttonWidth, y_), QPointF(x_ + w_, y_ + buttonHeight));
+    painter->drawLine(QPointF(x_ + w_, y_), QPointF(x_ + w_ - buttonWidth, y_ + buttonHeight));
+}
+
+void ContentWindowGraphicsItem::drawResizeIndicator_( QPainter* painter )
+{
+    float buttonWidth, buttonHeight;
+    getButtonDimensions(buttonWidth, buttonHeight);
+
+    QRectF resizeRect(x_ + w_ - buttonWidth, y_ + h_ - buttonHeight, buttonWidth, buttonHeight);
+    QPen pen;
+    pen.setColor(QColor(128,128,128));
+    painter->setPen(pen);
+    painter->drawRect(resizeRect);
+    painter->drawLine(QPointF(x_ + w_, y_ + h_ - buttonHeight), QPointF(x_ + w_ - buttonWidth, y_ + h_));
+}
+
+void ContentWindowGraphicsItem::drawFullscreenButton_( QPainter* painter )
+{
+    float buttonWidth, buttonHeight;
+    getButtonDimensions(buttonWidth, buttonHeight);
+
+    QRectF fullscreenRect(x_, y_ + h_ - buttonHeight, buttonWidth, buttonHeight);
+    QPen pen;
+    pen.setColor(QColor(128,128,128));
+    painter->setPen(pen);
+    painter->drawRect(fullscreenRect);
+}
+
+void ContentWindowGraphicsItem::drawMovieControls_( QPainter* painter )
+{
+    ContentWindowManagerPtr contentWindowManager = getContentWindowManager();
+
+    float buttonWidth, buttonHeight;
+    getButtonDimensions(buttonWidth, buttonHeight);
+
+    QPen pen;
+
+    if( contentWindowManager->getContent()->getType() == CONTENT_TYPE_MOVIE &&
+        g_displayGroupManager->getOptions()->getShowMovieControls( ))
+    {
+        // play/pause
+        QRectF playPauseRect(x_ + w_/2 - buttonWidth, y_ + h_ - buttonHeight,
+                              buttonWidth, buttonHeight);
+        pen.setColor(QColor(contentWindowManager->getControlState() & STATE_PAUSED ? 128 :200,0,0));
+        painter->setPen(pen);
+        painter->fillRect(playPauseRect, pen.color());
+
+        // loop
+        QRectF loopRect(x_ + w_/2, y_ + h_ - buttonHeight,
+                        buttonWidth, buttonHeight);
+        pen.setColor(QColor(0,contentWindowManager->getControlState() & STATE_LOOP ? 200 :128,0));
+        painter->setPen(pen);
+        painter->fillRect(loopRect, pen.color());
+    }
+}
+
+void ContentWindowGraphicsItem::drawTextLabel_( QPainter* painter )
+{
+    ContentWindowManagerPtr contentWindowManager = getContentWindowManager();
+
+    float buttonWidth, buttonHeight;
+    getButtonDimensions(buttonWidth, buttonHeight);
+
+    const float fontSize = 24.;
+
+    QFont font;
+    font.setPixelSize(fontSize);
+    painter->setFont(font);
+
+    // color the text black
+    QPen pen;
+    pen.setColor(QColor(0,0,0));
+    painter->setPen(pen);
+
+    // scale the text size down to the height of the graphics view
+    // and, calculate the bounding rectangle for the text based on this scale
+    // the dimensions of the view need to be corrected for the tiled display aspect ratio
+    // recall the tiled display UI is only part of the graphics view since we show it at the correct aspect ratio
+    // TODO refactor this for clarity!
+    float viewWidth = (float)scene()->views()[0]->width();
+    float viewHeight = (float)scene()->views()[0]->height();
+
+    float tiledDisplayAspect = (float)g_configuration->getTotalWidth() / (float)g_configuration->getTotalHeight();
+
+    if(viewWidth / viewHeight > tiledDisplayAspect)
+    {
+        viewWidth = viewHeight * tiledDisplayAspect;
+    }
+    else if(viewWidth / viewHeight <= tiledDisplayAspect)
+    {
+        viewHeight = viewWidth / tiledDisplayAspect;
+    }
+
+    float verticalTextScale = 1. / viewHeight;
+    float horizontalTextScale = viewHeight / viewWidth * verticalTextScale;
+
+    painter->scale(horizontalTextScale, verticalTextScale);
+
+    QRectF textBoundingRect = QRectF(x_ / horizontalTextScale, y_ / verticalTextScale, w_ / horizontalTextScale, h_ / verticalTextScale);
+
+    // get the label and render it
+    QString label(contentWindowManager->getContent()->getURI());
+    QString labelSection = label.section("/", -1, -1).prepend(" ");
+    painter->drawText(textBoundingRect, Qt::AlignLeft | Qt::AlignTop, labelSection);
+
+    // draw window info at smaller scale
+    verticalTextScale *= 0.5;
+    horizontalTextScale *= 0.5;
+
+    painter->scale(0.5, 0.5);
+
+    textBoundingRect = QRectF((x_+buttonWidth) / horizontalTextScale, y_ / verticalTextScale, (w_-buttonWidth) / horizontalTextScale, h_ / verticalTextScale);
+
+    QString coordinatesLabel = QString(" (") + QString::number(x_, 'f', 2) + QString(" ,") + QString::number(y_, 'f', 2) + QString(", ") + QString::number(w_, 'f', 2) + QString(", ") + QString::number(h_, 'f', 2) + QString(")\n");
+    QString zoomCenterLabel = QString(" zoom = ") + QString::number(zoom_, 'f', 2) + QString(" @ (") + QString::number(centerX_, 'f', 2) + QString(", ") + QString::number(centerY_, 'f', 2) + QString(")");
+    QString interactionLabel = QString(" x: ") +
+            QString::number(interactionState_.mouseX, 'f', 2) +
+            QString(" y: ") + QString::number(interactionState_.mouseY, 'f', 2) +
+            QString(" mouseLeft: ") + QString::number((int) interactionState_.mouseLeft, 'b', 1) +
+            QString(" mouseMiddle: ") + QString::number((int) interactionState_.mouseMiddle, 'b', 1) +
+            QString(" mouseRight: ") + QString::number((int) interactionState_.mouseRight, 'b', 1);
+
+    QString windowInfoLabel = coordinatesLabel + zoomCenterLabel + interactionLabel;
+    painter->drawText(textBoundingRect, Qt::AlignLeft | Qt::AlignBottom, windowInfoLabel);
+}
+
+void ContentWindowGraphicsItem::drawFrame_(QPainter* painter)
+{
+    QPen pen;
+    if(selected())
+        pen.setColor(QColor(255,0,0));
+    else
+        pen.setColor(QColor(0,0,0));
+
+    painter->setPen(pen);
+    painter->setBrush( QBrush(QColor(0, 0, 0, 128)));
+    painter->drawRect(boundingRect());
 }
