@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Daniel Nachbaur <daniel.nachbaur@epfl.ch>     */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,102 +37,27 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef CONTENT_H
-#define CONTENT_H
-
-#define ERROR_IMAGE_FILENAME "error.png"
-
-#include "ContentFactory.h"
 #include "ContentType.h"
 
-#include <string>
-#include <QtGui>
-#include <boost/shared_ptr.hpp>
-#include <boost/serialization/access.hpp>
-#include <boost/serialization/assume_abstract.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
+#include <boost/bimap.hpp>
+#include <boost/assign/list_of.hpp>
 
-class ContentWindowManager;
+typedef boost::bimap< CONTENT_TYPE, QString > TypeMap;
+static TypeMap typemap = boost::assign::list_of< TypeMap::relation >
+        (CONTENT_TYPE_ANY, QString("CONTENT_TYPE_ANY"))
+        (CONTENT_TYPE_DYNAMIC_TEXTURE, QString("CONTENT_TYPE_DYNAMIC_TEXTURE"))
+        (CONTENT_TYPE_MOVIE, QString("CONTENT_TYPE_MOVIE"))
+        (CONTENT_TYPE_PIXEL_STREAM, QString("CONTENT_TYPE_PIXEL_STREAM"))
+        (CONTENT_TYPE_SVG, QString("CONTENT_TYPE_SVG"))
+        (CONTENT_TYPE_TEXTURE, QString("CONTENT_TYPE_TEXTURE"))
+        (CONTENT_TYPE_PDF, QString("CONTENT_TYPE_PDF"));
 
-class Content : public QObject {
-    Q_OBJECT
+QString getContentTypeString( const CONTENT_TYPE type )
+{
+    return typemap.left.find( type )->second;
+}
 
-    public:
-
-        Content(QString uri = "");
-
-        const QString& getURI() const;
-
-        virtual CONTENT_TYPE getType() = 0;
-
-        void getDimensions(int &width, int &height);
-        void setDimensions(int width, int height);
-        virtual void getFactoryObjectDimensions(int &width, int &height) = 0;
-        void render(boost::shared_ptr<ContentWindowManager> window);
-        void blockAdvance( bool block ) { blockAdvance_ = block; }
-
-        // virtual method for implementing actions on advancing to a new frame
-        // useful when a process has multiple GLWindows
-        virtual void advance(boost::shared_ptr<ContentWindowManager>) { }
-
-    signals:
-
-        void dimensionsChanged(int width, int height);
-
-    protected:
-        friend class boost::serialization::access;
-
-        template<class Archive>
-        void serialize(Archive & ar, const unsigned int)
-        {
-            ar & uri_;
-            ar & width_;
-            ar & height_;
-            ar & blockAdvance_;
-        }
-
-        QString uri_;
-        int width_;
-        int height_;
-        bool blockAdvance_;
-
-        virtual void renderFactoryObject(float tX, float tY, float tW, float tH) = 0;
-};
-
-BOOST_SERIALIZATION_ASSUME_ABSTRACT(Content)
-
-// typedef needed for SIP
-typedef boost::shared_ptr<Content> pContent;
-
-class pyContent {
-
-    public:
-
-        pyContent(const char * str)
-        {
-            boost::shared_ptr<Content> c(ContentFactory::getContent(QString::fromAscii(str)));
-            ptr_ = c;
-        }
-
-        pyContent(boost::shared_ptr<Content> c)
-        {
-            ptr_ = c;
-        }
-
-        boost::shared_ptr<Content> get()
-        {
-            return ptr_;
-        }
-
-        const char * getURI()
-        {
-            return ptr_->getURI().toAscii();
-        }
-
-    protected:
-
-        boost::shared_ptr<Content> ptr_;
-};
-
-#endif
+CONTENT_TYPE getContentType( const QString& typeString )
+{
+    return typemap.right.find( typeString )->second;
+}

@@ -236,6 +236,7 @@ if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
         src/Configuration.cpp
         src/Content.cpp
         src/ContentFactory.cpp
+        src/ContentType.cpp
         src/ContentInteractionDelegate.cpp
         src/ContentWindowManager.cpp
         src/ContentWindowInterface.cpp

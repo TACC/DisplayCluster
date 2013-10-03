@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Daniel Nachbaur <daniel.nachbaur@epfl.ch>     */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,102 +37,25 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef CONTENT_H
-#define CONTENT_H
+#ifndef CONTENTTYPE_H
+#define CONTENTTYPE_H
 
-#define ERROR_IMAGE_FILENAME "error.png"
+#include <QString>
 
-#include "ContentFactory.h"
-#include "ContentType.h"
-
-#include <string>
-#include <QtGui>
-#include <boost/shared_ptr.hpp>
-#include <boost/serialization/access.hpp>
-#include <boost/serialization/assume_abstract.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-
-class ContentWindowManager;
-
-class Content : public QObject {
-    Q_OBJECT
-
-    public:
-
-        Content(QString uri = "");
-
-        const QString& getURI() const;
-
-        virtual CONTENT_TYPE getType() = 0;
-
-        void getDimensions(int &width, int &height);
-        void setDimensions(int width, int height);
-        virtual void getFactoryObjectDimensions(int &width, int &height) = 0;
-        void render(boost::shared_ptr<ContentWindowManager> window);
-        void blockAdvance( bool block ) { blockAdvance_ = block; }
-
-        // virtual method for implementing actions on advancing to a new frame
-        // useful when a process has multiple GLWindows
-        virtual void advance(boost::shared_ptr<ContentWindowManager>) { }
-
-    signals:
-
-        void dimensionsChanged(int width, int height);
-
-    protected:
-        friend class boost::serialization::access;
-
-        template<class Archive>
-        void serialize(Archive & ar, const unsigned int)
-        {
-            ar & uri_;
-            ar & width_;
-            ar & height_;
-            ar & blockAdvance_;
-        }
-
-        QString uri_;
-        int width_;
-        int height_;
-        bool blockAdvance_;
-
-        virtual void renderFactoryObject(float tX, float tY, float tW, float tH) = 0;
+enum CONTENT_TYPE
+{
+    CONTENT_TYPE_ANY,
+    CONTENT_TYPE_DYNAMIC_TEXTURE,
+    CONTENT_TYPE_MOVIE,
+    CONTENT_TYPE_PIXEL_STREAM,
+    CONTENT_TYPE_SVG,
+    CONTENT_TYPE_TEXTURE,
+    CONTENT_TYPE_PDF
 };
 
-BOOST_SERIALIZATION_ASSUME_ABSTRACT(Content)
+QString getContentTypeString( const CONTENT_TYPE type );
 
-// typedef needed for SIP
-typedef boost::shared_ptr<Content> pContent;
+CONTENT_TYPE getContentType( const QString& typeString );
 
-class pyContent {
-
-    public:
-
-        pyContent(const char * str)
-        {
-            boost::shared_ptr<Content> c(ContentFactory::getContent(QString::fromAscii(str)));
-            ptr_ = c;
-        }
-
-        pyContent(boost::shared_ptr<Content> c)
-        {
-            ptr_ = c;
-        }
-
-        boost::shared_ptr<Content> get()
-        {
-            return ptr_;
-        }
-
-        const char * getURI()
-        {
-            return ptr_->getURI().toAscii();
-        }
-
-    protected:
-
-        boost::shared_ptr<Content> ptr_;
-};
 
 #endif
