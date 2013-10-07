@@ -66,8 +66,14 @@ WebkitPixelStreamer::WebkitPixelStreamer(QString uri)
     webView_->page()->setViewportSize( QSize( WEPPAGE_DEFAULT_WIDTH*WEBPAGE_DEFAULT_ZOOM, WEBPAGE_DEFAULT_HEIGHT*WEBPAGE_DEFAULT_ZOOM ));
     webView_->setZoomFactor(WEBPAGE_DEFAULT_ZOOM);
 
-    webView_->settings()->setAttribute(QWebSettings::PluginsEnabled, true);
-    webView_->settings()->setAttribute(QWebSettings::FrameFlatteningEnabled, true);
+    QWebSettings* settings = webView_->settings();
+    settings->setAttribute( QWebSettings::AcceleratedCompositingEnabled, true );
+    settings->setAttribute( QWebSettings::FrameFlatteningEnabled, true );
+    settings->setAttribute( QWebSettings::JavascriptEnabled, true );
+    settings->setAttribute( QWebSettings::PluginsEnabled, true );
+#if QT_VERSION >= 0x040800
+    settings->setAttribute( QWebSettings::WebGLEnabled, true );
+#endif
 
     timer_ = new QTimer();
     connect(timer_, SIGNAL(timeout()), this, SLOT(update()));
@@ -201,7 +207,7 @@ void WebkitPixelStreamer::update()
     if( !page->viewportSize().isEmpty())
     {
         if (image_.size() != page->viewportSize())
-	        image_ = QImage( page->viewportSize(), QImage::Format_ARGB32 );
+            image_ = QImage( page->viewportSize(), QImage::Format_ARGB32 );
 
         QPainter painter( &image_ );
         page->mainFrame()->render( &painter );
