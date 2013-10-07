@@ -251,7 +251,7 @@ void PDF::generateTexture(QRectF screenRect, QRectF fullRect, float tX, float tY
         // put the RGB image to the already-created texture
         // glTexSubImage2D uses the existing texture and is more efficient than other means
         glBindTexture(GL_TEXTURE_2D, textureId_);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0,0, image.width(), image.height(), GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0,0, image.width(), image.height(), GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
         //put_flog(LOG_DEBUG, "texture updated");
     }
 
