@@ -72,7 +72,7 @@ find_package(LibJpegTurbo REQUIRED)
 include_directories(${LibJpegTurbo_INCLUDE_DIRS})
 list(APPEND LIBS ${LibJpegTurbo_LIBRARIES})
 
-find_package(Boost REQUIRED COMPONENTS serialization date_time)
+find_package(Boost REQUIRED COMPONENTS serialization date_time unit_test_framework)
 include_directories(${Boost_INCLUDE_DIRS})
 list(APPEND LIBS ${Boost_LIBRARIES})
 
@@ -453,4 +453,8 @@ if(BUILD_DESKTOPSTREAMER)
     endif()
 endif()
 
-add_custom_target(test) # fake test target for Travis/Buildyard
+add_subdirectory(tests)
+set(CTEST_CUSTOM_WARNING_EXCEPTION ${CTEST_CUSTOM_WARNING_EXCEPTION}
+  # http://public.kitware.com/Bug/view.php?id=10179
+  "ld: warning: duplicate dylib")
+include(CTest)
