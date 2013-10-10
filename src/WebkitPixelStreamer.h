@@ -79,10 +79,14 @@ private:
 
     QImage image_;
 
+    bool interactionModeActive_;
+
     void processClickEvent(const InteractionState &interactionState);
     void processPressEvent(const InteractionState &interactionState);
     void processMoveEvent(const InteractionState &interactionState);
     void processReleaseEvent(const InteractionState &interactionState);
+
+    void processWheelEvent(const InteractionState &interactionState);
 
     void processKeyPress(const InteractionState &interactionState);
     void processKeyRelease(const InteractionState &interactionState);
@@ -94,6 +98,7 @@ private:
     QWebHitTestResult performHitTest(const InteractionState &interactionState) const;
     QPoint getPointerPosition(const InteractionState &interactionState) const;
     PixelStreamSegmentParameters createSegmentHeader() const;
+    bool isWebGLElement(const QWebElement &element) const;
 };
 
 #endif // WEBKITPIXELSTREAMER_H
