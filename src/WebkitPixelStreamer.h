@@ -61,6 +61,8 @@ public:
 
     void setUrl(QString url);
 
+    QWebView* getView() const;
+
 public slots:
     virtual void updateInteractionState(InteractionState interactionState);
 

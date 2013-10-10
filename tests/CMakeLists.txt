@@ -14,6 +14,8 @@ endif()
 file(GLOB_RECURSE TEST_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cpp)
 list(SORT TEST_FILES)
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../src)
+
 set(ALL_TESTS)
 foreach(FILE ${TEST_FILES})
   string(REGEX REPLACE ".cpp" "" NAME ${FILE})
@@ -22,7 +24,7 @@ foreach(FILE ${TEST_FILES})
   add_executable(${NAME} ${FILE})
   set_target_properties(${NAME} PROPERTIES FOLDER "Tests")
 
-  target_link_libraries(${NAME} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
+  target_link_libraries(${NAME} DisplayClusterCore ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 
   get_target_property(EXECUTABLE ${NAME} LOCATION)
   STRING(REGEX REPLACE "\\$\\(.*\\)" "\${CTEST_CONFIGURATION_TYPE}"

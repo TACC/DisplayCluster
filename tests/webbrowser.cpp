@@ -40,7 +40,58 @@
 #define BOOST_TEST_MODULE WebBrowser
 #include <boost/test/unit_test.hpp>
 
-BOOST_AUTO_TEST_CASE( test_dummy )
+#include <QApplication>
+#include <QWebElementCollection>
+#include <QWebFrame>
+#include <QWebPage>
+#include <QWebView>
+
+#include "WebkitPixelStreamer.h"
+
+namespace ut = boost::unit_test;
+
+
+BOOST_AUTO_TEST_CASE( test_webgl_support )
 {
-    BOOST_CHECK_EQUAL( 42, 42 );
+    // need QApplication to instantiate WebkitPixelStreamer
+    ut::master_test_suite_t& testSuite = ut::framework::master_test_suite();
+    QApplication* app = new QApplication( testSuite.argc, testSuite.argv );
+
+    // load the webgl website, exec() returns when loading is finished
+    WebkitPixelStreamer* streamer = new WebkitPixelStreamer( "testBrowser" );
+    QObject::connect( streamer->getView(), SIGNAL(loadFinished(bool)),
+                      app, SLOT(quit()));
+    streamer->setUrl( "http://get.webgl.org" );
+    app->exec();
+
+    QWebPage* page = streamer->getView()->page();
+    BOOST_REQUIRE( page );
+    QWebFrame* frame = page->mainFrame();
+    BOOST_REQUIRE( frame );
+    QWebElementCollection webglCanvases = frame->findAllElements( "canvas[id=webgl-logo]" );
+    BOOST_REQUIRE_EQUAL( webglCanvases.count(), 1 );
+
+    // http://stackoverflow.com/questions/11871077/proper-way-to-detect-webgl-support
+    QVariant hasContext = frame->evaluateJavaScript("var hasContext = false;"
+                                                    "if( window.WebGLRenderingContext ) {"
+                                                    "  hasContext = true;"
+                                                    "}");
+
+    QVariant hasGL = frame->evaluateJavaScript("var hasGL = false;"
+                                               "gl = canvas.getContext(\"webgl\");"
+                                               "if( gl ) {"
+                                               "  hasGL = true;"
+                                               "}");
+
+    QVariant hasExperimentalGL = frame->evaluateJavaScript("var hasGL = false;"
+                                                           "gl = canvas.getContext(\"experimental-webgl\");"
+                                                           "if( gl ) {"
+                                                           "  hasGL = true;"
+                                                           "}");
+
+    BOOST_CHECK( hasContext.toBool( ));
+    BOOST_CHECK( hasGL.toBool() || hasExperimentalGL.toBool( ));
+
+    delete streamer;
+    delete app;
 }
