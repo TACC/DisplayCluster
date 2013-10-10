@@ -39,10 +39,11 @@
 
 #include "MultiTouchListener.h"
 
+#include "Configuration.h"
 #include "DisplayGroupGraphicsView.h"
 #include "DisplayGroupGraphicsViewProxy.h"
 #include "Gestures.h"
-#include "main.h"
+#include "globals.h"
 #include "log.h"
 
 #include <QtGui/QGraphicsView>

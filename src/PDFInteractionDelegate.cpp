@@ -38,9 +38,10 @@
 /*********************************************************************/
 
 #include "PDFInteractionDelegate.h"
+#include "Configuration.h"
 #include "ContentWindowManager.h"
 #include "PDFContent.h"
-#include "main.h"
+#include "globals.h"
 
 PDFInteractionDelegate::PDFInteractionDelegate(ContentWindowManager *cwm)
     : ZoomInteractionDelegate(cwm)

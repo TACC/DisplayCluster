@@ -41,20 +41,20 @@
 
 #include "config.h"
 #if ENABLE_PDF_SUPPORT
-#  include "thumbnail/PDFThumbnailGenerator.h"
-#  include "PDFContent.h"
+#  include "PDFThumbnailGenerator.h"
+#  include "../PDFContent.h"
 #endif
 
-#include "thumbnail/DefaultThumbnailGenerator.h"
-#include "thumbnail/FolderThumbnailGenerator.h"
-#include "thumbnail/ImageThumbnailGenerator.h"
-#include "thumbnail/MovieThumbnailGenerator.h"
-#include "thumbnail/PyramidThumbnailGenerator.h"
-#include "thumbnail/StateThumbnailGenerator.h"
+#include "DefaultThumbnailGenerator.h"
+#include "FolderThumbnailGenerator.h"
+#include "ImageThumbnailGenerator.h"
+#include "MovieThumbnailGenerator.h"
+#include "PyramidThumbnailGenerator.h"
+#include "StateThumbnailGenerator.h"
 
-#include "MovieContent.h"
-#include "TextureContent.h"
-#include "DynamicTextureContent.h"
+#include "../MovieContent.h"
+#include "../TextureContent.h"
+#include "../DynamicTextureContent.h"
 
 #include <QImageReader>
 

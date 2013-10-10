@@ -40,7 +40,7 @@
 #ifndef PDFTHUMBNAILGENERATOR_H
 #define PDFTHUMBNAILGENERATOR_H
 
-#include "thumbnail/ThumbnailGenerator.h"
+#include "ThumbnailGenerator.h"
 
 class PDFThumbnailGenerator : public ThumbnailGenerator
 {

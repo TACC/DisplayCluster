@@ -37,13 +37,16 @@
 /*********************************************************************/
 
 #include "DynamicTexture.h"
-#include "main.h"
+#include "globals.h"
+#include "MainWindow.h"
 #include "vector.h"
 #include "log.h"
+
 #include <algorithm>
 #include <fstream>
 #include <string>
 #include <boost/tokenizer.hpp>
+#include <QImageReader>
 
 #ifdef __APPLE__
     #include <OpenGL/glu.h>

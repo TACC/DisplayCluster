@@ -37,11 +37,13 @@
 /*********************************************************************/
 
 #include "MainWindow.h"
-#include "main.h"
+#include "globals.h"
+#include "Configuration.h"
 #include "Content.h"
 #include "ContentFactory.h"
 #include "ContentWindowManager.h"
 #include "log.h"
+#include "DisplayGroupManager.h"
 #include "DisplayGroupGraphicsViewProxy.h"
 #include "DisplayGroupListWidgetProxy.h"
 #include "BackgroundWidget.h"
@@ -66,7 +68,8 @@ MainWindow::MainWindow()
     constrainAspectRatio_ = true;
 
     // make application quit when last window is closed
-    QObject::connect(g_app, SIGNAL(lastWindowClosed()), g_app, SLOT(quit()));
+    QObject::connect(QApplication::instance(), SIGNAL(lastWindowClosed()),
+                     QApplication::instance(), SLOT(quit()));
 
     if(g_mpiRank == 0)
     {

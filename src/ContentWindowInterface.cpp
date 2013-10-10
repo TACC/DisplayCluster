@@ -38,7 +38,10 @@
 
 #include "ContentWindowInterface.h"
 #include "ContentWindowManager.h"
-#include "main.h"
+#include "globals.h"
+#include "Configuration.h"
+#include "DisplayGroupManager.h"
+#include "MainWindow.h"
 
 ContentWindowInterface::ContentWindowInterface(boost::shared_ptr<ContentWindowManager> contentWindowManager)\
     : windowState_(UNSELECTED)

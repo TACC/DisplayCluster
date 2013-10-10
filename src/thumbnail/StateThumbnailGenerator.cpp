@@ -39,7 +39,7 @@
 
 #include "StateThumbnailGenerator.h"
 
-#include "StatePreview.h"
+#include "../StatePreview.h"
 #include <QPainter>
 
 StateThumbnailGenerator::StateThumbnailGenerator(const QSize &size)

@@ -39,7 +39,8 @@
 
 #include "PixelStreamInteractionDelegate.h"
 #include "ContentWindowManager.h"
-#include "main.h"
+#include "globals.h"
+#include "Configuration.h"
 
 PixelStreamInteractionDelegate::PixelStreamInteractionDelegate(ContentWindowManager* cwm)
     : ContentInteractionDelegate(cwm)

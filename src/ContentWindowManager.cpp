@@ -39,8 +39,10 @@
 #include "ContentWindowManager.h"
 #include "Content.h"
 #include "DisplayGroupManager.h"
-#include "main.h"
+#include "globals.h"
 #include "ContentInteractionDelegate.h"
+#include "Configuration.h"
+#include "GLWindow.h"
 
 // Specialized delegate implementations
 #include "PixelStreamInteractionDelegate.h"

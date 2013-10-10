@@ -41,7 +41,8 @@
 
 #include "ContentWindowManager.h"
 
-#include "main.h"
+#include "globals.h"
+#include "Configuration.h"
 
 
 ContentInteractionDelegate::ContentInteractionDelegate(ContentWindowManager *cwm)

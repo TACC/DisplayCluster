@@ -40,7 +40,7 @@
 #ifndef FOLDERTHUMBNAILGENERATOR_H
 #define FOLDERTHUMBNAILGENERATOR_H
 
-#include "thumbnail/ThumbnailGenerator.h"
+#include "ThumbnailGenerator.h"
 
 #include <QFileInfoList>
 

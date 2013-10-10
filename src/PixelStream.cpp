@@ -37,8 +37,10 @@
 /*********************************************************************/
 
 #include "PixelStream.h"
-#include "main.h"
+#include "globals.h"
 #include "ContentWindowManager.h"
+#include "DisplayGroupManager.h"
+#include "MainWindow.h"
 #include "log.h"
 
 PixelStream::PixelStream(QString uri)

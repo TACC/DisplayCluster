@@ -40,7 +40,7 @@
 #ifndef MOVIETHUMBNAILGENERATOR_H
 #define MOVIETHUMBNAILGENERATOR_H
 
-#include "thumbnail/ThumbnailGenerator.h"
+#include "ThumbnailGenerator.h"
 
 class MovieThumbnailGenerator : public ThumbnailGenerator
 {

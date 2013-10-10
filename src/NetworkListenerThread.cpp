@@ -37,7 +37,7 @@
 /*********************************************************************/
 
 #include "NetworkListenerThread.h"
-#include "main.h"
+#include "globals.h"
 #include "log.h"
 #include "PixelStream.h"
 #include "SVGStreamSource.h"

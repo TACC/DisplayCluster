@@ -37,9 +37,11 @@
 /*********************************************************************/
 
 #include "DynamicTextureContent.h"
-#include "main.h"
+#include "globals.h"
 #include "DynamicTexture.h"
+#include "MainWindow.h"
 #include <boost/serialization/export.hpp>
+#include "serializationHelpers.h"
 
 BOOST_CLASS_EXPORT_GUID(DynamicTextureContent, "DynamicTextureContent")
 

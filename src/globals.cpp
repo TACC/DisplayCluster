@@ -36,40 +36,22 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "TextureContent.h"
 #include "globals.h"
-#include "Texture.h"
-#include "MainWindow.h"
-#include <boost/serialization/export.hpp>
-#include "serializationHelpers.h"
 
-BOOST_CLASS_EXPORT_GUID(TextureContent, "TextureContent")
+#if ENABLE_SKELETON_SUPPORT
+    #include "SkeletonThread.h"
 
-CONTENT_TYPE TextureContent::getType()
-{
-    return CONTENT_TYPE_TEXTURE;
-}
+    SkeletonThread * g_skeletonThread = NULL;
+#endif
 
-const QStringList& TextureContent::getSupportedExtensions()
-{
-    static QStringList extensions;
-
-    if (extensions.empty())
-    {
-        const QList<QByteArray>& imageFormats = QImageReader::supportedImageFormats();
-        foreach( const QByteArray entry, imageFormats )
-            extensions << entry;
-    }
-
-    return extensions;
-}
-
-void TextureContent::getFactoryObjectDimensions(int &width, int &height)
-{
-    g_mainWindow->getGLWindow()->getTextureFactory().getObject(getURI())->getDimensions(width, height);
-}
-
-void TextureContent::renderFactoryObject(float tX, float tY, float tW, float tH)
-{
-    g_mainWindow->getGLWindow()->getTextureFactory().getObject(getURI())->render(tX, tY, tW, tH);
-}
+std::string g_displayClusterDir;
+int g_mpiRank = -1;
+int g_mpiSize = -1;
+MPI_Comm g_mpiRenderComm;
+Configuration * g_configuration = NULL;
+DisplayGroupManagerPtr g_displayGroupManager;
+MainWindow * g_mainWindow = NULL;
+long g_frameCount = 0;
+// Rank0
+LocalPixelStreamerManager* g_localPixelStreamers = 0;
+NetworkListener * g_networkListener = 0;

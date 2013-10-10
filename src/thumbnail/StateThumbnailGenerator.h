@@ -40,7 +40,7 @@
 #ifndef STATETHUMBNAILGENERATOR_H
 #define STATETHUMBNAILGENERATOR_H
 
-#include "thumbnail/ThumbnailGenerator.h"
+#include "ThumbnailGenerator.h"
 
 class StateThumbnailGenerator : public ThumbnailGenerator
 {

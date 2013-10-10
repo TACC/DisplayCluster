@@ -40,7 +40,7 @@
 #include "ContentFactory.h"
 
 #include "log.h"
-#include "main.h"
+#include "globals.h"
 
 #include "Content.h"
 #include "TextureContent.h"

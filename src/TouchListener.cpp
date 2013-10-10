@@ -37,7 +37,7 @@
 /*********************************************************************/
 
 #include "TouchListener.h"
-#include "main.h"
+#include "globals.h"
 #include "DisplayGroupGraphicsViewProxy.h"
 #include "DisplayGroupGraphicsView.h"
 

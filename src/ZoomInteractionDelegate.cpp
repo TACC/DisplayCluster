@@ -39,7 +39,8 @@
 
 #include "ZoomInteractionDelegate.h"
 #include "ContentWindowManager.h"
-#include "main.h"
+#include "globals.h"
+#include "Configuration.h"
 
 ZoomInteractionDelegate::ZoomInteractionDelegate(ContentWindowManager* cwm)
     : ContentInteractionDelegate(cwm)

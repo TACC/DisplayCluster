@@ -40,7 +40,7 @@
 #ifndef DEFAULTTHUMBNAILGENERATOR_H
 #define DEFAULTTHUMBNAILGENERATOR_H
 
-#include "thumbnail/ThumbnailGenerator.h"
+#include "ThumbnailGenerator.h"
 
 class DefaultThumbnailGenerator : public ThumbnailGenerator
 {

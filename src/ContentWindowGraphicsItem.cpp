@@ -37,11 +37,12 @@
 /*********************************************************************/
 
 #include "ContentWindowGraphicsItem.h"
+#include "Configuration.h"
 #include "Content.h"
 #include "ContentWindowManager.h"
 #include "DisplayGroupManager.h"
 #include "DisplayGroupGraphicsView.h"
-#include "main.h"
+#include "globals.h"
 #include "Gestures.h"
 #include "ContentInteractionDelegate.h"
 

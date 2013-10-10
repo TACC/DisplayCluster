@@ -36,9 +36,16 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "main.h"
+#include <QApplication>
+
+#include "globals.h"
 #include "config.h"
+#include "Configuration.h"
+#include "DisplayGroupManager.h"
+#include "MainWindow.h"
+#include "NetworkListener.h"
 #include "log.h"
+#include "LocalPixelStreamerManager.h"
 #include <mpi.h>
 #include <unistd.h>
 
@@ -56,20 +63,6 @@
     SkeletonThread * g_skeletonThread = NULL;
 #endif
 
-#include "LocalPixelStreamerManager.h"
-
-std::string g_displayClusterDir;
-QApplication * g_app = NULL;
-int g_mpiRank = -1;
-int g_mpiSize = -1;
-MPI_Comm g_mpiRenderComm;
-Configuration * g_configuration = NULL;
-boost::shared_ptr<DisplayGroupManager> g_displayGroupManager;
-MainWindow * g_mainWindow = NULL;
-long g_frameCount = 0;
-// Rank0
-LocalPixelStreamerManager* g_localPixelStreamers = 0;
-NetworkListener * g_networkListener = 0;
 
 int main(int argc, char * argv[])
 {
@@ -91,7 +84,7 @@ int main(int argc, char * argv[])
     XInitThreads();
 #endif
 
-    g_app = new QApplication(argc, argv);
+    QApplication app(argc, argv);
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &g_mpiRank);
@@ -162,7 +155,7 @@ int main(int argc, char * argv[])
     }
 
     // enter Qt event loop
-    g_app->exec();
+    app.exec();
 
     put_flog(LOG_DEBUG, "quitting");
 

@@ -38,7 +38,8 @@
 
 #include "Content.h"
 #include "ContentWindowManager.h"
-#include "main.h"
+#include "DisplayGroupManager.h"
+#include "globals.h"
 #include "GLWindow.h"
 #include "log.h"
 #include <QGLWidget>

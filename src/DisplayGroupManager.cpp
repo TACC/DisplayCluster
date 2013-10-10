@@ -40,8 +40,10 @@
 #include "ContentWindowManager.h"
 #include "ContentFactory.h"
 #include "Content.h"
-#include "main.h"
+#include "Configuration.h"
+#include "globals.h"
 #include "log.h"
+#include "MainWindow.h"
 #include "PixelStreamContent.h"
 #include "SVGStreamSource.h"
 #include "SVGContent.h"
@@ -53,6 +55,7 @@
 #include <boost/algorithm/string.hpp>
 #include <mpi.h>
 #include <fstream>
+#include <QSvgRenderer>
 #include "StatePreview.h"
 
 DisplayGroupManager::DisplayGroupManager()
@@ -393,7 +396,7 @@ void DisplayGroupManager::receiveMessages()
             }
             else if(mh.type == MESSAGE_TYPE_QUIT)
             {
-                g_app->quit();
+                QApplication::instance()->quit();
                 return;
             }
 

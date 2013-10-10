@@ -41,9 +41,11 @@
 
 #include <QtGui>
 
-#include "main.h"
+#include "globals.h"
+#include "Configuration.h"
 #include "ContentFactory.h"
 #include "ContentWindowManager.h"
+#include "DisplayGroupManager.h"
 
 BackgroundWidget::BackgroundWidget(QWidget *parent) :
     QDialog(parent)

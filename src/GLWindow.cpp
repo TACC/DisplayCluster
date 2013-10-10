@@ -37,9 +37,12 @@
 /*********************************************************************/
 
 #include "GLWindow.h"
-#include "main.h"
+#include "globals.h"
 #include "Marker.h"
+#include "Configuration.h"
 #include "ContentWindowManager.h"
+#include "DisplayGroupManager.h"
+#include "MainWindow.h"
 #include "log.h"
 #include <QtOpenGL>
 #include <boost/shared_ptr.hpp>
@@ -278,8 +281,8 @@ void GLWindow::setOrthographicView()
     gluOrtho2D(left_, right_, bottom_, top_);
     glPushMatrix();
 
-    glMatrixMode(GL_MODELVIEW); 
-    glLoadIdentity();	
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
 
     QColor color = g_displayGroupManager->getBackgroundColor();
     glClearColor(color.redF(), color.greenF(), color.blueF(), color.alpha());

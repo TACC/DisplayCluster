@@ -39,8 +39,8 @@
 
 #include "PDFThumbnailGenerator.h"
 
-#include "PDF.h"
-#include "log.h"
+#include "../PDF.h"
+#include "../log.h"
 
 PDFThumbnailGenerator::PDFThumbnailGenerator(const QSize &size)
     : ThumbnailGenerator(size)

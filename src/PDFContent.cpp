@@ -38,8 +38,10 @@
 /*********************************************************************/
 
 #include "PDFContent.h"
-#include "main.h"
+#include "MainWindow.h"
+#include "globals.h"
 #include <boost/serialization/export.hpp>
+#include "serializationHelpers.h"
 
 BOOST_CLASS_EXPORT_GUID(PDFContent, "PDFContent")
 

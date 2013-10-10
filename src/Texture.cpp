@@ -37,8 +37,9 @@
 /*********************************************************************/
 
 #include "Texture.h"
-#include "main.h"
+#include "globals.h"
 #include "log.h"
+#include "MainWindow.h"
 
 Texture::Texture(QString uri)
 {

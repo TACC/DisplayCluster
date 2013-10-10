@@ -40,7 +40,7 @@
 #ifndef PYRAMIDTHUMBNAILGENERATOR_H
 #define PYRAMIDTHUMBNAILGENERATOR_H
 
-#include "thumbnail/ThumbnailGenerator.h"
+#include "ThumbnailGenerator.h"
 
 class PyramidThumbnailGenerator : public ThumbnailGenerator
 {

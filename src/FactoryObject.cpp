@@ -37,7 +37,7 @@
 /*********************************************************************/
 
 #include "FactoryObject.h"
-#include "main.h"
+#include "globals.h"
 
 long FactoryObject::getRenderedFrameCount()
 {

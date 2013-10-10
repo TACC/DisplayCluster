@@ -37,8 +37,9 @@
 /*********************************************************************/
 
 #include "SVG.h"
-#include "main.h"
+#include "globals.h"
 #include "log.h"
+#include "MainWindow.h"
 
 
 SVG::SVG(QString uri)

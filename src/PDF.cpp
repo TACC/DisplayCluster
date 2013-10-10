@@ -50,7 +50,8 @@
 #error PopplerPixelStreamer needs Qt4 or Qt5
 #endif
 
-#include "main.h"
+#include "globals.h"
+#include "MainWindow.h"
 #include "log.h"
 
 #define INVALID_PAGE_NUMBER -1

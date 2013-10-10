@@ -44,8 +44,8 @@
 
 #include "ThumbnailGeneratorFactory.h"
 #include "ThumbnailGenerator.h"
-#include "ContentFactory.h"
-#include "log.h"
+#include "../ContentFactory.h"
+#include "../log.h"
 
 #define FOLDER_THUMBNAIL_COUNT_X  2
 #define FOLDER_THUMBNAIL_COUNT_Y  2

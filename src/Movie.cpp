@@ -37,7 +37,9 @@
 /*********************************************************************/
 
 #include "Movie.h"
-#include "main.h"
+#include "globals.h"
+#include "DisplayGroupManager.h"
+#include "MainWindow.h"
 #include "log.h"
 
 Movie::Movie(QString uri)

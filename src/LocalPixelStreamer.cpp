@@ -38,7 +38,7 @@
 /*********************************************************************/
 
 #include "LocalPixelStreamer.h"
-#include "main.h"
+#include "globals.h"
 
 LocalPixelStreamer::LocalPixelStreamer(QString uri)
     : uri_(uri)

@@ -38,7 +38,10 @@
 
 #include "Marker.h"
 #include "log.h"
-#include "main.h"
+#include "Configuration.h"
+#include "globals.h"
+#include "DisplayGroupManager.h"
+#include "MainWindow.h"
 #include <QGLWidget>
 
 #define MARKER_IMAGE_FILENAME "data/marker.png"

@@ -37,8 +37,9 @@
 /*********************************************************************/
 
 #include "Configuration.h"
+#include "DisplayGroupManager.h"
 #include "log.h"
-#include "main.h"
+#include "globals.h"
 
 #include <QDomElement>
 

@@ -40,10 +40,12 @@
 #include "DockPixelStreamer.h"
 
 #include "Pictureflow.h"
+#include "Configuration.h"
 #include "Content.h"
 #include "ContentFactory.h"
 #include "ContentWindowManager.h"
-#include "main.h"
+#include "DisplayGroupManager.h"
+#include "globals.h"
 #include "types.h"
 #include "AsyncImageLoader.h"
 #include "thumbnail/ThumbnailGeneratorFactory.h"
