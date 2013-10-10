@@ -43,6 +43,7 @@
 #include "ContentInteractionDelegate.h"
 #include "Configuration.h"
 #include "GLWindow.h"
+#include "config.h"
 
 // Specialized delegate implementations
 #include "PixelStreamInteractionDelegate.h"

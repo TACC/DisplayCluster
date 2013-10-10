@@ -41,6 +41,7 @@
 
 #include "log.h"
 #include "globals.h"
+#include "config.h"
 
 #include "Content.h"
 #include "TextureContent.h"
@@ -50,6 +51,7 @@
 #if ENABLE_PDF_SUPPORT
 #  include "PDFContent.h"
 #  include "PDF.h"
+#  include "DisplayGroupManager.h"
 #endif
 
 #define ERROR_IMAGE_FILENAME "data/error.png"
