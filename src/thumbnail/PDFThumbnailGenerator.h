@@ -37,69 +37,18 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DOCKPIXELSTREAMER_H
-#define DOCKPIXELSTREAMER_H
+#ifndef PDFTHUMBNAILGENERATOR_H
+#define PDFTHUMBNAILGENERATOR_H
 
-#include "LocalPixelStreamer.h"
+#include "thumbnail/ThumbnailGenerator.h"
 
-#include <QtCore/QDir>
-#include <QtCore/QObject>
-#include <QtCore/QThread>
-#include <QtCore/QHash>
-#include <QtCore/QVector>
-#include <QtCore/QLinkedList>
-#include <QtGui/QImage>
-
-class PictureFlow;
-class AsyncImageLoader;
-
-class DockPixelStreamer : public LocalPixelStreamer
+class PDFThumbnailGenerator : public ThumbnailGenerator
 {
-    Q_OBJECT
-
 public:
+    PDFThumbnailGenerator(const QSize& size);
 
-    DockPixelStreamer();
-    ~DockPixelStreamer();
+    virtual QImage generate(const QString& filename) const;
 
-    virtual QSize size() const;
-
-    static QString getUniqueURI();
-
-    void open();
-
-    void onItem();
-
-public slots:
-    void update(const QImage &image);
-    void loadThumbnails(int newCenterIndex);
-    void loadNextThumbnailInList();
-
-    virtual void updateInteractionState(InteractionState interactionState);
-
-signals:
-    void renderPreview( const QString& fileName, const int index );
-
-private:
-
-    QThread loadThread_;
-
-    PictureFlow* flow_;
-    AsyncImageLoader* loader_;
-
-    QDir currentDir_;
-    QHash< QString, int > slideIndex_;
-
-    typedef QPair<bool, QString> SlideImageLoadingStatus;
-    QVector<SlideImageLoadingStatus> slideImagesLoaded_;
-    QLinkedList<int> slideImagesToLoad_;
-
-    PixelStreamSegmentParameters makeSegmentHeader();
-    bool openFile(const QString &filename);
-    void changeDirectory( const QString& dir );
-    void addRootDirToFlow();
-    void addFilesToFlow();
-    void addFoldersToFlow();
 };
 
-#endif // DOCKPIXELSTREAMER_H
+#endif // PDFTHUMBNAILGENERATOR_H

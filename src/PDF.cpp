@@ -137,6 +137,11 @@ int PDF::getPageCount() const
     return pdfDoc_->numPages();
 }
 
+QImage PDF::renderToImage() const
+{
+    return pdfPage_->renderToImage();
+}
+
 void PDF::getDimensions(int &width, int &height) const
 {
     width = pdfPage_ ? pdfPage_->pageSize().width() : 0;

@@ -37,69 +37,55 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DOCKPIXELSTREAMER_H
-#define DOCKPIXELSTREAMER_H
+#ifndef STATEPREVIEW_H
+#define STATEPREVIEW_H
 
-#include "LocalPixelStreamer.h"
+#include <QString>
+#include <QSize>
+#include <QImage>
+#include "types.h"
 
-#include <QtCore/QDir>
-#include <QtCore/QObject>
-#include <QtCore/QThread>
-#include <QtCore/QHash>
-#include <QtCore/QVector>
-#include <QtCore/QLinkedList>
-#include <QtGui/QImage>
+class ContentWindowManager;
 
-class PictureFlow;
-class AsyncImageLoader;
-
-class DockPixelStreamer : public LocalPixelStreamer
+/**
+ * A state preview is a thumbnail image saved alongside a state file.
+ * It uses the same filename but a specific file extension
+ * to differenciate it from other media in the folder.
+ */
+class StatePreview
 {
-    Q_OBJECT
-
 public:
+    StatePreview(const QString& dcxFileName);
 
-    DockPixelStreamer();
-    ~DockPixelStreamer();
+    static QString getFileExtension();
 
-    virtual QSize size() const;
+    /**
+     * Load the thumbnail image from disk.
+     */
+    bool loadFromFile();
 
-    static QString getUniqueURI();
+    /**
+     * Retrieve the image loaded with loadFromFile() or generated with generateImage().
+     */
+    QImage getImage() const;
 
-    void open();
+    /**
+     * Generate the preview image from a list of ContentWindowManagers.
+     * @param wallDimensions the total dimensions of the wall in pixels, used to position the contents
+     * @param contentWindowManagers the contents to include in the preview
+     */
+    void generateImage(const QSize& wallDimensions, const ContentWindowManagerPtrs& contentWindowManagers);
 
-    void onItem();
+    /**
+     * Save the thumbnail created by generateImage() to a file based on the state file name.
+     */
+    bool saveToFile() const;
 
-public slots:
-    void update(const QImage &image);
-    void loadThumbnails(int newCenterIndex);
-    void loadNextThumbnailInList();
+protected:
+    QString previewFilename() const;
 
-    virtual void updateInteractionState(InteractionState interactionState);
-
-signals:
-    void renderPreview( const QString& fileName, const int index );
-
-private:
-
-    QThread loadThread_;
-
-    PictureFlow* flow_;
-    AsyncImageLoader* loader_;
-
-    QDir currentDir_;
-    QHash< QString, int > slideIndex_;
-
-    typedef QPair<bool, QString> SlideImageLoadingStatus;
-    QVector<SlideImageLoadingStatus> slideImagesLoaded_;
-    QLinkedList<int> slideImagesToLoad_;
-
-    PixelStreamSegmentParameters makeSegmentHeader();
-    bool openFile(const QString &filename);
-    void changeDirectory( const QString& dir );
-    void addRootDirToFlow();
-    void addFilesToFlow();
-    void addFoldersToFlow();
+    QString dcxFileName_;
+    QImage previewImage_;
 };
 
-#endif // DOCKPIXELSTREAMER_H
+#endif // STATEPREVIEW_H

@@ -37,69 +37,66 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DOCKPIXELSTREAMER_H
-#define DOCKPIXELSTREAMER_H
+#include "ThumbnailGenerator.h"
 
-#include "LocalPixelStreamer.h"
+#include <QPainter>
 
-#include <QtCore/QDir>
-#include <QtCore/QObject>
-#include <QtCore/QThread>
-#include <QtCore/QHash>
-#include <QtCore/QVector>
-#include <QtCore/QLinkedList>
-#include <QtGui/QImage>
+#define GRADIENT_START_X   0.4
+#define GRADIENT_END_X     0.6
+#define GRADIENT_START_Y   0
+#define GRADIENT_END_Y     1
 
-class PictureFlow;
-class AsyncImageLoader;
+#define THUMBNAIL_FONT_SIZE 30
 
-class DockPixelStreamer : public LocalPixelStreamer
+// TODO change this when the slide show is adapted to keep aspect ratio
+#define ASPECT_RATIO Qt::IgnoreAspectRatio
+
+ThumbnailGenerator::ThumbnailGenerator(const QSize &size)
+    : size_(size)
+    , aspectRatioMode_(ASPECT_RATIO)
 {
-    Q_OBJECT
+}
 
-public:
+void ThumbnailGenerator::addMetadataToImage(QImage &img, const QString &url) const
+{
+    img.setText("source", url);
+}
 
-    DockPixelStreamer();
-    ~DockPixelStreamer();
+QImage ThumbnailGenerator::createErrorImage(const QString &message) const
+{
+    QImage img = createGradientImage(Qt::red, Qt::darkRed);
+    paintText(img, message);
+    return img;
+}
 
-    virtual QSize size() const;
+QImage ThumbnailGenerator::createGradientImage( const QColor& bgcolor1, const QColor& bgcolor2 ) const
+{
+    QImage img( size_, QImage::Format_RGB32 );
 
-    static QString getUniqueURI();
+    QPainter painter( &img );
+    QPoint p1( GRADIENT_START_X * img.width(), GRADIENT_START_Y * img.height( ));
+    QPoint p2( GRADIENT_END_X   * img.width(), GRADIENT_END_Y   * img.height( ));
+    QLinearGradient linearGrad( p1, p2 );
+    linearGrad.setColorAt( 0, bgcolor1 );
+    linearGrad.setColorAt( 1, bgcolor2 );
+    painter.setBrush(linearGrad);
+    painter.fillRect( 0, 0, img.width(), img.height(), QBrush(linearGrad));
+    painter.end();
 
-    void open();
+    return img;
+}
 
-    void onItem();
+void ThumbnailGenerator::paintText(QImage& img, const QString& text) const
+{
+    QFont font;
+    font.setStyleHint(QFont::Times, QFont::PreferAntialias);
+    font.setPointSize(THUMBNAIL_FONT_SIZE);
 
-public slots:
-    void update(const QImage &image);
-    void loadThumbnails(int newCenterIndex);
-    void loadNextThumbnailInList();
-
-    virtual void updateInteractionState(InteractionState interactionState);
-
-signals:
-    void renderPreview( const QString& fileName, const int index );
-
-private:
-
-    QThread loadThread_;
-
-    PictureFlow* flow_;
-    AsyncImageLoader* loader_;
-
-    QDir currentDir_;
-    QHash< QString, int > slideIndex_;
-
-    typedef QPair<bool, QString> SlideImageLoadingStatus;
-    QVector<SlideImageLoadingStatus> slideImagesLoaded_;
-    QLinkedList<int> slideImagesToLoad_;
-
-    PixelStreamSegmentParameters makeSegmentHeader();
-    bool openFile(const QString &filename);
-    void changeDirectory( const QString& dir );
-    void addRootDirToFlow();
-    void addFilesToFlow();
-    void addFoldersToFlow();
-};
-
-#endif // DOCKPIXELSTREAMER_H
+    QPainter painter( &img );
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setBrush(Qt::black);
+    painter.setFont(font);
+    int flags = Qt::AlignVCenter | Qt::AlignHCenter | Qt::TextWrapAnywhere;
+    painter.drawText(img.rect(), flags, text);
+    painter.end();
+}

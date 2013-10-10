@@ -71,6 +71,8 @@ class Movie : public FactoryObject {
         Movie(QString uri);
         ~Movie();
 
+        static void initFFMPEGGlobalState();
+
         void getDimensions(int &width, int &height);
         void render(float tX, float tY, float tW, float tH);
         void nextFrame(bool skip);

@@ -53,6 +53,7 @@
 #include <boost/algorithm/string.hpp>
 #include <mpi.h>
 #include <fstream>
+#include "StatePreview.h"
 
 DisplayGroupManager::DisplayGroupManager()
 {
@@ -316,7 +317,14 @@ boost::shared_ptr<DisplayGroupInterface> DisplayGroupManager::getDisplayGroupInt
 
 bool DisplayGroupManager::saveStateXMLFile( const QString& filename )
 {
-    return state_.saveXML( filename, getContentWindowManagers( ));
+    ContentWindowManagerPtrs contentWindowManagers = getContentWindowManagers();
+
+    const QSize wallDimensions(g_configuration->getTotalWidth(), g_configuration->getTotalHeight());
+    StatePreview filePreview(filename);
+    filePreview.generateImage(wallDimensions, contentWindowManagers);
+    filePreview.saveToFile();
+
+    return state_.saveXML( filename, contentWindowManagers);
 }
 
 bool DisplayGroupManager::loadStateXMLFile( const QString& filename )

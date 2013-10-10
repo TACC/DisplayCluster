@@ -37,69 +37,97 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DOCKPIXELSTREAMER_H
-#define DOCKPIXELSTREAMER_H
+#include "StatePreview.h"
 
-#include "LocalPixelStreamer.h"
+#include <QRectF>
 
-#include <QtCore/QDir>
-#include <QtCore/QObject>
-#include <QtCore/QThread>
-#include <QtCore/QHash>
-#include <QtCore/QVector>
-#include <QtCore/QLinkedList>
-#include <QtGui/QImage>
+#include "ContentWindowManager.h"
+#include "log.h"
 
-class PictureFlow;
-class AsyncImageLoader;
+#include "thumbnail/ThumbnailGeneratorFactory.h"
+#include "thumbnail/ThumbnailGenerator.h"
 
-class DockPixelStreamer : public LocalPixelStreamer
+#define PREVIEW_IMAGE_SIZE       512
+#define CONTENT_THUMBNAIL_SIZE   128
+
+StatePreview::StatePreview(const QString &dcxFileName)
+    : dcxFileName_(dcxFileName)
 {
-    Q_OBJECT
+}
 
-public:
+QString StatePreview::getFileExtension()
+{
+    return QString(".dcxpreview");
+}
 
-    DockPixelStreamer();
-    ~DockPixelStreamer();
+QImage StatePreview::getImage() const
+{
+    return previewImage_;
+}
 
-    virtual QSize size() const;
+QString StatePreview::previewFilename() const
+{
+    QFileInfo fileinfo(dcxFileName_);
 
-    static QString getUniqueURI();
+    if (fileinfo.suffix().toLower() != "dcx")
+    {
+        put_flog(LOG_WARN, "wrong state file extension (expected .dcx)");
+        return QString();
+    }
+    return fileinfo.path() + "/" + fileinfo.completeBaseName() + getFileExtension();
+}
 
-    void open();
+void StatePreview::generateImage(const QSize& wallDimensions, const ContentWindowManagerPtrs &contentWindowManagers)
+{
+    QSize previewDimension(wallDimensions);
+    previewDimension.scale(QSize(PREVIEW_IMAGE_SIZE, PREVIEW_IMAGE_SIZE), Qt::KeepAspectRatio);
 
-    void onItem();
+    // Transparent image
+    QImage preview(wallDimensions, QImage::Format_ARGB32);
+    preview.fill(qRgba(0,0,0,0));
 
-public slots:
-    void update(const QImage &image);
-    void loadThumbnails(int newCenterIndex);
-    void loadNextThumbnailInList();
+    // Paint all Contents at their correct location
+    QPainter painter(&preview);
+    const QSize contentThumbnailSize(CONTENT_THUMBNAIL_SIZE, CONTENT_THUMBNAIL_SIZE);
 
-    virtual void updateInteractionState(InteractionState interactionState);
+    for(size_t i=0; i<contentWindowManagers.size(); i++)
+    {
+        ContentWindowManager* cwm = contentWindowManagers[i].get();
+        if (cwm->getContent()->getType() != CONTENT_TYPE_PIXEL_STREAM)
+        {
+            // Use ThumbnailFactory to generate thumbnails for the Contents
+            const QString& filename = contentWindowManagers[i]->getContent()->getURI();
+            QImage image = ThumbnailGeneratorFactory::getGenerator(filename, contentThumbnailSize)->generate(filename);
 
-signals:
-    void renderPreview( const QString& fileName, const int index );
+            double x, y, w ,h;
+            cwm->getCoordinates(x, y, w ,h);
+            QRectF area(x*preview.size().width(), y*preview.size().height(), w*preview.size().width(), h*preview.size().height());
 
-private:
+            painter.drawImage(area, image);
+        }
+    }
 
-    QThread loadThread_;
+    painter.end();
 
-    PictureFlow* flow_;
-    AsyncImageLoader* loader_;
+    previewImage_ = preview;
+}
 
-    QDir currentDir_;
-    QHash< QString, int > slideIndex_;
+bool StatePreview::saveToFile() const
+{
+    bool success = previewImage_.save(previewFilename(), "PNG");
 
-    typedef QPair<bool, QString> SlideImageLoadingStatus;
-    QVector<SlideImageLoadingStatus> slideImagesLoaded_;
-    QLinkedList<int> slideImagesToLoad_;
+    if (!success)
+        put_flog(LOG_ERROR, "Saving StatePreview image failed: %s", previewFilename().toLocal8Bit().constData());
 
-    PixelStreamSegmentParameters makeSegmentHeader();
-    bool openFile(const QString &filename);
-    void changeDirectory( const QString& dir );
-    void addRootDirToFlow();
-    void addFilesToFlow();
-    void addFoldersToFlow();
-};
+    return success;
+}
 
-#endif // DOCKPIXELSTREAMER_H
+bool StatePreview::loadFromFile()
+{
+    QImageReader reader(previewFilename());
+    if (reader.canRead())
+    {
+        return reader.read(&previewImage_);
+    }
+    return false;
+}

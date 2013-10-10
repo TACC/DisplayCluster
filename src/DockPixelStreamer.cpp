@@ -43,32 +43,20 @@
 #include "Content.h"
 #include "ContentFactory.h"
 #include "ContentWindowManager.h"
-#include "MovieContent.h"
 #include "main.h"
+#include "types.h"
+#include "AsyncImageLoader.h"
+#include "thumbnail/ThumbnailGeneratorFactory.h"
+#include "thumbnail/FolderThumbnailGenerator.h"
 
-namespace
-{
-QImage createSlideImage_( const QSize& size, const QString& fileName,
-                          const bool isDir, const QColor& bgcolor1,
-                          const QColor& bgcolor2 )
-{
-    QImage img( size, QImage::Format_RGB32 );
-    img.setText( "source", fileName );
-    if( isDir)
-        img.setText( "dir", "true" );
-    QPainter painter( &img );
-    QPoint p1( img.width()*4/10, 0 );
-    QPoint p2( img.width()*6/10, img.height( ));
-    QLinearGradient linearGrad( p1, p2 );
-    linearGrad.setColorAt( 0, bgcolor1 );
-    linearGrad.setColorAt( 1, bgcolor2 );
-    painter.setBrush(linearGrad);
-    painter.fillRect( 0, 0, img.width(), img.height(), QBrush(linearGrad));
-    painter.end();
-    return img;
-}
-}
+#define COVERFLOW_SLIDE_RELATIVE_WIDTH   0.05
+#define SLIDE_SIZE_MIN  128
+#define SLIDE_SIZE_MAX  512
 
+#define COVERFLOW_WIDTH_FACTOR   3.5
+#define COVERFLOW_HEIGHT_FACTOR  1.5
+
+#define COVERFLOW_SPEED_FACTOR 0.1
 
 QString DockPixelStreamer::getUniqueURI()
 {
@@ -78,16 +66,14 @@ QString DockPixelStreamer::getUniqueURI()
 DockPixelStreamer::DockPixelStreamer()
     : LocalPixelStreamer(getUniqueURI())
 {
-    av_register_all();
-
+    const int coverflowSlideSize = std::max(std::min((int)(g_configuration->getTotalWidth()*COVERFLOW_SLIDE_RELATIVE_WIDTH), SLIDE_SIZE_MAX), SLIDE_SIZE_MIN);
     flow_ = new PictureFlow;
-    flow_->resize( g_configuration->getTotalWidth()/8,
-                   g_configuration->getTotalHeight()/8 );
-    const int height = flow_->height() * .8;
-    flow_->setSlideSize( QSize( 0.6 * height, height ));
+    flow_->resize(COVERFLOW_WIDTH_FACTOR*coverflowSlideSize, COVERFLOW_HEIGHT_FACTOR*coverflowSlideSize);
+    flow_->setSlideSize( QSize( coverflowSlideSize, coverflowSlideSize ));
     flow_->setBackgroundColor( Qt::darkGray );
 
     connect( flow_, SIGNAL( imageUpdated( const QImage& )), this, SLOT( update( const QImage& )));
+    connect( flow_, SIGNAL( targetIndexChanged(int)), this, SLOT(loadThumbnails(int)) );
 
     loader_ = new AsyncImageLoader(flow_->slideSize());
     loader_->moveToThread( &loadThread_ );
@@ -95,6 +81,8 @@ DockPixelStreamer::DockPixelStreamer()
              flow_, SLOT(setSlide( int, QImage )));
     connect( this, SIGNAL(renderPreview( const QString&, const int )),
              loader_, SLOT(loadImage( const QString&, const int )));
+    connect( loader_, SIGNAL(imageLoadingFinished()),
+             this, SLOT(loadNextThumbnailInList()));
     loadThread_.start();
 
     changeDirectory( g_configuration->getDockStartDir( ));
@@ -129,15 +117,15 @@ void DockPixelStreamer::updateInteractionState(InteractionState interactionState
         else
         {
             if( xPos > dockHalfWidth )
-              flow_->showNext();
+                flow_->showNext();
             else
-              flow_->showPrevious();
+                flow_->showPrevious();
         }
     }
 
     else if (interactionState.type == InteractionState::EVT_MOVE || interactionState.type == InteractionState::EVT_WHEEL)
     {
-        const int offs = interactionState.dx * flow_->size().width() / 4;
+        const int offs = interactionState.dx * flow_->size().width() * COVERFLOW_SPEED_FACTOR;
         flow_->showSlide( flow_->centerIndex() - offs );
     }
 }
@@ -160,29 +148,9 @@ void DockPixelStreamer::onItem()
 
     if( image.text( "dir" ).isEmpty( ))
     {
-        const QString extension = QFileInfo(source).suffix().toLower();
-        if( extension == "dcx" )
+        if (openFile( source ))
         {
-            g_displayGroupManager->loadStateXMLFile( source );
-
-            emit(streamClosed(getUniqueURI()));
-        }
-        else {
-            boost::shared_ptr< Content > c = ContentFactory::getContent( source );
-            if( c )
-            {
-                boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
-                g_displayGroupManager->addContentWindowManager( cwm );
-                cwm->adjustSize( SIZE_1TO1 ); // TODO Remove this when content dimensions request is no longer needed
-
-                // Center the content where the dock is
-                boost::shared_ptr<ContentWindowManager> dockCwm = g_displayGroupManager->getContentWindowManager(getUniqueURI(), CONTENT_TYPE_PIXEL_STREAM);
-                double dockX, dockY;
-                dockCwm->getPosition(dockX, dockY);
-                cwm->centerPositionAround(dockX, dockY, true);
-
-                emit(streamClosed(getUniqueURI()));
-            }
+            emit(streamClosed(getUniqueURI())); // Hide the dock
         }
     }
     else
@@ -202,6 +170,36 @@ void DockPixelStreamer::update(const QImage& image)
     emit segmentUpdated(uri_, segment);
 }
 
+void DockPixelStreamer::loadThumbnails(int newCenterIndex)
+{
+    const int nbThumbnails = 2;
+
+    slideImagesToLoad_.clear();
+
+    int imin = std::max(newCenterIndex-nbThumbnails, 0);
+    int imax = std::min(newCenterIndex+nbThumbnails, slideImagesLoaded_.size()-1);
+    for (int i=imin; i<=imax; i++)
+    {
+        slideImagesToLoad_.append(i);
+    }
+    loadNextThumbnailInList();
+}
+
+void DockPixelStreamer::loadNextThumbnailInList()
+{
+    while(!slideImagesToLoad_.empty())
+    {
+        int i = slideImagesToLoad_.front();
+        slideImagesToLoad_.pop_front();
+        if (!slideImagesLoaded_[i].first)
+        {
+            slideImagesLoaded_[i].first = true;
+            emit renderPreview( slideImagesLoaded_[i].second, i );
+            return;
+        }
+    }
+}
+
 PixelStreamSegmentParameters DockPixelStreamer::makeSegmentHeader()
 {
     PixelStreamSegmentParameters parameters;
@@ -213,196 +211,104 @@ PixelStreamSegmentParameters DockPixelStreamer::makeSegmentHeader()
     return parameters;
 }
 
+bool DockPixelStreamer::openFile(const QString& filename)
+{
+    const QString& extension = QFileInfo(filename).suffix().toLower();
+
+    if( extension == "dcx" )
+    {
+        return g_displayGroupManager->loadStateXMLFile( filename );
+    }
+
+    ContentPtr content = ContentFactory::getContent( filename );
+    if( !content )
+    {
+        return false;
+    }
+
+    ContentWindowManagerPtr cwm(new ContentWindowManager(content));
+    g_displayGroupManager->addContentWindowManager( cwm );
+    cwm->adjustSize( SIZE_1TO1 ); // TODO Remove this when content dimensions request is no longer needed
+
+    // Center the content where the dock is
+    ContentWindowManagerPtr dockCwm = g_displayGroupManager->getContentWindowManager(getUniqueURI(), CONTENT_TYPE_PIXEL_STREAM);
+    double dockCenterX, dockCenterY;
+    dockCwm->getWindowCenterPosition(dockCenterX, dockCenterY);
+    cwm->centerPositionAround(dockCenterX, dockCenterY, true);
+
+    return true;
+}
+
 void DockPixelStreamer::changeDirectory( const QString& dir )
 {
     slideIndex_[currentDir_.path()] = flow_->centerIndex();
 
     flow_->clear();
+    slideImagesToLoad_.clear();
+    slideImagesLoaded_.clear();
 
     currentDir_ = dir;
+    addRootDirToFlow();
+    addFilesToFlow();
+    addFoldersToFlow();
+
+    flow_->setCenterIndex( slideIndex_[currentDir_.path()] );
+    loadThumbnails( slideIndex_[currentDir_.path()] );
+}
+
+void DockPixelStreamer::addRootDirToFlow()
+{
+    QDir rootDir = currentDir_;
+    const bool hasRootDir = rootDir.cdUp();
+
+    if( hasRootDir)
+    {
+        FolderThumbnailGeneratorPtr folderGenerator = ThumbnailGeneratorFactory::getFolderGenerator(flow_->slideSize());
+
+        QImage img = folderGenerator->generateUpFolderImage(rootDir);
+        flow_->addSlide( img, "UP: " + rootDir.path() );
+        slideImagesLoaded_.append(qMakePair(true, QString()));
+    }
+}
+
+void DockPixelStreamer::addFilesToFlow()
+{
     currentDir_.setFilter( QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot );
     QStringList filters = ContentFactory::getSupportedFilesFilter();
     filters.append( "*.dcx" );
     currentDir_.setNameFilters( filters );
     const QFileInfoList& fileList = currentDir_.entryInfoList();
 
+    ThumbnailGeneratorPtr defaultGenerator = ThumbnailGeneratorFactory::getDefaultGenerator(flow_->slideSize());
+
+    for( int i = 0; i < fileList.size(); ++i )
+    {
+        const QFileInfo& fileInfo = fileList.at( i );
+        const QString& fileName = currentDir_.absoluteFilePath( fileInfo.fileName( ));
+        QImage img = defaultGenerator->generate(fileName);
+        flow_->addSlide( img, fileInfo.fileName( ));
+        slideImagesLoaded_.append(qMakePair(false, fileName));
+    }
+}
+
+
+void DockPixelStreamer::addFoldersToFlow()
+{
     currentDir_.setFilter( QDir::Dirs | QDir::NoDotAndDotDot );
     currentDir_.setNameFilters( QStringList( ));
     const QFileInfoList& dirList = currentDir_.entryInfoList();
 
-    QDir rootDir = dir;
-    const bool hasRootDir = rootDir.cdUp();
-
-    if( hasRootDir)
-    {
-        QString upFolder = rootDir.path();
-        QImage img = createSlideImage_( flow_->slideSize(), upFolder, true,
-                                        Qt::darkGray, Qt::lightGray );
-        flow_->addSlide( img, "UP: " + upFolder );
-    }
-
-    for( int i = 0; i < fileList.size(); ++i )
-    {
-        QFileInfo fileInfo = fileList.at( i );
-        const QString& fileName = currentDir_.absoluteFilePath( fileInfo.fileName( ));
-        QImage img = createSlideImage_( flow_->slideSize(), fileName, false,
-                                        Qt::black, Qt::white );
-        flow_->addSlide( img, fileInfo.fileName( ));
-        emit renderPreview( fileName, flow_->slideCount()-1 );
-    }
+    FolderThumbnailGeneratorPtr folderGenerator = ThumbnailGeneratorFactory::getFolderGenerator(flow_->slideSize());
 
     for( int i = 0; i < dirList.size(); ++i )
     {
-        QFileInfo fileInfo = dirList.at( i );
+        const QFileInfo& fileInfo = dirList.at( i );
         const QString& fileName = currentDir_.absoluteFilePath( fileInfo.fileName( ));
         if( !fileName.endsWith( ".pyramid" ))
         {
-            QImage img = createSlideImage_( flow_->slideSize(), fileName, true,
-                                            Qt::black, Qt::white );
+            QImage img = folderGenerator->generatePlaceholderImage(QDir(fileName));
             flow_->addSlide( img, fileInfo.fileName( ));
+            slideImagesLoaded_.append(qMakePair(false, fileName));
         }
     }
-
-    flow_->setCenterIndex( slideIndex_[currentDir_.path()] );
-}
-
-
-
-AsyncImageLoader::AsyncImageLoader(QSize defaultSize)
-    : defaultSize_(defaultSize)
-{
-}
-
-void AsyncImageLoader::loadImage( const QString& fileName, const int index )
-{
-    const QString extension = QFileInfo(fileName).suffix().toLower();
-
-    if( extension == "dcx" )
-    {
-        QImage image = createSlideImage_( defaultSize_, fileName, false,
-                                        Qt::darkCyan, Qt::cyan );
-        emit imageLoaded(index, image);
-        return;
-    }
-
-    if( extension == "pyr" )
-    {
-        QImageReader reader( fileName + "amid/0.jpg" );
-        QImage image = reader.read();
-        image.setText( "source", fileName );
-        emit imageLoaded(index, image);
-        return;
-    }
-
-    QImageReader reader( fileName );
-    if( reader.canRead( ))
-    {
-        QImage image = reader.read();
-        image.setText( "source", fileName );
-        emit imageLoaded(index, image);
-        return;
-    }
-    else if( reader.error() != QImageReader::UnsupportedFormatError )
-        return;
-
-    if( !MovieContent::getSupportedExtensions().contains( extension ))
-        return;
-
-    AVFormatContext* avFormatContext;
-    if( avformat_open_input( &avFormatContext, fileName.toAscii(), 0, 0 ) != 0 )
-        return;
-
-    if( avformat_find_stream_info( avFormatContext, 0 ) < 0 )
-        return;
-
-    // find the first video stream
-    int streamIdx = -1;
-    for( unsigned int i = 0; i < avFormatContext->nb_streams; ++i )
-    {
-        if( avFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO )
-        {
-            streamIdx = i;
-            break;
-        }
-    }
-
-    if( streamIdx == -1 )
-        return;
-
-    AVStream* videostream = avFormatContext->streams[streamIdx];
-    AVCodecContext* avCodecContext = videostream->codec;
-    AVCodec* codec = avcodec_find_decoder( avCodecContext->codec_id );
-    if( !codec )
-        return;
-
-    if( avcodec_open2( avCodecContext, codec, 0 ) < 0 )
-        return;
-
-    AVFrame* avFrame = avcodec_alloc_frame();
-    AVFrame* avFrameRGB = avcodec_alloc_frame();
-
-    QImage image( avCodecContext->width, avCodecContext->height,
-                  QImage::Format_RGB32 );
-    int numBytes = avpicture_get_size( PIX_FMT_RGB24, image.width(),
-                                       image.height( ));
-    uint8_t* buffer = (uint8_t*)av_malloc( numBytes * sizeof(uint8_t));
-    avpicture_fill( (AVPicture*)avFrameRGB, buffer, PIX_FMT_RGB24,
-                    image.width(), image.height( ));
-
-    SwsContext* swsContext = sws_getContext( avCodecContext->width,
-                                             avCodecContext->height,
-                                             avCodecContext->pix_fmt,
-                                             image.width(), image.height(),
-                                             PIX_FMT_RGB24, SWS_FAST_BILINEAR,
-                                             0, 0, 0 );
-
-    // seek to 10% of movie time
-    const int64_t den2 = videostream->time_base.den * videostream->r_frame_rate.den;
-    const int64_t num2 = videostream->time_base.num * videostream->r_frame_rate.num;
-    const int64_t num_frames = av_rescale( videostream->duration, num2, den2 );
-    const int64_t desiredTimestamp = videostream->start_time +
-                                       av_rescale( num_frames / 10, den2, num2 );
-    if( avformat_seek_file( avFormatContext, streamIdx, 0, desiredTimestamp,
-                            desiredTimestamp, 0 ) != 0 )
-    {
-        return;
-    }
-
-    AVPacket packet;
-    while( av_read_frame( avFormatContext, &packet ) >= 0 )
-    {
-        if( packet.stream_index != streamIdx )
-            continue;
-
-        int frameFinished;
-        avcodec_decode_video2( avCodecContext, avFrame, &frameFinished,
-                               &packet );
-
-        if( !frameFinished )
-            continue;
-
-        sws_scale( swsContext, avFrame->data, avFrame->linesize, 0,
-                   avCodecContext->height, avFrameRGB->data,
-                   avFrameRGB->linesize );
-
-        unsigned char* src = (unsigned char*)avFrameRGB->data[0];
-        for( int y = 0; y < image.height(); ++y )
-        {
-            QRgb* scanLine = (QRgb*)image.scanLine(y);
-            for( int x = 0; x < image.width(); ++x )
-                scanLine[x] = qRgb(src[3*x], src[3*x+1], src[3*x+2]);
-            src += avFrameRGB->linesize[0];
-        }
-
-        av_free_packet( &packet );
-
-        image.setText( "source", fileName );
-        emit imageLoaded(index, image);
-        break;
-    }
-
-    avformat_close_input( &avFormatContext );
-    sws_freeContext( swsContext );
-    av_free( avFrame );
-    av_free( avFrameRGB );
 }

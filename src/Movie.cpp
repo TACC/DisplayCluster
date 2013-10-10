@@ -41,32 +41,29 @@
 #include "log.h"
 
 Movie::Movie(QString uri)
+    : initialized_(false)
+    , uri_(uri)
+    , textureId_(0)
+    , textureBound_(false)
+    // FFMPEG
+    , avFormatContext_(NULL)
+    , avCodecContext_(NULL)
+    , swsContext_(NULL)
+    , avFrame_(NULL)
+    , avFrameRGB_(NULL)
+    , streamIdx_(-1)
+    , videostream_(NULL)
+    // Internal
+    , start_time_(0)
+    , duration_(0)
+    , num_frames_(0)
+    , frameDuration_(0)
+    , frame_index_(0)
+    , skipped_frames_(false)
+    , paused_(false)
+    , loop_(true)
 {
-    initialized_ = false;
-
-    // defaults
-    textureId_ = 0;
-    textureBound_ = false;
-    avFormatContext_ = NULL;
-    avCodecContext_ = NULL;
-    swsContext_ = NULL;
-    avFrame_ = NULL;
-    avFrameRGB_ = NULL;
-    streamIdx_ = -1;
-    paused_ = false;
-    loop_ = true;
-
-    start_time_ = 0;
-    duration_ = 0;
-    num_frames_ = 0;
-    frame_index_ = 0;
-    skipped_frames_ = false;
-
-    // assign values
-    uri_ = uri;
-
-    // initialize ffmpeg
-    av_register_all();
+    Movie::initFFMPEGGlobalState();
 
     // open movie file
     if(avformat_open_input(&avFormatContext_, uri.toAscii(), NULL, NULL) != 0)
@@ -191,6 +188,17 @@ Movie::~Movie()
     // free frames
     av_free(avFrame_);
     av_free(avFrameRGB_);
+}
+
+void Movie::initFFMPEGGlobalState()
+{
+    static bool initialized = false;
+
+    if (!initialized)
+    {
+        av_register_all();
+        initialized = true;
+    }
 }
 
 void Movie::getDimensions(int &width, int &height)

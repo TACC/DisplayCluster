@@ -60,6 +60,8 @@ public:
     void setPage(int pageNumber);
     int getPageCount() const;
 
+    QImage renderToImage() const;
+
 private:
 
     // document location
