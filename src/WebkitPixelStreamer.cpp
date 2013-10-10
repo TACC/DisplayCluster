@@ -95,6 +95,10 @@ void WebkitPixelStreamer::setUrl(QString url)
     webView_->load( QUrl(url) );
 }
 
+QWebView* WebkitPixelStreamer::getView() const
+{
+    return webView_;
+}
 
 void WebkitPixelStreamer::updateInteractionState(InteractionState interactionState)
 {
