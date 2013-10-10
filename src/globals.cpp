@@ -37,6 +37,7 @@
 /*********************************************************************/
 
 #include "globals.h"
+#include <string>
 
 #if ENABLE_SKELETON_SUPPORT
     #include "SkeletonThread.h"
