@@ -69,7 +69,6 @@ WebkitPixelStreamer::WebkitPixelStreamer(QString uri)
 
     QWebSettings* settings = webView_->settings();
     settings->setAttribute( QWebSettings::AcceleratedCompositingEnabled, true );
-    settings->setAttribute( QWebSettings::FrameFlatteningEnabled, true );
     settings->setAttribute( QWebSettings::JavascriptEnabled, true );
     settings->setAttribute( QWebSettings::PluginsEnabled, true );
 #if QT_VERSION >= 0x040800
@@ -144,55 +143,35 @@ void WebkitPixelStreamer::updateInteractionState(InteractionState interactionSta
 
 void WebkitPixelStreamer::processClickEvent(const InteractionState &interactionState)
 {
-    // History navigation (until swipe gestures are fixed)
+    // TODO History navigation (until swipe gestures are fixed)
     if (interactionState.mouseX < 0.02)
     {
         webView_->back();
         return;
     }
-    else if (interactionState.mouseX > 0.98)
+    if (interactionState.mouseX > 0.98)
     {
         webView_->forward();
         return;
     }
 
-    QWebHitTestResult hitResult = performHitTest(interactionState);
-    if ( !hitResult.isNull() )
-    {
-        clickOnElement(hitResult);
-    }
-}
+    processPressEvent(interactionState);
+    processReleaseEvent(interactionState);
 
-void WebkitPixelStreamer::clickOnElement(const QWebHitTestResult &hitResult)
-{
-    if (!hitResult.linkUrl().isEmpty())
-    {
-        webView_->load(hitResult.linkUrl());
-    }
-    else
-    {
-        hitResult.element().evaluateJavaScript("this.click()");
-
-        if (hitResult.isContentEditable())
-        {
-            hitResult.element().setFocus();
-            // Ugly hack to work around a focus problem: some input fields receive
-            // focus yet key events are still directed to a different INPUT field..
-            if (hitResult.element().tagName() == "INPUT")
-                hitResult.element().evaluateJavaScript("this.value = this.value");
-        }
-    }
+    const QWebHitTestResult& hitResult = performHitTest( interactionState );
+    if( !hitResult.isNull() && !hitResult.linkUrl().isEmpty( ))
+        webView_->load( hitResult.linkUrl( ));
 }
 
 void WebkitPixelStreamer::processPressEvent(const InteractionState &interactionState)
 {
-    QWebHitTestResult hitResult = performHitTest(interactionState);
+    const QWebHitTestResult& hitResult = performHitTest(interactionState);
 
-    if(!hitResult.isNull() && isWebGLElement(hitResult.element()))
+    if(!hitResult.isNull())
     {
-        interactionModeActive_ = true;
+        interactionModeActive_ = isWebGLElement(hitResult.element());
 
-        QPoint pointerPos = getPointerPosition(interactionState);
+        const QPoint& pointerPos = getPointerPosition(interactionState);
 
         QMouseEvent myEvent(QEvent::MouseButtonPress, pointerPos,
                             Qt::LeftButton, Qt::LeftButton,
@@ -205,7 +184,7 @@ void WebkitPixelStreamer::processPressEvent(const InteractionState &interactionS
 
 void WebkitPixelStreamer::processMoveEvent(const InteractionState &interactionState)
 {
-    QPoint pointerPos = getPointerPosition(interactionState);
+    const QPoint& pointerPos = getPointerPosition(interactionState);
 
     if(interactionModeActive_)
     {
@@ -228,23 +207,20 @@ void WebkitPixelStreamer::processMoveEvent(const InteractionState &interactionSt
 
 void WebkitPixelStreamer::processReleaseEvent(const InteractionState &interactionState)
 {
-    if (interactionModeActive_)
-    {
-        QPoint pointerPos = getPointerPosition(interactionState);
+    const QPoint& pointerPos = getPointerPosition(interactionState);
 
-        QMouseEvent myEvent(QEvent::MouseButtonRelease, pointerPos,
-                            Qt::LeftButton, Qt::LeftButton,
-                            (Qt::KeyboardModifiers)interactionState.modifiers);
+    QMouseEvent myEvent(QEvent::MouseButtonRelease, pointerPos,
+                        Qt::LeftButton, Qt::LeftButton,
+                        (Qt::KeyboardModifiers)interactionState.modifiers);
 
-        webView_->page()->event(&myEvent);
+    webView_->page()->event(&myEvent);
 
-        interactionModeActive_ = false;
-    }
+    interactionModeActive_ = false;
 }
 
 void WebkitPixelStreamer::processWheelEvent(const InteractionState &interactionState)
 {
-    QWebHitTestResult hitResult = performHitTest(interactionState);
+    const QWebHitTestResult& hitResult = performHitTest(interactionState);
 
     if(!hitResult.isNull() && isWebGLElement(hitResult.element()))
     {
@@ -280,9 +256,9 @@ void WebkitPixelStreamer::processViewSizeChange(const InteractionState &interact
 {
     QSize newSize( std::max((int)interactionState.dx, WEPPAGE_MIN_WIDTH), std::max((int)interactionState.dy, WEBPAGE_MIN_HEIGHT) );
 
-    double zoomFactor = (double)newSize.width() / (double)WEPPAGE_DEFAULT_WIDTH;
-
     webView_->page()->setViewportSize( newSize );
+
+    const qreal zoomFactor = qreal(newSize.width()) / WEPPAGE_DEFAULT_WIDTH;
     webView_->setZoomFactor(zoomFactor);
 }
 
@@ -319,11 +295,9 @@ void WebkitPixelStreamer::update()
 
 QWebHitTestResult WebkitPixelStreamer::performHitTest(const InteractionState &interactionState) const
 {
-    QPoint pointerPos = getPointerPosition(interactionState);
+    const QPoint& pointerPos = getPointerPosition(interactionState);
     QWebFrame *pFrame = webView_->page()->frameAt(pointerPos);
-    QWebHitTestResult hitResult = pFrame->hitTestContent(pointerPos);
-
-    return hitResult;
+    return pFrame->hitTestContent(pointerPos);
 }
 
 QPoint WebkitPixelStreamer::getPointerPosition(const InteractionState &interactionState) const
