@@ -43,6 +43,10 @@
 #include "ContentWindowManager.h"
 #include "ContentWindowGraphicsItem.h"
 #include "LocalPixelStreamerManager.h"
+#include "gestures/PanGesture.h"
+#include "gestures/PanGestureRecognizer.h"
+#include "gestures/PinchGesture.h"
+#include "gestures/PinchGestureRecognizer.h"
 
 DisplayGroupGraphicsView::DisplayGroupGraphicsView()
 {
@@ -62,10 +66,7 @@ DisplayGroupGraphicsView::DisplayGroupGraphicsView()
 
 void DisplayGroupGraphicsView::grabGestures()
 {
-    //viewport()->grabGesture(Qt::TapGesture);
     viewport()->grabGesture(Qt::TapAndHoldGesture);
-    //viewport()->grabGesture(Qt::PanGesture);
-    //viewport()->grabGesture(Qt::PinchGesture);
     viewport()->grabGesture(Qt::SwipeGesture);
 }
 
@@ -87,15 +88,15 @@ void DisplayGroupGraphicsView::gestureEvent( QGestureEvent* event )
         event->accept( Qt::SwipeGesture );
         swipe( static_cast< QSwipeGesture* >( gesture ));
     }
-    else if( QGesture* gesture = event->gesture( Qt::PanGesture ))
+    else if( QGesture* gesture = event->gesture( PanGestureRecognizer::type( )))
     {
-        event->accept( Qt::PanGesture );
-        pan( static_cast< QPanGesture* >( gesture ));
+        event->accept( PanGestureRecognizer::type( ));
+        pan( static_cast< PanGesture* >( gesture ));
     }
-    else if( QGesture* gesture = event->gesture( Qt::PinchGesture ))
+    else if( QGesture* gesture = event->gesture( PinchGestureRecognizer::type( )))
     {
-        event->accept( Qt::PinchGesture );
-        pinch( static_cast< QPinchGesture* >( gesture ));
+        event->accept( PinchGestureRecognizer::type( ));
+        pinch( static_cast< PinchGesture* >( gesture ));
     }
     else if( QGesture* gesture = event->gesture( Qt::TapGesture ))
     {
@@ -114,11 +115,11 @@ void DisplayGroupGraphicsView::swipe( QSwipeGesture* gesture )
     std::cout << "SWIPE VIEW" << std::endl;
 }
 
-void DisplayGroupGraphicsView::pan( QPanGesture* gesture )
+void DisplayGroupGraphicsView::pan( PanGesture* gesture )
 {
 }
 
-void DisplayGroupGraphicsView::pinch( QPinchGesture* gesture )
+void DisplayGroupGraphicsView::pinch( PinchGesture* gesture )
 {
 }
 

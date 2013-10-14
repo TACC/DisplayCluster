@@ -1,6 +1,6 @@
 /*********************************************************************/
 /* Copyright (c) 2013, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/*                     Daniel Nachbaur <daniel.nachbaur@epfl.ch>     */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -37,23 +37,32 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef ZOOMINTERACTIONDELEGATE_H
-#define ZOOMINTERACTIONDELEGATE_H
+#ifndef DOUBLETAPGESTURE_H
+#define DOUBLETAPGESTURE_H
 
-#include "ContentInteractionDelegate.h"
+#include <QtGui/QGesture>
 
-class ZoomInteractionDelegate : public ContentInteractionDelegate
+/**
+ * This class defines a doubletap gesture. The doubletap is recognized if two
+ * touch points are emitted, the manhattan length between those two points is
+ * less than 40 and if the elapsed time between the two touch points is less
+ * than 750ms.
+ * @sa DoubleTapGestureRecognizer
+ */
+class DoubleTapGesture : public QGesture
 {
-Q_OBJECT
-
 public:
-    ZoomInteractionDelegate(ContentWindowManager *cwm);
+    /** @sa QGesture */
+    DoubleTapGesture( QObject* parent = 0 ) : QGesture( parent ){}
 
-    void pan(PanGesture *gesture);
-    void pinch(PinchGesture *gesture);
+    /** @return the normalized position of the doubletap */
+    QPointF position() const { return _position; }
 
-    void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
-    void wheelEvent(QGraphicsSceneWheelEvent *event);
+    /** Set the normalized position of the doubletap */
+    void setPosition( const QPointF& pos ) { _position = pos; }
+
+private:
+    QPointF _position;
 };
 
-#endif // ZOOMINTERACTIONDELEGATE_H
+#endif

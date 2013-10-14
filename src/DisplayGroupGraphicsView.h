@@ -41,24 +41,26 @@
 
 #include <QtGui>
 
-class DisplayGroupGraphicsView : public QGraphicsView {
+class PanGesture;
+class PinchGesture;
 
-    public:
+class DisplayGroupGraphicsView : public QGraphicsView
+{
+public:
+    DisplayGroupGraphicsView();
 
-        DisplayGroupGraphicsView();
+    void grabGestures();
 
-        void grabGestures();
+protected:
+    virtual bool viewportEvent( QEvent* event );
+    virtual void resizeEvent( QResizeEvent* event );
 
-    protected:
-
-        bool viewportEvent( QEvent* event );
-        void gestureEvent( QGestureEvent* event );
-        void swipe( QSwipeGesture* gesture );
-        void pan( QPanGesture* gesture );
-        void pinch( QPinchGesture* gesture );
-        void tap( QTapGesture* gesture );
-        void tapAndHold( QTapAndHoldGesture* gesture );
-        void resizeEvent( QResizeEvent* event );
+    void gestureEvent( QGestureEvent* event );
+    void swipe( QSwipeGesture* gesture );
+    void pan( PanGesture* gesture );
+    void pinch( PinchGesture* gesture );
+    void tap( QTapGesture* gesture );
+    void tapAndHold( QTapAndHoldGesture* gesture );
 };
 
 #endif

@@ -1,6 +1,6 @@
 /*********************************************************************/
 /* Copyright (c) 2013, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/*                     Daniel Nachbaur <daniel.nachbaur@epfl.ch>     */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -37,23 +37,9 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef ZOOMINTERACTIONDELEGATE_H
-#define ZOOMINTERACTIONDELEGATE_H
+#include "PanGesture.h"
 
-#include "ContentInteractionDelegate.h"
-
-class ZoomInteractionDelegate : public ContentInteractionDelegate
-{
-Q_OBJECT
-
-public:
-    ZoomInteractionDelegate(ContentWindowManager *cwm);
-
-    void pan(PanGesture *gesture);
-    void pinch(PinchGesture *gesture);
-
-    void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
-    void wheelEvent(QGraphicsSceneWheelEvent *event);
-};
-
-#endif // ZOOMINTERACTIONDELEGATE_H
+PanGesture::PanGesture( QObject* parent )
+    : QGesture( parent )
+    , _acceleration( 0 )
+{}

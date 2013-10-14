@@ -37,26 +37,48 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef GESTURES_H
-#define GESTURES_H
+#ifndef PANGESTURE_H
+#define PANGESTURE_H
 
 #include <QtGui/QGesture>
-#include <QtGui/QGestureRecognizer>
 
+/**
+ * This class defines a pan gesture. The implementation enhances the Qt
+ * shipped PanGesture to setup a normalized position which is required in
+ * the event handling of this application.
+ * @sa QPanGesture
+ */
 class PanGesture : public QGesture
 {
 public:
+    /** @sa QGesture */
     PanGesture( QObject* parent = 0 );
 
+    /** @return the normalized center position of the pan */
     const QPointF& position() const { return _position; }
+
+    /** @sa QPanGesture::lastOffset */
     const QPointF& lastOffset() const { return _lastOffset; }
+
+    /** @sa QPanGesture::offset */
     const QPointF& offset() const { return _offset; }
+
+    /** @sa QPanGesture::delta */
     QPointF delta() const { return _offset - _lastOffset; }
+
+    /** @sa QPanGesture::acceleration */
     qreal acceleration() const { return _acceleration; }
 
+    /** Set the normalized center position of the pan */
     void setPosition( const QPointF& value ) { _position = value; }
+
+    /** @sa QPanGesture::setLastOffset */
     void setLastOffset( const QPointF& value ) { _lastOffset = value; }
+
+    /** @sa QPanGesture::setOffset */
     void setOffset( const QPointF& value ) { _offset = value; }
+
+    /** @sa QPanGesture::setAcceleration */
     void setAcceleration( const qreal value ) { _acceleration = value; }
 
 private:
@@ -64,63 +86,6 @@ private:
     QPointF _lastOffset;
     QPointF _offset;
     qreal _acceleration;
-};
-
-class DoubleTapGesture : public QGesture
-{
-public:
-    DoubleTapGesture( QObject* parent = 0 ) : QGesture( parent ){}
-
-    QPointF position() const { return _position; }
-    void setPosition( const QPointF& pos ) { _position = pos; }
-
-private:
-    QPointF _position;
-};
-
-class PanGestureRecognizer : public QGestureRecognizer
-{
-public:
-    PanGestureRecognizer( const int numPoints );
-
-    virtual QGesture* create( QObject *target );
-
-    virtual QGestureRecognizer::Result recognize( QGesture* state,
-                                                  QObject* watched,
-                                                  QEvent* event );
-
-    virtual void reset( QGesture* state );
-
-    static void install();
-    static void uninstall();
-    static Qt::GestureType type();
-
-private:
-    int _nPoints;
-    static Qt::GestureType _type;
-};
-
-class DoubleTapGestureRecognizer : public QGestureRecognizer
-{
-public:
-    DoubleTapGestureRecognizer();
-
-    virtual QGesture* create( QObject *target );
-
-    virtual QGestureRecognizer::Result recognize( QGesture* state,
-                                                  QObject* watched,
-                                                  QEvent* event );
-
-    virtual void reset( QGesture* state );
-
-    static void install();
-    static void uninstall();
-    static Qt::GestureType type();
-
-private:
-    QPointF _firstPoint;
-    QTime _firstPointTime;
-    static Qt::GestureType _type;
 };
 
 #endif

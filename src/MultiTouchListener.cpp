@@ -42,7 +42,9 @@
 #include "Configuration.h"
 #include "DisplayGroupGraphicsView.h"
 #include "DisplayGroupGraphicsViewProxy.h"
-#include "Gestures.h"
+#include "gestures/DoubleTapGestureRecognizer.h"
+#include "gestures/PanGestureRecognizer.h"
+#include "gestures/PinchGestureRecognizer.h"
 #include "globals.h"
 #include "log.h"
 
@@ -53,8 +55,9 @@ MultiTouchListener::MultiTouchListener( DisplayGroupGraphicsViewProxy* proxy )
     : TUIO::TuioListener()
     , _graphicsViewProxy( proxy )
 {
-    PanGestureRecognizer::install();
     DoubleTapGestureRecognizer::install();
+    PanGestureRecognizer::install();
+    PinchGestureRecognizer::install();
 
     client_.addTuioListener( this );
     client_.connect();
@@ -62,8 +65,9 @@ MultiTouchListener::MultiTouchListener( DisplayGroupGraphicsViewProxy* proxy )
 
 MultiTouchListener::~MultiTouchListener()
 {
-    PanGestureRecognizer::uninstall();
     DoubleTapGestureRecognizer::uninstall();
+    PanGestureRecognizer::uninstall();
+    PinchGestureRecognizer::uninstall();
 }
 
 void MultiTouchListener::addTuioObject( TUIO::TuioObject* tobj )

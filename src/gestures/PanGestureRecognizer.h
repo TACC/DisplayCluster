@@ -1,6 +1,6 @@
 /*********************************************************************/
 /* Copyright (c) 2013, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/*                     Daniel Nachbaur <daniel.nachbaur@epfl.ch>     */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -37,23 +37,56 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef ZOOMINTERACTIONDELEGATE_H
-#define ZOOMINTERACTIONDELEGATE_H
+#ifndef PANGESTURERECOGNIZER_H
+#define PANGESTURERECOGNIZER_H
 
-#include "ContentInteractionDelegate.h"
+#include <QtGui/QGestureRecognizer>
 
-class ZoomInteractionDelegate : public ContentInteractionDelegate
+/**
+ * Gesture recognizer for a pan gesture. The implementation enhances the Qt
+ * shipped PanGestureRecognizer to customize the number of points required to
+ * define a pan gesture. The Qt default is 2 points whereas we want 1 point in
+ * the current implementation.
+ * @sa QPanGestureRecognizer
+ */
+class PanGestureRecognizer : public QGestureRecognizer
 {
-Q_OBJECT
-
 public:
-    ZoomInteractionDelegate(ContentWindowManager *cwm);
+    /** Construct a new pan gesture recognizer object. */
+    PanGestureRecognizer( const int numPoints );
 
-    void pan(PanGesture *gesture);
-    void pinch(PinchGesture *gesture);
+    /** @sa QGestureRecognizer::create */
+    virtual QGesture* create( QObject *target );
 
-    void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
-    void wheelEvent(QGraphicsSceneWheelEvent *event);
+    /** @sa QGestureRecognizer::recognize */
+    virtual QGestureRecognizer::Result recognize( QGesture* state,
+                                                  QObject* watched,
+                                                  QEvent* event );
+
+    /** @sa QGestureRecognizer::reset */
+    virtual void reset( QGesture* state );
+
+    /**
+     * Installs the pan recognizer in the current QApplication.
+     * @sa QGestureRecognizer::registerRecognizer
+     */
+    static void install();
+
+    /**
+     * Uninstalls the pan recognizer from the current QApplication.
+     * @sa QGestureRecognizer::unregisterRecognizer
+     */
+    static void uninstall();
+
+    /** @return the gesture type to be used for gesture handling
+     * @sa QWidget::grabGesture
+     * @sa QGestureEvent::gesture
+     */
+    static Qt::GestureType type();
+
+private:
+    int _nPoints;
+    static Qt::GestureType _type;
 };
 
-#endif // ZOOMINTERACTIONDELEGATE_H
+#endif

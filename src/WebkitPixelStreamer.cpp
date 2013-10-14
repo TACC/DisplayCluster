@@ -47,6 +47,8 @@
 #include <QTimer>
 
 #include "log.h"
+#include "globals.h"
+#include "Configuration.h"
 
 #define WEPPAGE_DEFAULT_WIDTH   1280
 #define WEBPAGE_DEFAULT_HEIGHT  1024
@@ -224,10 +226,10 @@ void WebkitPixelStreamer::processWheelEvent(const InteractionState &interactionS
 
     if(!hitResult.isNull() && isWebGLElement(hitResult.element()))
     {
-        int delta_y = interactionState.dy * webView_->page()->viewportSize().height();
+        int delta_y = interactionState.dy * g_configuration->getTotalHeight();
 
-        QWheelEvent myEvent(hitResult.pos(), delta_y,
-                            0, (Qt::KeyboardModifiers)interactionState.modifiers,
+        QWheelEvent myEvent(hitResult.pos(), delta_y, Qt::NoButton,
+                            (Qt::KeyboardModifiers)interactionState.modifiers,
                             Qt::Vertical);
 
         webView_->page()->event(&myEvent);

@@ -9,9 +9,13 @@ if(ENABLE_TUIO_TOUCH_LISTENER)
   include_directories(${TUIO_INCLUDE_DIRS})
   list(APPEND LIBS ${TUIO_LIBRARIES})
 
-  set(SRCS ${SRCS} Gestures.cpp)
-  set(SRCS ${SRCS} MultiTouchListener.cpp)
-  set(SRCS ${SRCS} TouchListener.cpp)
+  list(APPEND SRCS gestures/DoubleTapGestureRecognizer.cpp
+                   gestures/PanGesture.cpp
+                   gestures/PanGestureRecognizer.cpp
+                   gestures/PinchGesture.cpp
+                   gestures/PinchGestureRecognizer.cpp
+                   MultiTouchListener.cpp
+                   TouchListener.cpp)
 
   find_package(X11 REQUIRED)
   include_directories(${X11_INCLUDE_DIR})

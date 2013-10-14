@@ -1,6 +1,6 @@
 /*********************************************************************/
 /* Copyright (c) 2013, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/*                     Daniel Nachbaur <daniel.nachbaur@epfl.ch>     */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -37,23 +37,56 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef ZOOMINTERACTIONDELEGATE_H
-#define ZOOMINTERACTIONDELEGATE_H
+#ifndef DOUBLETAPGESTURERECOGNIZER_H
+#define DOUBLETAPGESTURERECOGNIZER_H
 
-#include "ContentInteractionDelegate.h"
+#include <QtCore/QPointF>
+#include <QtCore/QTime>
+#include <QtGui/QGestureRecognizer>
 
-class ZoomInteractionDelegate : public ContentInteractionDelegate
+/**
+ * Gesture recognizer for a doubletap gesture. The doubletap is recognized
+ * within a time period of 750ms.
+ */
+class DoubleTapGestureRecognizer : public QGestureRecognizer
 {
-Q_OBJECT
-
 public:
-    ZoomInteractionDelegate(ContentWindowManager *cwm);
+    /** Construct a new doubletap gesture recognizer object. */
+    DoubleTapGestureRecognizer();
 
-    void pan(PanGesture *gesture);
-    void pinch(PinchGesture *gesture);
+    /** @sa QGestureRecognizer::create */
+    virtual QGesture* create( QObject *target );
 
-    void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
-    void wheelEvent(QGraphicsSceneWheelEvent *event);
+    /** @sa QGestureRecognizer::recognize */
+    virtual QGestureRecognizer::Result recognize( QGesture* state,
+                                                  QObject* watched,
+                                                  QEvent* event );
+
+    /** @sa QGestureRecognizer::reset */
+    virtual void reset( QGesture* state );
+
+    /**
+     * Installs the doubletap recognizer in the current QApplication.
+     * @sa QGestureRecognizer::registerRecognizer
+     */
+    static void install();
+
+    /**
+     * Uninstalls the doubletap recognizer from the current QApplication.
+     * @sa QGestureRecognizer::unregisterRecognizer
+     */
+    static void uninstall();
+
+    /** @return the gesture type to be used for gesture handling
+     * @sa QWidget::grabGesture
+     * @sa QGestureEvent::gesture
+     */
+    static Qt::GestureType type();
+
+private:
+    QPointF _firstPoint;
+    QTime _firstPointTime;
+    static Qt::GestureType _type;
 };
 
-#endif // ZOOMINTERACTIONDELEGATE_H
+#endif

@@ -40,6 +40,12 @@
 #include "ContentInteractionDelegate.h"
 
 #include "ContentWindowManager.h"
+#include "gestures/DoubleTapGesture.h"
+#include "gestures/DoubleTapGestureRecognizer.h"
+#include "gestures/PanGesture.h"
+#include "gestures/PanGestureRecognizer.h"
+#include "gestures/PinchGesture.h"
+#include "gestures/PinchGestureRecognizer.h"
 
 #include "globals.h"
 #include "Configuration.h"
@@ -74,16 +80,16 @@ void ContentInteractionDelegate::gestureEvent( QGestureEvent* event )
         }
     }
 
-    else if( QGesture* gesture = event->gesture( Qt::PinchGesture ))
+    else if( QGesture* gesture = event->gesture( PinchGestureRecognizer::type( )))
     {
-        event->accept( Qt::PinchGesture );
+        event->accept( PinchGestureRecognizer::type( ));
         if( contentWindowManager_->selected() )
         {
-            pinch( static_cast< QPinchGesture* >( gesture ));
+            pinch( static_cast< PinchGesture* >( gesture ));
         }
         else
         {
-            pinchUnselected( static_cast< QPinchGesture* >( gesture ));
+            pinchUnselected( static_cast< PinchGesture* >( gesture ));
         }
     }
 
@@ -156,7 +162,7 @@ void ContentInteractionDelegate::panUnselected(PanGesture *gesture)
     }
 }
 
-void ContentInteractionDelegate::pinchUnselected(QPinchGesture *gesture)
+void ContentInteractionDelegate::pinchUnselected(PinchGesture *gesture)
 {
     const double factor = adaptZoomFactor(gesture->scaleFactor());
     if( factor == 0.0 )

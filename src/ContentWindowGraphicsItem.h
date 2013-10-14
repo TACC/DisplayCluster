@@ -44,8 +44,6 @@
 #include <boost/shared_ptr.hpp>
 
 class ContentWindowManager;
-class PanGesture;
-class DoubleTapGesture;
 
 class ContentWindowGraphicsItem : public QGraphicsObject, public ContentWindowInterface {
 

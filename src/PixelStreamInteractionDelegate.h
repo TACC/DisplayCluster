@@ -53,7 +53,7 @@ public:
 
     virtual void swipe( QSwipeGesture *gesture );
     virtual void pan( PanGesture* gesture) ;
-    virtual void pinch( QPinchGesture* gesture );
+    virtual void pinch( PinchGesture* gesture );
     virtual void doubleTap( DoubleTapGesture* gesture );
     virtual void tap( QTapGesture* gesture );
 
@@ -76,7 +76,7 @@ private:
     template<typename T>
     InteractionState getGestureInteractionState(const T *gesture);
     InteractionState getGestureInteractionState(const QTapGesture *gesture);
-    InteractionState getGestureInteractionState(const QPinchGesture *gesture);
+    InteractionState getGestureInteractionState(const PinchGesture *gesture);
     void setPanGestureNormalizedDelta(const PanGesture *gesture, InteractionState &interactionState);
 };
 

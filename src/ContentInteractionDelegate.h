@@ -40,13 +40,18 @@
 #ifndef CONTENTINTERACTIONDELEGATE_H
 #define CONTENTINTERACTIONDELEGATE_H
 
-#include "Gestures.h"
-
 #include <QGraphicsSceneMouseEvent>
 #include <QKeyEvent>
 #include <QObject>
 
 class ContentWindowManager;
+class DoubleTapGesture;
+class PanGesture;
+class PinchGesture;
+class QTapGesture;
+class QSwipeGesture;
+class QTapAndHoldGesture;
+
 
 class ContentInteractionDelegate : public QObject
 {
@@ -64,7 +69,7 @@ public:
     virtual void doubleTap( DoubleTapGesture* gesture ) {}
     virtual void pan( PanGesture* gesture ) {}
     virtual void swipe( QSwipeGesture *gesture ) {}
-    virtual void pinch( QPinchGesture* gesture ) {}
+    virtual void pinch( PinchGesture* gesture ) {}
     //virtual void tapAndHold( QTapAndHoldGesture* gesture ) {}
 
     // Keyboard + Mouse input
@@ -88,7 +93,7 @@ private:
     void doubleTapUnselected( DoubleTapGesture* gesture );
     void tapAndHoldUnselected( QTapAndHoldGesture* gesture );
     void panUnselected( PanGesture* gesture );
-    void pinchUnselected( QPinchGesture* gesture );
+    void pinchUnselected( PinchGesture* gesture );
 
 };
 

@@ -43,8 +43,10 @@
 #include "DisplayGroupManager.h"
 #include "DisplayGroupGraphicsView.h"
 #include "globals.h"
-#include "Gestures.h"
 #include "ContentInteractionDelegate.h"
+#include "gestures/DoubleTapGestureRecognizer.h"
+#include "gestures/PanGestureRecognizer.h"
+#include "gestures/PinchGestureRecognizer.h"
 
 qreal ContentWindowGraphicsItem::zCounter_ = 0;
 
@@ -61,9 +63,9 @@ ContentWindowGraphicsItem::ContentWindowGraphicsItem(boost::shared_ptr<ContentWi
     // we assume that interface items will be constructed in depth order so this produces the correct result...
     setZToFront();
 
-    grabGesture( Qt::PinchGesture );
-    grabGesture( PanGestureRecognizer::type( ));
     grabGesture( DoubleTapGestureRecognizer::type( ));
+    grabGesture( PanGestureRecognizer::type( ));
+    grabGesture( PinchGestureRecognizer::type( ));
     grabGesture( Qt::SwipeGesture );
     grabGesture( Qt::TapAndHoldGesture );
     grabGesture( Qt::TapGesture );

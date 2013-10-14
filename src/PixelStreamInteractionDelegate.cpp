@@ -41,6 +41,9 @@
 #include "ContentWindowManager.h"
 #include "globals.h"
 #include "Configuration.h"
+#include "gestures/DoubleTapGesture.h"
+#include "gestures/PanGesture.h"
+#include "gestures/PinchGesture.h"
 
 PixelStreamInteractionDelegate::PixelStreamInteractionDelegate(ContentWindowManager* cwm)
     : ContentInteractionDelegate(cwm)
@@ -125,7 +128,7 @@ void PixelStreamInteractionDelegate::swipe(QSwipeGesture *gesture)
     }
 }
 
-void PixelStreamInteractionDelegate::pinch(QPinchGesture *gesture)
+void PixelStreamInteractionDelegate::pinch(PinchGesture *gesture)
 {
     const qreal factor = (gesture->scaleFactor() - 1.) * 0.2f + 1.f;
     if( std::isnan( factor ) || std::isinf( factor ))
@@ -290,19 +293,15 @@ InteractionState PixelStreamInteractionDelegate::getGestureInteractionState(cons
     return interactionState;
 }
 
-InteractionState PixelStreamInteractionDelegate::getGestureInteractionState(const QPinchGesture *gesture)
+InteractionState PixelStreamInteractionDelegate::getGestureInteractionState(const PinchGesture *gesture)
 {
     // Bounding rectangle
     double x, y, w, h;
     contentWindowManager_->getCoordinates(x, y, w, h);
 
-    // Touchpad dimensions
-    const double tWidth = g_configuration->getTotalWidth();
-    const double tHeight = g_configuration->getTotalHeight();
-
     InteractionState interactionState;
-    interactionState.mouseX = (gesture->centerPoint().x() / tWidth - x) / w;
-    interactionState.mouseY = (gesture->centerPoint().y() / tHeight - y) / h;
+    interactionState.mouseX = (gesture->normalizedCenterPoint().x() - x) / w;
+    interactionState.mouseY = (gesture->normalizedCenterPoint().y() - y) / h;
 
     return interactionState;
 }

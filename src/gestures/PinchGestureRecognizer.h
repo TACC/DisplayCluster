@@ -1,6 +1,6 @@
 /*********************************************************************/
 /* Copyright (c) 2013, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/*                     Daniel Nachbaur <daniel.nachbaur@epfl.ch>     */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -37,23 +37,54 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef ZOOMINTERACTIONDELEGATE_H
-#define ZOOMINTERACTIONDELEGATE_H
+#ifndef PINCHGESTURERECOGNIZER_H
+#define PINCHGESTURERECOGNIZER_H
 
-#include "ContentInteractionDelegate.h"
+#include <QtGui/QGestureRecognizer>
 
-class ZoomInteractionDelegate : public ContentInteractionDelegate
+/**
+ * Gesture recognizer for a pinch gesture. The implementation enhances the Qt
+ * shipped PinchGestureRecognizer to setup a normalized center position which is
+ * required in the event handling of this application.
+ * @sa QPinchGestureRecognizer
+ */
+class PinchGestureRecognizer : public QGestureRecognizer
 {
-Q_OBJECT
-
 public:
-    ZoomInteractionDelegate(ContentWindowManager *cwm);
+    /** Construct a new pan gesture recognizer object. */
+    PinchGestureRecognizer();
 
-    void pan(PanGesture *gesture);
-    void pinch(PinchGesture *gesture);
+    /** @sa QGestureRecognizer::create */
+    virtual QGesture* create( QObject *target );
 
-    void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
-    void wheelEvent(QGraphicsSceneWheelEvent *event);
+    /** @sa QGestureRecognizer::recognize */
+    virtual QGestureRecognizer::Result recognize( QGesture* state,
+                                                  QObject* watched,
+                                                  QEvent* event );
+
+    /** @sa QGestureRecognizer::reset */
+    virtual void reset( QGesture* state );
+
+    /**
+     * Installs the pinch recognizer in the current QApplication.
+     * @sa QGestureRecognizer::registerRecognizer
+     */
+    static void install();
+
+    /**
+     * Uninstalls the pinch recognizer from the current QApplication.
+     * @sa QGestureRecognizer::unregisterRecognizer
+     */
+    static void uninstall();
+
+    /** @return the gesture type to be used for gesture handling
+     * @sa QWidget::grabGesture
+     * @sa QGestureEvent::gesture
+     */
+    static Qt::GestureType type();
+
+private:
+    static Qt::GestureType _type;
 };
 
-#endif // ZOOMINTERACTIONDELEGATE_H
+#endif
