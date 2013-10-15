@@ -39,6 +39,7 @@
 
 #define BOOST_TEST_MODULE WebBrowser
 #include <boost/test/unit_test.hpp>
+namespace ut = boost::unit_test;
 
 #include <QApplication>
 #include <QWebElementCollection>
@@ -46,10 +47,22 @@
 #include <QWebPage>
 #include <QWebView>
 
+#include <X11/Xlib.h>
+
 #include "WebkitPixelStreamer.h"
 
-namespace ut = boost::unit_test;
 
+bool hasGLXDisplay()
+{
+    Display* display = XOpenDisplay( 0 );
+    if( !display )
+        return false;
+    int major, event, error;
+    const bool hasGLX = XQueryExtension( display, "GLX", &major, &event,
+                                         &error );
+    XCloseDisplay( display );
+    return hasGLX;
+}
 
 // We need a global fixture because a bug in QApplication prevents
 // deleting then recreating a QApplication in the same process.
@@ -74,6 +87,9 @@ BOOST_GLOBAL_FIXTURE( GlobalQtApp );
 
 BOOST_AUTO_TEST_CASE( test_webgl_support )
 {
+    if( !hasGLXDisplay( ))
+        return;
+
     // load the webgl website, exec() returns when loading is finished
     WebkitPixelStreamer* streamer = new WebkitPixelStreamer( "testBrowser" );
     QObject::connect( streamer->getView(), SIGNAL(loadFinished(bool)),
@@ -114,6 +130,9 @@ BOOST_AUTO_TEST_CASE( test_webgl_support )
 
 BOOST_AUTO_TEST_CASE( test_webgl_interaction )
 {
+    if( !hasGLXDisplay( ))
+        return;
+
     // load the webgl website, exec() returns when loading is finished
     WebkitPixelStreamer* streamer = new WebkitPixelStreamer( "testBrowser" );
     QObject::connect( streamer->getView(), SIGNAL(loadFinished(bool)),
