@@ -14,6 +14,11 @@ endif()
 file(GLOB_RECURSE TEST_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cpp)
 list(SORT TEST_FILES)
 
+find_package(X11)
+if(NOT X11_FOUND)
+  list(REMOVE_ITEM TEST_FILES "webbrowser.cpp")
+endif()
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../src)
 
 set(ALL_TESTS)
