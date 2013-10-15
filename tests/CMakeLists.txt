@@ -37,3 +37,10 @@ endforeach()
 # workaround bug that tests won't get built
 add_custom_target(tests COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS ${ALL_TESTS})
 set_target_properties(tests PROPERTIES FOLDER "Tests")
+
+# Copy the files needed by the tests to the build directory
+set(TEST_RESOURCES webgl_interaction.html)
+
+foreach(FILE ${TEST_RESOURCES})
+  file(COPY ${FILE} DESTINATION ${CMAKE_BINARY_DIR}/tests)
+endforeach()
