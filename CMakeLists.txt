@@ -104,6 +104,12 @@ if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
 
   # install doc files
   install(DIRECTORY doc DESTINATION .)
+
+  add_subdirectory(tests)
+  set(CTEST_CUSTOM_WARNING_EXCEPTION ${CTEST_CUSTOM_WARNING_EXCEPTION}
+    # http://public.kitware.com/Bug/view.php?id=10179
+    "ld: warning: duplicate dylib")
+  include(CTest)
 endif()
 
 # DesktopStreamer app
@@ -111,8 +117,3 @@ if(BUILD_DESKTOPSTREAMER)
   add_subdirectory(apps/DesktopStreamer)
 endif()
 
-add_subdirectory(tests)
-set(CTEST_CUSTOM_WARNING_EXCEPTION ${CTEST_CUSTOM_WARNING_EXCEPTION}
-  # http://public.kitware.com/Bug/view.php?id=10179
-  "ld: warning: duplicate dylib")
-include(CTest)
