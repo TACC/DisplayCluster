@@ -86,8 +86,7 @@ void MultiTouchListener::handleEvent( TUIO::TuioCursor* tcur,
                                       const QEvent::Type eventType )
 {
     QGraphicsView* view = _graphicsViewProxy->getGraphicsView();
-    QGraphicsScene* scene = view->scene();
-    if( !view || !scene )
+    if( !view )
         return;
 
     const QPoint& viewPos = view->mapToGlobal( view->pos());
