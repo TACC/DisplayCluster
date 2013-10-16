@@ -41,6 +41,11 @@
 #include <boost/test/unit_test.hpp>
 namespace ut = boost::unit_test;
 
+#include "globals.h"
+#include "Options.h"
+#include "configuration/Configuration.h"
+#include "WebkitPixelStreamer.h"
+
 #include <QApplication>
 #include <QWebElementCollection>
 #include <QWebFrame>
@@ -49,8 +54,10 @@ namespace ut = boost::unit_test;
 
 #include <X11/Xlib.h>
 
-#include "WebkitPixelStreamer.h"
+#define TEST_PAGE_URL         "webgl_interaction.html"
+#define CONFIG_TEST_FILENAME  "configuration.xml"
 
+namespace ut = boost::unit_test;
 
 bool hasGLXDisplay()
 {
@@ -74,9 +81,14 @@ struct GlobalQtApp
         // need QApplication to instantiate WebkitPixelStreamer
         ut::master_test_suite_t& testSuite = ut::framework::master_test_suite();
         app = new QApplication( testSuite.argc, testSuite.argv );
+
+        // To test wheel events the WebkitPixelStreamer needs access to the g_configuration element
+        OptionsPtr options(new Options());
+        g_configuration = new Configuration(CONFIG_TEST_FILENAME, options);
     }
     ~GlobalQtApp()
     {
+        delete g_configuration;
         delete app;
     }
 
@@ -94,14 +106,14 @@ BOOST_AUTO_TEST_CASE( test_webgl_support )
     WebkitPixelStreamer* streamer = new WebkitPixelStreamer( "testBrowser" );
     QObject::connect( streamer->getView(), SIGNAL(loadFinished(bool)),
                       QApplication::instance(), SLOT(quit()));
-    streamer->setUrl( "http://get.webgl.org" );
+    streamer->setUrl( TEST_PAGE_URL );
     QApplication::instance()->exec();
 
     QWebPage* page = streamer->getView()->page();
     BOOST_REQUIRE( page );
     QWebFrame* frame = page->mainFrame();
     BOOST_REQUIRE( frame );
-    QWebElementCollection webglCanvases = frame->findAllElements( "canvas[id=webgl-logo]" );
+    QWebElementCollection webglCanvases = frame->findAllElements( "canvas[id=webgl-canvas]" );
     BOOST_REQUIRE_EQUAL( webglCanvases.count(), 1 );
 
     // http://stackoverflow.com/questions/11871077/proper-way-to-detect-webgl-support
@@ -137,15 +149,13 @@ BOOST_AUTO_TEST_CASE( test_webgl_interaction )
     WebkitPixelStreamer* streamer = new WebkitPixelStreamer( "testBrowser" );
     QObject::connect( streamer->getView(), SIGNAL(loadFinished(bool)),
                       QApplication::instance(), SLOT(quit()));
-    streamer->setUrl( "./webgl_interaction.html" );
+    streamer->setUrl( TEST_PAGE_URL );
     QApplication::instance()->exec();
 
     QWebPage* page = streamer->getView()->page();
     BOOST_REQUIRE( page );
     QWebFrame* frame = page->mainFrame();
     BOOST_REQUIRE( frame );
-    QWebElementCollection webglCanvases = frame->findAllElements( "canvas[id=webgl-canvas]" );
-    BOOST_REQUIRE_EQUAL( webglCanvases.count(), 1 );
 
     // Normalized mouse coordinates
     InteractionState pressState;
@@ -183,6 +193,86 @@ BOOST_AUTO_TEST_CASE( test_webgl_interaction )
 
     BOOST_CHECK( validDeltaX.toBool());
     BOOST_CHECK( validDeltaY.toBool());
+
+    delete streamer;
+}
+
+
+BOOST_AUTO_TEST_CASE( test_webgl_click )
+{
+    // load the webgl website, exec() returns when loading is finished
+    WebkitPixelStreamer* streamer = new WebkitPixelStreamer( "testBrowser" );
+    QObject::connect( streamer->getView(), SIGNAL(loadFinished(bool)),
+                      QApplication::instance(), SLOT(quit()));
+    streamer->setUrl( TEST_PAGE_URL );
+    QApplication::instance()->exec();
+
+    QWebPage* page = streamer->getView()->page();
+    BOOST_REQUIRE( page );
+    QWebFrame* frame = page->mainFrame();
+    BOOST_REQUIRE( frame );
+
+    // Normalized mouse coordinates
+    InteractionState clickState;
+    clickState.mouseX = 0.1;
+    clickState.mouseY = 0.1;
+    clickState.mouseLeft = true;
+    clickState.type = InteractionState::EVT_CLICK;
+
+    streamer->updateInteractionState(clickState);
+
+    const int expectedPosX = clickState.mouseX * streamer->size().width() /
+                             streamer->getView()->zoomFactor();
+    const int expectedPosY = clickState.mouseY * streamer->size().height() /
+                             streamer->getView()->zoomFactor();
+
+    QString jsX = QString("lastMouseX == %1;").arg(expectedPosX);
+    QString jsY = QString("lastMouseY == %1;").arg(expectedPosY);
+
+    BOOST_CHECK( frame->evaluateJavaScript(jsX).toBool());
+    BOOST_CHECK( frame->evaluateJavaScript(jsY).toBool());
+
+    delete streamer;
+}
+
+
+
+BOOST_AUTO_TEST_CASE( test_webgl_wheel )
+{
+    // load the webgl website, exec() returns when loading is finished
+    WebkitPixelStreamer* streamer = new WebkitPixelStreamer( "testBrowser" );
+    QObject::connect( streamer->getView(), SIGNAL(loadFinished(bool)),
+                      QApplication::instance(), SLOT(quit()));
+    streamer->setUrl( TEST_PAGE_URL );
+    QApplication::instance()->exec();
+
+    QWebPage* page = streamer->getView()->page();
+    BOOST_REQUIRE( page );
+    QWebFrame* frame = page->mainFrame();
+    BOOST_REQUIRE( frame );
+
+    // Normalized mouse coordinates
+    InteractionState wheelState;
+    wheelState.mouseX = 0.1;
+    wheelState.mouseY = 0.1;
+    wheelState.dy = 0.05;
+    wheelState.type = InteractionState::EVT_WHEEL;
+
+    streamer->updateInteractionState(wheelState);
+
+    const int expectedPosX = wheelState.mouseX * streamer->size().width() /
+                             streamer->getView()->zoomFactor();
+    const int expectedPosY = wheelState.mouseY * streamer->size().height() /
+                             streamer->getView()->zoomFactor();
+    const int expectedWheelDelta = wheelState.dy * g_configuration->getTotalHeight();
+
+    QString jsX = QString("lastMouseX == %1;").arg(expectedPosX);
+    QString jsY = QString("lastMouseY == %1;").arg(expectedPosY);
+    QString jsD = QString("wheelDelta == %1;").arg(expectedWheelDelta);
+
+    BOOST_CHECK( frame->evaluateJavaScript(jsX).toBool());
+    BOOST_CHECK( frame->evaluateJavaScript(jsY).toBool());
+    BOOST_CHECK( frame->evaluateJavaScript(jsD).toBool());
 
     delete streamer;
 }

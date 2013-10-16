@@ -6,11 +6,13 @@
 
 <script type="text/javascript">
 
+    var canvas = null;
     var mouseDown = false;
     var lastMouseX = null;
     var lastMouseY = null;
     var deltaX = 0;
     var deltaY = 0;
+    var wheelDelta = 0;
 
     function handleMouseDown(event) {
         mouseDown = true;
@@ -36,12 +38,24 @@
         lastMouseY = newY;
     }
 
+    function handleMouseWheel(event) {
+        wheelDelta = (event.wheelDelta || -event.detail);
+        lastMouseX = event.clientX;
+        lastMouseY = event.clientY;
+    }
+
     function webGLStart() {
-        var canvas = document.getElementById("webgl-canvas");
+        canvas = document.getElementById("webgl-canvas");
 
         canvas.onmousedown = handleMouseDown;
-        document.onmouseup = handleMouseUp;
-        document.onmousemove = handleMouseMove;
+        canvas.onmouseup = handleMouseUp;
+        canvas.onmousemove = handleMouseMove;
+        if (canvas.addEventListener) {
+            // IE9, Chrome, Safari, Opera
+            canvas.addEventListener("mousewheel", handleMouseWheel, false);
+            // Firefox
+            canvas.addEventListener("DOMMouseScroll", handleMouseWheel, false);
+        }
     }
 
 </script>
