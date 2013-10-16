@@ -37,7 +37,7 @@
 /*********************************************************************/
 
 #include "globals.h"
-#include <string>
+#include <QString>
 
 #if ENABLE_SKELETON_SUPPORT
     #include "SkeletonThread.h"
@@ -45,7 +45,7 @@
     SkeletonThread * g_skeletonThread = NULL;
 #endif
 
-std::string g_displayClusterDir;
+QString g_displayClusterDir;
 int g_mpiRank = -1;
 int g_mpiSize = -1;
 MPI_Comm g_mpiRenderComm;

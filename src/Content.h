@@ -42,7 +42,6 @@
 #include "ContentFactory.h"
 #include "ContentType.h"
 
-#include <string>
 #include <QtGui>
 #include <boost/shared_ptr.hpp>
 #include <boost/serialization/access.hpp>

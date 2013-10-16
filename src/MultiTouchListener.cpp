@@ -39,7 +39,7 @@
 
 #include "MultiTouchListener.h"
 
-#include "Configuration.h"
+#include "configuration/Configuration.h"
 #include "DisplayGroupGraphicsView.h"
 #include "DisplayGroupGraphicsViewProxy.h"
 #include "gestures/DoubleTapGestureRecognizer.h"

@@ -44,7 +44,6 @@
 
 #include <algorithm>
 #include <fstream>
-#include <string>
 #include <boost/tokenizer.hpp>
 #include <QImageReader>
 

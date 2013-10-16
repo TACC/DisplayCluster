@@ -40,7 +40,7 @@
 #include "DockPixelStreamer.h"
 
 #include "Pictureflow.h"
-#include "Configuration.h"
+#include "configuration/MasterConfiguration.h"
 #include "Content.h"
 #include "ContentFactory.h"
 #include "ContentWindowManager.h"
@@ -87,7 +87,7 @@ DockPixelStreamer::DockPixelStreamer()
              this, SLOT(loadNextThumbnailInList()));
     loadThread_.start();
 
-    changeDirectory( g_configuration->getDockStartDir( ));
+    changeDirectory( static_cast<MasterConfiguration*>(g_configuration)->getDockStartDir( ));
 }
 
 DockPixelStreamer::~DockPixelStreamer()

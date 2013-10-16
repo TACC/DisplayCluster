@@ -42,7 +42,7 @@
 #include <QtGui>
 
 #include "globals.h"
-#include "Configuration.h"
+#include "configuration/Configuration.h"
 #include "ContentFactory.h"
 #include "ContentWindowManager.h"
 #include "DisplayGroupManager.h"

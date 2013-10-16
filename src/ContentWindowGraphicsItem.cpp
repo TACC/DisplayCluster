@@ -37,7 +37,7 @@
 /*********************************************************************/
 
 #include "ContentWindowGraphicsItem.h"
-#include "Configuration.h"
+#include "configuration/Configuration.h"
 #include "Content.h"
 #include "ContentWindowManager.h"
 #include "DisplayGroupManager.h"

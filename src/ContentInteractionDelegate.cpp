@@ -48,7 +48,7 @@
 #include "gestures/PinchGestureRecognizer.h"
 
 #include "globals.h"
-#include "Configuration.h"
+#include "configuration/Configuration.h"
 
 
 ContentInteractionDelegate::ContentInteractionDelegate(ContentWindowManager *cwm)

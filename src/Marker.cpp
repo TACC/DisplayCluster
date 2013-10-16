@@ -38,7 +38,7 @@
 
 #include "Marker.h"
 #include "log.h"
-#include "Configuration.h"
+#include "configuration/Configuration.h"
 #include "globals.h"
 #include "DisplayGroupManager.h"
 #include "MainWindow.h"
@@ -55,13 +55,13 @@ Marker::Marker()
     if(g_mpiRank != 0 && textureId_ == 0 && g_mainWindow->getGLWindow() != NULL)
     {
         // load marker texture
-        std::string markerImageFilename = std::string(g_displayClusterDir) + std::string("/") + std::string(MARKER_IMAGE_FILENAME);
+        QString markerImageFilename = QString( "%1/%2" ).arg( g_displayClusterDir ).arg( MARKER_IMAGE_FILENAME );
 
-        QImage image(markerImageFilename.c_str());
+        QImage image(markerImageFilename);
 
         if(image.isNull() == true)
         {
-            put_flog(LOG_ERROR, "error loading marker texture %s", markerImageFilename.c_str());
+            put_flog(LOG_ERROR, "error loading marker texture %s", markerImageFilename.toLatin1().constData());
             return;
         }
 

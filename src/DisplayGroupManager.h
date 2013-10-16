@@ -62,6 +62,7 @@
 
 #include "PixelStream.h"
 #include "serializationHelpers.h"
+#include "types.h"
 
 
 class ContentWindowManager;
@@ -73,7 +74,7 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
 
         DisplayGroupManager();
 
-        boost::shared_ptr<Options> getOptions() const;
+        OptionsPtr getOptions() const;
 
         boost::shared_ptr<Marker> getNewMarker();
         const std::vector<boost::shared_ptr<Marker> >& getMarkers() const;
@@ -153,7 +154,7 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         QColor backgroundColor_;
 
         // options
-        boost::shared_ptr<Options> options_;
+        OptionsPtr options_;
 
         // marker and mutex
         QMutex markersMutex_;
