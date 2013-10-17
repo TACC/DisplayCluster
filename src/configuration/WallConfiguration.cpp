@@ -52,6 +52,8 @@ WallConfiguration::WallConfiguration(const QString &filename, OptionsPtr options
 
 void WallConfiguration::loadWallSettings(int processIndex)
 {
+    assert(processIndex > 0 && "WallConfiguration::loadWallSettings is only valid for processes of rank > 0");
+
     QXmlQuery query;
     if(!query.setFocus(QUrl(filename_)))
     {
@@ -59,23 +61,18 @@ void WallConfiguration::loadWallSettings(int processIndex)
         exit(-1);
     }
 
-    // TODO Remove the use of C-style char[] and sprintf
-    char string[1024];
     QString queryResult;
 
     // get host
-    sprintf(string, "string(//process[%i]/@host)", processIndex);
-    query.setQuery(string);
-    query.evaluateTo(&queryResult);
-    host_ = queryResult;
+    query.setQuery( QString("string(//process[%1]/@host)").arg(processIndex) );
+    if (query.evaluateTo(&queryResult))
+        host_ = queryResult.remove(QRegExp("[\\n\\t\\r]"));
 
     // get display (optional attribute)
-    sprintf(string, "string(//process[%i]/@display)", processIndex);
-    query.setQuery(string);
-
+    query.setQuery( QString("string(//process[%1]/@display)").arg(processIndex) );
     if(query.evaluateTo(&queryResult))
     {
-        display_ = queryResult;
+        display_ = queryResult.remove(QRegExp("[\\n\\t\\r]"));
     }
     else
     {
@@ -83,10 +80,9 @@ void WallConfiguration::loadWallSettings(int processIndex)
     }
 
     // get number of tiles for my process
-    sprintf(string, "string(count(//process[%i]/screen))", processIndex);
-    query.setQuery(string);
-    query.evaluateTo(&queryResult);
-    screenCountForCurrentProcess_ = queryResult.toInt();
+    query.setQuery( QString("string(count(//process[%1]/screen))").arg(processIndex) );
+    if (query.evaluateTo(&queryResult))
+        screenCountForCurrentProcess_ = queryResult.toInt();
 
     put_flog(LOG_INFO, "rank %i: %i screens", processIndex, screenCountForCurrentProcess_);
 
@@ -94,28 +90,26 @@ void WallConfiguration::loadWallSettings(int processIndex)
     for(int i=1; i<=screenCountForCurrentProcess_; i++)
     {
         QPoint screenPosition;
-        sprintf(string, "string(//process[%i]/screen[%i]/@x)", processIndex, i);
-        query.setQuery(string);
-        query.evaluateTo(&queryResult);
-        screenPosition.setX(queryResult.toInt());
 
-        sprintf(string, "string(//process[%i]/screen[%i]/@y)", processIndex, i);
-        query.setQuery(string);
-        query.evaluateTo(&queryResult);
-        screenPosition.setY(queryResult.toInt());
+        query.setQuery( QString("string(//process[%1]/screen[%2]/@x)").arg(processIndex).arg(i) );
+        if(query.evaluateTo(&queryResult))
+            screenPosition.setX(queryResult.toInt());
+
+        query.setQuery( QString("string(//process[%1]/screen[%2]/@y)").arg(processIndex).arg(i) );
+        if(query.evaluateTo(&queryResult))
+            screenPosition.setY(queryResult.toInt());
 
         screenPosition_.push_back(screenPosition);
 
         QPoint screenIndex;
-        sprintf(string, "string(//process[%i]/screen[%i]/@i)", processIndex, i);
-        query.setQuery(string);
-        query.evaluateTo(&queryResult);
-        screenIndex.setX(queryResult.toInt());
 
-        sprintf(string, "string(//process[%i]/screen[%i]/@j)", processIndex, i);
-        query.setQuery(string);
-        query.evaluateTo(&queryResult);
-        screenIndex.setY(queryResult.toInt());
+        query.setQuery( QString("string(//process[%1]/screen[%2]/@i)").arg(processIndex).arg(i) );
+        if(query.evaluateTo(&queryResult))
+            screenIndex.setX(queryResult.toInt());
+
+        query.setQuery( QString("string(//process[%1]/screen[%2]/@j)").arg(processIndex).arg(i) );
+        if(query.evaluateTo(&queryResult))
+            screenIndex.setY(queryResult.toInt());
 
         screenGlobalIndex_.push_back(screenIndex);
 

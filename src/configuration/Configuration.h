@@ -153,10 +153,18 @@ public:
     void setBackgroundUri(const QString &uri);
 
     /**
-     * @brief save Save the configuration to the xml file.
+     * @brief save Save the configuration to the current xml file.
      * @return true on succes, false on failure
      */
-    bool save();
+    bool save() const;
+
+    /**
+     * @brief save Save the configuration to the specified xml file.
+     * @param filename destination file
+     * @return true on succes, false on failure
+     */
+    bool save(const QString& filename) const;
+
 
 protected:
     /**
