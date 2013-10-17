@@ -38,7 +38,7 @@
 
 #include "MainWindow.h"
 #include "globals.h"
-#include "Configuration.h"
+#include "configuration/WallConfiguration.h"
 #include "Content.h"
 #include "ContentFactory.h"
 #include "ContentWindowManager.h"
@@ -80,236 +80,7 @@ MainWindow::MainWindow()
         resize(800,600);
         setAcceptDrops(true);
 
-        // create menus in menu bar
-        QMenu * fileMenu = menuBar()->addMenu("&File");
-        QMenu * viewMenu = menuBar()->addMenu("&View");
-        QMenu * viewStreamingMenu = viewMenu->addMenu("&Streaming");
-#if ENABLE_PYTHON_SUPPORT
-        // add Window menu for Python console. if we add any other entries to it we'll need to remove the #if
-        QMenu * windowMenu = menuBar()->addMenu("&Window");
-#endif
-
-#if ENABLE_SKELETON_SUPPORT
-        QMenu * skeletonMenu = menuBar()->addMenu("&Skeleton Tracking");
-#endif
-
-        // create tool bar
-        QToolBar * toolbar = addToolBar("toolbar");
-
-        // open content action
-        QAction * openContentAction = new QAction("Open Content", this);
-        openContentAction->setStatusTip("Open content");
-        connect(openContentAction, SIGNAL(triggered()), this, SLOT(openContent()));
-
-        // open contents directory action
-        QAction * openContentsDirectoryAction = new QAction("Open Contents Directory", this);
-        openContentsDirectoryAction->setStatusTip("Open contents directory");
-        connect(openContentsDirectoryAction, SIGNAL(triggered()), this, SLOT(openContentsDirectory()));
-
-        // clear contents action
-        QAction * clearContentsAction = new QAction("Clear", this);
-        clearContentsAction->setStatusTip("Clear");
-        connect(clearContentsAction, SIGNAL(triggered()), this, SLOT(clearContents()));
-
-        // save state action
-        QAction * saveStateAction = new QAction("Save State", this);
-        saveStateAction->setStatusTip("Save state");
-        connect(saveStateAction, SIGNAL(triggered()), this, SLOT(saveState()));
-
-        // load state action
-        QAction * loadStateAction = new QAction("Load State", this);
-        loadStateAction->setStatusTip("Load state");
-        connect(loadStateAction, SIGNAL(triggered()), this, SLOT(loadState()));
-
-        // compute image pyramid action
-        QAction * computeImagePyramidAction = new QAction("Compute Image Pyramid", this);
-        computeImagePyramidAction->setStatusTip("Compute image pyramid");
-        connect(computeImagePyramidAction, SIGNAL(triggered()), this, SLOT(computeImagePyramid()));
-
-        // load background content action
-        QAction * backgroundAction = new QAction("Background", this);
-        backgroundAction->setStatusTip("Select the background color and content");
-        connect(backgroundAction, SIGNAL(triggered()), this, SLOT(showBackgroundWidget()));
-
-        // Open webbrowser action
-        QAction * webbrowserAction = new QAction("Web Browser", this);
-        webbrowserAction->setStatusTip("Open a web browser");
-        connect(webbrowserAction, SIGNAL(triggered()), this, SLOT(openWebBrowser()));
-
-#if ENABLE_PYTHON_SUPPORT
-        // Python console action
-        QAction * pythonConsoleAction = new QAction("Open Python Console", this);
-        pythonConsoleAction->setStatusTip("Open Python console");
-        connect(pythonConsoleAction, SIGNAL(triggered()), PythonConsole::self(), SLOT(show()));
-#endif
-
-        // quit action
-        QAction * quitAction = new QAction("Quit", this);
-        quitAction->setStatusTip("Quit application");
-        connect(quitAction, SIGNAL(triggered()), this, SLOT(close()));
-
-        // constrain aspect ratio action
-        QAction * constrainAspectRatioAction = new QAction("Constrain Aspect Ratio", this);
-        constrainAspectRatioAction->setStatusTip("Constrain aspect ratio");
-        constrainAspectRatioAction->setCheckable(true);
-        constrainAspectRatioAction->setChecked(constrainAspectRatio_);
-        connect(constrainAspectRatioAction, SIGNAL(toggled(bool)), this, SLOT(constrainAspectRatio(bool)));
-
-        // show window borders action
-        QAction * showWindowBordersAction = new QAction("Show Window Borders", this);
-        showWindowBordersAction->setStatusTip("Show window borders");
-        showWindowBordersAction->setCheckable(true);
-        showWindowBordersAction->setChecked(g_displayGroupManager->getOptions()->getShowWindowBorders());
-        connect(showWindowBordersAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowWindowBorders(bool)));
-
-        // show mouse cursor action
-        QAction * showMouseCursorAction = new QAction("Show Mouse Cursor", this);
-        showMouseCursorAction->setStatusTip("Show mouse cursor");
-        showMouseCursorAction->setCheckable(true);
-        showMouseCursorAction->setChecked(g_displayGroupManager->getOptions()->getShowMouseCursor());
-        connect(showMouseCursorAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowMouseCursor(bool)));
-
-        // show touch points action
-        QAction * showTouchPoints = new QAction("Show Touch Points", this);
-        showTouchPoints->setStatusTip("Show touch points");
-        showTouchPoints->setCheckable(true);
-        showTouchPoints->setChecked(g_displayGroupManager->getOptions()->getShowTouchPoints());
-        connect(showTouchPoints, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowTouchPoints(bool)));
-
-        // show movie controls action
-        QAction * showMovieControlsAction = new QAction("Show Movie Controls", this);
-        showMovieControlsAction->setStatusTip("Show movie controls");
-        showMovieControlsAction->setCheckable(true);
-        showMovieControlsAction->setChecked(g_displayGroupManager->getOptions()->getShowMovieControls());
-        connect(showMovieControlsAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowMovieControls(bool)));
-
-        // show test pattern action
-        QAction * showTestPatternAction = new QAction("Show Test Pattern", this);
-        showTestPatternAction->setStatusTip("Show test pattern");
-        showTestPatternAction->setCheckable(true);
-        showTestPatternAction->setChecked(g_displayGroupManager->getOptions()->getShowTestPattern());
-        connect(showTestPatternAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowTestPattern(bool)));
-
-        // enable mullion compensation action
-        QAction * enableMullionCompensationAction = new QAction("Enable Mullion Compensation", this);
-        enableMullionCompensationAction->setStatusTip("Enable mullion compensation");
-        enableMullionCompensationAction->setCheckable(true);
-        enableMullionCompensationAction->setChecked(g_displayGroupManager->getOptions()->getEnableMullionCompensation());
-        connect(enableMullionCompensationAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setEnableMullionCompensation(bool)));
-
-        // show zoom context action
-        QAction * showZoomContextAction = new QAction("Show Zoom Context", this);
-        showZoomContextAction->setStatusTip("Show zoom context");
-        showZoomContextAction->setCheckable(true);
-        showZoomContextAction->setChecked(g_displayGroupManager->getOptions()->getShowZoomContext());
-        connect(showZoomContextAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowZoomContext(bool)));
-
-        // enable streaming synchronization action
-        QAction * enableStreamingSynchronizationAction = new QAction("Enable Streaming Synchronization", this);
-        enableStreamingSynchronizationAction->setStatusTip("Enable streaming synchronization");
-        enableStreamingSynchronizationAction->setCheckable(true);
-        enableStreamingSynchronizationAction->setChecked(g_displayGroupManager->getOptions()->getEnableStreamingSynchronization());
-        connect(enableStreamingSynchronizationAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setEnableStreamingSynchronization(bool)));
-
-        // show streaming segments action
-        QAction * showStreamingSegmentsAction = new QAction("Show Segments", this);
-        showStreamingSegmentsAction->setStatusTip("Show segments");
-        showStreamingSegmentsAction->setCheckable(true);
-        showStreamingSegmentsAction->setChecked(g_displayGroupManager->getOptions()->getShowStreamingSegments());
-        connect(showStreamingSegmentsAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowStreamingSegments(bool)));
-
-        // show streaming statistics action
-        QAction * showStreamingStatisticsAction = new QAction("Show Statistics", this);
-        showStreamingStatisticsAction->setStatusTip("Show statistics");
-        showStreamingStatisticsAction->setCheckable(true);
-        showStreamingStatisticsAction->setChecked(g_displayGroupManager->getOptions()->getShowStreamingStatistics());
-        connect(showStreamingStatisticsAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowStreamingStatistics(bool)));
-
-#if ENABLE_SKELETON_SUPPORT
-        // enable skeleton tracking action
-        QAction * enableSkeletonTrackingAction = new QAction("Enable Skeleton Tracking", this);
-        enableSkeletonTrackingAction->setStatusTip("Enable skeleton tracking");
-        enableSkeletonTrackingAction->setCheckable(true);
-        enableSkeletonTrackingAction->setChecked(true); // timer is started by default
-        connect(enableSkeletonTrackingAction, SIGNAL(toggled(bool)), this, SLOT(setEnableSkeletonTracking(bool)));
-
-        connect(this, SIGNAL(enableSkeletonTracking()), g_skeletonThread, SLOT(startTimer()));
-        connect(this, SIGNAL(disableSkeletonTracking()), g_skeletonThread, SLOT(stopTimer()));
-
-        // show skeletons action
-        QAction * showSkeletonsAction = new QAction("Show Skeletons", this);
-        showSkeletonsAction->setStatusTip("Show skeletons");
-        showSkeletonsAction->setCheckable(true);
-        showSkeletonsAction->setChecked(g_displayGroupManager->getOptions()->getShowSkeletons());
-        connect(showSkeletonsAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowSkeletons(bool)));
-#endif
-
-        // add actions to menus
-        fileMenu->addAction(openContentAction);
-        fileMenu->addAction(openContentsDirectoryAction);
-        fileMenu->addAction(webbrowserAction);
-        fileMenu->addAction(clearContentsAction);
-        fileMenu->addAction(saveStateAction);
-        fileMenu->addAction(loadStateAction);
-        fileMenu->addAction(computeImagePyramidAction);
-        fileMenu->addAction(quitAction);
-        viewMenu->addAction(backgroundAction);
-        viewMenu->addAction(constrainAspectRatioAction);
-        viewMenu->addAction(showWindowBordersAction);
-        viewMenu->addAction(showMouseCursorAction);
-        viewMenu->addAction(showTouchPoints);
-        viewMenu->addAction(showMovieControlsAction);
-        viewMenu->addAction(showTestPatternAction);
-        viewMenu->addAction(enableMullionCompensationAction);
-        viewMenu->addAction(showZoomContextAction);
-        viewStreamingMenu->addAction(enableStreamingSynchronizationAction);
-        viewStreamingMenu->addAction(showStreamingSegmentsAction);
-        viewStreamingMenu->addAction(showStreamingStatisticsAction);
-
-#if ENABLE_PYTHON_SUPPORT
-        windowMenu->addAction(pythonConsoleAction);
-#endif
-
-#if ENABLE_SKELETON_SUPPORT
-        skeletonMenu->addAction(enableSkeletonTrackingAction);
-        skeletonMenu->addAction(showSkeletonsAction);
-#endif
-
-        // add actions to toolbar
-        toolbar->addAction(openContentAction);
-        toolbar->addAction(openContentsDirectoryAction);
-        toolbar->addAction(clearContentsAction);
-        toolbar->addAction(saveStateAction);
-        toolbar->addAction(loadStateAction);
-        toolbar->addAction(computeImagePyramidAction);
-        toolbar->addAction(backgroundAction);
-        toolbar->addAction(webbrowserAction);
-#if ENABLE_PYTHON_SUPPORT
-        toolbar->addAction(pythonConsoleAction);
-#endif
-        // main widget / layout area
-        QTabWidget * mainWidget = new QTabWidget();
-        setCentralWidget(mainWidget);
-
-        // add the local renderer group
-        DisplayGroupGraphicsViewProxy * dggv = new DisplayGroupGraphicsViewProxy(g_displayGroupManager);
-        mainWidget->addTab((QWidget *)dggv->getGraphicsView(), "Display group 0");
-
-#if ENABLE_TUIO_TOUCH_LISTENER
-        touchListener_ = new MultiTouchListener( dggv );
-#endif
-
-        // create contents dock widget
-        QDockWidget * contentsDockWidget = new QDockWidget("Contents", this);
-        QWidget * contentsWidget = new QWidget();
-        QVBoxLayout * contentsLayout = new QVBoxLayout();
-        contentsWidget->setLayout(contentsLayout);
-        contentsDockWidget->setWidget(contentsWidget);
-        addDockWidget(Qt::LeftDockWidgetArea, contentsDockWidget);
-
-        // add the list widget
-        DisplayGroupListWidgetProxy * dglwp = new DisplayGroupListWidgetProxy(g_displayGroupManager);
-        contentsLayout->addWidget(dglwp->getListWidget());
+        setupMasterWindowUI();
 
         // timer will trigger polling of PixelStreams
         connect(&pixelStreamTimer_, SIGNAL(timeout()), g_displayGroupManager.get(), SLOT(sendPixelStreams()));
@@ -324,55 +95,7 @@ MainWindow::MainWindow()
 #if ENABLE_TUIO_TOUCH_LISTENER
         touchListener_ = 0;
 #endif
-        // setup OpenGL windows
-        // if we have just one tile for this process, make the GL window the central widget
-        // otherwise, create multiple windows
-        if(g_configuration->getMyNumTiles() == 1)
-        {
-            move(QPoint(g_configuration->getTileX(0), g_configuration->getTileY(0)));
-            resize(g_configuration->getScreenWidth(), g_configuration->getScreenHeight());
-
-            boost::shared_ptr<GLWindow> glw(new GLWindow(0));
-            glWindows_.push_back(glw);
-
-            setCentralWidget(glw.get());
-
-            if(g_configuration->getFullscreen() == true)
-            {
-                showFullScreen();
-            }
-            else
-            {
-                show();
-            }
-        }
-        else
-        {
-            for(int i=0; i<g_configuration->getMyNumTiles(); i++)
-            {
-                QRect windowRect = QRect(g_configuration->getTileX(i), g_configuration->getTileY(i), g_configuration->getScreenWidth(), g_configuration->getScreenHeight());
-
-                // setup shared OpenGL contexts
-                GLWindow * shareWidget = NULL;
-
-                if(i > 0)
-                {
-                    shareWidget = glWindows_[0].get();
-                }
-
-                boost::shared_ptr<GLWindow> glw(new GLWindow(i, windowRect, shareWidget));
-                glWindows_.push_back(glw);
-
-                if(g_configuration->getFullscreen() == true)
-                {
-                    glw->showFullScreen();
-                }
-                else
-                {
-                    glw->show();
-                }
-            }
-        }
+        setupWallOpenGLWindows();
 
         // setup connection so updateGLWindows() will be called continuously
         // must be queued so we return to the main event loop and avoid infinite recursion
@@ -388,6 +111,297 @@ MainWindow::~MainWindow()
 #if ENABLE_TUIO_TOUCH_LISTENER
     delete touchListener_;
 #endif
+}
+
+
+void MainWindow::setupMasterWindowUI()
+{
+    // create menus in menu bar
+    QMenu * fileMenu = menuBar()->addMenu("&File");
+    QMenu * viewMenu = menuBar()->addMenu("&View");
+    QMenu * viewStreamingMenu = viewMenu->addMenu("&Streaming");
+#if ENABLE_PYTHON_SUPPORT
+    // add Window menu for Python console. if we add any other entries to it we'll need to remove the #if
+    QMenu * windowMenu = menuBar()->addMenu("&Window");
+#endif
+
+#if ENABLE_SKELETON_SUPPORT
+    QMenu * skeletonMenu = menuBar()->addMenu("&Skeleton Tracking");
+#endif
+
+    // create tool bar
+    QToolBar * toolbar = addToolBar("toolbar");
+
+    // open content action
+    QAction * openContentAction = new QAction("Open Content", this);
+    openContentAction->setStatusTip("Open content");
+    connect(openContentAction, SIGNAL(triggered()), this, SLOT(openContent()));
+
+    // open contents directory action
+    QAction * openContentsDirectoryAction = new QAction("Open Contents Directory", this);
+    openContentsDirectoryAction->setStatusTip("Open contents directory");
+    connect(openContentsDirectoryAction, SIGNAL(triggered()), this, SLOT(openContentsDirectory()));
+
+    // clear contents action
+    QAction * clearContentsAction = new QAction("Clear", this);
+    clearContentsAction->setStatusTip("Clear");
+    connect(clearContentsAction, SIGNAL(triggered()), this, SLOT(clearContents()));
+
+    // save state action
+    QAction * saveStateAction = new QAction("Save State", this);
+    saveStateAction->setStatusTip("Save state");
+    connect(saveStateAction, SIGNAL(triggered()), this, SLOT(saveState()));
+
+    // load state action
+    QAction * loadStateAction = new QAction("Load State", this);
+    loadStateAction->setStatusTip("Load state");
+    connect(loadStateAction, SIGNAL(triggered()), this, SLOT(loadState()));
+
+    // compute image pyramid action
+    QAction * computeImagePyramidAction = new QAction("Compute Image Pyramid", this);
+    computeImagePyramidAction->setStatusTip("Compute image pyramid");
+    connect(computeImagePyramidAction, SIGNAL(triggered()), this, SLOT(computeImagePyramid()));
+
+    // load background content action
+    QAction * backgroundAction = new QAction("Background", this);
+    backgroundAction->setStatusTip("Select the background color and content");
+    connect(backgroundAction, SIGNAL(triggered()), this, SLOT(showBackgroundWidget()));
+
+    // Open webbrowser action
+    QAction * webbrowserAction = new QAction("Web Browser", this);
+    webbrowserAction->setStatusTip("Open a web browser");
+    connect(webbrowserAction, SIGNAL(triggered()), this, SLOT(openWebBrowser()));
+
+#if ENABLE_PYTHON_SUPPORT
+    // Python console action
+    QAction * pythonConsoleAction = new QAction("Open Python Console", this);
+    pythonConsoleAction->setStatusTip("Open Python console");
+    connect(pythonConsoleAction, SIGNAL(triggered()), PythonConsole::self(), SLOT(show()));
+#endif
+
+    // quit action
+    QAction * quitAction = new QAction("Quit", this);
+    quitAction->setStatusTip("Quit application");
+    connect(quitAction, SIGNAL(triggered()), this, SLOT(close()));
+
+    // constrain aspect ratio action
+    QAction * constrainAspectRatioAction = new QAction("Constrain Aspect Ratio", this);
+    constrainAspectRatioAction->setStatusTip("Constrain aspect ratio");
+    constrainAspectRatioAction->setCheckable(true);
+    constrainAspectRatioAction->setChecked(constrainAspectRatio_);
+    connect(constrainAspectRatioAction, SIGNAL(toggled(bool)), this, SLOT(constrainAspectRatio(bool)));
+
+    // show window borders action
+    QAction * showWindowBordersAction = new QAction("Show Window Borders", this);
+    showWindowBordersAction->setStatusTip("Show window borders");
+    showWindowBordersAction->setCheckable(true);
+    showWindowBordersAction->setChecked(g_displayGroupManager->getOptions()->getShowWindowBorders());
+    connect(showWindowBordersAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowWindowBorders(bool)));
+
+    // show mouse cursor action
+    QAction * showMouseCursorAction = new QAction("Show Mouse Cursor", this);
+    showMouseCursorAction->setStatusTip("Show mouse cursor");
+    showMouseCursorAction->setCheckable(true);
+    showMouseCursorAction->setChecked(g_displayGroupManager->getOptions()->getShowMouseCursor());
+    connect(showMouseCursorAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowMouseCursor(bool)));
+
+    // show touch points action
+    QAction * showTouchPoints = new QAction("Show Touch Points", this);
+    showTouchPoints->setStatusTip("Show touch points");
+    showTouchPoints->setCheckable(true);
+    showTouchPoints->setChecked(g_displayGroupManager->getOptions()->getShowTouchPoints());
+    connect(showTouchPoints, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowTouchPoints(bool)));
+
+    // show movie controls action
+    QAction * showMovieControlsAction = new QAction("Show Movie Controls", this);
+    showMovieControlsAction->setStatusTip("Show movie controls");
+    showMovieControlsAction->setCheckable(true);
+    showMovieControlsAction->setChecked(g_displayGroupManager->getOptions()->getShowMovieControls());
+    connect(showMovieControlsAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowMovieControls(bool)));
+
+    // show test pattern action
+    QAction * showTestPatternAction = new QAction("Show Test Pattern", this);
+    showTestPatternAction->setStatusTip("Show test pattern");
+    showTestPatternAction->setCheckable(true);
+    showTestPatternAction->setChecked(g_displayGroupManager->getOptions()->getShowTestPattern());
+    connect(showTestPatternAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowTestPattern(bool)));
+
+    // enable mullion compensation action
+    QAction * enableMullionCompensationAction = new QAction("Enable Mullion Compensation", this);
+    enableMullionCompensationAction->setStatusTip("Enable mullion compensation");
+    enableMullionCompensationAction->setCheckable(true);
+    enableMullionCompensationAction->setChecked(g_displayGroupManager->getOptions()->getEnableMullionCompensation());
+    connect(enableMullionCompensationAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setEnableMullionCompensation(bool)));
+
+    // show zoom context action
+    QAction * showZoomContextAction = new QAction("Show Zoom Context", this);
+    showZoomContextAction->setStatusTip("Show zoom context");
+    showZoomContextAction->setCheckable(true);
+    showZoomContextAction->setChecked(g_displayGroupManager->getOptions()->getShowZoomContext());
+    connect(showZoomContextAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowZoomContext(bool)));
+
+    // enable streaming synchronization action
+    QAction * enableStreamingSynchronizationAction = new QAction("Enable Streaming Synchronization", this);
+    enableStreamingSynchronizationAction->setStatusTip("Enable streaming synchronization");
+    enableStreamingSynchronizationAction->setCheckable(true);
+    enableStreamingSynchronizationAction->setChecked(g_displayGroupManager->getOptions()->getEnableStreamingSynchronization());
+    connect(enableStreamingSynchronizationAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setEnableStreamingSynchronization(bool)));
+
+    // show streaming segments action
+    QAction * showStreamingSegmentsAction = new QAction("Show Segments", this);
+    showStreamingSegmentsAction->setStatusTip("Show segments");
+    showStreamingSegmentsAction->setCheckable(true);
+    showStreamingSegmentsAction->setChecked(g_displayGroupManager->getOptions()->getShowStreamingSegments());
+    connect(showStreamingSegmentsAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowStreamingSegments(bool)));
+
+    // show streaming statistics action
+    QAction * showStreamingStatisticsAction = new QAction("Show Statistics", this);
+    showStreamingStatisticsAction->setStatusTip("Show statistics");
+    showStreamingStatisticsAction->setCheckable(true);
+    showStreamingStatisticsAction->setChecked(g_displayGroupManager->getOptions()->getShowStreamingStatistics());
+    connect(showStreamingStatisticsAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowStreamingStatistics(bool)));
+
+#if ENABLE_SKELETON_SUPPORT
+    // enable skeleton tracking action
+    QAction * enableSkeletonTrackingAction = new QAction("Enable Skeleton Tracking", this);
+    enableSkeletonTrackingAction->setStatusTip("Enable skeleton tracking");
+    enableSkeletonTrackingAction->setCheckable(true);
+    enableSkeletonTrackingAction->setChecked(true); // timer is started by default
+    connect(enableSkeletonTrackingAction, SIGNAL(toggled(bool)), this, SLOT(setEnableSkeletonTracking(bool)));
+
+    connect(this, SIGNAL(enableSkeletonTracking()), g_skeletonThread, SLOT(startTimer()));
+    connect(this, SIGNAL(disableSkeletonTracking()), g_skeletonThread, SLOT(stopTimer()));
+
+    // show skeletons action
+    QAction * showSkeletonsAction = new QAction("Show Skeletons", this);
+    showSkeletonsAction->setStatusTip("Show skeletons");
+    showSkeletonsAction->setCheckable(true);
+    showSkeletonsAction->setChecked(g_displayGroupManager->getOptions()->getShowSkeletons());
+    connect(showSkeletonsAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowSkeletons(bool)));
+#endif
+
+    // add actions to menus
+    fileMenu->addAction(openContentAction);
+    fileMenu->addAction(openContentsDirectoryAction);
+    fileMenu->addAction(webbrowserAction);
+    fileMenu->addAction(clearContentsAction);
+    fileMenu->addAction(saveStateAction);
+    fileMenu->addAction(loadStateAction);
+    fileMenu->addAction(computeImagePyramidAction);
+    fileMenu->addAction(quitAction);
+    viewMenu->addAction(backgroundAction);
+    viewMenu->addAction(constrainAspectRatioAction);
+    viewMenu->addAction(showWindowBordersAction);
+    viewMenu->addAction(showMouseCursorAction);
+    viewMenu->addAction(showTouchPoints);
+    viewMenu->addAction(showMovieControlsAction);
+    viewMenu->addAction(showTestPatternAction);
+    viewMenu->addAction(enableMullionCompensationAction);
+    viewMenu->addAction(showZoomContextAction);
+    viewStreamingMenu->addAction(enableStreamingSynchronizationAction);
+    viewStreamingMenu->addAction(showStreamingSegmentsAction);
+    viewStreamingMenu->addAction(showStreamingStatisticsAction);
+
+#if ENABLE_PYTHON_SUPPORT
+    windowMenu->addAction(pythonConsoleAction);
+#endif
+
+#if ENABLE_SKELETON_SUPPORT
+    skeletonMenu->addAction(enableSkeletonTrackingAction);
+    skeletonMenu->addAction(showSkeletonsAction);
+#endif
+
+    // add actions to toolbar
+    toolbar->addAction(openContentAction);
+    toolbar->addAction(openContentsDirectoryAction);
+    toolbar->addAction(clearContentsAction);
+    toolbar->addAction(saveStateAction);
+    toolbar->addAction(loadStateAction);
+    toolbar->addAction(computeImagePyramidAction);
+    toolbar->addAction(backgroundAction);
+    toolbar->addAction(webbrowserAction);
+#if ENABLE_PYTHON_SUPPORT
+    toolbar->addAction(pythonConsoleAction);
+#endif
+    // main widget / layout area
+    QTabWidget * mainWidget = new QTabWidget();
+    setCentralWidget(mainWidget);
+
+    // add the local renderer group
+    DisplayGroupGraphicsViewProxy * dggv = new DisplayGroupGraphicsViewProxy(g_displayGroupManager);
+    mainWidget->addTab((QWidget *)dggv->getGraphicsView(), "Display group 0");
+
+#if ENABLE_TUIO_TOUCH_LISTENER
+    touchListener_ = new MultiTouchListener( dggv );
+#endif
+
+    // create contents dock widget
+    QDockWidget * contentsDockWidget = new QDockWidget("Contents", this);
+    QWidget * contentsWidget = new QWidget();
+    QVBoxLayout * contentsLayout = new QVBoxLayout();
+    contentsWidget->setLayout(contentsLayout);
+    contentsDockWidget->setWidget(contentsWidget);
+    addDockWidget(Qt::LeftDockWidgetArea, contentsDockWidget);
+
+    // add the list widget
+    DisplayGroupListWidgetProxy * dglwp = new DisplayGroupListWidgetProxy(g_displayGroupManager);
+    contentsLayout->addWidget(dglwp->getListWidget());
+}
+
+
+void MainWindow::setupWallOpenGLWindows()
+{
+    // if we have just one tile for this process, make the GL window the central widget
+    // otherwise, create multiple windows
+
+    WallConfiguration* configuration = static_cast<WallConfiguration*>(g_configuration);
+
+    if(configuration->getScreenCount() == 1)
+    {
+        move(configuration->getScreenPosition(0));
+        resize(configuration->getScreenWidth(), configuration->getScreenHeight());
+
+        boost::shared_ptr<GLWindow> glw(new GLWindow(0));
+        glWindows_.push_back(glw);
+
+        setCentralWidget(glw.get());
+
+        if(configuration->getFullscreen())
+        {
+            showFullScreen();
+        }
+        else
+        {
+            show();
+        }
+    }
+    else
+    {
+        for(int i=0; i<configuration->getScreenCount(); i++)
+        {
+            QRect windowRect = QRect(configuration->getScreenPosition(i), QSize(configuration->getScreenWidth(), configuration->getScreenHeight()));
+
+            // setup shared OpenGL contexts
+            GLWindow * shareWidget = NULL;
+
+            if(i > 0)
+            {
+                shareWidget = glWindows_[0].get();
+            }
+
+            boost::shared_ptr<GLWindow> glw(new GLWindow(i, windowRect, shareWidget));
+            glWindows_.push_back(glw);
+
+            if(configuration->getFullscreen())
+            {
+                glw->showFullScreen();
+            }
+            else
+            {
+                glw->show();
+            }
+        }
+    }
 }
 
 bool MainWindow::getConstrainAspectRatio()

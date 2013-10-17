@@ -63,7 +63,7 @@ ContentPtr ContentFactory::getContent(const QString& uri)
     {
         put_flog(LOG_ERROR, "could not find file '%s'", uri.toLocal8Bit().constData());
 
-        const QString errorImageFilename = QString( "%1/%2" ).arg( QString::fromStdString( g_displayClusterDir ))
+        const QString errorImageFilename = QString( "%1/%2" ).arg( g_displayClusterDir )
                                                              .arg( ERROR_IMAGE_FILENAME );
         boost::shared_ptr<Content> content(new TextureContent(errorImageFilename));
         return content;
@@ -146,7 +146,7 @@ ContentPtr ContentFactory::getContent(const QString& uri)
     }
 
     put_flog(LOG_ERROR, "Unsupported or invalid file %s", uri.toLocal8Bit().constData());
-    const QString errorImageFilename = QString( "%1/%2" ).arg( QString::fromStdString( g_displayClusterDir ))
+    const QString errorImageFilename = QString( "%1/%2" ).arg( g_displayClusterDir )
                                                          .arg( ERROR_IMAGE_FILENAME );
     ContentPtr content(new TextureContent(errorImageFilename));
     return content;

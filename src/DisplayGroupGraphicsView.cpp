@@ -39,7 +39,7 @@
 #include "DisplayGroupGraphicsView.h"
 #include "DisplayGroupGraphicsScene.h"
 #include "globals.h"
-#include "Configuration.h"
+#include "configuration/Configuration.h"
 #include "ContentWindowManager.h"
 #include "ContentWindowGraphicsItem.h"
 #include "LocalPixelStreamerManager.h"

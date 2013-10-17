@@ -50,7 +50,6 @@
 #include "../../../src/PixelStream.h"
 #include <QtGui>
 #include <QtNetwork/QTcpSocket>
-#include <string>
 
 void computeSegmentJpeg(PixelStreamSegment &segment);
 

@@ -39,7 +39,7 @@
 #include "ContentWindowInterface.h"
 #include "ContentWindowManager.h"
 #include "globals.h"
-#include "Configuration.h"
+#include "configuration/Configuration.h"
 #include "DisplayGroupManager.h"
 #include "MainWindow.h"
 

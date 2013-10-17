@@ -91,7 +91,6 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 list(APPEND SRCS
     AsyncImageLoader.cpp
     BackgroundWidget.cpp
-    Configuration.cpp
     Content.cpp
     ContentFactory.cpp
     ContentType.cpp
@@ -137,6 +136,9 @@ list(APPEND SRCS
     TextureContent.cpp
     WebkitPixelStreamer.cpp
     ZoomInteractionDelegate.cpp
+    configuration/Configuration.cpp
+    configuration/MasterConfiguration.cpp
+    configuration/WallConfiguration.cpp
     thumbnail/DefaultThumbnailGenerator.cpp
     thumbnail/FolderThumbnailGenerator.cpp
     thumbnail/ImageThumbnailGenerator.cpp

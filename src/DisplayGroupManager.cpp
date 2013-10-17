@@ -40,7 +40,7 @@
 #include "ContentWindowManager.h"
 #include "ContentFactory.h"
 #include "Content.h"
-#include "Configuration.h"
+#include "configuration/Configuration.h"
 #include "globals.h"
 #include "log.h"
 #include "MainWindow.h"
@@ -59,11 +59,8 @@
 #include "StatePreview.h"
 
 DisplayGroupManager::DisplayGroupManager()
+    : options_(new Options())
 {
-    // create new Options object
-    boost::shared_ptr<Options> options(new Options());
-    options_ = options;
-
     // make Options trigger sendDisplayGroup() when it is updated
     connect(options_.get(), SIGNAL(updated()), this, SLOT(sendDisplayGroup()), Qt::QueuedConnection);
 
@@ -81,7 +78,7 @@ DisplayGroupManager::DisplayGroupManager()
     qRegisterMetaType<PixelStreamSegment>("PixelStreamSegment");
 }
 
-boost::shared_ptr<Options> DisplayGroupManager::getOptions() const
+OptionsPtr DisplayGroupManager::getOptions() const
 {
     return options_;
 }

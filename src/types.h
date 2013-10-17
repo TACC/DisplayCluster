@@ -46,10 +46,12 @@
 class Content;
 class ContentWindowManager;
 class DisplayGroupManager;
+class Options;
 
 typedef boost::shared_ptr< Content > ContentPtr;
 typedef boost::shared_ptr< ContentWindowManager > ContentWindowManagerPtr;
 typedef boost::shared_ptr< DisplayGroupManager > DisplayGroupManagerPtr;
+typedef boost::shared_ptr< Options > OptionsPtr;
 
 typedef std::vector< ContentWindowManagerPtr > ContentWindowManagerPtrs;
 

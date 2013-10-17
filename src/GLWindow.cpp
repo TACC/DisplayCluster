@@ -39,7 +39,7 @@
 #include "GLWindow.h"
 #include "globals.h"
 #include "Marker.h"
-#include "Configuration.h"
+#include "configuration/WallConfiguration.h"
 #include "ContentWindowManager.h"
 #include "DisplayGroupManager.h"
 #include "MainWindow.h"
@@ -54,6 +54,7 @@
 #endif
 
 GLWindow::GLWindow(int tileIndex)
+    : configuration_(static_cast<WallConfiguration*>(g_configuration))
 {
     tileIndex_ = tileIndex;
 
@@ -61,7 +62,9 @@ GLWindow::GLWindow(int tileIndex)
     setAutoBufferSwap(false);
 }
 
-GLWindow::GLWindow(int tileIndex, QRect windowRect, QGLWidget * shareWidget) : QGLWidget(0, shareWidget)
+GLWindow::GLWindow(int tileIndex, QRect windowRect, QGLWidget * shareWidget)
+  : QGLWidget(0, shareWidget)
+  , configuration_(static_cast<WallConfiguration*>(g_configuration))
 {
     tileIndex_ = tileIndex;
     setGeometry(windowRect);
@@ -144,7 +147,7 @@ void GLWindow::paintGL()
     setOrthographicView();
 
     // if the show test pattern option is enabled, render the test pattern and return
-    if(g_displayGroupManager->getOptions()->getShowTestPattern() == true)
+    if(g_displayGroupManager->getOptions()->getShowTestPattern())
     {
         renderTestPattern();
         return;
@@ -197,7 +200,7 @@ void GLWindow::paintGL()
         // set the height of the skeleton view to a fraction of the total display height
         // set the width to maintain a 16/9 aspect ratio
         double skeletonViewHeight = 0.4;
-        double skeletonViewWidth = 16./9. * (double)g_configuration->getTotalHeight() / (double)g_configuration->getTotalWidth() * skeletonViewHeight;
+        double skeletonViewWidth = 16./9. * (double)configuration_->getTotalHeight() / (double)configuration_->getTotalWidth() * skeletonViewHeight;
 
         // view at the center bottom
         if(setPerspectiveView(0.5 * (1. - skeletonViewWidth), 1. - skeletonViewHeight, skeletonViewWidth, skeletonViewHeight) == true)
@@ -241,42 +244,31 @@ void GLWindow::setOrthographicView()
     // invert y-axis to put origin at lower-left corner
     glScalef(1.,-1.,1.);
 
-    // compute view bounds
-    if(g_mpiRank == 0)
-    {
-        left_ = 0.;
-        right_ = 1.;
-        bottom_ = 0.;
-        top_ = 1.;
-    }
-    else
-    {
-        // tiled display parameters
-        double tileI = (double)g_configuration->getTileI(tileIndex_);
-        double numTilesWidth = (double)g_configuration->getNumTilesWidth();
-        double screenWidth = (double)g_configuration->getScreenWidth();
-        double mullionWidth = (double)g_configuration->getMullionWidth();
+    // tiled display parameters
+    double tileI = (double)configuration_->getGlobalScreenIndex(tileIndex_).x();
+    double numTilesX = (double)configuration_->getTotalScreenCountX();
+    double screenWidth = (double)configuration_->getScreenWidth();
+    double mullionWidth = (double)configuration_->getMullionWidth();
 
-        double tileJ = (double)g_configuration->getTileJ(tileIndex_);
-        double numTilesHeight = (double)g_configuration->getNumTilesHeight();
-        double screenHeight = (double)g_configuration->getScreenHeight();
-        double mullionHeight = (double)g_configuration->getMullionHeight();
+    double tileJ = (double)configuration_->getGlobalScreenIndex(tileIndex_).y();
+    double numTilesY = (double)configuration_->getTotalScreenCountY();
+    double screenHeight = (double)configuration_->getScreenHeight();
+    double mullionHeight = (double)configuration_->getMullionHeight();
 
-        // border calculations
-        left_ = tileI / numTilesWidth * ( numTilesWidth * screenWidth ) + tileI * mullionWidth;
-        right_ = left_ + screenWidth;
-        bottom_ = tileJ / numTilesHeight * ( numTilesHeight * screenHeight ) + tileJ * mullionHeight;
-        top_ = bottom_ + screenHeight;
+    // border calculations
+    left_ = tileI / numTilesX * ( numTilesX * screenWidth ) + tileI * mullionWidth;
+    right_ = left_ + screenWidth;
+    bottom_ = tileJ / numTilesY * ( numTilesY * screenHeight ) + tileJ * mullionHeight;
+    top_ = bottom_ + screenHeight;
 
-        // normalize to 0->1
-        double totalWidth = (double)g_configuration->getTotalWidth();
-        double totalHeight = (double)g_configuration->getTotalHeight();
+    // normalize to 0->1
+    double totalWidth = (double)configuration_->getTotalWidth();
+    double totalHeight = (double)configuration_->getTotalHeight();
 
-        left_ /= totalWidth;
-        right_ /= totalWidth;
-        bottom_ /= totalHeight;
-        top_ /= totalHeight;
-    }
+    left_ /= totalWidth;
+    right_ /= totalWidth;
+    bottom_ /= totalHeight;
+    top_ /= totalHeight;
 
     gluOrtho2D(left_, right_, bottom_, top_);
     glPushMatrix();
@@ -323,7 +315,7 @@ bool GLWindow::setPerspectiveView(double x, double y, double w, double h)
     double near = 0.001;
     double far = 100.;
 
-    double aspect = (double)g_configuration->getTotalHeight() / (double)g_configuration->getTotalWidth() * windowRect.height() / windowRect.width();
+    double aspect = (double)configuration_->getTotalHeight() / (double)configuration_->getTotalWidth() * windowRect.height() / windowRect.width();
 
     double winFovY = 45.0 * aspect;
 
@@ -504,13 +496,13 @@ void GLWindow::renderTestPattern()
     glTranslatef(0., 0., 0.1);
 
     QString label1 = "Rank: " + QString::number(g_mpiRank);
-    QString label2 = "Host: " + QString(g_configuration->getMyHost().c_str());
-    QString label3 = "Display: " + QString(g_configuration->getMyDisplay().c_str());
-    QString label4 = "Tile coordinates: (" + QString::number(g_configuration->getTileI(tileIndex_)) + ", " + QString::number(g_configuration->getTileJ(tileIndex_)) + ")";
-    QString label5 = "Resolution: " + QString::number(g_configuration->getScreenWidth()) + " x " + QString::number(g_configuration->getScreenHeight());
+    QString label2 = "Host: " + configuration_->getHost();
+    QString label3 = "Display: " + configuration_->getDisplay();
+    QString label4 = "Tile coordinates: (" + QString::number(configuration_->getGlobalScreenIndex(tileIndex_).x()) + ", " + QString::number(configuration_->getGlobalScreenIndex(tileIndex_).y()) + ")";
+    QString label5 = "Resolution: " + QString::number(configuration_->getScreenWidth()) + " x " + QString::number(configuration_->getScreenHeight());
     QString label6 = "Fullscreen mode: ";
 
-    if(g_configuration->getFullscreen() == true)
+    if(configuration_->getFullscreen())
     {
         label6 += "True";
     }

@@ -40,7 +40,7 @@
 #include "ZoomInteractionDelegate.h"
 #include "ContentWindowManager.h"
 #include "globals.h"
-#include "Configuration.h"
+#include "configuration/Configuration.h"
 #include "gestures/PanGesture.h"
 #include "gestures/PinchGesture.h"
 

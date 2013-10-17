@@ -48,7 +48,8 @@
 class MultiTouchListener;
 class BackgroundWidget;
 
-class MainWindow : public QMainWindow {
+class MainWindow : public QMainWindow
+{
     Q_OBJECT
 
     public:
@@ -97,6 +98,9 @@ class MainWindow : public QMainWindow {
         void dropEvent(QDropEvent *event);
 
     private:
+        void setupMasterWindowUI();
+        void setupWallOpenGLWindows();
+
         void addContent(const QString &filename);
         void addContentDirectory(const QString &directoryName, int gridX=0, int gridY=0);
         void loadState(const QString &filename);

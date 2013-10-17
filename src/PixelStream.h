@@ -47,7 +47,6 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/serialization/binary_object.hpp>
 #include <boost/serialization/split_member.hpp>
-#include <string>
 #include <map>
 #include <vector>
 

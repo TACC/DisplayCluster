@@ -37,51 +37,70 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "PDFInteractionDelegate.h"
-#include "configuration/Configuration.h"
-#include "ContentWindowManager.h"
-#include "PDFContent.h"
-#include "globals.h"
+#ifndef WALLCONFIGURATION_H
+#define WALLCONFIGURATION_H
 
-PDFInteractionDelegate::PDFInteractionDelegate(ContentWindowManager *cwm)
-    : ZoomInteractionDelegate(cwm)
+#include "Configuration.h"
+#include <QPoint>
+
+/**
+ * @brief The WallConfiguration class manages all the parameters needed
+ * to setup a Wall process.
+ */
+
+class WallConfiguration : public Configuration
 {
-    assert(contentWindowManager_->getContent()->getType() == CONTENT_TYPE_PDF);
-}
+public:
+    /**
+     * @brief WallConfiguration
+     * @param filename \see Configuration
+     * @param options \see Configuration
+     * @param processIndex MPI index of the process on the current host
+     */
+    WallConfiguration(const QString &filename, OptionsPtr options, int processIndex);
 
+    /**
+     * @brief getHost
+     * @return the name of the host on which this process is running (as read from the configuration file)
+     */
+    const QString& getHost() const;
 
-void PDFInteractionDelegate::tap(QTapGesture *gesture)
-{
-    if ( gesture->state() == Qt::GestureFinished )
-    {
-        double x, y, w, h;
-        contentWindowManager_->getCoordinates(x, y, w, h);
+    /**
+     * @brief getDisplay
+     * @return the display identifier in string format matching the current Linux DISPLAY env_var
+     */
+    const QString& getDisplay() const;
 
-        double winCenterX = (x + 0.5 * w) * g_configuration->getTotalWidth();
+    /**
+     * @brief getScreenCount Get the number of screens/GLWindows this process has to manage
+     * @return
+     */
+    int getScreenCount() const;
 
-        if (gesture->position().x() > winCenterX)
-            getPDFContent()->nextPage();
-        else
-            getPDFContent()->previousPage();
-    }
-}
+    /**
+     * @brief getScreenPosition Get the position of the specified screen
+     * @param screenIndex index in the range [0,getScreenCount()-1]
+     * @return top-left position in pixels units
+     */
+    const QPoint& getScreenPosition(int screenIndex) const;
 
-PDFContent *PDFInteractionDelegate::getPDFContent()
-{
-    return static_cast<PDFContent*>(contentWindowManager_->getContent().get());
-}
+    /**
+     * @brief getScreenGlobalIndex Get the global index for the screen
+     * @param screenIndex index in the range [0,getScreenCount()-1]
+     * @return index starting at {0,0} from the top-left
+     */
+    const QPoint& getGlobalScreenIndex(int screenIndex) const;
 
+private:
 
-void PDFInteractionDelegate::swipe(QSwipeGesture *gesture)
-{
-    if (gesture->horizontalDirection() == QSwipeGesture::Left)
-    {
-        getPDFContent()->previousPage();
-    }
-    else if (gesture->horizontalDirection() == QSwipeGesture::Right)
-    {
-        getPDFContent()->nextPage();
-    }
-}
+    QString host_;
+    QString display_;
 
+    int screenCountForCurrentProcess_;
+    std::vector<QPoint> screenPosition_;
+    std::vector<QPoint> screenGlobalIndex_;
 
+    void loadWallSettings(int processIndex);
+};
+
+#endif // WALLCONFIGURATION_H

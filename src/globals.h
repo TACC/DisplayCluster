@@ -42,12 +42,13 @@
 #include <mpi.h>
 #include "types.h"
 
+class QString;
 class Configuration;
 class LocalPixelStreamerManager;
 class MainWindow;
 class NetworkListener;
 
-extern std::string g_displayClusterDir;
+extern QString g_displayClusterDir;
 extern int g_mpiRank;
 extern int g_mpiSize;
 extern MPI_Comm g_mpiRenderComm;

@@ -48,7 +48,7 @@
 
 #include "log.h"
 #include "globals.h"
-#include "Configuration.h"
+#include "configuration/Configuration.h"
 
 #define WEPPAGE_DEFAULT_WIDTH   1280
 #define WEBPAGE_DEFAULT_HEIGHT  1024

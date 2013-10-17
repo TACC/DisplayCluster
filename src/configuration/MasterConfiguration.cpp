@@ -37,51 +37,36 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "PDFInteractionDelegate.h"
-#include "configuration/Configuration.h"
-#include "ContentWindowManager.h"
-#include "PDFContent.h"
-#include "globals.h"
+#include "MasterConfiguration.h"
 
-PDFInteractionDelegate::PDFInteractionDelegate(ContentWindowManager *cwm)
-    : ZoomInteractionDelegate(cwm)
+#include <QtXmlPatterns>
+
+#include "../log.h"
+
+MasterConfiguration::MasterConfiguration(const QString &filename, OptionsPtr options)
+    : Configuration(filename, options)
 {
-    assert(contentWindowManager_->getContent()->getType() == CONTENT_TYPE_PDF);
+    loadMasterSettings();
 }
 
-
-void PDFInteractionDelegate::tap(QTapGesture *gesture)
+void MasterConfiguration::loadMasterSettings()
 {
-    if ( gesture->state() == Qt::GestureFinished )
+    QXmlQuery query;
+    if(!query.setFocus(QUrl(filename_)))
     {
-        double x, y, w, h;
-        contentWindowManager_->getCoordinates(x, y, w, h);
-
-        double winCenterX = (x + 0.5 * w) * g_configuration->getTotalWidth();
-
-        if (gesture->position().x() > winCenterX)
-            getPDFContent()->nextPage();
-        else
-            getPDFContent()->previousPage();
+        put_flog(LOG_FATAL, "failed to load %s", filename_.toLatin1().constData());
+        exit(-1);
     }
+
+    // dock start directory
+    query.setQuery("string(/configuration/dock/@directory)");
+    query.evaluateTo(&dockStartDir_);
+    dockStartDir_.remove(QRegExp("[\\n\\t\\r]"));
+    if( dockStartDir_.isEmpty( ))
+        dockStartDir_ = QDir::homePath();
 }
 
-PDFContent *PDFInteractionDelegate::getPDFContent()
+const QString &MasterConfiguration::getDockStartDir() const
 {
-    return static_cast<PDFContent*>(contentWindowManager_->getContent().get());
+    return dockStartDir_;
 }
-
-
-void PDFInteractionDelegate::swipe(QSwipeGesture *gesture)
-{
-    if (gesture->horizontalDirection() == QSwipeGesture::Left)
-    {
-        getPDFContent()->previousPage();
-    }
-    else if (gesture->horizontalDirection() == QSwipeGesture::Right)
-    {
-        getPDFContent()->nextPage();
-    }
-}
-
-

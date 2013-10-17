@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,67 +37,34 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef CONFIGURATION_H
-#define CONFIGURATION_H
+#ifndef MASTERCONFIGURATION_H
+#define MASTERCONFIGURATION_H
 
-#include <QtGui>
-#include <QtXmlPatterns>
+#include "Configuration.h"
+/**
+ * @brief The MasterConfiguration class manages all the parameters needed
+ * to setup the Master process.
+ */
+class MasterConfiguration : public Configuration
+{
+public:
+    /**
+     * @brief MasterConfiguration constructor
+     * @param filename \see Configuration
+     * @param options \see Configuration
+     */
+    MasterConfiguration(const QString& filename, OptionsPtr options);
 
-class Configuration {
+    /**
+     * @brief getDockStartDir Get the Dock startup directory
+     * @return directory path
+     */
+    const QString& getDockStartDir() const;
 
-    public:
-
-        Configuration(const char * filename);
-
-        int getNumTilesWidth();
-        int getNumTilesHeight();
-        int getScreenWidth();
-        int getScreenHeight();
-        int getMullionWidth();
-        int getMullionHeight();
-        bool getFullscreen();
-        int getTotalWidth();
-        int getTotalHeight();
-
-        std::string getMyHost();
-        std::string getMyDisplay();
-        QString getDockStartDir() const;
-        QString getBackgroundUri() const;
-        QColor getBackgroundColor() const;
-
-        int getMyNumTiles();
-        int getTileX(int i);
-        int getTileY(int i);
-        int getTileI(int i);
-        int getTileJ(int i);
-
-        void setBackgroundColor(const QColor &color);
-        void setBackgroundUri(const QString &uri);
-
-        bool save();
 private:
-        QString filename_;
-        QXmlQuery query_;
+    void loadMasterSettings();
 
-        int numTilesWidth_;
-        int numTilesHeight_;
-        int screenWidth_;
-        int screenHeight_;
-        int mullionWidth_;
-        int mullionHeight_;
-        int fullscreen_;
-
-        std::string host_;
-        std::string display_;
-        QString dockStartDir_;
-        QString backgroundUri_;
-        QColor backgroundColor_;
-
-        int myNumTiles_;
-        std::vector<int> tileX_;
-        std::vector<int> tileY_;
-        std::vector<int> tileI_;
-        std::vector<int> tileJ_;
+    QString dockStartDir_;
 };
 
-#endif
+#endif // MASTERCONFIGURATION_H

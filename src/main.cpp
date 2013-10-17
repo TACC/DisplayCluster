@@ -40,7 +40,8 @@
 
 #include "globals.h"
 #include "config.h"
-#include "Configuration.h"
+#include "configuration/MasterConfiguration.h"
+#include "configuration/WallConfiguration.h"
 #include "DisplayGroupManager.h"
 #include "MainWindow.h"
 #include "NetworkListener.h"
@@ -63,6 +64,8 @@
     SkeletonThread * g_skeletonThread = NULL;
 #endif
 
+#define CONFIGURATION_FILENAME "configuration.xml"
+
 
 int main(int argc, char * argv[])
 {
@@ -75,9 +78,9 @@ int main(int argc, char * argv[])
         return -1;
     }
 
-    g_displayClusterDir = std::string(getenv("DISPLAYCLUSTER_DIR"));
+    g_displayClusterDir = QString(getenv("DISPLAYCLUSTER_DIR"));
 
-    put_flog(LOG_DEBUG, "base directory is %s", g_displayClusterDir.c_str());
+    put_flog(LOG_DEBUG, "base directory is %s", g_displayClusterDir.toLatin1().constData());
 
 #if ENABLE_TUIO_TOUCH_LISTENER
     // we need X multithreading support if we're running the TouchListener thread and creating X events
@@ -91,10 +94,14 @@ int main(int argc, char * argv[])
     MPI_Comm_size(MPI_COMM_WORLD, &g_mpiSize);
     MPI_Comm_split(MPI_COMM_WORLD, g_mpiRank != 0, g_mpiRank, &g_mpiRenderComm);
 
-    g_configuration = new Configuration((std::string(g_displayClusterDir) + std::string("/configuration.xml")).c_str());
+    g_displayGroupManager = boost::shared_ptr<DisplayGroupManager>(new DisplayGroupManager);
 
-    boost::shared_ptr<DisplayGroupManager> dgm(new DisplayGroupManager);
-    g_displayGroupManager = dgm;
+    // Load configuration
+    QString configFilename = QString( "%1/%2" ).arg( g_displayClusterDir ).arg( CONFIGURATION_FILENAME );
+    if(g_mpiRank == 0)
+        g_configuration = new MasterConfiguration(configFilename, g_displayGroupManager->getOptions());
+    else
+        g_configuration = new WallConfiguration(configFilename, g_displayGroupManager->getOptions(), g_mpiRank);
 
     // calibrate timestamp offset between rank 0 and rank 1 clocks
     g_displayGroupManager->calibrateTimestampOffset();

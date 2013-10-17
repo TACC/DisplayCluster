@@ -48,6 +48,8 @@
 #include "PixelStream.h"
 #include <QGLWidget>
 
+class WallConfiguration;
+
 class GLWindow : public QGLWidget
 {
 
@@ -83,6 +85,8 @@ class GLWindow : public QGLWidget
         QRectF getProjectedPixelRect(bool onScreenOnly);
 
 private:
+
+        const WallConfiguration* configuration_;
 
         int tileIndex_;
 

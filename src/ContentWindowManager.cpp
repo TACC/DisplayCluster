@@ -41,7 +41,7 @@
 #include "DisplayGroupManager.h"
 #include "globals.h"
 #include "ContentInteractionDelegate.h"
-#include "Configuration.h"
+#include "configuration/Configuration.h"
 #include "GLWindow.h"
 #include "config.h"
 

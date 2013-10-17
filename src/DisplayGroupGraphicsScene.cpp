@@ -38,7 +38,7 @@
 
 #include "DisplayGroupGraphicsScene.h"
 #include "globals.h"
-#include "Configuration.h"
+#include "configuration/Configuration.h"
 #include "DisplayGroupManager.h"
 #include "Marker.h"
 
@@ -61,11 +61,11 @@ void DisplayGroupGraphicsScene::refreshTileRects()
     // add rectangles for tiled display and each monitor
 
     // tiled display parameters
-    int numTilesWidth = g_configuration->getNumTilesWidth();
+    int numTilesX = g_configuration->getTotalScreenCountX();
     int screenWidth = g_configuration->getScreenWidth();
     int mullionWidth = g_configuration->getMullionWidth();
 
-    int numTilesHeight = g_configuration->getNumTilesHeight();
+    int numTilesY = g_configuration->getTotalScreenCountY();
     int screenHeight = g_configuration->getScreenHeight();
     int mullionHeight = g_configuration->getMullionHeight();
 
@@ -89,14 +89,14 @@ void DisplayGroupGraphicsScene::refreshTileRects()
 
     tileRects_.clear();
 
-    for(int i=0; i<numTilesWidth; i++)
+    for(int i=0; i<numTilesX; i++)
     {
-        for(int j=0; j<numTilesHeight; j++)
+        for(int j=0; j<numTilesY; j++)
         {
             // border calculations
-            double left = (double)i / (double)numTilesWidth * ( (double)numTilesWidth * (double)screenWidth ) + (double)i * (double)mullionWidth;
+            double left = (double)i / (double)numTilesX * ( (double)numTilesX * (double)screenWidth ) + (double)i * (double)mullionWidth;
             double right = left + (double)screenWidth;
-            double bottom = j / (double)numTilesHeight * ( (double)numTilesHeight * (double)screenHeight ) + (double)j * (double)mullionHeight;
+            double bottom = j / (double)numTilesY * ( (double)numTilesY * (double)screenHeight ) + (double)j * (double)mullionHeight;
             double top = bottom + (double)screenHeight;
 
             // normalize to 0->1
