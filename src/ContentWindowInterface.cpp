@@ -43,7 +43,7 @@
 #include "DisplayGroupManager.h"
 #include "MainWindow.h"
 
-ContentWindowInterface::ContentWindowInterface(boost::shared_ptr<ContentWindowManager> contentWindowManager)\
+ContentWindowInterface::ContentWindowInterface(boost::shared_ptr<ContentWindowManager> contentWindowManager)
     : windowState_(UNSELECTED)
     , boundInteractions_( 0 )
 {
@@ -200,7 +200,7 @@ void ContentWindowInterface::getButtonDimensions(float &width, float &height)
 
 void ContentWindowInterface::fixAspectRatio(ContentWindowInterface * source)
 {
-    if(g_mainWindow->getConstrainAspectRatio() != true || (contentWidth_ == 0 && contentHeight_ == 0))
+    if(g_displayGroupManager->getOptions()->getConstrainAspectRatio() != true || (contentWidth_ == 0 && contentHeight_ == 0))
     {
         return;
     }

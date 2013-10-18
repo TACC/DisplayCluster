@@ -64,9 +64,6 @@
 MainWindow::MainWindow()
 : backgroundWidget_(0)
 {
-    // defaults
-    constrainAspectRatio_ = true;
-
     // make application quit when last window is closed
     QObject::connect(QApplication::instance(), SIGNAL(lastWindowClosed()),
                      QApplication::instance(), SLOT(quit()));
@@ -188,7 +185,7 @@ void MainWindow::setupMasterWindowUI()
     QAction * constrainAspectRatioAction = new QAction("Constrain Aspect Ratio", this);
     constrainAspectRatioAction->setStatusTip("Constrain aspect ratio");
     constrainAspectRatioAction->setCheckable(true);
-    constrainAspectRatioAction->setChecked(constrainAspectRatio_);
+    constrainAspectRatioAction->setChecked(g_displayGroupManager->getOptions()->getConstrainAspectRatio());
     connect(constrainAspectRatioAction, SIGNAL(toggled(bool)), this, SLOT(constrainAspectRatio(bool)));
 
     // show window borders action
@@ -402,11 +399,6 @@ void MainWindow::setupWallOpenGLWindows()
             }
         }
     }
-}
-
-bool MainWindow::getConstrainAspectRatio()
-{
-    return constrainAspectRatio_;
 }
 
 boost::shared_ptr<GLWindow> MainWindow::getGLWindow(int index)
@@ -628,9 +620,9 @@ void MainWindow::computeImagePyramid()
 
 void MainWindow::constrainAspectRatio(bool set)
 {
-    constrainAspectRatio_ = set;
+    g_displayGroupManager->getOptions()->setConstrainAspectRatio( set );
 
-    if(constrainAspectRatio_ == true)
+    if(set)
     {
         std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers = g_displayGroupManager->getContentWindowManagers();
 
