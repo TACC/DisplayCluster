@@ -46,10 +46,8 @@ struct InteractionState;
 
 class PixelStreamInteractionDelegate : public ContentInteractionDelegate
 {
-Q_OBJECT
-
 public:
-    PixelStreamInteractionDelegate(ContentWindowManager *cwm);
+    PixelStreamInteractionDelegate(ContentWindowManager& cwm);
 
     virtual void swipe( QSwipeGesture *gesture );
     virtual void pan( PanGesture* gesture) ;

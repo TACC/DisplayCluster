@@ -43,10 +43,10 @@
 #include "PDFContent.h"
 #include "globals.h"
 
-PDFInteractionDelegate::PDFInteractionDelegate(ContentWindowManager *cwm)
+PDFInteractionDelegate::PDFInteractionDelegate(ContentWindowManager& cwm)
     : ZoomInteractionDelegate(cwm)
 {
-    assert(contentWindowManager_->getContent()->getType() == CONTENT_TYPE_PDF);
+    assert(contentWindowManager_.getContent()->getType() == CONTENT_TYPE_PDF);
 }
 
 
@@ -55,7 +55,7 @@ void PDFInteractionDelegate::tap(QTapGesture *gesture)
     if ( gesture->state() == Qt::GestureFinished )
     {
         double x, y, w, h;
-        contentWindowManager_->getCoordinates(x, y, w, h);
+        contentWindowManager_.getCoordinates(x, y, w, h);
 
         double winCenterX = (x + 0.5 * w) * g_configuration->getTotalWidth();
 
@@ -68,7 +68,7 @@ void PDFInteractionDelegate::tap(QTapGesture *gesture)
 
 PDFContent *PDFInteractionDelegate::getPDFContent()
 {
-    return static_cast<PDFContent*>(contentWindowManager_->getContent().get());
+    return static_cast<PDFContent*>(contentWindowManager_.getContent().get());
 }
 
 

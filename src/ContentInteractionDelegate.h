@@ -53,13 +53,12 @@ class QSwipeGesture;
 class QTapAndHoldGesture;
 
 
-class ContentInteractionDelegate : public QObject
+class ContentInteractionDelegate
 {
-Q_OBJECT
-
 public:
 
-    ContentInteractionDelegate(ContentWindowManager* cwm);
+    ContentInteractionDelegate(ContentWindowManager& cwm);
+    virtual ~ContentInteractionDelegate();
 
     // Main entry point for gesture events
     void gestureEvent( QGestureEvent *event );
@@ -83,7 +82,7 @@ public:
 
 protected:
 
-    ContentWindowManager* contentWindowManager_;
+    ContentWindowManager& contentWindowManager_;
 
     double adaptZoomFactor(double pinchGestureScaleFactor);
 

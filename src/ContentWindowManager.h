@@ -56,15 +56,16 @@ class ContentWindowManager : public ContentWindowInterface, public boost::enable
 
     public:
 
-        ContentWindowManager() { } // no-argument constructor required for serialization
+        ContentWindowManager(); // no-argument constructor required for serialization
         ContentWindowManager(boost::shared_ptr<Content> content);
+        virtual ~ContentWindowManager();
 
         boost::shared_ptr<Content> getContent();
 
         boost::shared_ptr<DisplayGroupManager> getDisplayGroupManager();
         void setDisplayGroupManager(boost::shared_ptr<DisplayGroupManager> displayGroupManager);
 
-        ContentInteractionDelegate *getInteractionDelegate();
+        ContentInteractionDelegate& getInteractionDelegate();
 
         // re-implemented ContentWindowInterface slots
         void moveToFront(ContentWindowInterface * source=NULL);

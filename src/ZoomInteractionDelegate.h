@@ -44,10 +44,8 @@
 
 class ZoomInteractionDelegate : public ContentInteractionDelegate
 {
-Q_OBJECT
-
 public:
-    ZoomInteractionDelegate(ContentWindowManager *cwm);
+    ZoomInteractionDelegate(ContentWindowManager& cwm);
 
     void pan(PanGesture *gesture);
     void pinch(PinchGesture *gesture);

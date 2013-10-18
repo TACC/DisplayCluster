@@ -64,6 +64,11 @@ DisplayGroupGraphicsView::DisplayGroupGraphicsView()
     grabGestures();
 }
 
+DisplayGroupGraphicsView::~DisplayGroupGraphicsView()
+{
+    delete scene();
+}
+
 void DisplayGroupGraphicsView::grabGestures()
 {
     viewport()->grabGesture(Qt::TapAndHoldGesture);

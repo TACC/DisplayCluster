@@ -80,7 +80,6 @@ if(ENABLE_PDF_SUPPORT)
   )
   list(APPEND MOC_HEADERS
     PDFContent.h
-    PDFInteractionDelegate.h
   )
 endif()
 
@@ -149,7 +148,6 @@ list(APPEND MOC_HEADERS
     AsyncImageLoader.h
     BackgroundWidget.h
     Content.h
-    ContentInteractionDelegate.h
     ContentWindowInterface.h
     DisplayGroupManager.h
     DisplayGroupInterface.h
@@ -164,9 +162,7 @@ list(APPEND MOC_HEADERS
     NetworkListenerThread.h
     Options.h
     Pictureflow.h
-    PixelStreamInteractionDelegate.h
     WebkitPixelStreamer.h
-    ZoomInteractionDelegate.h
 )
 
 # add OPTIONS hacks for Qt's MOC processing of Boost headers, for compiler errors with some versions of Boost

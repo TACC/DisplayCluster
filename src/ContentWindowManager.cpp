@@ -53,7 +53,13 @@
 #endif
 
 
+ContentWindowManager::ContentWindowManager()
+    : interactionDelegate_( 0 )
+{
+}
+
 ContentWindowManager::ContentWindowManager(boost::shared_ptr<Content> content)
+    : interactionDelegate_( 0 )
 {
     // ContentWindowManagers must always belong to the main thread!
     moveToThread(QApplication::instance()->thread());
@@ -82,19 +88,24 @@ ContentWindowManager::ContentWindowManager(boost::shared_ptr<Content> content)
     {
         if (getContent()->getType() == CONTENT_TYPE_PIXEL_STREAM)
         {
-            interactionDelegate_ = new PixelStreamInteractionDelegate(this);
+            interactionDelegate_ = new PixelStreamInteractionDelegate(*this);
         }
 #if ENABLE_PDF_SUPPORT
         else if (getContent()->getType() == CONTENT_TYPE_PDF)
         {
-            interactionDelegate_ = new PDFInteractionDelegate(this);
+            interactionDelegate_ = new PDFInteractionDelegate(*this);
         }
 #endif
         else
         {
-            interactionDelegate_ = new ZoomInteractionDelegate(this);
+            interactionDelegate_ = new ZoomInteractionDelegate(*this);
         }
     }
+}
+
+ContentWindowManager::~ContentWindowManager()
+{
+    delete interactionDelegate_;
 }
 
 boost::shared_ptr<Content> ContentWindowManager::getContent()
@@ -137,9 +148,9 @@ void ContentWindowManager::setDisplayGroupManager(boost::shared_ptr<DisplayGroup
     }
 }
 
-ContentInteractionDelegate* ContentWindowManager::getInteractionDelegate()
+ContentInteractionDelegate& ContentWindowManager::getInteractionDelegate()
 {
-    return interactionDelegate_;
+    return *interactionDelegate_;
 }
 
 void ContentWindowManager::moveToFront(ContentWindowInterface * source)
