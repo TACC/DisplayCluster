@@ -71,6 +71,10 @@ ContentWindowGraphicsItem::ContentWindowGraphicsItem(boost::shared_ptr<ContentWi
     grabGesture( Qt::TapGesture );
 }
 
+ContentWindowGraphicsItem::~ContentWindowGraphicsItem()
+{
+}
+
 QRectF ContentWindowGraphicsItem::boundingRect() const
 {
     return QRectF(x_, y_, w_, h_);
@@ -170,7 +174,7 @@ bool ContentWindowGraphicsItem::sceneEvent( QEvent* event )
     switch( event->type( ))
     {
     case QEvent::Gesture:
-        getContentWindowManager()->getInteractionDelegate()->gestureEvent( static_cast< QGestureEvent* >( event ));
+        getContentWindowManager()->getInteractionDelegate().gestureEvent( static_cast< QGestureEvent* >( event ));
         return true;
     case QEvent::KeyPress:
         // Override default behaviour to process TAB key events
@@ -220,7 +224,7 @@ void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
         if(cwm)
         {
             // Zoom or forward event depending on type
-            cwm->getInteractionDelegate()->mouseMoveEvent(event);
+            cwm->getInteractionDelegate().mouseMoveEvent(event);
 
             // force a redraw to update window info label
             update();
@@ -266,7 +270,7 @@ void ContentWindowGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent * event
 
     if (selected())
     {
-        window->getInteractionDelegate()->mousePressEvent(event);
+        window->getInteractionDelegate().mousePressEvent(event);
         return;
     }
 
@@ -332,7 +336,7 @@ void ContentWindowGraphicsItem::mouseReleaseEvent(QGraphicsSceneMouseEvent * eve
 
         if (selected())
         {
-            cwm->getInteractionDelegate()->mouseReleaseEvent(event);
+            cwm->getInteractionDelegate().mouseReleaseEvent(event);
         }
     }
 
@@ -358,7 +362,7 @@ void ContentWindowGraphicsItem::wheelEvent(QGraphicsSceneWheelEvent * event)
         // handle wheel movements differently depending on state of item window
         if (selected())
         {
-            cwm->getInteractionDelegate()->wheelEvent(event);
+            cwm->getInteractionDelegate().wheelEvent(event);
         }
         else
         {
@@ -379,7 +383,7 @@ void ContentWindowGraphicsItem::keyPressEvent(QKeyEvent *event)
 
         if( cwm )
         {
-            cwm->getInteractionDelegate()->keyPressEvent(event);
+            cwm->getInteractionDelegate().keyPressEvent(event);
         }
     }
 }
@@ -392,7 +396,7 @@ void ContentWindowGraphicsItem::keyReleaseEvent(QKeyEvent *event)
 
         if( cwm )
         {
-            cwm->getInteractionDelegate()->keyReleaseEvent(event);
+            cwm->getInteractionDelegate().keyReleaseEvent(event);
         }
     }
 }

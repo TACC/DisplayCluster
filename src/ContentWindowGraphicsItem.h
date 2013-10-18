@@ -50,6 +50,7 @@ class ContentWindowGraphicsItem : public QGraphicsObject, public ContentWindowIn
     public:
 
         ContentWindowGraphicsItem(boost::shared_ptr<ContentWindowManager> contentWindowManager);
+        virtual ~ContentWindowGraphicsItem();
 
         // QGraphicsRectItem painting
         virtual void paint(QPainter * painter, const QStyleOptionGraphicsItem * option, QWidget * widget=0);

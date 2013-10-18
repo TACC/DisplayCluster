@@ -185,6 +185,7 @@ int main(int argc, char * argv[])
     delete g_configuration;
 
     // clean up the MPI environment after the Qt event loop exits
+    MPI_Comm_free(&g_mpiRenderComm);
     MPI_Finalize();
 
     return 0;

@@ -48,6 +48,7 @@ class DisplayGroupGraphicsView : public QGraphicsView
 {
 public:
     DisplayGroupGraphicsView();
+    virtual ~DisplayGroupGraphicsView();
 
     void grabGestures();
 

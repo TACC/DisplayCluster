@@ -51,15 +51,17 @@
 #include "configuration/Configuration.h"
 
 
-ContentInteractionDelegate::ContentInteractionDelegate(ContentWindowManager *cwm)
+ContentInteractionDelegate::ContentInteractionDelegate(ContentWindowManager& cwm)
     : contentWindowManager_(cwm)
 {
 }
 
+ContentInteractionDelegate::~ContentInteractionDelegate()
+{}
 
 void ContentInteractionDelegate::gestureEvent( QGestureEvent* event )
 {
-    contentWindowManager_->moveToFront();
+    contentWindowManager_.moveToFront();
 
     if( QGesture* gesture = event->gesture( Qt::TapAndHoldGesture ))
     {
@@ -70,7 +72,7 @@ void ContentInteractionDelegate::gestureEvent( QGestureEvent* event )
     else if( QGesture* gesture = event->gesture( PanGestureRecognizer::type( )))
     {
         event->accept( PanGestureRecognizer::type( ));
-        if( contentWindowManager_->selected() )
+        if( contentWindowManager_.selected() )
         {
             pan( static_cast< PanGesture* >( gesture ));
         }
@@ -83,7 +85,7 @@ void ContentInteractionDelegate::gestureEvent( QGestureEvent* event )
     else if( QGesture* gesture = event->gesture( PinchGestureRecognizer::type( )))
     {
         event->accept( PinchGestureRecognizer::type( ));
-        if( contentWindowManager_->selected() )
+        if( contentWindowManager_.selected() )
         {
             pinch( static_cast< PinchGesture* >( gesture ));
         }
@@ -96,7 +98,7 @@ void ContentInteractionDelegate::gestureEvent( QGestureEvent* event )
     else if( QGesture* gesture = event->gesture( DoubleTapGestureRecognizer::type( )))
     {
         event->accept( DoubleTapGestureRecognizer::type( ));
-        if( contentWindowManager_->selected() )
+        if( contentWindowManager_.selected() )
         {
             doubleTap( static_cast< DoubleTapGesture* >( gesture ));
         }
@@ -109,7 +111,7 @@ void ContentInteractionDelegate::gestureEvent( QGestureEvent* event )
     else if( QGesture* gesture = event->gesture( Qt::TapGesture ))
     {
         event->accept( Qt::TapGesture );
-        if( contentWindowManager_->selected() )
+        if( contentWindowManager_.selected() )
         {
             tap( static_cast< QTapGesture* >( gesture ));
         }
@@ -118,7 +120,7 @@ void ContentInteractionDelegate::gestureEvent( QGestureEvent* event )
     else if( QGesture *gesture = event->gesture( Qt::SwipeGesture ))
     {
         event->accept( Qt::SwipeGesture );
-        if( contentWindowManager_->selected() )
+        if( contentWindowManager_.selected() )
         {
             swipe( static_cast< QSwipeGesture* >( gesture ));
         }
@@ -130,7 +132,7 @@ void ContentInteractionDelegate::tapAndHoldUnselected(QTapAndHoldGesture *gestur
 {
     if( gesture->state() == Qt::GestureFinished )
     {
-        contentWindowManager_->toggleWindowState();
+        contentWindowManager_.toggleWindowState();
     }
 }
 
@@ -138,7 +140,7 @@ void ContentInteractionDelegate::doubleTapUnselected(DoubleTapGesture *gesture)
 {
     if( gesture->state() == Qt::GestureFinished )
     {
-        contentWindowManager_->adjustSize( contentWindowManager_->getSizeState() == SIZE_FULLSCREEN ? SIZE_1TO1 : SIZE_FULLSCREEN );
+        contentWindowManager_.adjustSize( contentWindowManager_.getSizeState() == SIZE_FULLSCREEN ? SIZE_1TO1 : SIZE_FULLSCREEN );
     }
 }
 
@@ -149,16 +151,16 @@ void ContentInteractionDelegate::panUnselected(PanGesture *gesture)
     const double dy = delta.y() / g_configuration->getTotalHeight();
 
     if( gesture->state() == Qt::GestureStarted )
-        contentWindowManager_->getContent()->blockAdvance( true );
+        contentWindowManager_.getContent()->blockAdvance( true );
 
     double x, y;
-    contentWindowManager_->getPosition( x, y );
-    contentWindowManager_->setPosition( x+dx, y+dy );
+    contentWindowManager_.getPosition( x, y );
+    contentWindowManager_.setPosition( x+dx, y+dy );
 
     if( gesture->state() == Qt::GestureCanceled ||
         gesture->state() == Qt::GestureFinished )
     {
-        contentWindowManager_->getContent()->blockAdvance( false );
+        contentWindowManager_.getContent()->blockAdvance( false );
     }
 }
 
@@ -169,14 +171,14 @@ void ContentInteractionDelegate::pinchUnselected(PinchGesture *gesture)
         return;
 
     if( gesture->state() == Qt::GestureStarted )
-        contentWindowManager_->getContent()->blockAdvance( true );
+        contentWindowManager_.getContent()->blockAdvance( true );
 
-    contentWindowManager_->scaleSize( factor );
+    contentWindowManager_.scaleSize( factor );
 
     if( gesture->state() == Qt::GestureCanceled ||
         gesture->state() == Qt::GestureFinished )
     {
-        contentWindowManager_->getContent()->blockAdvance( false );
+        contentWindowManager_.getContent()->blockAdvance( false );
     }
 }
 
