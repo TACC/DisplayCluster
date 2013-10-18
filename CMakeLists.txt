@@ -90,6 +90,10 @@ find_package(OpenGL)
 find_package(MPI)
 find_package(FFMPEG)
 if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
+  # process config file
+  configure_file(src/config.h.in ${CMAKE_BINARY_DIR}/config.h)
+  include_directories(${CMAKE_BINARY_DIR})
+
   add_subdirectory(src)
 
   # install launchers

@@ -84,10 +84,6 @@ if(ENABLE_PDF_SUPPORT)
   )
 endif()
 
-# process config file
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
-
 list(APPEND SRCS
     AsyncImageLoader.cpp
     BackgroundWidget.cpp

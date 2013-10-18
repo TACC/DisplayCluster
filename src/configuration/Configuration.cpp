@@ -75,43 +75,40 @@ void Configuration::load()
 
     // get screen / mullion dimensions
     query.setQuery("string(/configuration/dimensions/@numTilesWidth)");
-    query.evaluateTo(&queryResult);
-    totalScreenCountX_ = queryResult.toInt();
+    if(query.evaluateTo(&queryResult))
+        totalScreenCountX_ = queryResult.toInt();
 
     query.setQuery("string(/configuration/dimensions/@numTilesHeight)");
-    query.evaluateTo(&queryResult);
-    totalScreenCountY_ = queryResult.toInt();
+    if(query.evaluateTo(&queryResult))
+        totalScreenCountY_ = queryResult.toInt();
 
     query.setQuery("string(/configuration/dimensions/@screenWidth)");
-    query.evaluateTo(&queryResult);
-    screenWidth_ = queryResult.toInt();
+    if(query.evaluateTo(&queryResult))
+        screenWidth_ = queryResult.toInt();
 
     query.setQuery("string(/configuration/dimensions/@screenHeight)");
-    query.evaluateTo(&queryResult);
-    screenHeight_ = queryResult.toInt();
+    if(query.evaluateTo(&queryResult))
+        screenHeight_ = queryResult.toInt();
 
     query.setQuery("string(/configuration/dimensions/@mullionWidth)");
-    query.evaluateTo(&queryResult);
-    mullionWidth_ = queryResult.toInt();
+    if(query.evaluateTo(&queryResult))
+        mullionWidth_ = queryResult.toInt();
 
     query.setQuery("string(/configuration/dimensions/@mullionHeight)");
-    query.evaluateTo(&queryResult);
-    mullionHeight_ = queryResult.toInt();
+    if(query.evaluateTo(&queryResult))
+        mullionHeight_ = queryResult.toInt();
 
     // check for fullscreen mode flag
     query.setQuery("string(/configuration/dimensions/@fullscreen)");
-
     if(query.evaluateTo(&queryResult))
-    {
         fullscreen_ = queryResult.toInt() != 0;
-    }
 
     put_flog(LOG_INFO, "dimensions: numTilesWidth = %i, numTilesHeight = %i, screenWidth = %i, screenHeight = %i, mullionWidth = %i, mullionHeight = %i. fullscreen = %i", totalScreenCountX_, totalScreenCountY_, screenWidth_, screenHeight_, mullionWidth_, mullionHeight_, fullscreen_);
 
     // Background content URI
     query.setQuery("string(/configuration/background/@uri)");
-    query.evaluateTo(&backgroundUri_);
-    backgroundUri_.remove(QRegExp("[\\n\\t\\r]"));
+    if(query.evaluateTo(&queryResult))
+        backgroundUri_ = queryResult.remove(QRegExp("[\\n\\t\\r]"));
 
     // Background color
     query.setQuery("string(/configuration/background/@color)");
@@ -206,17 +203,22 @@ void Configuration::setBackgroundUri(const QString& uri)
     backgroundUri_ = uri;
 }
 
-bool Configuration::save()
+bool Configuration::save() const
+{
+    return save(filename_);
+}
+
+bool Configuration::save(const QString &filename) const
 {
     QDomDocument doc("XmlDoc");
-    QFile file(filename_);
-    if (!file.open(QIODevice::ReadOnly))
+    QFile infile(filename_);
+    if (!infile.open(QIODevice::ReadOnly))
     {
         put_flog(LOG_ERROR, "could not open configuration xml file for saving");
         return false;
     }
-    doc.setContent(&file);
-    file.close();
+    doc.setContent(&infile);
+    infile.close();
 
     QDomElement root = doc.documentElement();
 
@@ -229,13 +231,14 @@ bool Configuration::save()
     background.setAttribute("uri", backgroundUri_);
     background.setAttribute("color", backgroundColor_.name());
 
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+    QFile outfile(filename);
+    if (!outfile.open(QIODevice::WriteOnly | QIODevice::Text))
     {
         put_flog(LOG_ERROR, "could not open configuration xml file for saving");
         return false;
     }
-    QTextStream out(&file);
+    QTextStream out(&outfile);
     out << doc.toString(4);
-    file.close();
+    outfile.close();
     return true;
 }

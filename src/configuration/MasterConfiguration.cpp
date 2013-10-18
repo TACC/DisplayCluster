@@ -58,10 +58,12 @@ void MasterConfiguration::loadMasterSettings()
         exit(-1);
     }
 
+    QString queryResult;
+
     // dock start directory
     query.setQuery("string(/configuration/dock/@directory)");
-    query.evaluateTo(&dockStartDir_);
-    dockStartDir_.remove(QRegExp("[\\n\\t\\r]"));
+    if (query.evaluateTo(&queryResult))
+        dockStartDir_ = queryResult.remove(QRegExp("[\\n\\t\\r]"));
     if( dockStartDir_.isEmpty( ))
         dockStartDir_ = QDir::homePath();
 }

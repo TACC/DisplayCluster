@@ -55,7 +55,7 @@ public:
      * @brief WallConfiguration
      * @param filename \see Configuration
      * @param options \see Configuration
-     * @param processIndex MPI index of the process on the current host
+     * @param processIndex MPI index in the range [1;n] of the process
      */
     WallConfiguration(const QString &filename, OptionsPtr options, int processIndex);
 
