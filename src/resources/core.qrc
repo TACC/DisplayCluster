@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/html">
+        <file>login-form.htm</file>
+        <file>login-form.css</file>
+    </qresource>
+</RCC>

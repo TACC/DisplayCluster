@@ -49,6 +49,7 @@
 #include "log.h"
 #include "globals.h"
 #include "configuration/Configuration.h"
+#include "WebkitAuthenticationHelper.h"
 
 #define WEPPAGE_DEFAULT_WIDTH   1280
 #define WEBPAGE_DEFAULT_HEIGHT  1024
@@ -57,10 +58,10 @@
 #define WEBPAGE_MIN_HEIGHT  (WEBPAGE_DEFAULT_HEIGHT/2)
 
 
-
 WebkitPixelStreamer::WebkitPixelStreamer(QString uri)
     : LocalPixelStreamer(uri)
     , webView_(0)
+    , authenticationHelper_(0)
     , timer_(0)
     , frameIndex_(0)
     , interactionModeActive_(false)
@@ -68,6 +69,8 @@ WebkitPixelStreamer::WebkitPixelStreamer(QString uri)
     webView_ = new QWebView();
     webView_->page()->setViewportSize( QSize( WEPPAGE_DEFAULT_WIDTH*WEBPAGE_DEFAULT_ZOOM, WEBPAGE_DEFAULT_HEIGHT*WEBPAGE_DEFAULT_ZOOM ));
     webView_->setZoomFactor(WEBPAGE_DEFAULT_ZOOM);
+
+    authenticationHelper_ = new WebkitAuthenticationHelper(*webView_);
 
     QWebSettings* settings = webView_->settings();
     settings->setAttribute( QWebSettings::AcceleratedCompositingEnabled, true );
@@ -86,6 +89,7 @@ WebkitPixelStreamer::~WebkitPixelStreamer()
 {
     timer_->stop();
     delete timer_;
+    delete authenticationHelper_;
     delete webView_;
 }
 
