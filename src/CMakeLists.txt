@@ -129,6 +129,7 @@ list(APPEND SRCS
     SVGStreamSource.cpp
     Texture.cpp
     TextureContent.cpp
+    WebkitAuthenticationHelper.cpp
     WebkitPixelStreamer.cpp
     ZoomInteractionDelegate.cpp
     configuration/Configuration.cpp
@@ -162,13 +163,22 @@ list(APPEND MOC_HEADERS
     NetworkListenerThread.h
     Options.h
     Pictureflow.h
+    WebkitAuthenticationHelper.h
     WebkitPixelStreamer.h
 )
+
+# Qt resource file
+SET( CORE_RC
+   resources/core.qrc
+)
+# this command will generate rules that will run rcc on all files from SAMPLE_RCS
+# in result SAMPLE_RC_SRCS variable will contain paths to files produced by rcc
+QT4_ADD_RESOURCES( CORE_RC_SRCS ${CORE_RC} )
 
 # add OPTIONS hacks for Qt's MOC processing of Boost headers, for compiler errors with some versions of Boost
 qt4_wrap_cpp(MOC_OUTFILES ${MOC_HEADERS} OPTIONS -DPOSIX_TIME_HPP___ -DPOSIX_TIME_SERIALIZE_HPP___ -DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED)
 
-add_library(DisplayClusterCore SHARED ${SRCS} ${MOC_OUTFILES})
+add_library(DisplayClusterCore SHARED ${SRCS} ${MOC_OUTFILES} ${CORE_RC_SRCS})
 target_link_libraries(DisplayClusterCore ${LIBS})
 set_target_properties(DisplayClusterCore PROPERTIES
   VERSION ${VERSION} SOVERSION ${VERSION_ABI} OUTPUT_NAME DisplayClusterCore)

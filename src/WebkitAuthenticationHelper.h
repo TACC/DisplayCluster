@@ -37,66 +37,62 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef WEBKITPIXELSTREAMER_H
-#define WEBKITPIXELSTREAMER_H
+#ifndef WEBKITAUTHENTICATIONHELPER_H
+#define WEBKITAUTHENTICATIONHELPER_H
 
-#include "LocalPixelStreamer.h"
-#include <QString>
-#include <QImage>
-#include <QMutex>
-
+#include <QObject>
+#include <QUrl>
+class QNetworkReply;
+class QAuthenticator;
 class QWebView;
-class QTimer;
-class QRect;
-class QWebHitTestResult;
-class QWebElement;
 
-class WebkitAuthenticationHelper;
-
-class WebkitPixelStreamer : public LocalPixelStreamer
+/**
+ * @brief The WebkitAuthenticationHelper class intercepts and handles
+ * HTTP authentication requests by displaying a simple html login page.
+ *
+ * Its intended use is to offer a replacement to the system dialog box
+ * when a QWebView is run without a window.
+ *
+ * @usage Just create one WebkitAuthenticationHelper instance for each
+ * QWebView that needs to support HTTP authentication.
+ */
+class WebkitAuthenticationHelper : public QObject
 {
     Q_OBJECT
 
 public:
-    WebkitPixelStreamer(QString uri);
-    ~WebkitPixelStreamer();
+    /**
+     * @brief WebkitAuthenticationHelper constructor
+     * @param webView a reference on the QWebView for which to add authentication handling
+     */
+    WebkitAuthenticationHelper(QWebView& webView);
 
-    virtual QSize size() const;
+protected slots:
+    /**
+     * @defgroup Internal Callbacks
+     * These slots are accessed internally by the Javascript only but cannot be private,
+     * otherwise the compiler ignores them at compilation time.
+     *  @{
+     */
+    void loginFormInputChanged(const QString &inputName, const QString &inputValue);
+    void loginFormSubmitted();
+    /** @} */ // Internal Callbacks
 
-    void setUrl(QString url);
-
-    QWebView* getView() const;
-
-public slots:
-    virtual void updateInteractionState(InteractionState interactionState);
-
-    void update();
+private slots:
+    void handleAuthenticationRequest(QNetworkReply*, QAuthenticator *authenticator);
+    void errorPageFinishedLoading(const bool ok);
 
 private:
+    void displayLoginPage();
+    void registerLoginFormCallbacks();
+    void sendCredentials(QAuthenticator *authenticator) const;
+    QString readQrcFile(const QString &filename);
 
-    QWebView* webView_;
-    WebkitAuthenticationHelper* authenticationHelper_;
-    QTimer* timer_;
-    QMutex mutex_;
-    int frameIndex_;
+    QWebView& webView_;
 
-    QImage image_;
-
-    bool interactionModeActive_;
-
-    void processClickEvent(const InteractionState &interactionState);
-    void processPressEvent(const InteractionState &interactionState);
-    void processMoveEvent(const InteractionState &interactionState);
-    void processReleaseEvent(const InteractionState &interactionState);
-    void processWheelEvent(const InteractionState &interactionState);
-    void processKeyPress(const InteractionState &interactionState);
-    void processKeyRelease(const InteractionState &interactionState);
-    void processViewSizeChange(const InteractionState &interactionState);
-
-    QWebHitTestResult performHitTest(const InteractionState &interactionState) const;
-    QPoint getPointerPosition(const InteractionState &interactionState) const;
-    PixelStreamSegmentParameters createSegmentHeader() const;
-    bool isWebGLElement(const QWebElement &element) const;
+    bool userHasInputNewCredentials_;
+    QString username_;
+    QString password_;
 };
 
-#endif // WEBKITPIXELSTREAMER_H
+#endif // WEBKITAUTHENTICATIONHELPER_H
