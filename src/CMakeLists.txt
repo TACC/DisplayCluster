@@ -1,7 +1,7 @@
 
 
-include_directories(SYSTEM ${OPENGL_INCLUDE_DIRS} ${MPI_INCLUDE_PATH} ${FFMPEG_INCLUDE_DIR})
-list(APPEND LIBS ${OPENGL_LIBRARIES} ${MPI_CXX_LIBRARIES} ${FFMPEG_LIBRARIES})
+include_directories(SYSTEM ${OPENGL_INCLUDE_DIRS} ${FFMPEG_INCLUDE_DIR})
+list(APPEND LIBS ${OPENGL_LIBRARIES} ${FFMPEG_LIBRARIES})
 
 # handle build options
 if(ENABLE_TUIO_TOUCH_LISTENER)
@@ -187,11 +187,6 @@ install(TARGETS DisplayClusterCore
     RUNTIME DESTINATION bin COMPONENT lib
     LIBRARY DESTINATION lib COMPONENT lib)
 
-
-# create application
-add_executable(displaycluster main.cpp)
-target_link_libraries(displaycluster DisplayClusterCore DisplayClusterLibrary)
-
 # build Python module if Python support is enabled
 if(ENABLE_PYTHON_SUPPORT)
     add_custom_command(TARGET displaycluster POST_BUILD
@@ -201,9 +196,6 @@ if(ENABLE_PYTHON_SUPPORT)
         COMMAND make
         COMMAND mv pydc.so ${CMAKE_BINARY_DIR})
 endif()
-
-# install executable
-install(TARGETS displaycluster RUNTIME DESTINATION bin)
 
 # install Python module
 if(ENABLE_PYTHON_SUPPORT)

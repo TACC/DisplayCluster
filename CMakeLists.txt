@@ -85,16 +85,22 @@ if(BUILD_DISPLAYCLUSTER_LIBRARY)
   add_subdirectory(src/lib)
 endif()
 
-# Core library
 find_package(OpenGL)
 find_package(MPI)
 find_package(FFMPEG)
 if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
   # process config file
   configure_file(src/config.h.in ${CMAKE_BINARY_DIR}/config.h)
-  include_directories(${CMAKE_BINARY_DIR})
+  include_directories(${CMAKE_BINARY_DIR} ${CMAKE_SOURCE_DIR}/src)
 
+  include_directories(SYSTEM ${MPI_INCLUDE_PATH})
+  list(APPEND LIBS ${MPI_CXX_LIBRARIES})
+
+  # Core library
   add_subdirectory(src)
+
+  # DisplayCluster main app
+  add_subdirectory(apps/DisplayCluster)
 
   # install launchers
   install(PROGRAMS examples/startdisplaycluster DESTINATION bin)
