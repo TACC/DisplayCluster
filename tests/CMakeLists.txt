@@ -19,8 +19,6 @@ if(NOT X11_FOUND)
   list(REMOVE_ITEM TEST_FILES "webbrowser.cpp")
 endif()
 
-include_directories(${CMAKE_SOURCE_DIR}/src)
-
 set(ALL_TESTS)
 foreach(FILE ${TEST_FILES})
   string(REGEX REPLACE ".cpp" "" NAME ${FILE})
