@@ -5,7 +5,7 @@ set(DISPLAYCLUSTER_REPO_URL https://github.com/BlueBrain/DisplayCluster.git)
 
 set(DISPLAYCLUSTER_DEPENDS MPI Poppler
   REQUIRED Boost LibJpegTurbo FFMPEG OpenGL Qt4 TUIO GLUT)
-set(DISPLAYCLUSTER_BOOST_COMPONENTS "date_time serialization")
+set(DISPLAYCLUSTER_BOOST_COMPONENTS "date_time serialization unit_test_framework")
 set(DISPLAYCLUSTER_QT4_COMPONENTS "QtNetwork QtOpenGL QtXml QtXmlPatterns")
 set(DISPLAYCLUSTER_DEB_DEPENDS libavutil-dev libavformat-dev libavcodec-dev
   libopenmpi-dev libjpeg-turbo8-dev libturbojpeg libswscale-dev freeglut3-dev
