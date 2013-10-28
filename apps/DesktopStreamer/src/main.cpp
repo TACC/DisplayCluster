@@ -37,7 +37,7 @@
 /*********************************************************************/
 
 #include "main.h"
-#include "core/log.h"
+#include "log.h"
 
 MainWindow * g_mainWindow = NULL;
 DesktopSelectionWindow * g_desktopSelectionWindow = NULL;

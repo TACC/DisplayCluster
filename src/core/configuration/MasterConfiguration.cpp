@@ -41,7 +41,7 @@
 
 #include <QtXmlPatterns>
 
-#include "../log.h"
+#include "log.h"
 
 MasterConfiguration::MasterConfiguration(const QString &filename, OptionsPtr options)
     : Configuration(filename, options)

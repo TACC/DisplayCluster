@@ -37,7 +37,8 @@
 /*********************************************************************/
 
 #include "Configuration.h"
-#include "../log.h"
+
+#include "log.h"
 #include "../globals.h"
 #include "../Options.h"
 
