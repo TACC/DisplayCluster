@@ -41,7 +41,7 @@
 
 #include "MessageHeader.h"
 #include "PixelStreamSegmentParameters.h"
-#include "../core/log.h"
+#include "log.h"
 
 #include <QtCore>
 #include <cmath>

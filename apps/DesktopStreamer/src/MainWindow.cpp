@@ -40,7 +40,7 @@
 #include "main.h"
 #include "DesktopSelectionRectangle.h"
 // Lib includes
-#include "core/log.h"
+#include "log.h"
 #include "MessageHeader.h"
 
 #include <turbojpeg.h>

@@ -41,7 +41,7 @@
 
 #include <QImageReader>
 
-#include "../log.h"
+#include "log.h"
 
 PyramidThumbnailGenerator::PyramidThumbnailGenerator(const QSize &size)
     : ThumbnailGenerator(size)

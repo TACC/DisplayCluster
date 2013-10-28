@@ -106,7 +106,7 @@ list(APPEND SRCS
     FactoryObject.cpp
     GLWindow.cpp
     globals.cpp
-    log.cpp
+    ../log.cpp
     LocalPixelStreamer.cpp
     LocalPixelStreamerManager.cpp
     MainWindow.cpp

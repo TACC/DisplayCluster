@@ -39,7 +39,7 @@
 #include "DcSocket.h"
 
 #include "NetworkProtocol.h"
-#include "../core/log.h"
+#include "log.h"
 
 #include <QtNetwork/QTcpSocket>
 

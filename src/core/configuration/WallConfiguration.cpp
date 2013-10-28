@@ -41,7 +41,7 @@
 
 #include <QtXmlPatterns>
 
-#include "../log.h"
+#include "log.h"
 
 WallConfiguration::WallConfiguration(const QString &filename, OptionsPtr options, int processIndex)
     : Configuration(filename, options)
