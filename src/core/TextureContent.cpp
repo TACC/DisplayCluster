@@ -36,23 +36,42 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "main.h"
-#include "core/log.h"
+#include "TextureContent.h"
+#include "globals.h"
+#include "Texture.h"
+#include "MainWindow.h"
+#include "GLWindow.h"
 
-MainWindow * g_mainWindow = NULL;
-DesktopSelectionWindow * g_desktopSelectionWindow = NULL;
+#include <boost/serialization/export.hpp>
+#include "serializationHelpers.h"
 
-int main(int argc, char * argv[])
+BOOST_CLASS_EXPORT_GUID(TextureContent, "TextureContent")
+
+CONTENT_TYPE TextureContent::getType()
 {
-    put_flog(LOG_INFO, "");
+    return CONTENT_TYPE_TEXTURE;
+}
 
-    QApplication * app = new QApplication(argc, argv);
+const QStringList& TextureContent::getSupportedExtensions()
+{
+    static QStringList extensions;
 
-    Q_INIT_RESOURCE( resources );
+    if (extensions.empty())
+    {
+        const QList<QByteArray>& imageFormats = QImageReader::supportedImageFormats();
+        foreach( const QByteArray entry, imageFormats )
+            extensions << entry;
+    }
 
-    g_mainWindow = new MainWindow();
-    g_desktopSelectionWindow = new DesktopSelectionWindow();
+    return extensions;
+}
 
-    // enter Qt event loop
-    return app->exec();
+void TextureContent::getFactoryObjectDimensions(int &width, int &height)
+{
+    g_mainWindow->getGLWindow()->getTextureFactory().getObject(getURI())->getDimensions(width, height);
+}
+
+void TextureContent::renderFactoryObject(float tX, float tY, float tW, float tH)
+{
+    g_mainWindow->getGLWindow()->getTextureFactory().getObject(getURI())->render(tX, tY, tW, tH);
 }

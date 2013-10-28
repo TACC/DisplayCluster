@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,23 +37,62 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "main.h"
-#include "core/log.h"
+#include "PDFContent.h"
+#include "MainWindow.h"
+#include "GLWindow.h"
+#include "globals.h"
+#include <boost/serialization/export.hpp>
+#include "serializationHelpers.h"
 
-MainWindow * g_mainWindow = NULL;
-DesktopSelectionWindow * g_desktopSelectionWindow = NULL;
+BOOST_CLASS_EXPORT_GUID(PDFContent, "PDFContent")
 
-int main(int argc, char * argv[])
+CONTENT_TYPE PDFContent::getType()
 {
-    put_flog(LOG_INFO, "");
+    return CONTENT_TYPE_PDF;
+}
 
-    QApplication * app = new QApplication(argc, argv);
+const QStringList& PDFContent::getSupportedExtensions()
+{
+    static QStringList extensions;
 
-    Q_INIT_RESOURCE( resources );
+    if (extensions.empty())
+    {
+        extensions << "pdf";
+    }
 
-    g_mainWindow = new MainWindow();
-    g_desktopSelectionWindow = new DesktopSelectionWindow();
+    return extensions;
+}
 
-    // enter Qt event loop
-    return app->exec();
+void PDFContent::setPageCount(int count)
+{
+    pageCount_ = count;
+}
+
+void PDFContent::nextPage()
+{
+    if (pageNumber_ < pageCount_-1)
+    {
+        ++pageNumber_;
+        emit(pageChanged());
+    }
+}
+
+void PDFContent::previousPage()
+{
+    if (pageNumber_ > 0)
+    {
+        --pageNumber_;
+        emit(pageChanged());
+    }
+}
+
+void PDFContent::getFactoryObjectDimensions(int &width, int &height)
+{
+    g_mainWindow->getGLWindow()->getPDFFactory().getObject(getURI())->getDimensions(width, height);
+}
+
+void PDFContent::renderFactoryObject(float tX, float tY, float tW, float tH)
+{
+    g_mainWindow->getGLWindow()->getPDFFactory().getObject(getURI())->setPage(pageNumber_);
+    g_mainWindow->getGLWindow()->getPDFFactory().getObject(getURI())->render(tX, tY, tW, tH);
 }

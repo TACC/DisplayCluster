@@ -10,7 +10,7 @@
 #endif
 
 // DisplayCluster streaming
-#include <dcStream.h>
+#include "dcstream/dcStream.h"
 
 std::string dcStreamName = "SimpleStreamer";
 bool dcParallelStreaming = false;

@@ -9,7 +9,7 @@ endif()
 set(DESKTOP_STREAMER_LIBS ${DESKTOP_STREAMER_LIBS} ${LibJpegTurbo_LIBRARIES})
 
 set(DESKTOP_STREAMER_SRCS ${DESKTOP_STREAMER_SRCS}
-    ../../src/log.cpp
+    ../../src/core/log.cpp
     src/DesktopSelectionRectangle.cpp
     src/DesktopSelectionWindow.cpp
     src/DesktopSelectionView.cpp

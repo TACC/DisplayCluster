@@ -80,41 +80,22 @@ find_package(OpenMP)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
-# Streaming library
-if(BUILD_DISPLAYCLUSTER_LIBRARY)
-  add_subdirectory(src/lib)
-endif()
-
 find_package(OpenGL)
 find_package(MPI)
 find_package(FFMPEG)
 if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
-  # process config file
-  configure_file(src/config.h.in ${CMAKE_BINARY_DIR}/config.h)
-  include_directories(${CMAKE_BINARY_DIR} ${CMAKE_SOURCE_DIR}/src)
+  option(BUILD_CORE_LIBRARY "Build DisplayCluster Core library" ON)
+endif()
 
-  include_directories(SYSTEM ${MPI_INCLUDE_PATH})
-  list(APPEND LIBS ${MPI_CXX_LIBRARIES})
+# Libraries
+include_directories(src)
+add_subdirectory(src)
 
-  # Core library
-  add_subdirectory(src)
+# Applications
+add_subdirectory(apps)
 
-  # DisplayCluster main app
-  add_subdirectory(apps/DisplayCluster)
-
-  # install launchers
-  install(PROGRAMS examples/startdisplaycluster DESTINATION bin)
-  install(PROGRAMS examples/displaycluster.py DESTINATION bin)
-
-  # install data files
-  install(DIRECTORY data DESTINATION .)
-
-  # install example files
-  install(DIRECTORY examples DESTINATION .)
-
-  # install doc files
-  install(DIRECTORY doc DESTINATION .)
-
+# Tests
+if(BUILD_CORE_LIBRARY)
   add_subdirectory(tests)
   set(CTEST_CUSTOM_WARNING_EXCEPTION ${CTEST_CUSTOM_WARNING_EXCEPTION}
     # http://public.kitware.com/Bug/view.php?id=10179
@@ -122,8 +103,8 @@ if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
   include(CTest)
 endif()
 
-# DesktopStreamer app
-if(BUILD_DESKTOPSTREAMER)
-  add_subdirectory(apps/DesktopStreamer)
-endif()
+# install doc files
+install(DIRECTORY doc DESTINATION .)
 
+# install example files
+install(DIRECTORY examples DESTINATION .)

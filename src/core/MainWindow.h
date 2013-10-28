@@ -36,23 +36,89 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "main.h"
-#include "core/log.h"
+#ifndef MAIN_WINDOW_H
+#define MAIN_WINDOW_H
 
-MainWindow * g_mainWindow = NULL;
-DesktopSelectionWindow * g_desktopSelectionWindow = NULL;
+#include "config.h"
+#include <QtGui>
+#include <QGLWidget>
+#include <boost/shared_ptr.hpp>
 
-int main(int argc, char * argv[])
+class MultiTouchListener;
+class BackgroundWidget;
+class GLWindow;
+
+class MainWindow : public QMainWindow
 {
-    put_flog(LOG_INFO, "");
+    Q_OBJECT
 
-    QApplication * app = new QApplication(argc, argv);
+    public:
 
-    Q_INIT_RESOURCE( resources );
+        MainWindow();
+        ~MainWindow();
 
-    g_mainWindow = new MainWindow();
-    g_desktopSelectionWindow = new DesktopSelectionWindow();
+        boost::shared_ptr<GLWindow> getGLWindow(int index=0);
+        boost::shared_ptr<GLWindow> getActiveGLWindow();
+        std::vector<boost::shared_ptr<GLWindow> > getGLWindows();
 
-    // enter Qt event loop
-    return app->exec();
-}
+    public slots:
+
+        void openContent();
+        void openContentsDirectory();
+        void clearContents();
+        void saveState();
+        void loadState();
+        void computeImagePyramid();
+        void constrainAspectRatio(bool set);
+
+#if ENABLE_SKELETON_SUPPORT
+        void setEnableSkeletonTracking(bool enable);
+#endif
+
+        void updateGLWindows();
+
+        void finalize();
+
+        void showBackgroundWidget();
+        void openWebBrowser();
+
+    signals:
+
+        void updateGLWindowsFinished();
+
+#if ENABLE_SKELETON_SUPPORT
+        void enableSkeletonTracking();
+        void disableSkeletonTracking();
+#endif
+
+    protected:
+        void dragEnterEvent(QDragEnterEvent *event);
+        void dropEvent(QDropEvent *event);
+
+    private:
+        void setupMasterWindowUI();
+        void setupWallOpenGLWindows();
+
+        void addContent(const QString &filename);
+        void addContentDirectory(const QString &directoryName, int gridX=0, int gridY=0);
+        void loadState(const QString &filename);
+
+        void estimateGridSize(unsigned int numElem, int &gridX, int &gridY);
+
+        QStringList extractValidContentUrls(const QMimeData* data);
+        QStringList extractFolderUrls(const QMimeData *data);
+        QString extractStateFile(const QMimeData *data);
+
+        std::vector<boost::shared_ptr<GLWindow> > glWindows_;
+        boost::shared_ptr<GLWindow> activeGLWindow_;
+
+        // polling timer for updating pixel streams
+        QTimer pixelStreamTimer_;
+
+#if ENABLE_TUIO_TOUCH_LISTENER
+        MultiTouchListener* touchListener_;
+#endif
+        BackgroundWidget* backgroundWidget_;
+};
+
+#endif

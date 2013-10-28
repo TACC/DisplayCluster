@@ -36,23 +36,27 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "main.h"
-#include "core/log.h"
+#include "PixelStreamContent.h"
+#include "globals.h"
+#include "PixelStream.h"
+#include "MainWindow.h"
+#include "GLWindow.h"
+#include <boost/serialization/export.hpp>
+#include "serializationHelpers.h"
 
-MainWindow * g_mainWindow = NULL;
-DesktopSelectionWindow * g_desktopSelectionWindow = NULL;
+BOOST_CLASS_EXPORT_GUID(PixelStreamContent, "PixelStreamContent")
 
-int main(int argc, char * argv[])
+CONTENT_TYPE PixelStreamContent::getType()
 {
-    put_flog(LOG_INFO, "");
+    return CONTENT_TYPE_PIXEL_STREAM;
+}
 
-    QApplication * app = new QApplication(argc, argv);
+void PixelStreamContent::getFactoryObjectDimensions(int &width, int &height)
+{
+    g_mainWindow->getGLWindow()->getPixelStreamFactory().getObject(getURI())->getDimensions(width, height);
+}
 
-    Q_INIT_RESOURCE( resources );
-
-    g_mainWindow = new MainWindow();
-    g_desktopSelectionWindow = new DesktopSelectionWindow();
-
-    // enter Qt event loop
-    return app->exec();
+void PixelStreamContent::renderFactoryObject(float tX, float tY, float tW, float tH)
+{
+    g_mainWindow->getGLWindow()->getPixelStreamFactory().getObject(getURI())->render(tX, tY, tW, tH);
 }

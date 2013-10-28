@@ -36,23 +36,69 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "main.h"
-#include "core/log.h"
+#include "MovieContent.h"
+#include "globals.h"
+#include "Movie.h"
+#include "ContentWindowManager.h"
+#include "MainWindow.h"
+#include "GLWindow.h"
+#include <boost/serialization/export.hpp>
+#include "serializationHelpers.h"
 
-MainWindow * g_mainWindow = NULL;
-DesktopSelectionWindow * g_desktopSelectionWindow = NULL;
+BOOST_CLASS_EXPORT_GUID(MovieContent, "MovieContent")
 
-int main(int argc, char * argv[])
+CONTENT_TYPE MovieContent::getType()
 {
-    put_flog(LOG_INFO, "");
+    return CONTENT_TYPE_MOVIE;
+}
 
-    QApplication * app = new QApplication(argc, argv);
+const QStringList& MovieContent::getSupportedExtensions()
+{
+    static QStringList extensions;
 
-    Q_INIT_RESOURCE( resources );
+    if (extensions.empty())
+    {
+        extensions << "mov" << "avi" << "mp4" << "mkv" << "mpg" << "mpeg" << "flv" << "wmv";
+    }
 
-    g_mainWindow = new MainWindow();
-    g_desktopSelectionWindow = new DesktopSelectionWindow();
+    return extensions;
+}
 
-    // enter Qt event loop
-    return app->exec();
+void MovieContent::getFactoryObjectDimensions(int &width, int &height)
+{
+    g_mainWindow->getGLWindow()->getMovieFactory().getObject(getURI())->getDimensions(width, height);
+}
+
+void MovieContent::advance(boost::shared_ptr<ContentWindowManager> window)
+{
+    if( blockAdvance_ )
+        return;
+
+    // skip a frame if the Content rectangle is not visible in ANY windows; otherwise decode normally
+    bool skip = true;
+
+    // window parameters
+    double x, y, w, h;
+    window->getCoordinates(x, y, w, h);
+
+    std::vector<boost::shared_ptr<GLWindow> > glWindows = g_mainWindow->getGLWindows();
+
+    for(unsigned int i=0; i<glWindows.size(); i++)
+    {
+        if(glWindows[i]->isScreenRectangleVisible(x, y, w, h) == true)
+        {
+            skip = false;
+            break;
+        }
+    }
+
+    boost::shared_ptr< Movie > movie = g_mainWindow->getGLWindow()->getMovieFactory().getObject(getURI());
+    movie->setPause( window->getControlState() & STATE_PAUSED );
+    movie->setLoop( window->getControlState() & STATE_LOOP );
+    movie->nextFrame(skip);
+}
+
+void MovieContent::renderFactoryObject(float tX, float tY, float tW, float tH)
+{
+    g_mainWindow->getGLWindow()->getMovieFactory().getObject(getURI())->render(tX, tY, tW, tH);
 }

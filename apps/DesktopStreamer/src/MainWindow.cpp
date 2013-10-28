@@ -38,9 +38,11 @@
 
 #include "MainWindow.h"
 #include "main.h"
-#include "../../../src/log.h"
-#include "../../../src/MessageHeader.h"
 #include "DesktopSelectionRectangle.h"
+// Lib includes
+#include "core/log.h"
+#include "MessageHeader.h"
+
 #include <turbojpeg.h>
 
 #ifdef _WIN32

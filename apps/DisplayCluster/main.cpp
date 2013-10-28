@@ -78,9 +78,10 @@ int main(int argc, char * argv[])
         return -1;
     }
 
-    g_displayClusterDir = QString(getenv("DISPLAYCLUSTER_DIR"));
-
-    put_flog(LOG_DEBUG, "base directory is %s", g_displayClusterDir.toLatin1().constData());
+    // get configuration file name
+    QString displayClusterDir = QString(getenv("DISPLAYCLUSTER_DIR"));
+    put_flog(LOG_DEBUG, "base directory is %s", displayClusterDir.toLatin1().constData());
+    QString configFilename = QString( "%1/%2" ).arg( displayClusterDir ).arg( CONFIGURATION_FILENAME );
 
 #if ENABLE_TUIO_TOUCH_LISTENER
     // we need X multithreading support if we're running the TouchListener thread and creating X events
@@ -97,7 +98,6 @@ int main(int argc, char * argv[])
     g_displayGroupManager = boost::shared_ptr<DisplayGroupManager>(new DisplayGroupManager);
 
     // Load configuration
-    QString configFilename = QString( "%1/%2" ).arg( g_displayClusterDir ).arg( CONFIGURATION_FILENAME );
     if(g_mpiRank == 0)
         g_configuration = new MasterConfiguration(configFilename, g_displayGroupManager->getOptions());
     else
@@ -143,9 +143,10 @@ int main(int argc, char * argv[])
     }
 #endif
 
+    NetworkListener* networkListener = 0;
     if(g_mpiRank == 0)
     {
-        g_networkListener = new NetworkListener();
+        networkListener = new NetworkListener();
         g_localPixelStreamers = new LocalPixelStreamerManager(g_displayGroupManager.get());
     }
 
@@ -178,7 +179,7 @@ int main(int argc, char * argv[])
     if(g_mpiRank == 0)
     {
         g_displayGroupManager->sendQuit();
-        delete g_networkListener;
+        delete networkListener;
         delete g_localPixelStreamers;
     }
 
