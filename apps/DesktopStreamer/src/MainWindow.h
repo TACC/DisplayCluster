@@ -47,9 +47,10 @@
 
 #define JPEG_QUALITY 75
 
-#include "../../../src/PixelStream.h"
 #include <QtGui>
 #include <QtNetwork/QTcpSocket>
+
+#include "PixelStreamSegment.h"
 
 void computeSegmentJpeg(PixelStreamSegment &segment);
 

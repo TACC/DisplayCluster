@@ -36,23 +36,40 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "main.h"
-#include "core/log.h"
+#include "SVGContent.h"
+#include "globals.h"
+#include "SVG.h"
+#include "MainWindow.h"
+#include "GLWindow.h"
 
-MainWindow * g_mainWindow = NULL;
-DesktopSelectionWindow * g_desktopSelectionWindow = NULL;
+#include <boost/serialization/export.hpp>
+#include "serializationHelpers.h"
 
-int main(int argc, char * argv[])
+BOOST_CLASS_EXPORT_GUID(SVGContent, "SVGContent")
+
+CONTENT_TYPE SVGContent::getType()
 {
-    put_flog(LOG_INFO, "");
+    return CONTENT_TYPE_SVG;
+}
 
-    QApplication * app = new QApplication(argc, argv);
+const QStringList& SVGContent::getSupportedExtensions()
+{
+    static QStringList extensions;
 
-    Q_INIT_RESOURCE( resources );
+    if (extensions.empty())
+    {
+        extensions << "svg";
+    }
 
-    g_mainWindow = new MainWindow();
-    g_desktopSelectionWindow = new DesktopSelectionWindow();
+    return extensions;
+}
 
-    // enter Qt event loop
-    return app->exec();
+void SVGContent::getFactoryObjectDimensions(int &width, int &height)
+{
+    g_mainWindow->getGLWindow()->getSVGFactory().getObject(getURI())->getDimensions(width, height);
+}
+
+void SVGContent::renderFactoryObject(float tX, float tY, float tW, float tH)
+{
+    g_mainWindow->getGLWindow()->getSVGFactory().getObject(getURI())->render(tX, tY, tW, tH);
 }

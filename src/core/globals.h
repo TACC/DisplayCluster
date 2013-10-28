@@ -36,23 +36,32 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "main.h"
-#include "core/log.h"
+#ifndef GLOBALS_H
+#define GLOBALS_H
 
-MainWindow * g_mainWindow = NULL;
-DesktopSelectionWindow * g_desktopSelectionWindow = NULL;
+#include <mpi.h>
+#include "types.h"
 
-int main(int argc, char * argv[])
-{
-    put_flog(LOG_INFO, "");
+class QString;
+class Configuration;
+class LocalPixelStreamerManager;
+class MainWindow;
+class NetworkListener;
 
-    QApplication * app = new QApplication(argc, argv);
+extern int g_mpiRank;
+extern int g_mpiSize;
+extern MPI_Comm g_mpiRenderComm;
+extern Configuration* g_configuration;
+extern DisplayGroupManagerPtr g_displayGroupManager;
+extern MainWindow * g_mainWindow;
+extern long g_frameCount;
+// Rank0
+extern LocalPixelStreamerManager* g_localPixelStreamers;
 
-    Q_INIT_RESOURCE( resources );
+#if ENABLE_SKELETON_SUPPORT
+    class SkeletonThread;
 
-    g_mainWindow = new MainWindow();
-    g_desktopSelectionWindow = new DesktopSelectionWindow();
+    extern SkeletonThread * g_skeletonThread;
+#endif
 
-    // enter Qt event loop
-    return app->exec();
-}
+#endif

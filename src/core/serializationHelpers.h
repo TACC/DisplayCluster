@@ -36,23 +36,52 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "main.h"
-#include "core/log.h"
+#ifndef SERIALIZATION_HELPERS_H
+#define SERIALIZATION_HELPERS_H
 
-MainWindow * g_mainWindow = NULL;
-DesktopSelectionWindow * g_desktopSelectionWindow = NULL;
+#include <QtGui/QColor>
+#include <QtCore/QString>
 
-int main(int argc, char * argv[])
+#include <boost/serialization/nvp.hpp>
+#include <boost/serialization/split_free.hpp>
+
+namespace boost
 {
-    put_flog(LOG_INFO, "");
+namespace serialization
+{
 
-    QApplication * app = new QApplication(argc, argv);
-
-    Q_INIT_RESOURCE( resources );
-
-    g_mainWindow = new MainWindow();
-    g_desktopSelectionWindow = new DesktopSelectionWindow();
-
-    // enter Qt event loop
-    return app->exec();
+template< class Archive >
+void serialize( Archive &ar, QColor& color, const unsigned int )
+{
+    unsigned char t;
+    t = color.red(); ar & t; color.setRed(t);
+    t = color.green(); ar & t; color.setGreen(t);
+    t = color.blue(); ar & t; color.setBlue(t);
+    t = color.alpha(); ar & t; color.setAlpha(t);
 }
+
+template< class Archive >
+void save( Archive& ar, const QString& s, const unsigned int )
+{
+    std::string stdStr = s.toStdString();
+    ar << boost::serialization::make_nvp( "value", stdStr );
+}
+
+template< class Archive >
+void load( Archive& ar, QString& s, const unsigned int )
+{
+    std::string stdStr;
+    ar >> make_nvp( "value", stdStr );
+    s = QString::fromStdString(stdStr);
+}
+
+template< class Archive >
+void serialize( Archive& ar, QString& s, const unsigned int version )
+{
+    boost::serialization::split_free( ar, s, version );
+}
+
+}
+}
+
+#endif
