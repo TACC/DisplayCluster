@@ -9,7 +9,7 @@ set(DISPLAYCLUSTER_BOOST_COMPONENTS "date_time serialization unit_test_framework
 set(DISPLAYCLUSTER_QT4_COMPONENTS "QtNetwork QtOpenGL QtXml QtXmlPatterns")
 set(DISPLAYCLUSTER_DEB_DEPENDS libavutil-dev libavformat-dev libavcodec-dev
   libopenmpi-dev libjpeg-turbo8-dev libturbojpeg libswscale-dev freeglut3-dev
-  libxmu-dev libboost-date-time-dev libboost-serialization-dev)
+  libxmu-dev libboost-date-time-dev libboost-serialization-dev libboost-test-dev)
 set(DISPLAYCLUSTER_CMAKE_ARGS -DBUILD_DISPLAYCLUSTER_LIBRARY=ON -DBUILD_DESKTOPSTREAMER=ON -DENABLE_TUIO_TOUCH_LISTENER=ON -DENABLE_PDF_SUPPORT=ON)
 
 find_package(MPI)
