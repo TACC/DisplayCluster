@@ -200,6 +200,9 @@ BOOST_AUTO_TEST_CASE( test_webgl_interaction )
 
 BOOST_AUTO_TEST_CASE( test_webgl_click )
 {
+    if( !hasGLXDisplay( ))
+        return;
+
     // load the webgl website, exec() returns when loading is finished
     WebkitPixelStreamer* streamer = new WebkitPixelStreamer( "testBrowser" );
     QObject::connect( streamer->getView(), SIGNAL(loadFinished(bool)),
@@ -239,6 +242,9 @@ BOOST_AUTO_TEST_CASE( test_webgl_click )
 
 BOOST_AUTO_TEST_CASE( test_webgl_wheel )
 {
+    if( !hasGLXDisplay( ))
+        return;
+
     // load the webgl website, exec() returns when loading is finished
     WebkitPixelStreamer* streamer = new WebkitPixelStreamer( "testBrowser" );
     QObject::connect( streamer->getView(), SIGNAL(loadFinished(bool)),
