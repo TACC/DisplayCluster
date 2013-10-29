@@ -77,7 +77,11 @@ bool hasGLXDisplay()
 struct GlobalQtApp
 {
     GlobalQtApp()
+        : app( 0 )
     {
+        if( !hasGLXDisplay( ))
+          return;
+
         // need QApplication to instantiate WebkitPixelStreamer
         ut::master_test_suite_t& testSuite = ut::framework::master_test_suite();
         app = new QApplication( testSuite.argc, testSuite.argv );
