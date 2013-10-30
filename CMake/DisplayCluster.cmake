@@ -1,5 +1,4 @@
 
-
 set(DISPLAYCLUSTER_PACKAGE_VERSION 0.2.0)
 set(DISPLAYCLUSTER_REPO_URL https://github.com/BlueBrain/DisplayCluster.git)
 
