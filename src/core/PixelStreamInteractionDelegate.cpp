@@ -212,7 +212,8 @@ void PixelStreamInteractionDelegate::keyPressEvent(QKeyEvent *event)
     interactionState.type = InteractionState::EVT_KEY_PRESS;
     interactionState.key = event->key();
     interactionState.modifiers = event->modifiers();
-    interactionState.text = event->text().toStdString();
+    strncpy( interactionState.text, event->text().toStdString().c_str(),
+             sizeof( interactionState.text ));
 
     contentWindowManager_.setInteractionState(interactionState);
 }
@@ -223,7 +224,8 @@ void PixelStreamInteractionDelegate::keyReleaseEvent(QKeyEvent *event)
     interactionState.type = InteractionState::EVT_KEY_RELEASE;
     interactionState.key = event->key();
     interactionState.modifiers = event->modifiers();
-    interactionState.text = event->text().toStdString();
+    strncpy( interactionState.text, event->text().toStdString().c_str(),
+             sizeof( interactionState.text ));
 
     contentWindowManager_.setInteractionState(interactionState);
 }
