@@ -141,8 +141,6 @@ void ContentWindowManager::setDisplayGroupManager(boost::shared_ptr<DisplayGroup
         connect(this, SIGNAL(centerChanged(double, double, ContentWindowInterface *)), displayGroupManager.get(), SLOT(sendDisplayGroup()));
         connect(this, SIGNAL(zoomChanged(double, ContentWindowInterface *)), displayGroupManager.get(), SLOT(sendDisplayGroup()));
         connect(this, SIGNAL(windowStateChanged(ContentWindowInterface::WindowState, ContentWindowInterface *)), displayGroupManager.get(), SLOT(sendDisplayGroup()));
-        // TODO check: do we really need to serialize and MPI send the InteractionState? Isn't it used on Rank0 only?
-        connect(this, SIGNAL(interactionStateChanged(InteractionState, ContentWindowInterface *)), displayGroupManager.get(), SLOT(sendDisplayGroup()));
 
         // we don't call sendDisplayGroup() on movedToFront() or destroyed() since it happens already
     }

@@ -1,7 +1,6 @@
 #ifndef INTERACTION_STATE_H
 #define INTERACTION_STATE_H
 
-#include <boost/serialization/access.hpp>
 #include <string>
 
 // the state of interaction within a window (mouse emulation)
@@ -30,7 +29,7 @@ struct InteractionState {
     EventType type;
     int key;
     int modifiers;
-    std::string text;
+    char text[4]; // carries unicode for key, see QKeyEvent::text()
 
     InteractionState()
     {
@@ -38,23 +37,6 @@ struct InteractionState {
         mouseLeft = mouseRight = mouseMiddle = false;
         type = EVT_NONE;
         key = modifiers = 0;
-    }
-
-    friend class boost::serialization::access;
-
-    template<class Archive>
-    void serialize(Archive & ar, const unsigned int)
-    {
-        ar & mouseX;
-        ar & mouseY;
-        ar & dx;
-        ar & dy;
-        ar & mouseLeft;
-        ar & mouseRight;
-        ar & mouseMiddle;
-        ar & type;
-        ar & modifiers;
-        ar & text;
     }
 };
 

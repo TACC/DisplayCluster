@@ -116,14 +116,15 @@ extern bool dcStreamBindInteraction(DcSocket * socket, std::string name);
 // check status with dcStreamHasInteraction()
 extern bool dcStreamBindInteractionExclusive(DcSocket * socket, std::string name);
 
-extern InteractionState dcStreamGetInteractionState(DcSocket * socket);
-
-extern int dcSocketDescriptor(DcSocket * socket);
-
 // -1 for no reply yet, 0 for not bound (if exclusive mode),
 // 1 for successful bound
 extern int dcStreamHasInteraction(DcSocket * socket);
 
+/** @name Manual receive API */
+//@{
+extern int dcSocketDescriptor(DcSocket * socket);
 extern bool dcHasNewInteractionState(DcSocket * socket);
+extern InteractionState dcStreamGetInteractionState(DcSocket * socket);
+//@}
 
 #endif

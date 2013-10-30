@@ -96,7 +96,6 @@ class ContentWindowManager : public ContentWindowInterface, public boost::enable
             ar & zoom_;
             ar & controlState_;
             ar & windowState_;
-            ar & interactionState_;
             ar & highlightedTimestamp_;
         }
 
