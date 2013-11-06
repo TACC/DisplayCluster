@@ -338,15 +338,8 @@ bool DisplayGroupManager::loadStateXMLFile( const QString& filename )
     if( !state_.loadXML( filename, contentWindowManagers ))
         return false;
 
-    if( !contentWindowManagers.empty( ))
-    {
-        // assign new contents vector to display group
-        setContentWindowManagers(contentWindowManagers);
-    }
-    else
-    {
-        put_flog(LOG_WARN, "no content windows specified in the state file");
-    }
+    // assign new contents vector to display group
+    setContentWindowManagers(contentWindowManagers);
     return true;
 }
 
