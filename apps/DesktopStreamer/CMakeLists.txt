@@ -38,7 +38,7 @@ endif(APPLE)
 add_executable(desktopstreamer MACOSX_BUNDLE WIN32
   ${DESKTOP_STREAMER_SRCS} ${DESKTOP_STREAMER_MOC_OUTFILES} ${DESKTOP_STREAMER_RRC})
 set_target_properties(desktopstreamer PROPERTIES
-  MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/src/Info.plist)
+  MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/src/Info.plist)
 target_link_libraries(desktopstreamer ${DESKTOP_STREAMER_LIBS})
 
 # install executable
