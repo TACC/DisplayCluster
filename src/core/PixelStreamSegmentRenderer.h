@@ -39,58 +39,87 @@
 #ifndef PIXEL_STREAM_SEGMENT_RENDERER_H
 #define PIXEL_STREAM_SEGMENT_RENDERER_H
 
-#include <boost/enable_shared_from_this.hpp>
 #include <QGLWidget>
-#include <QtConcurrentRun>
-#include <turbojpeg.h>
 
-class PixelStreamSegmentRenderer : public boost::enable_shared_from_this<PixelStreamSegmentRenderer> {
+class FpsCounter;
 
-    public:
+/**
+ * Render a single PixelStream Segment
+ *
+ * This class is a texture renderer specialized for PixelStreamSegments
+ */
+class PixelStreamSegmentRenderer
+{
+public:
+    /** Construct a renderer.
+     * @param Unique identifier for the stream to which this segment belongs
+     */
+    PixelStreamSegmentRenderer(const QString& uri);
 
-        PixelStreamSegmentRenderer();
-        ~PixelStreamSegmentRenderer();
+    /** Destruct a renderer. */
+    ~PixelStreamSegmentRenderer();
 
-        void getDimensions(int &width, int &height);
-        bool render(float tX, float tY, float tW, float tH); // return true on successful render; false if no texture available
-        bool setImageData(QByteArray imageData, bool compressed=true, int w=0, int h=0); // returns true if load image thread was spawned; false if frame was dropped
-        bool getLoadImageDataThreadRunning();
-        void setAutoUpdateTexture(bool set);
-        void updateTextureIfAvailable();
+    /** Get the dimensions of the texture. */
+    void getDimensions(int &width, int &height) const;
 
-        // for use by loadImageDataThread()
-        tjhandle getHandle();
-        void imageReady(QImage image);
+    /** Get the position and dimensions of this segment */
+    QRectF getRect() const;
 
-    private:
+    /**
+     * Update the texture.
+     *
+     * This call is blocking (texture upload to GPU).
+     * @param image The new texture to upload
+     */
+    void updateTexture(const QImage &image);
 
-        // pixel stream identifier
-        std::string uri_;
+    /** Has the texture been marked as oudated with setTextureOutdated() */
+    bool textureNeedsUpdate() const;
 
-        // texture
-        GLuint textureId_;
-        int textureWidth_;
-        int textureHeight_;
-        bool textureBound_;
+    /** Mark the texture as being outdated */
+    void setTextureNeedsUpdate();
 
-        // thread for generating images from image data
-        QFuture<void> loadImageDataThread_;
+    /**
+     * Set the paramters for this segment.
+     * @param x Position of the segement in pixels. (0,0) == top-left of the stream.
+     * @param y Position of the segement in pixels. (0,0) == top-left of the stream.
+     * @param streamWidth Dimensions of the stream in pixels
+     * @param streamHeight Dimensions of the stream in pixels
+     */
+    void setParameters(unsigned int x, unsigned int y);
 
-        // libjpeg-turbo handle for decompression
-        tjhandle handle_;
+    /**
+     * Render the current texture.
+     *
+     * Assume that the GL matrices have been set to the normalized dimensions of the stream.
+     * @param showSegmentBorders Show the segment boders
+     * @param showStatistics Show the statistics for this segment
+     * @return true on successful render; false if no texture available.
+     */
+    bool render(bool showSegmentBorders, bool showSegmentStatistics);
 
-        // image, mutex, and ready status
-        QMutex imageReadyMutex_;
-        bool imageReady_;
-        QImage image_;
+private:
+    // pixel stream identifier
+    QString uri_;
 
-        // whether updateTexture() should be called automatically every render() or not
-        // this can be set to false to allow for synchronization across multiple streams, for example.
-        bool autoUpdateTexture_;
+    // texture
+    GLuint textureId_;
+    int textureWidth_;
+    int textureHeight_;
 
-        void updateTexture(QImage & image);
+    // Image position
+    unsigned int x_, y_;
+
+    // Statistics
+    FpsCounter* segmentStatistics;
+
+    // Status
+    bool textureNeedsUpdate_;
+
+    // Rendering
+    void drawUnitTexturedQuad(float tX, float tY, float tW, float tH);
+    void drawSegmentBorders();
+    void drawSegmentStatistics();
 };
-
-extern void loadImageDataThread(boost::shared_ptr<PixelStreamSegmentRenderer> pixelStreamRenderer, const QByteArray imageData, bool compressed, int w, int h);
 
 #endif

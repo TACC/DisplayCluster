@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,99 +37,62 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MAIN_WINDOW_H
-#define MAIN_WINDOW_H
+#ifndef DCIMAGESEGMENTER_H
+#define DCIMAGESEGMENTER_H
 
-#define SUPPORTED_NETWORK_PROTOCOL_VERSION 7
+#include <vector>
 
-#define SHARE_DESKTOP_UPDATE_DELAY 1
+namespace dc
+{
 
-#define FRAME_RATE_AVERAGE_NUM_FRAMES 10
+class PixelStreamSegment;
+class PixelStreamSegmentParameters;
+typedef std::vector<PixelStreamSegment> PixelStreamSegments;
+typedef std::vector<PixelStreamSegmentParameters> SegmentParameters;
 
-#define JPEG_QUALITY 75
+class ImageWrapper;
 
-#include <QtGui>
-#include <QtNetwork/QTcpSocket>
+/**
+ * Transform images into PixelStreamSegments.
+ *
+ * Used by the Stream library to transmit images over a Socket.
+ */
+class ImageSegmenter
+{
+public:
+    /**
+     * Construct an ImageSegmenter.
+     */
+    ImageSegmenter();
 
-#include "PixelStreamSegment.h"
+    /**
+     * Segment an image.
+     * @param image The image to be segmented
+     * @return A collection of segments containing a copy of the source image data.
+     * @see setNominalSegmentDimensions()
+     */
+    PixelStreamSegments generateSegments(const ImageWrapper& image) const;
 
-class MainWindow : public QMainWindow {
-    Q_OBJECT
+    /**
+     * Set the nominal segment dimensions.
+     *
+     * If both dimensions are non-zero, the images will be devided as many segments
+     * of the desired dimensions as possible. If the image size is not an exact multiple of
+     * the segement size, the remaining segments will be of size: image.size % nominalSize.
+     * @param nominalSegmentWidth The nominal width of the segments to generate (default: 0).
+     * @param nominalSegmentHeight The nominal height of the segments to generate (default: 0).
+     */
+    void setNominalSegmentDimensions(const unsigned int nominalSegmentWidth, const unsigned int nominalSegmentHeight);
 
-    public:
+private:
+    SegmentParameters generateSegmentParameters(const ImageWrapper &image) const;
 
-        MainWindow();
+    PixelStreamSegments generateJpegSegments(const ImageWrapper& image) const;
+    PixelStreamSegments generateRawSegments(const ImageWrapper& image) const;
 
-        void getCoordinates(int &x, int &y, int &width, int &height);
-        void setCoordinates(int x, int y, int width, int height);
-
-        QImage getImage();
-
-    public slots:
-
-        void shareDesktop(bool set);
-        void showDesktopSelectionWindow(bool set);
-        void setParallelStreaming(bool set);
-        void shareDesktopUpdate();
-        void updateCoordinates();
-
-    private:
-
-        virtual void closeEvent( QCloseEvent* event );
-
-        bool updatedDimensions_;
-
-        QLineEdit hostnameLineEdit_;
-        QLineEdit uriLineEdit_;
-        QSpinBox xSpinBox_;
-        QSpinBox ySpinBox_;
-        QSpinBox widthSpinBox_;
-        QSpinBox heightSpinBox_;
-        QCheckBox retinaBox_;
-        QSpinBox frameRateSpinBox_;
-        QLabel frameRateLabel_;
-
-        QAction * shareDesktopAction_;
-        QAction * showDesktopSelectionWindowAction_;
-
-        std::string hostname_;
-        std::string uri_;
-        int x_;
-        int y_;
-        int width_;
-        int height_;
-        float deviceScale_;
-
-        bool parallelStreaming_;
-
-        // full image
-        QImage image_;
-
-        // mouse cursor pixmap
-        QImage cursor_;
-
-        // for regular pixel streaming
-        QByteArray previousImageData_;
-
-        // for parallel pixel streaming
-        std::vector<dc::PixelStreamSegment> segments_;
-
-        QTimer shareDesktopUpdateTimer_;
-
-        // used for frame rate calculations
-        std::vector<QTime> frameSentTimes_;
-
-        QTcpSocket tcpSocket_;
-
-        bool streamSegments();
-        void sendQuit();
-
-        void setupSegments();
-        void setupSingleSegment();
-        void setupMultipleSegments();
-        void updateSegments(bool requestViewAdjustment);
-        void sendSegment(const dc::PixelStreamSegment &segment);
-        void resetSegments();
+    unsigned int nominalSegmentWidth_;
+    unsigned int nominalSegmentHeight_;
 };
 
-#endif
+}
+#endif // DCIMAGESEGMENTER_H

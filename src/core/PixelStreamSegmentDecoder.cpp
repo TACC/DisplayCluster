@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,99 +37,83 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MAIN_WINDOW_H
-#define MAIN_WINDOW_H
-
-#define SUPPORTED_NETWORK_PROTOCOL_VERSION 7
-
-#define SHARE_DESKTOP_UPDATE_DELAY 1
-
-#define FRAME_RATE_AVERAGE_NUM_FRAMES 10
-
-#define JPEG_QUALITY 75
-
-#include <QtGui>
-#include <QtNetwork/QTcpSocket>
+#include "PixelStreamSegmentDecoder.h"
 
 #include "PixelStreamSegment.h"
+#include "log.h"
 
-class MainWindow : public QMainWindow {
-    Q_OBJECT
+#include <QtConcurrentRun>
 
-    public:
+#include "globals.h"
 
-        MainWindow();
 
-        void getCoordinates(int &x, int &y, int &width, int &height);
-        void setCoordinates(int x, int y, int width, int height);
+PixelStreamSegmentDecoder::PixelStreamSegmentDecoder()
+    : handle_(0)
+{
+    // initialize libjpeg-turbo handle
+    handle_ = tjInitDecompress();
+}
 
-        QImage getImage();
+PixelStreamSegmentDecoder::~PixelStreamSegmentDecoder()
+{
+    // destroy libjpeg-turbo handle
+    tjDestroy(handle_);
+}
 
-    public slots:
+void decodeSegment(boost::shared_ptr<PixelStreamSegmentDecoder> segmentDecoder, PixelStreamSegment* segment)
+{
+    // use libjpeg-turbo for JPEG conversion
+    tjhandle handle = segmentDecoder->getTjHandle();
 
-        void shareDesktop(bool set);
-        void showDesktopSelectionWindow(bool set);
-        void setParallelStreaming(bool set);
-        void shareDesktopUpdate();
-        void updateCoordinates();
+    // get information from header
+    int width, height, jpegSubsamp;
+    int success = tjDecompressHeader2(handle, (unsigned char *)segment->imageData.data(), (unsigned long)segment->imageData.size(), &width, &height, &jpegSubsamp);
 
-    private:
+    if(success != 0)
+    {
+        put_flog(LOG_ERROR, "libjpeg-turbo header decompression failure");
+        return;
+    }
 
-        virtual void closeEvent( QCloseEvent* event );
+    // decompress image data
+    int pixelFormat = TJPF_BGRX;
+    int pitch = width * tjPixelSize[pixelFormat];
+    int flags = TJ_FASTUPSAMPLE;
 
-        bool updatedDimensions_;
+    QByteArray decodedData;
+    decodedData.resize(height*pitch);
 
-        QLineEdit hostnameLineEdit_;
-        QLineEdit uriLineEdit_;
-        QSpinBox xSpinBox_;
-        QSpinBox ySpinBox_;
-        QSpinBox widthSpinBox_;
-        QSpinBox heightSpinBox_;
-        QCheckBox retinaBox_;
-        QSpinBox frameRateSpinBox_;
-        QLabel frameRateLabel_;
+    success = tjDecompress2(handle, (unsigned char *)segment->imageData.data(), (unsigned long)segment->imageData.size(), (unsigned char *)decodedData.data(), width, pitch, height, pixelFormat, flags);
 
-        QAction * shareDesktopAction_;
-        QAction * showDesktopSelectionWindowAction_;
+    if(success != 0)
+    {
+        put_flog(LOG_ERROR, "libjpeg-turbo image decompression failure");
+        return;
+    }
 
-        std::string hostname_;
-        std::string uri_;
-        int x_;
-        int y_;
-        int width_;
-        int height_;
-        float deviceScale_;
+    // Modify the inupt segment
+    segment->imageData = decodedData;
+    segment->parameters.compressed = false;
+}
 
-        bool parallelStreaming_;
+void PixelStreamSegmentDecoder::startDecoding(dc::PixelStreamSegment& segment)
+{
+    // drop frames if we're currently processing
+    if(isRunning())
+    {
+        put_flog(LOG_WARN, "Decoding in process, Frame dropped. See if we need to change this...");
+        return;
+    }
 
-        // full image
-        QImage image_;
+    decodingThread_ = QtConcurrent::run(decodeSegment, shared_from_this(), &segment);
+}
 
-        // mouse cursor pixmap
-        QImage cursor_;
+bool PixelStreamSegmentDecoder::isRunning() const
+{
+    return decodingThread_.isRunning();
+}
 
-        // for regular pixel streaming
-        QByteArray previousImageData_;
-
-        // for parallel pixel streaming
-        std::vector<dc::PixelStreamSegment> segments_;
-
-        QTimer shareDesktopUpdateTimer_;
-
-        // used for frame rate calculations
-        std::vector<QTime> frameSentTimes_;
-
-        QTcpSocket tcpSocket_;
-
-        bool streamSegments();
-        void sendQuit();
-
-        void setupSegments();
-        void setupSingleSegment();
-        void setupMultipleSegments();
-        void updateSegments(bool requestViewAdjustment);
-        void sendSegment(const dc::PixelStreamSegment &segment);
-        void resetSegments();
-};
-
-#endif
+tjhandle PixelStreamSegmentDecoder::getTjHandle() const
+{
+    return handle_;
+}

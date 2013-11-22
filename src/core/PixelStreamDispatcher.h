@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,83 +37,110 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef NETWORK_LISTENER_THREAD_H
-#define NETWORK_LISTENER_THREAD_H
+#ifndef PIXELSTREAMDISPATCHER_H
+#define PIXELSTREAMDISPATCHER_H
 
-#include "MessageHeader.h"
-#include "InteractionState.h"
+#include <QObject>
+#include <QTimer>
+#include <map>
+#include <QTime>
+
 #include "PixelStreamSegment.h"
+#include "PixelStreamBuffer.h"
 
-#include <QtCore>
-#include <QtNetwork/QTcpSocket>
-#include <QQueue>
+#define USE_TIMER
 
-#include "DisplayGroupInterface.h" // TODO REMOVE??
-
-using dc::InteractionState;
 using dc::PixelStreamSegment;
 
-class PixelStreamDispatcher;
-class DisplayGroupManager;
+typedef std::map<QString, PixelStreamBuffer> StreamBuffers;
 
-class NetworkListenerThread : public QObject
+/**
+ * Gather PixelStream Segments from multiple sources and dispatch them to Wall processes through MPI
+ */
+class PixelStreamDispatcher : public QObject
 {
     Q_OBJECT
 
 public:
-
-    NetworkListenerThread(PixelStreamDispatcher& pixelStreamDispatcher, DisplayGroupManager &displayGroupManager, int socketDescriptor);
-    ~NetworkListenerThread();
-
+    /** Construct a dispatcher */
+    PixelStreamDispatcher();
+    
 public slots:
+    /**
+     * Add a source of Segments for a Stream
+     *
+     * @param uri Identifier for the Stream
+     * @param sourceIndex Identifier for the source in this stream
+     */
+    void addSource(QString uri, int sourceIndex);
 
-    void setInteractionState(InteractionState interactionState);
-    void pixelStreamerClosed(QString uri);
+    /**
+     * Add a source of Segments for a Stream
+     *
+     * @param uri Identifier for the Stream
+     * @param sourceIndex Identifier for the source in this stream
+     */
+    void removeSource(QString uri, int sourceIndex);
+
+    /**
+     * Process a new Segement
+     *
+     * @param uri Identifier for the Stream
+     * @param sourceIndex Identifier for the source in this stream
+     */
+    void processSegment(QString uri, int sourceIndex, PixelStreamSegment segment);
+
+    /**
+     * The given source has finished sending segments for the current frame
+     *
+     * @param uri Identifier for the Stream
+     * @param sourceIndex Identifier for the source in this stream
+     */
+    void processFrameFinished(QString uri, int sourceIndex);
+
+    /**
+     * Delete an entire stream
+     *
+     * @param uri Identifier for the Stream
+     */
+    void deleteStream(const QString& uri);
 
 signals:
+    /**
+     * Notify that a PixelStream has been opened
+     *
+     * @param uri Identifier for the Stream
+     * @param width Width of the stream
+     * @param height Height of the stream
+     */
+    void openPixelStream(QString uri, int width, int height);
 
-    void finished();
+    /**
+     * Notify that a pixel stream has been deleted
+     *
+     * @param uri Identifier for the Stream
+     */
+    void deletePixelStream(QString uri);
 
-    void receivedAddPixelStreamSource(QString uri, int sourceIndex);
-    void receivedPixelStreamSegement(QString uri, int SourceIndex, PixelStreamSegment segment);
-    void receivedPixelStreamFinishFrame(QString uri, int SourceIndex);
-    void receivedRemovePixelStreamSource(QString uri, int sourceIndex);
+#ifndef USE_TIMER
+    /** @internal */
+    void dispatchFramesSignal();
+#endif
 
 private slots:
-
-    void initialize();
-    void process();
-    void socketReceiveMessage();
+    void dispatchFrames();
 
 private:
+    // The buffers for each URI
+    StreamBuffers streamBuffers_;
 
-    int socketDescriptor_;
-    QTcpSocket * tcpSocket_;
+    void sendPixelStreamSegments(const std::vector<PixelStreamSegment> &segments, const QString& uri);
 
-    boost::shared_ptr<DisplayGroupInterface> displayGroupInterface_;
-
-    QString pixelStreamUri_;
-
-    QString interactionName_;
-    bool interactionBound_;
-    bool interactionExclusive_;
-
-    QQueue<InteractionState> interactionStates_;
-
-    // Event receivers
-    PixelStreamDispatcher& pixelStreamDispatcher_;
-    DisplayGroupManager& displayGroupManager_;
-
-    MessageHeader receiveMessageHeader();
-    QByteArray receiveMessageBody(int size);
-
-    void handleMessage(MessageHeader messageHeader, QByteArray byteArray);
-    bool bindInteraction();
-
-    void sendBindReply( bool successful );
-    void send(const InteractionState &interactionState);
-    void sendAck();
-    void sendQuit();
+#ifdef USE_TIMER
+    QTimer sendTimer_;
+#else
+    QTime lastFrameSent_;
+#endif
 };
 
-#endif
+#endif // PIXELSTREAMDISPATCHER_H

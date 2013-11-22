@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,99 +37,51 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MAIN_WINDOW_H
-#define MAIN_WINDOW_H
+#ifndef DCSTREAMEVENTTHREAD_H
+#define DCSTREAMEVENTTHREAD_H
 
-#define SUPPORTED_NETWORK_PROTOCOL_VERSION 7
+#include <QObject>
+#include <QMutex>
+#include <QQueue>
 
-#define SHARE_DESKTOP_UPDATE_DELAY 1
-
-#define FRAME_RATE_AVERAGE_NUM_FRAMES 10
-
-#define JPEG_QUALITY 75
-
-#include <QtGui>
-#include <QtNetwork/QTcpSocket>
-
-#include "PixelStreamSegment.h"
-
-class MainWindow : public QMainWindow {
+/**
+ * This class might serve as an EventProcessing thread to read InteractionStates from
+ * the DcSocket.
+ *
+ * !!! IT IS NOT IMPLEMENTED YET !!!
+ */
+class DcStreamEventThread : public QObject
+{
     Q_OBJECT
 
-    public:
+public:
+    DcStreamEventThread();
 
-        MainWindow();
+    // queue a message to be sent (non-blocking)
+    bool queueMessage(QByteArray message);
 
-        void getCoordinates(int &x, int &y, int &width, int &height);
-        void setCoordinates(int x, int y, int width, int height);
+    // current interaction state
+    mutable QMutex interactionStateMutex_;
+    QQueue<InteractionState> interactionStates_;
 
-        QImage getImage();
+    bool hasPendingInteractionState() const;
+    InteractionState retrieveInteractionState();
 
-    public slots:
+    // thread execution
+    virtual void run();
 
-        void shareDesktop(bool set);
-        void showDesktopSelectionWindow(bool set);
-        void setParallelStreaming(bool set);
-        void shareDesktopUpdate();
-        void updateCoordinates();
+public slots:
+    void storeNewInteractionState(InteractionState state);
+    void setInteractionBound(bool success);
 
-    private:
+private:
+    // mutex and queue for messages to send
+    QMutex sendMessagesQueueMutex_;
+    std::queue<QByteArray> sendMessagesQueue_;
 
-        virtual void closeEvent( QCloseEvent* event );
+    bool sendMessage_();
+    bool receiveMessage_( MESSAGE_TYPE& type );
 
-        bool updatedDimensions_;
-
-        QLineEdit hostnameLineEdit_;
-        QLineEdit uriLineEdit_;
-        QSpinBox xSpinBox_;
-        QSpinBox ySpinBox_;
-        QSpinBox widthSpinBox_;
-        QSpinBox heightSpinBox_;
-        QCheckBox retinaBox_;
-        QSpinBox frameRateSpinBox_;
-        QLabel frameRateLabel_;
-
-        QAction * shareDesktopAction_;
-        QAction * showDesktopSelectionWindowAction_;
-
-        std::string hostname_;
-        std::string uri_;
-        int x_;
-        int y_;
-        int width_;
-        int height_;
-        float deviceScale_;
-
-        bool parallelStreaming_;
-
-        // full image
-        QImage image_;
-
-        // mouse cursor pixmap
-        QImage cursor_;
-
-        // for regular pixel streaming
-        QByteArray previousImageData_;
-
-        // for parallel pixel streaming
-        std::vector<dc::PixelStreamSegment> segments_;
-
-        QTimer shareDesktopUpdateTimer_;
-
-        // used for frame rate calculations
-        std::vector<QTime> frameSentTimes_;
-
-        QTcpSocket tcpSocket_;
-
-        bool streamSegments();
-        void sendQuit();
-
-        void setupSegments();
-        void setupSingleSegment();
-        void setupMultipleSegments();
-        void updateSegments(bool requestViewAdjustment);
-        void sendSegment(const dc::PixelStreamSegment &segment);
-        void resetSegments();
 };
 
-#endif
+#endif // DCSTREAMEVENTTHREAD_H

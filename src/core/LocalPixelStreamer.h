@@ -43,9 +43,11 @@
 #include <QString>
 #include <QObject>
 #include <QSize>
+#include <QImage>
 
-#include "PixelStreamSegment.h"
 #include "InteractionState.h"
+
+using dc::InteractionState;
 
 class LocalPixelStreamer : public QObject {
     Q_OBJECT
@@ -59,13 +61,13 @@ public:
     QString getUri() const;
 
 public slots:
-    virtual void updateInteractionState(InteractionState interactionState) = 0;
+    virtual void updateInteractionState(dc::InteractionState interactionState) = 0;
 
 protected:
     QString uri_;
 
 signals:
-    void segmentUpdated(QString uri, PixelStreamSegment segment);
+    void imageUpdated(QImage image);
     void streamClosed(QString uri);
 };
 

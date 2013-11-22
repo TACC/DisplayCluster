@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,99 +37,55 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MAIN_WINDOW_H
-#define MAIN_WINDOW_H
+#ifndef PIXELSTREAMSEGMENTDECODER_H
+#define PIXELSTREAMSEGMENTDECODER_H
 
-#define SUPPORTED_NETWORK_PROTOCOL_VERSION 7
+#include <boost/enable_shared_from_this.hpp>
+#include <turbojpeg.h>
 
-#define SHARE_DESKTOP_UPDATE_DELAY 1
+#include <QFuture>
+#include <QImage>
 
-#define FRAME_RATE_AVERAGE_NUM_FRAMES 10
+namespace dc
+{
+class PixelStreamSegment;
+}
+using dc::PixelStreamSegment;
 
-#define JPEG_QUALITY 75
+/**
+ * Decode a PixelStreamSegment image data.
+ */
+class PixelStreamSegmentDecoder : public boost::enable_shared_from_this<PixelStreamSegmentDecoder>
+{
+public:
+    /** Construct a Decoder */
+    PixelStreamSegmentDecoder();
 
-#include <QtGui>
-#include <QtNetwork/QTcpSocket>
+    /** Destruct a Decoder */
+    ~PixelStreamSegmentDecoder();
 
-#include "PixelStreamSegment.h"
+    /**
+     * Start decoding a segment.
+     *
+     * This function will silently ignore the request if a decoding is already in progress.
+     * @param segment The segement to decode. The segment is NOT copied internally and is modified by this
+     * function. It must remain valid and should not be accessed until the decoding procedure has completed.
+     * @see isRunning()
+     */
+    void startDecoding(PixelStreamSegment& segment);
 
-class MainWindow : public QMainWindow {
-    Q_OBJECT
+    /** Check if the decoding thread is running. */
+    bool isRunning() const;
 
-    public:
+    /** Get the turboJpegHandle. @internal */
+    tjhandle getTjHandle() const;
 
-        MainWindow();
+private:
+    /** libjpeg-turbo handle for decompression */
+    tjhandle handle_;
 
-        void getCoordinates(int &x, int &y, int &width, int &height);
-        void setCoordinates(int x, int y, int width, int height);
-
-        QImage getImage();
-
-    public slots:
-
-        void shareDesktop(bool set);
-        void showDesktopSelectionWindow(bool set);
-        void setParallelStreaming(bool set);
-        void shareDesktopUpdate();
-        void updateCoordinates();
-
-    private:
-
-        virtual void closeEvent( QCloseEvent* event );
-
-        bool updatedDimensions_;
-
-        QLineEdit hostnameLineEdit_;
-        QLineEdit uriLineEdit_;
-        QSpinBox xSpinBox_;
-        QSpinBox ySpinBox_;
-        QSpinBox widthSpinBox_;
-        QSpinBox heightSpinBox_;
-        QCheckBox retinaBox_;
-        QSpinBox frameRateSpinBox_;
-        QLabel frameRateLabel_;
-
-        QAction * shareDesktopAction_;
-        QAction * showDesktopSelectionWindowAction_;
-
-        std::string hostname_;
-        std::string uri_;
-        int x_;
-        int y_;
-        int width_;
-        int height_;
-        float deviceScale_;
-
-        bool parallelStreaming_;
-
-        // full image
-        QImage image_;
-
-        // mouse cursor pixmap
-        QImage cursor_;
-
-        // for regular pixel streaming
-        QByteArray previousImageData_;
-
-        // for parallel pixel streaming
-        std::vector<dc::PixelStreamSegment> segments_;
-
-        QTimer shareDesktopUpdateTimer_;
-
-        // used for frame rate calculations
-        std::vector<QTime> frameSentTimes_;
-
-        QTcpSocket tcpSocket_;
-
-        bool streamSegments();
-        void sendQuit();
-
-        void setupSegments();
-        void setupSingleSegment();
-        void setupMultipleSegments();
-        void updateSegments(bool requestViewAdjustment);
-        void sendSegment(const dc::PixelStreamSegment &segment);
-        void resetSegments();
+    /** thread for generating images from image data */
+    QFuture<void> decodingThread_;
 };
 
-#endif
+#endif // PIXELSTREAMSEGMENTDECODER_H

@@ -41,20 +41,25 @@
 
 #include <QtNetwork/QTcpServer>
 
-class NetworkListener : public QTcpServer {
+class PixelStreamDispatcher;
+class DisplayGroupManager;
+
+class NetworkListener : public QTcpServer
+{
     Q_OBJECT
 
-    public:
+public:
+    static const int defaultPortNumber_;
 
-        NetworkListener(int port=1701);
+    NetworkListener(DisplayGroupManager& displayGroupManager, int port = defaultPortNumber_);
+    ~NetworkListener();
 
-    protected:
+protected:
+    void incomingConnection(int socketDescriptor);
 
-        void incomingConnection(int socketDescriptor);
-
-    private:
-
-        int port_;
+private:
+    DisplayGroupManager& displayGroupManager_;
+    PixelStreamDispatcher* pixelStreamDispatcher_;
 };
 
 #endif

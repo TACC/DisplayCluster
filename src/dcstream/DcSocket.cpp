@@ -38,353 +38,87 @@
 
 #include "DcSocket.h"
 
+#include "MessageHeader.h"
 #include "NetworkProtocol.h"
 #include "log.h"
 
 #include <QtNetwork/QTcpSocket>
+#include <QThread>
 
-DcSocket::DcSocket(const char * hostname, bool async)
-    : async_(async)
-    , socket_(0)
-    , disconnectFlag_(false)
-    , interactionReply_( -1 )
+#define ACK_TIMEOUT_MS                     1000
+#define WAIT_FOR_BYTES_WRITTEN_TIMEOUT_MS  1000
+
+namespace dc
 {
-    // register Interactionstate in Qt
-    qRegisterMetaType<InteractionState>("InteractionState");
 
-    if(connect(hostname) != true)
+const unsigned short Socket::defaultPortNumber_ = 1701;
+
+Socket::Socket(const std::string &hostname, unsigned short port)
+    : socket_(new QTcpSocket())
+{
+    if( !connect( hostname, port ))
     {
-        put_flog(LOG_ERROR, "could not connect to host %s", hostname);
+        put_flog(LOG_ERROR, "could not connect to host %s:%i", hostname.c_str(), port);
     }
 }
 
-DcSocket::~DcSocket()
+Socket::~Socket()
 {
-    disconnect();
+    delete socket_;
 }
 
-bool DcSocket::isConnected()
+bool Socket::isConnected() const
 {
-    // if the thread is running, we are connected
-    // the thread will exit if there is a connection error
-    return async_ ? isRunning() : (socket_ ? socket_->state() == QTcpSocket::ConnectedState : false);
+    return socket_->state() == QTcpSocket::ConnectedState;
 }
 
-bool DcSocket::queueMessage(QByteArray message)
-{
-    // only queue the message if we're connected
-    if(isConnected() != true)
-    {
-        return false;
-    }
-
-    {
-        QMutexLocker locker(&sendMessagesQueueMutex_);
-        sendMessagesQueue_.push(message);
-    }
-
-    if( !async_ )
-        sendMessage_();
-
-    return true;
-}
-
-void DcSocket::waitForAck(int count)
-{
-    // only wait if we're connected
-    if(isConnected() != true)
-    {
-        put_flog(LOG_WARN, "not connected");
-
-        return;
-    }
-
-    if( async_ )
-        ackSemaphore_.acquire(count);
-}
-
-int DcSocket::hasInteraction()
-{
-    MESSAGE_TYPE type;
-    if( !receiveMessage_( type ))
-        return -1;
-    return interactionReply_;
-}
-
-InteractionState DcSocket::getInteractionState()
-{
-    QMutexLocker locker(&interactionStateMutex_);
-
-    return interactionState_;
-}
-
-int DcSocket::socketDescriptor() const
+int Socket::getFileDescriptor() const
 {
     return socket_->socketDescriptor();
 }
 
-bool DcSocket::hasNewInteractionState()
+bool Socket::hasMessage(const size_t messageSize) const
 {
-    MESSAGE_TYPE type;
-    if( !receiveMessage_( type ))
-        return false;
-    return type == MESSAGE_TYPE_INTERACTION;
+    return socket_->bytesAvailable() >= (int)(sizeof(MessageHeader) + messageSize);
 }
 
-bool DcSocket::connect(const char * hostname)
+bool Socket::send(const MessageHeader& messageHeader, const QByteArray &message)
 {
-    // make sure we're disconnected
-    disconnect();
+    // Send header
+    int sent = socket_->write((const char *)&messageHeader, sizeof(MessageHeader));
 
-    // reset everything
-    sendMessagesQueue_ = std::queue<QByteArray>();
-    ackSemaphore_.acquire(ackSemaphore_.available()); // should reset semaphore to 0
-    disconnectFlag_ = false;
-
-    socket_ = new QTcpSocket();
-
-    // open connection
-    socket_->connectToHost(hostname, 1701);
-
-    if(socket_->waitForConnected() != true)
+    while(sent < (int)sizeof(MessageHeader) && isConnected())
     {
-        put_flog(LOG_ERROR, "could not connect to host %s", hostname);
-
-        delete socket_;
-        socket_ = NULL;
-
-        return false;
+        sent += socket_->write((const char *)&messageHeader + sent, sizeof(MessageHeader) - sent);
     }
 
-    // todo: we need to consider the performance of the low delay option
-    // socket_->setSocketOption(QAbstractSocket::LowDelayOption, 1);
-
-    // handshake
-    while(socket_->bytesAvailable() < (int)sizeof(int32_t))
-    {
-        socket_->waitForReadyRead();
-
-    #ifndef _WIN32
-        usleep(10);
-    #endif
-    }
-
-    int32_t protocolVersion = -1;
-    socket_->read((char *)&protocolVersion, sizeof(int32_t));
-
-    if(protocolVersion != NETWORK_PROTOCOL_VERSION)
-    {
-        socket_->disconnectFromHost();
-
-        put_flog(LOG_ERROR, "unsupported protocol version %i != %i", protocolVersion, NETWORK_PROTOCOL_VERSION);
-
-        delete socket_;
-        socket_ = NULL;
-
-        return false;
-    }
-
-    // move the socket to this thread (which is about to start)
-    socket_->moveToThread(this);
-
-    // start thread execution
-    if( async_ )
-        start();
-
-    put_flog(LOG_INFO, "connected to host %s", hostname);
-
-    return true;
-}
-
-void DcSocket::disconnect()
-{
-    if(isConnected() == true)
-    {
-        {
-            QMutexLocker locker(&disconnectFlagMutex_);
-            disconnectFlag_ = true;
-        }
-
-        if( async_ )
-        {
-            // wait for thread to finish
-            bool success = wait();
-
-            if(success == false)
-            {
-                put_flog(LOG_ERROR, "thread did not finish");
-            }
-        }
-        else
-        {
-            // delete the socket
-            delete socket_;
-            socket_ = NULL;
-
-            put_flog(LOG_DEBUG, "finished");
-        }
-    }
-}
-
-void DcSocket::run()
-{
-    put_flog(LOG_DEBUG, "started");
-
-    while(true)
-    {
-        // break here if we had a failure
-        if( !sendMessage_( ))
-            break;
-
-        MESSAGE_TYPE type;
-        receiveMessage_( type );
-
-        // make sure the socket is still connected
-        if(socket_->state() != QAbstractSocket::ConnectedState)
-        {
-            put_flog(LOG_ERROR, "socket disconnected");
-            break;
-        }
-
-        // flush the socket
-        socket_->flush();
-
-        // break if disconnect() was called
-        {
-            QMutexLocker locker(&disconnectFlagMutex_);
-
-            if(disconnectFlag_ == true)
-            {
-                break;
-            }
-        }
-    }
-
-    // delete the socket
-    delete socket_;
-    socket_ = NULL;
-
-    put_flog(LOG_DEBUG, "finished");
-}
-
-bool DcSocket::sendMessage_()
-{
-    // send a message if available
-    QByteArray sendMessage;
-
-    {
-        QMutexLocker locker(&sendMessagesQueueMutex_);
-
-        if(sendMessagesQueue_.size() > 0)
-        {
-            sendMessage = sendMessagesQueue_.front();
-            sendMessagesQueue_.pop();
-        }
-    }
-
-    if(sendMessage.isEmpty() != true)
-    {
-        bool success = socketSendMessage(sendMessage);
-
-        if(success != true)
-        {
-            put_flog(LOG_ERROR, "error sending message");
-            return false;
-        }
-    }
-    return true;
-}
-
-bool DcSocket::receiveMessage_( MESSAGE_TYPE& type )
-{
-    type = MESSAGE_TYPE_NONE;
-
-    // receive a message if available
-    socket_->waitForReadyRead(1);
-
-    if(socket_->bytesAvailable() < (int)sizeof(MessageHeader))
-        return false;
-
-    MessageHeader messageHeader;
-    QByteArray message;
-
-    bool success = socketReceiveMessage(messageHeader, message);
-
-    if( !success )
-    {
-        put_flog(LOG_ERROR, "error receiving message");
-        return false;
-    }
-
-    type = messageHeader.type;
-
-    // handle the message
-    if(type == MESSAGE_TYPE_ACK)
-    {
-        ackSemaphore_.release(1);
-    }
-    else if(type == MESSAGE_TYPE_INTERACTION)
-    {
-        QMutexLocker locker(&interactionStateMutex_);
-        interactionState_ = *(InteractionState *)(message.data());
-        emit received(interactionState_);
-    }
-    else if(type == MESSAGE_TYPE_BIND_INTERACTION_REPLY)
-    {
-        interactionReply_.fetchAndStoreAcquire( *(bool*)(message.data()) ? 1 : 0 );
-    }
-    else
-    {
-        put_flog(LOG_ERROR, "unknown message header type %i", type);
-        return false;
-    }
-    return true;
-}
-
-bool DcSocket::socketSendMessage(QByteArray message)
-{
-    if(socket_->state() != QAbstractSocket::ConnectedState)
-    {
-        return false;
-    }
-
-    char * data = message.data();
+    // Send message data
+    const char* data = message.constData();
     int size = message.size();
 
-    int sent = socket_->write(data, size);
+    sent = socket_->write(data, size);
 
-    while(sent < size && socket_->state() == QAbstractSocket::ConnectedState)
+    while(sent < size && isConnected())
     {
         sent += socket_->write(data + sent, size - sent);
     }
 
-    if(sent != size)
-    {
-        return false;
-    }
-
-    socket_->flush();
-
-    while(socket_->bytesToWrite() > 0)
+    // Needed in the absence of event loop, otherwise the reception is frozen as well...
+    while(socket_->bytesToWrite() > 0 && isConnected())
     {
         socket_->waitForBytesWritten();
     }
 
-    return true;
+    return sent == size;
 }
 
-bool DcSocket::socketReceiveMessage(MessageHeader & messageHeader, QByteArray & message)
+bool Socket::receive(MessageHeader & messageHeader, QByteArray & message)
 {
-    if(socket_->state() != QAbstractSocket::ConnectedState)
-    {
-        return false;
-    }
-
     QByteArray byteArray = socket_->read(sizeof(MessageHeader));
 
     while(byteArray.size() < (int)sizeof(MessageHeader))
     {
-        socket_->waitForReadyRead();
+        socket_->waitForReadyRead(ACK_TIMEOUT_MS);
 
         byteArray.append(socket_->read(sizeof(MessageHeader) - byteArray.size()));
     }
@@ -405,5 +139,61 @@ bool DcSocket::socketReceiveMessage(MessageHeader & messageHeader, QByteArray & 
         }
     }
 
+    if (messageHeader.type == MESSAGE_TYPE_QUIT)
+    {
+        put_flog(LOG_DEBUG, "Received QUIT - disconnecting");
+        socket_->disconnectFromHost();
+        return false;
+    }
+
     return true;
+}
+
+bool Socket::connect(const std::string& hostname, unsigned short port)
+{
+    // make sure we're disconnected
+    socket_->disconnectFromHost();
+
+    // open connection
+    socket_->connectToHost(hostname.c_str(), port);
+
+    if(!socket_->waitForConnected(ACK_TIMEOUT_MS))
+    {
+        put_flog(LOG_ERROR, "could not connect to host %s", hostname.c_str());
+        return false;
+    }
+
+    // handshake
+    if (checkProtocolVersion())
+    {
+        put_flog(LOG_INFO, "connected to host %s", hostname.c_str());
+        return true;
+    }
+    else
+    {
+        socket_->disconnectFromHost();
+        return false;
+    }
+}
+
+bool Socket::checkProtocolVersion()
+{
+    while(socket_->bytesAvailable() < (int)sizeof(int32_t))
+    {
+        if ( !socket_->waitForReadyRead(ACK_TIMEOUT_MS) )
+            return false;
+    }
+
+    int32_t protocolVersion = -1;
+    socket_->read((char *)&protocolVersion, sizeof(int32_t));
+
+    if(protocolVersion != NETWORK_PROTOCOL_VERSION)
+    {
+        put_flog(LOG_ERROR, "unsupported protocol version %i != %i", protocolVersion, NETWORK_PROTOCOL_VERSION);
+        return false;
+    }
+
+    return true;
+}
+
 }

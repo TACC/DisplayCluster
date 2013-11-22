@@ -46,19 +46,24 @@
 #include "LocalPixelStreamerFactory.h"
 #include "LocalPixelStreamerType.h"
 
+#include "CommandLineOptions.h"
+
 #include "dcstream/DcSocket.h"
+
+#include <QTimer>
+
+#define DC_STREAM_HOST_ADDRESS "localhost"
 
 Application::Application(int &argc, char **argv)
     : QApplication(argc, argv)
     , streamer_(0)
-    , dcSocket(0)
+    , dcStream_(0)
 {
 }
 
 Application::~Application()
 {
-    dcStreamDisconnect(dcSocket);
-
+    delete dcStream_;
     delete streamer_;
 }
 
@@ -69,6 +74,8 @@ QString getUriForStreamer(PixelStreamerType type)
     {
     case PS_WEBKIT:
         return QString("WebBrowser_%1").arg(pid);
+    case PS_DOCK:
+        return DockPixelStreamer::getUniqueURI();
     default:
         return "";
     }
@@ -76,22 +83,25 @@ QString getUriForStreamer(PixelStreamerType type)
 
 bool Application::initalize(const CommandLineOptions& options)
 {
-    // Connect via DcStream to Master application
-    dcSocket = dcStreamConnect("localhost");
-    if (!dcSocket)
-        return false;
-
     // Create the streamer
     QString uri = getUriForStreamer(options.getPixelStreamerType());
     streamer_ = LocalPixelStreamerFactory::create(options.getPixelStreamerType(), uri);
     if (!streamer_)
         return false;
-    connect(streamer_, SIGNAL(segmentUpdated(QString,PixelStreamSegment)), this, SLOT(processPixelStreamSegment(QString,PixelStreamSegment)));
+    connect(streamer_, SIGNAL(imageUpdated(QImage)), this, SLOT(sendImage(QImage)));
 
-    // Forward InteractionState updates to the pixel streamer
-    connect(dcSocket, SIGNAL(received(InteractionState)), streamer_, SLOT(updateInteractionState(InteractionState)), Qt::QueuedConnection);
-    if (!dcStreamBindInteraction(dcSocket, streamer_->getUri().toStdString()))
+    // Connect via DcStream to Master application    // connect to DisplayCluster
+    try {
+        dcStream_ = new dc::Stream(uri.toStdString(), DC_STREAM_HOST_ADDRESS);
+    }
+    catch (std::exception& e) {
         return false;
+    }
+
+    // Use a timer to process InteractionStates received from the dcStream
+    QTimer* timer = new QTimer(this);
+    connect(timer, SIGNAL(timeout()), SLOT(processPendingEvents()));
+    timer->start(1);
 
     if(options.getPixelStreamerType() == PS_WEBKIT)
     {
@@ -101,16 +111,31 @@ bool Application::initalize(const CommandLineOptions& options)
     return true;
 }
 
-void Application::processPixelStreamSegment(QString uri, PixelStreamSegment segment)
+void Application::sendImage(QImage image)
 {
-    bool success = dcStreamSendPixelStreamSegment(dcSocket, segment, streamer_->getUri().toStdString());
+    dc::ImageWrapper dcImage((const void*)image.constBits(), image.width(), image.height(), dc::ARGB);
+    dcImage.compressionPolicy = dc::COMPRESSION_OFF;
+    bool success = dcStream_->send(dcImage) && dcStream_->finishFrame();
 
     if(!success)
     {
         QApplication::quit();
         return;
     }
+}
 
-    dcStreamIncrementFrameIndex();
+void Application::processPendingEvents()
+{
+    if (!dcStream_->isInteractionBound())
+    {
+        dcStream_->bindInteraction();
+    }
+    else
+    {
+        while(dcStream_->hasInteractionState())
+        {
+            streamer_->updateInteractionState(dcStream_->retrieveInteractionState());
+        }
+    }
 }
 

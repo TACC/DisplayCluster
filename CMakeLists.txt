@@ -104,7 +104,8 @@ if(BUILD_CORE_LIBRARY)
 endif()
 
 # install doc files
-install(DIRECTORY doc DESTINATION . COMPONENT doc)
+include(DoxygenRule)
+add_subdirectory(doc)
 
 # install example files
 install(DIRECTORY examples DESTINATION . COMPONENT examples)

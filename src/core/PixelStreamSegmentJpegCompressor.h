@@ -43,6 +43,8 @@
 #include <QImage>
 #include "PixelStreamSegment.h"
 
+using dc::PixelStreamSegment;
+
 void computeSegmentJpeg(const QImage image, PixelStreamSegment & segment);
 
 #endif // PIXELSTREAMSEGMENTJPEGCOMPRESSOR_H

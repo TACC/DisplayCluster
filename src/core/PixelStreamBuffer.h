@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,83 +37,105 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef NETWORK_LISTENER_THREAD_H
-#define NETWORK_LISTENER_THREAD_H
+#ifndef PIXELSTREAMBUFFER_H
+#define PIXELSTREAMBUFFER_H
 
-#include "MessageHeader.h"
-#include "InteractionState.h"
 #include "PixelStreamSegment.h"
 
-#include <QtCore>
-#include <QtNetwork/QTcpSocket>
-#include <QQueue>
+#include <QSize>
 
-#include "DisplayGroupInterface.h" // TODO REMOVE??
+#include <vector>
+#include <queue>
+#include <map>
 
-using dc::InteractionState;
 using dc::PixelStreamSegment;
+using dc::PixelStreamSegmentParameters;
 
-class PixelStreamDispatcher;
-class DisplayGroupManager;
+typedef int SourceIndex;
+typedef unsigned int FrameIndex;
 
-class NetworkListenerThread : public QObject
+typedef std::vector<PixelStreamSegment> PixelStreamSegments;
+
+/**
+ * Buffer for a single source of segements.
+ */
+struct SourceBuffer
 {
-    Q_OBJECT
+    SourceBuffer() : frameIndex(0) {}
 
-public:
+    /** The current index of the frame for this source */
+    FrameIndex frameIndex;
 
-    NetworkListenerThread(PixelStreamDispatcher& pixelStreamDispatcher, DisplayGroupManager &displayGroupManager, int socketDescriptor);
-    ~NetworkListenerThread();
-
-public slots:
-
-    void setInteractionState(InteractionState interactionState);
-    void pixelStreamerClosed(QString uri);
-
-signals:
-
-    void finished();
-
-    void receivedAddPixelStreamSource(QString uri, int sourceIndex);
-    void receivedPixelStreamSegement(QString uri, int SourceIndex, PixelStreamSegment segment);
-    void receivedPixelStreamFinishFrame(QString uri, int SourceIndex);
-    void receivedRemovePixelStreamSource(QString uri, int sourceIndex);
-
-private slots:
-
-    void initialize();
-    void process();
-    void socketReceiveMessage();
-
-private:
-
-    int socketDescriptor_;
-    QTcpSocket * tcpSocket_;
-
-    boost::shared_ptr<DisplayGroupInterface> displayGroupInterface_;
-
-    QString pixelStreamUri_;
-
-    QString interactionName_;
-    bool interactionBound_;
-    bool interactionExclusive_;
-
-    QQueue<InteractionState> interactionStates_;
-
-    // Event receivers
-    PixelStreamDispatcher& pixelStreamDispatcher_;
-    DisplayGroupManager& displayGroupManager_;
-
-    MessageHeader receiveMessageHeader();
-    QByteArray receiveMessageBody(int size);
-
-    void handleMessage(MessageHeader messageHeader, QByteArray byteArray);
-    bool bindInteraction();
-
-    void sendBindReply( bool successful );
-    void send(const InteractionState &interactionState);
-    void sendAck();
-    void sendQuit();
+    /** The collection of segments */
+    std::queue<PixelStreamSegments> segments;
 };
 
-#endif
+typedef std::map<SourceIndex, SourceBuffer> SourceBufferMap;
+
+/**
+ * Buffer PixelStreamSegments from (multiple) sources
+ *
+ * The buffer agregates segments coming from different sources delivers complete frames.
+ */
+class PixelStreamBuffer
+{
+public:
+    /** Construct a Buffer */
+    PixelStreamBuffer();
+
+    /**
+     * Add a source of segments.
+     * @param sourceIndex Unique source identifier
+     */
+    void addSource(SourceIndex sourceIndex);
+
+    /**
+     * Remove a source of segments.
+     * @param sourceIndex Unique source identifier
+     */
+    void removeSource(SourceIndex sourceIndex);
+
+    /** Get the number of sources for this Stream */
+    size_t getSourceCount() const;
+
+    /**
+     * Insert a segement for the current frame and source.
+     * @param segment The segment to insert
+     * @param sourceIndex Unique source identifier
+     */
+    void insertSegment(const PixelStreamSegment& segment, SourceIndex sourceIndex);
+
+    /**
+     * Notify that the given source has finished sending segment for the current frame.
+     * @param sourceIndex Unique source identifier
+     */
+    void finishFrameForSource(SourceIndex sourceIndex);
+
+    /** Does the Buffer have a complete frame (from all sources) */
+    bool hasFrameComplete() const;
+
+    /** Is this the first frame */
+    bool isFirstFrame() const;
+
+    /** Get the size of the frame. Only meaningful if hasFrameComplete() is true */
+    QSize getFrameSize() const;
+
+    /**
+     * Get the finished frame.
+     * @return A collection of segments that form a frame
+     */
+    PixelStreamSegments getFrame();
+
+    /**
+     * Compute the overall dimensions of a frame
+     * @param segments A collection of segments that form a frame
+     * @return The dimensions of the frame
+     */
+    static QSize computeFrameDimensions(const PixelStreamSegments& segments);
+
+private:
+    FrameIndex lastFrameComplete_;
+    SourceBufferMap sourceBuffers_;
+};
+
+#endif // PIXELSTREAMBUFFER_H

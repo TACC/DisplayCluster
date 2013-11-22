@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,47 +37,39 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "SVGStreamSource.h"
+#include "FpsCounter.h"
 
-SVGStreamSource::SVGStreamSource(QString uri)
+#define HISTORY_SIZE  30
+
+FpsCounter::FpsCounter()
 {
-    // defaults
-    imageDataCount_ = 0;
-    getImageDataCount_ = 0;
-
-    // assign values
-    uri_ = uri;
 }
 
-QByteArray SVGStreamSource::getImageData(bool & updated)
+void FpsCounter::tick()
 {
-    QMutexLocker locker(&imageDataMutex_);
+    history_.push_back(QTime::currentTime());
 
-    // whether or not this is an updated image since the last call to getImageData()
-    if(imageDataCount_ > getImageDataCount_)
+    // see if we need to remove an entry
+    while(history_.size() > HISTORY_SIZE)
     {
-        updated = true;
-    }
-    else
-    {
-        updated = false;
-    }
-
-    getImageDataCount_ = imageDataCount_;
-
-    return imageData_;
-}
-
-void SVGStreamSource::setImageData(QByteArray imageData)
-{
-    QMutexLocker locker(&imageDataMutex_);
-
-    // only take the update if the image data has changed
-    if(imageData_ != imageData)
-    {
-        imageData_ = imageData;
-        imageDataCount_++;
+        history_.erase(history_.begin());
     }
 }
 
-Factory<SVGStreamSource> g_SVGStreamSourceFactory;
+float FpsCounter::getFps() const
+{
+    if(history_.empty())
+        return 0.f;
+
+    return (float)history_.size() / (float)history_.front().msecsTo(history_.back()) * 1000.;
+}
+
+QString FpsCounter::toString() const
+{
+    QString result;
+
+    result += QString::number(getFps(), 'g', 4);
+    result += " fps";
+
+    return result;
+}

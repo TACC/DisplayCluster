@@ -41,13 +41,12 @@
 #define APPLICATION_H
 
 #include <QApplication>
+#include <QImage>
 
-#include "PixelStreamSegment.h"
-#include "dcStream.h"
-
-#include "CommandLineOptions.h"
+#include "DcStream.h"
 
 class LocalPixelStreamer;
+class CommandLineOptions;
 
 class Application : public QApplication
 {
@@ -60,14 +59,15 @@ public:
     bool initalize(const CommandLineOptions &options);
 
 signals:
-    void interactionStateUpdated(InteractionState state);
+    void interactionStateUpdated(dc::InteractionState state);
 
 private slots:
-    void processPixelStreamSegment(QString uri, PixelStreamSegment segment);
+    void sendImage(QImage image);
+    void processPendingEvents();
 
 private:
     LocalPixelStreamer* streamer_;
-    DcSocket* dcSocket;
+    dc::Stream* dcStream_;
 };
 
 #endif // APPLICATION_H

@@ -53,7 +53,7 @@
 #endif
 
 
-void computeSegmentJpeg(PixelStreamSegment & segment)
+void computeSegmentJpeg(dc::PixelStreamSegment & segment)
 {
     const QImage image = g_mainWindow->getImage();
 
@@ -467,16 +467,12 @@ void MainWindow::setupSingleSegment()
     const int w = width_ * deviceScale_;
     const int h = height_ * deviceScale_;
 
-    PixelStreamSegment segment;
+    dc::PixelStreamSegment segment;
 
-    segment.parameters.sourceIndex = 0;
     segment.parameters.x = 0;
     segment.parameters.y = 0;
     segment.parameters.width = w;
     segment.parameters.height = h;
-    segment.parameters.totalWidth = w;
-    segment.parameters.totalHeight = h;
-    segment.parameters.segmentCount = 1;
     segment.parameters.compressed = true;
 
     segments_.push_back(segment);
@@ -500,16 +496,12 @@ void MainWindow::setupMultipleSegments()
     {
         for(int j=0; j<numSubdivisionsY; j++)
         {
-            PixelStreamSegment segment;
+            dc::PixelStreamSegment segment;
 
-            segment.parameters.sourceIndex = i*numSubdivisionsY + j;
             segment.parameters.x = i * (int)((float)w / (float)numSubdivisionsX);
             segment.parameters.y = j * (int)((float)h / (float)numSubdivisionsY);
             segment.parameters.width = (int)((float)w / (float)numSubdivisionsX);
             segment.parameters.height = (int)((float)h / (float)numSubdivisionsY);
-            segment.parameters.totalWidth = w;
-            segment.parameters.totalHeight = h;
-            segment.parameters.segmentCount = numSubdivisionsX*numSubdivisionsY;
             segment.parameters.compressed = true;
 
             segments_.push_back(segment);
@@ -524,14 +516,7 @@ void MainWindow::updateSegments(bool requestViewAdjustment)
     static int frameIndex = 0;
 
     // create JPEGs for each segment, in parallel
-    QtConcurrent::blockingMap<std::vector<PixelStreamSegment> >(segments_, &computeSegmentJpeg);
-
-    for(unsigned int i=0; i<segments_.size(); i++)
-    {
-        // update frame index
-        segments_[i].parameters.frameIndex = frameIndex;
-        segments_[i].parameters.requestViewAdjustment = requestViewAdjustment;
-    }
+    QtConcurrent::blockingMap<std::vector<dc::PixelStreamSegment> >(segments_, &computeSegmentJpeg);
 
     // increment frame index
     ++frameIndex;
@@ -557,7 +542,7 @@ void MainWindow::resetSegments()
 
     for(unsigned int i=0; i<segments_.size(); i++)
     {
-        PixelStreamSegment segment;
+        dc::PixelStreamSegment segment;
         segment.parameters = segments_[i].parameters;
         segment.parameters.width = 0;
         segment.parameters.height = 0;
@@ -565,11 +550,11 @@ void MainWindow::resetSegments()
     }
 }
 
-void MainWindow::sendSegment(const PixelStreamSegment& segment)
+void MainWindow::sendSegment(const dc::PixelStreamSegment& segment)
 {
     // send the parameters and image data
     MessageHeader mh;
-    mh.size = sizeof(PixelStreamSegmentParameters) + segment.imageData.size();
+    mh.size = sizeof(dc::PixelStreamSegmentParameters) + segment.imageData.size();
     mh.type = MESSAGE_TYPE_PIXELSTREAM;
 
     // add the truncated URI to the header
@@ -587,11 +572,11 @@ void MainWindow::sendSegment(const PixelStreamSegment& segment)
     // send the message
 
     // part 1: parameters
-    sent = tcpSocket_.write((const char *)&(segment.parameters), sizeof(PixelStreamSegmentParameters));
+    sent = tcpSocket_.write((const char *)&(segment.parameters), sizeof(dc::PixelStreamSegmentParameters));
 
-    while(sent < (int)sizeof(PixelStreamSegmentParameters))
+    while(sent < (int)sizeof(dc::PixelStreamSegmentParameters))
     {
-        sent += tcpSocket_.write((const char *)&(segment.parameters) + sent, sizeof(PixelStreamSegmentParameters) - sent);
+        sent += tcpSocket_.write((const char *)&(segment.parameters) + sent, sizeof(dc::PixelStreamSegmentParameters) - sent);
     }
 
     // part 2: image data

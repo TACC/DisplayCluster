@@ -39,83 +39,74 @@
 #ifndef DC_SOCKET_H
 #define DC_SOCKET_H
 
-#include "InteractionState.h"
-#include "MessageHeader.h"
+#include <string>
+#include <QByteArray>
 
-#include <QtCore>
-#include <queue>
-
+class MessageHeader;
 class QTcpSocket;
 
-// we can't use the signal / slot model for handling threads without a Qt event
-// loop. so, we make our own thread class and override run()...
-
-class DcSocket : public QThread
+namespace dc
 {
-    Q_OBJECT
 
-    public:
+/**
+ * Represent a communication Socket for the Stream Library.
+ */
+class Socket
+{
+public:
+    /** The default communication port */
+    static const unsigned short defaultPortNumber_;
 
-        DcSocket(const char * hostname, bool async = true );
-        ~DcSocket();
+    /**
+     * Construct a Socket and connect to host.
+     * @param hostname The target host (IP address or hostname)
+     * @param port The target port
+     */
+    Socket(const std::string& hostname, unsigned short port = defaultPortNumber_);
 
-        bool isConnected();
+    /** Destruct a Socket, disconnecting from host. */
+    ~Socket();
 
-        // queue a message to be sent (non-blocking)
-        bool queueMessage(QByteArray message);
+    /** Is the Socket connected */
+    bool isConnected() const;
 
-        // wait for count acks to be received
-        void waitForAck(int count=1);
+    /**
+     * Is there a pending message
+     * @param messageSize Minimum size of the message
+     */
+    bool hasMessage(const size_t messageSize = 0) const;
 
-        // -1 for no reply yet, 0 for not bound (if exclusive mode),
-        // 1 for successful bound
-        int hasInteraction();
+    /**
+     * Get the FileDescriptor for the Socket (for use by poll())
+     * @return The file descriptor if available, otherwise return -1.
+     */
+    int getFileDescriptor() const;
 
-        InteractionState getInteractionState();
+    /**
+     * Send a message.
+     * @param messageHeader The message header
+     * @param message The message data
+     * @return true if the message could be sent, false otherwise
+     */
+    bool send(const MessageHeader& messageHeader, const QByteArray& message);
 
-        int socketDescriptor() const;
+    /**
+     * Receive a message.
+     * @param messageHeader The received message header
+     * @param message The received message data
+     * @return true if a message could be received, false otherwise
+     */
+    bool receive(MessageHeader & messageHeader, QByteArray & message);
 
-        // for synchronous read operations (non-blocking)
-        bool hasNewInteractionState();
+private:
+    bool connect(const std::string &hostname, unsigned short port);
+    bool checkProtocolVersion();
 
-    signals:
-        void received(InteractionState state);
+private:
+    QTcpSocket* socket_;
 
-    protected:
-
-        bool async_;
-        QTcpSocket * socket_;
-
-        // mutex and queue for messages to send
-        QMutex sendMessagesQueueMutex_;
-        std::queue<QByteArray> sendMessagesQueue_;
-
-        // semaphore for ack count
-        QSemaphore ackSemaphore_;
-
-        // mutex and flag to trigger socket thread to disconnect
-        QMutex disconnectFlagMutex_;
-        bool disconnectFlag_;
-
-        // current interaction state
-        QMutex interactionStateMutex_;
-        InteractionState interactionState_;
-
-        QAtomicInt interactionReply_;
-
-        // socket connections
-        bool connect(const char * hostname);
-        void disconnect();
-
-        // thread execution
-        void run();
-
-        // these are only called in the thread execution
-        bool socketSendMessage(QByteArray message);
-        bool socketReceiveMessage(MessageHeader & messageHeader, QByteArray & message);
-
-        bool sendMessage_();
-        bool receiveMessage_( MESSAGE_TYPE& type );
 };
+
+}
 
 #endif

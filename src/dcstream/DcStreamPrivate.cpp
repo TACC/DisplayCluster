@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,99 +37,92 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MAIN_WINDOW_H
-#define MAIN_WINDOW_H
+#include "DcStreamPrivate.h"
 
-#define SUPPORTED_NETWORK_PROTOCOL_VERSION 7
+#include "DcStream.h" // For defaultCompressionQuality
 
-#define SHARE_DESKTOP_UPDATE_DELAY 1
-
-#define FRAME_RATE_AVERAGE_NUM_FRAMES 10
-
-#define JPEG_QUALITY 75
-
-#include <QtGui>
-#include <QtNetwork/QTcpSocket>
-
+#include "DcSocket.h"
 #include "PixelStreamSegment.h"
+#include "PixelStreamSegmentParameters.h"
 
-class MainWindow : public QMainWindow {
-    Q_OBJECT
+#define SEGMENT_SIZE 512
 
-    public:
+namespace dc
+{
 
-        MainWindow();
+StreamPrivate::StreamPrivate(const std::string &name)
+    : name_(name)
+    , dcSocket_(0)
+    , interactionBound_(false)
+{
+    imageSegmenter_.setNominalSegmentDimensions(SEGMENT_SIZE, SEGMENT_SIZE);
+}
 
-        void getCoordinates(int &x, int &y, int &width, int &height);
-        void setCoordinates(int x, int y, int width, int height);
+MessageHeader StreamPrivate::createMessageHeader(MESSAGE_TYPE type, size_t payloadSize) const
+{
+    MessageHeader mh;
+    mh.type = type;
+    mh.size = payloadSize;
 
-        QImage getImage();
+    // add the truncated URI to the header
+    const size_t len = name_.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
+    mh.uri[len] = '\0';
 
-    public slots:
+    return mh;
+}
 
-        void shareDesktop(bool set);
-        void showDesktopSelectionWindow(bool set);
-        void setParallelStreaming(bool set);
-        void shareDesktopUpdate();
-        void updateCoordinates();
+bool StreamPrivate::sendPixelStreamSegment(const PixelStreamSegment &segment)
+{
+    // Create message header
+    size_t segmentSize = sizeof(PixelStreamSegmentParameters) + segment.imageData.size();
+    MessageHeader mh = createMessageHeader(MESSAGE_TYPE_PIXELSTREAM, segmentSize);
 
-    private:
+    // This byte array will hold the message to be sent over the socket
+    QByteArray message;
 
-        virtual void closeEvent( QCloseEvent* event );
+    // Message payload part 1: segment parameters
+    message.append((const char *)(&segment.parameters), sizeof(PixelStreamSegmentParameters));
 
-        bool updatedDimensions_;
+    // Message payload part 2: image data
+    message.append(segment.imageData);
 
-        QLineEdit hostnameLineEdit_;
-        QLineEdit uriLineEdit_;
-        QSpinBox xSpinBox_;
-        QSpinBox ySpinBox_;
-        QSpinBox widthSpinBox_;
-        QSpinBox heightSpinBox_;
-        QCheckBox retinaBox_;
-        QSpinBox frameRateSpinBox_;
-        QLabel frameRateLabel_;
+    bool success = dcSocket_->send(mh, message);
 
-        QAction * shareDesktopAction_;
-        QAction * showDesktopSelectionWindowAction_;
+    return success;
+}
 
-        std::string hostname_;
-        std::string uri_;
-        int x_;
-        int y_;
-        int width_;
-        int height_;
-        float deviceScale_;
+bool StreamPrivate::open(const std::string& address)
+{
+    // Connect to DisplayCluster application
+    dcSocket_ = new Socket(address);
 
-        bool parallelStreaming_;
+    if(!dcSocket_->isConnected())
+    {
+        delete dcSocket_;
+        dcSocket_ = 0;
 
-        // full image
-        QImage image_;
+        return false;
+    }
 
-        // mouse cursor pixmap
-        QImage cursor_;
+    // Open a window for the PixelStream
+    MessageHeader mh = createMessageHeader(MESSAGE_TYPE_PIXELSTREAM_OPEN, 0);
+    return dcSocket_->send(mh, QByteArray());
+}
 
-        // for regular pixel streaming
-        QByteArray previousImageData_;
+bool StreamPrivate::close()
+{
+    if( !dcSocket_ || !dcSocket_->isConnected( ))
+        return true;
 
-        // for parallel pixel streaming
-        std::vector<dc::PixelStreamSegment> segments_;
+    MessageHeader mh = createMessageHeader(MESSAGE_TYPE_QUIT, 0);
+    dcSocket_->send(mh, QByteArray());
 
-        QTimer shareDesktopUpdateTimer_;
+    delete dcSocket_;
+    dcSocket_ = 0;
 
-        // used for frame rate calculations
-        std::vector<QTime> frameSentTimes_;
+    interactionBound_ = false;
 
-        QTcpSocket tcpSocket_;
+    return true;
+}
 
-        bool streamSegments();
-        void sendQuit();
-
-        void setupSegments();
-        void setupSingleSegment();
-        void setupMultipleSegments();
-        void updateSegments(bool requestViewAdjustment);
-        void sendSegment(const dc::PixelStreamSegment &segment);
-        void resetSegments();
-};
-
-#endif
+}

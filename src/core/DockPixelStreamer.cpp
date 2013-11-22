@@ -163,13 +163,7 @@ void DockPixelStreamer::onItem()
 
 void DockPixelStreamer::update(const QImage& image)
 {
-    PixelStreamSegment segment;
-    segment.parameters = makeSegmentHeader();
-
-    segment.imageData = QByteArray::fromRawData((const char*)image.bits(), image.byteCount());
-    segment.imageData.detach();
-
-    emit segmentUpdated(uri_, segment);
+    emit imageUpdated(image);
 }
 
 void DockPixelStreamer::loadThumbnails(int newCenterIndex)
@@ -200,17 +194,6 @@ void DockPixelStreamer::loadNextThumbnailInList()
             return;
         }
     }
-}
-
-PixelStreamSegmentParameters DockPixelStreamer::makeSegmentHeader()
-{
-    PixelStreamSegmentParameters parameters;
-    parameters.totalHeight = flow_->size().height();
-    parameters.totalWidth = flow_->size().width();
-    parameters.height = parameters.totalHeight;
-    parameters.width = parameters.totalWidth;
-    parameters.compressed = false;
-    return parameters;
 }
 
 bool DockPixelStreamer::openFile(const QString& filename)

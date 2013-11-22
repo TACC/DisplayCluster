@@ -99,6 +99,7 @@ list(APPEND SRCS
     DynamicTexture.cpp
     DynamicTextureContent.cpp
     FactoryObject.cpp
+    FpsCounter.cpp
     GLWindow.cpp
     globals.cpp
     gestures/DoubleTapGestureRecognizer.cpp
@@ -119,15 +120,17 @@ list(APPEND SRCS
     Options.cpp
     Pictureflow.cpp
     PixelStream.cpp
+    PixelStreamBuffer.cpp
     PixelStreamContent.cpp
+    PixelStreamDispatcher.cpp
     PixelStreamInteractionDelegate.cpp
+    PixelStreamSegmentDecoder.cpp
     PixelStreamSegmentRenderer.cpp
     PixelStreamSegmentJpegCompressor.cpp
     State.cpp
     StatePreview.cpp
     SVG.cpp
     SVGContent.cpp
-    SVGStreamSource.cpp
     Texture.cpp
     TextureContent.cpp
     WebkitAuthenticationHelper.cpp
@@ -164,6 +167,7 @@ list(APPEND MOC_HEADERS
     NetworkListenerThread.h
     Options.h
     Pictureflow.h
+    PixelStreamDispatcher.h
     WebkitAuthenticationHelper.h
     WebkitPixelStreamer.h
 )

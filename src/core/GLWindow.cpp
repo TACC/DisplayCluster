@@ -150,41 +150,23 @@ void GLWindow::paintGL()
         return;
     }
 
-    // Render background content window
-    boost::shared_ptr<ContentWindowManager> backgroundContentWindowManager = g_displayGroupManager->getBackgroundContentWindowManager();
-    if (backgroundContentWindowManager != NULL)
+    renderBackgroundContent();
+    renderContentWindows();
+
+    // Show the FPS for each window
+    if (g_displayGroupManager->getOptions()->getShowStreamingStatistics())
     {
-        glPushMatrix();
-        glTranslatef(0.,0.,-0.999);
-
-        backgroundContentWindowManager->render();
-
-        glPopMatrix();
+        drawFps();
     }
 
-    // render content windows
-    std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers = g_displayGroupManager->getContentWindowManagers();
-
-    for(unsigned int i=0; i<contentWindowManagers.size(); i++)
-    {
-        // manage depth order
-        // the visible depths seem to be in the range (-1,1); make the content window depths be in the range (-1,0)
-        glPushMatrix();
-        glTranslatef(0.,0.,-((float)contentWindowManagers.size() - (float)i) / ((float)contentWindowManagers.size() + 1.));
-
-        contentWindowManagers[i]->render();
-
-        glPopMatrix();
-    }
-
+<<<<<<< HEAD
     // render the markers
     // these should be rendered last since they're blended
     const std::vector<boost::shared_ptr<Marker> >& markers = g_displayGroupManager->getMarkers();
+=======
+    renderMarkers(); // Mrkers should be rendered last since they're blended
+>>>>>>> DcStream API: Major rewrite and subsequent adaption of the segments rendering.
 
-    for(unsigned int i=0; i<markers.size(); i++)
-    {
-        markers[i]->render();
-    }
 
 #if ENABLE_SKELETON_SUPPORT
     if(g_displayGroupManager->getOptions()->getShowSkeletons() == true)
@@ -231,6 +213,48 @@ void GLWindow::resizeGL(int width, int height)
     glLoadIdentity();
 
     update();
+}
+
+void GLWindow::renderBackgroundContent()
+{
+    // Render background content window
+    boost::shared_ptr<ContentWindowManager> backgroundContentWindowManager = g_displayGroupManager->getBackgroundContentWindowManager();
+    if (backgroundContentWindowManager != NULL)
+    {
+        glPushMatrix();
+        glTranslatef(0.,0.,-0.999);
+
+        backgroundContentWindowManager->render();
+
+        glPopMatrix();
+    }
+}
+
+void GLWindow::renderContentWindows()
+{
+    // render content windows
+    std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers = g_displayGroupManager->getContentWindowManagers();
+
+    for(unsigned int i=0; i<contentWindowManagers.size(); i++)
+    {
+        // manage depth order
+        // the visible depths seem to be in the range (-1,1); make the content window depths be in the range (-1,0)
+        glPushMatrix();
+        glTranslatef(0.,0.,-((float)contentWindowManagers.size() - (float)i) / ((float)contentWindowManagers.size() + 1.));
+
+        contentWindowManagers[i]->render();
+
+        glPopMatrix();
+    }
+}
+
+void GLWindow::renderMarkers()
+{
+    std::vector<boost::shared_ptr<Marker> > markers = g_displayGroupManager->getMarkers();
+    for(unsigned int i=0; i<markers.size(); i++)
+    {
+        markers[i]->render();
+    }
 }
 
 void GLWindow::setOrthographicView()
@@ -369,20 +393,16 @@ bool GLWindow::setPerspectiveView(double x, double y, double w, double h)
 }
 #endif
 
-bool GLWindow::isScreenRectangleVisible(double x, double y, double w, double h)
+bool GLWindow::isRegionVisible(const QRectF& rect) const
 {
-    // works in "screen space" where the rectangle for the entire tiled display is (0,0,1,1)
-
     // screen rectangle
     const QRectF screenRect(left_, bottom_, right_-left_, top_-bottom_);
-
-    // the given rectangle
-    const QRectF rect(x, y, w, h);
 
     return screenRect.intersects(rect);
 }
 
-bool GLWindow::isRectangleVisible(double x, double y, double w, double h)
+/*
+bool GLWindow::isRectangleVisibleInCurrentGlView(double x, double y, double w, double h)
 {
     // get four corners in object space
     double xObj[4][3];
@@ -426,15 +446,9 @@ bool GLWindow::isRectangleVisible(double x, double y, double w, double h)
     // the given rectangle
     QRectF rect(xWin[0][0], xWin[0][1], xWin[2][0]-xWin[0][0], xWin[2][1]-xWin[0][1]);
 
-    if(screenRect.intersects(rect) == true)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return screenRect.intersects(rect);
 }
+*/
 
 void GLWindow::drawRectangle(double x, double y, double w, double h)
 {
@@ -518,6 +532,24 @@ void GLWindow::renderTestPattern()
     renderText(50, 6*fontSize, label6, font);
 
     glPopMatrix();
+    glPopAttrib();
+}
+
+void GLWindow::drawFps()
+{
+    fpsCounter.tick();
+
+    const int fontSize = 32;
+    QFont font;
+    font.setPixelSize(fontSize);
+
+    glPushAttrib(GL_DEPTH_BUFFER_BIT | GL_CURRENT_BIT);
+
+    glDisable(GL_DEPTH_TEST);
+    glColor4f(0.,0.,1.,1.);
+
+    renderText(10, fontSize, fpsCounter.toString(), font);
+
     glPopAttrib();
 }
 

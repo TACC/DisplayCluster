@@ -37,19 +37,29 @@
 /*********************************************************************/
 
 #include "NetworkListener.h"
+
 #include "NetworkListenerThread.h"
+#include "PixelStreamDispatcher.h"
 #include "log.h"
 
-NetworkListener::NetworkListener(int port)
-{
-    // assign values
-    port_ = port;
+const int NetworkListener::defaultPortNumber_ = 1701;
 
-    if(listen(QHostAddress::Any, port_) != true)
+NetworkListener::NetworkListener(DisplayGroupManager& displayGroupManager, int port)
+    : displayGroupManager_(displayGroupManager)
+    , pixelStreamDispatcher_(0)
+{
+    if( !listen(QHostAddress::Any, port) )
     {
-        put_flog(LOG_FATAL, "could not listen on port %i", port_);
+        put_flog(LOG_FATAL, "could not listen on port %i", port);
         exit(-1);
     }
+
+    pixelStreamDispatcher_ = new PixelStreamDispatcher();
+}
+
+NetworkListener::~NetworkListener()
+{
+    delete pixelStreamDispatcher_;
 }
 
 void NetworkListener::incomingConnection(int socketDescriptor)
@@ -57,7 +67,7 @@ void NetworkListener::incomingConnection(int socketDescriptor)
     put_flog(LOG_DEBUG, "");
 
     QThread * thread = new QThread();
-    NetworkListenerThread * worker = new NetworkListenerThread(socketDescriptor);
+    NetworkListenerThread * worker = new NetworkListenerThread(*pixelStreamDispatcher_, displayGroupManager_, socketDescriptor);
 
     worker->moveToThread(thread);
 

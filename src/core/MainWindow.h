@@ -61,7 +61,9 @@ class MainWindow : public QMainWindow
         boost::shared_ptr<GLWindow> getActiveGLWindow();
         std::vector<boost::shared_ptr<GLWindow> > getGLWindows();
 
-    public slots:
+        bool isRegionVisible(double x, double y, double w, double h) const;
+
+public slots:
 
         void openContent();
         void openContentsDirectory();
@@ -111,9 +113,6 @@ class MainWindow : public QMainWindow
 
         std::vector<boost::shared_ptr<GLWindow> > glWindows_;
         boost::shared_ptr<GLWindow> activeGLWindow_;
-
-        // polling timer for updating pixel streams
-        QTimer pixelStreamTimer_;
 
 #if ENABLE_TUIO_TOUCH_LISTENER
         MultiTouchListener* touchListener_;

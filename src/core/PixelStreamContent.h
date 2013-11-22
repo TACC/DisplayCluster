@@ -42,14 +42,16 @@
 #include "Content.h"
 #include <boost/serialization/base_object.hpp>
 
-class PixelStreamContent : public Content {
-
+class PixelStreamContent : public Content
+{
     public:
         PixelStreamContent(const QString& uri = "") : Content(uri) { }
 
         CONTENT_TYPE getType();
 
-        void getFactoryObjectDimensions(int &width, int &height);
+        virtual void getFactoryObjectDimensions(int &width, int &height);
+
+        virtual void advance(boost::shared_ptr<ContentWindowManager>);
 
     private:
         friend class boost::serialization::access;

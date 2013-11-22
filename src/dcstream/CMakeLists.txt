@@ -5,19 +5,24 @@ set(DISPLAYCLUSTER_LIBRARY_LIBS ${DISPLAYCLUSTER_LIBRARY_LIBS} ${LibJpegTurbo_LI
 set(DISPLAYCLUSTER_LIBRARY_SRCS
     ../log.cpp
     DcSocket.cpp
-    dcStream.cpp
+    DcStream.cpp
+    DcStreamPrivate.cpp
+    DcImageWrapper.cpp
+    DcImageSegmenter.cpp
 )
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/dcVersion.in.h
                ${CMAKE_BINARY_DIR}/dcVersion.h)
 
 set(DISPLAYCLUSTER_LIBRARY_PUBLIC_HEADERS
-    dcStream.h
+    DcStream.h
+    DcImageWrapper.h
     ../InteractionState.h
+    ../NonCopyable.h
     ${CMAKE_BINARY_DIR}/dcVersion.h
 )
 
-set(MOC_HEADERS DcSocket.h)
+set(MOC_HEADERS )
 qt4_wrap_cpp(MOC_OUTFILES ${MOC_HEADERS})
 
 add_library(DisplayClusterLibrary SHARED ${DISPLAYCLUSTER_LIBRARY_SRCS} ${MOC_OUTFILES} ${DISPLAYCLUSTER_LIBRARY_SHARED_HEADERS})
@@ -32,4 +37,4 @@ install(TARGETS DisplayClusterLibrary
     LIBRARY DESTINATION lib COMPONENT lib)
 
 # install headers
-install(FILES ${DISPLAYCLUSTER_LIBRARY_PUBLIC_HEADERS} DESTINATION include COMPONENT dev)
+install(FILES ${DISPLAYCLUSTER_LIBRARY_PUBLIC_HEADERS} DESTINATION include/dc COMPONENT dev)

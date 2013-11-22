@@ -44,250 +44,178 @@
 #include "GLWindow.h"
 #include "log.h"
 
-PixelStream::PixelStream(QString uri)
+#include "PixelStreamSegmentRenderer.h"
+#include "PixelStreamSegmentDecoder.h"
+
+#include "PixelStreamSegmentParameters.h"
+
+#define MAX_FRAME_QUEUE_SIZE 5
+
+PixelStream::PixelStream(const QString &uri)
     : uri_(uri)
     , width_(0)
     , height_ (0)
-    , segmentCount_(0)
-    , changeViewDimensionsRequested_(false)
+    , decodingStarted_(false)
 {
-
 }
 
-void PixelStream::getDimensions(int &width, int &height)
+void PixelStream::getDimensions(int &width, int &height) const
 {
-    QMutexLocker locker(&segmentsMutex_);
-
     width = width_;
     height = height_;
+}
+
+void PixelStream::preRenderUpdate()
+{
+    if(!isDecodingInProgress())
+    {
+        // Update the texture which need an update and which are available
+        updateVisibleTextures();
+
+        // Always keep at least one frame in the queue in case the sender stops sending
+        // and we need to decode previously hidden segments
+        if (frameBuffer_.size() > 1)
+        {
+            nextFrame();
+        }
+        // Start decoding the textures which are not decoded but needed
+        decodeVisibleTextures();
+    }
+}
+
+void PixelStream::updateVisibleTextures()
+{
+    if (frameBuffer_.empty())
+        return;
+
+    PixelStreamSegments &segments = frameBuffer_.front();
+
+    adjustSegmentRendererCount(segments.size());
+    assert(segments.size() == segmentRenderers_.size() && "PixelStream::updateVisibleTextures FIXME");
+
+    for(size_t i=0; i<segments.size(); i++)
+    {
+        if (segmentRenderers_[i]->textureNeedsUpdate() && isVisible(segments[i]))
+        {
+            if (!segments[i].parameters.compressed)
+            {
+                const QImage textureWrapper((const uchar*)segments[i].imageData.constData(),
+                                            segments[i].parameters.width,
+                                            segments[i].parameters.height,
+                                            QImage::Format_RGB32);
+
+                segmentRenderers_[i]->updateTexture(textureWrapper);
+                segmentRenderers_[i]->setParameters(segments[i].parameters.x, segments[i].parameters.y);
+            }
+        }
+    }
+}
+
+void PixelStream::nextFrame()
+{
+    assert(!frameBuffer_.empty());
+
+    recomputeDimensions(frameBuffer_.front());
+
+    frameBuffer_.pop();
+
+    // Mark all textures as out of date
+    for(size_t i=0; i<segmentRenderers_.size(); i++)
+    {
+        segmentRenderers_[i]->setTextureNeedsUpdate();
+    }
+}
+
+void PixelStream::recomputeDimensions(const PixelStreamSegments &segments)
+{
+    width_ = 0;
+    height_ = 0;
+
+    for(size_t i=0; i<segments.size(); i++)
+    {
+        const PixelStreamSegmentParameters& params = segments[i].parameters;
+        width_ = std::max(width_, params.width+params.x);
+        height_ = std::max(height_, params.height+params.y);
+    }
+}
+
+void PixelStream::decodeVisibleTextures()
+{
+    if (frameBuffer_.empty())
+        return;
+
+    PixelStreamSegments &segments = frameBuffer_.front();
+
+    adjustFrameDecoderCount(segments.size());
+    assert(frameDecoders_.size() == segments.size() && "PixelStream::startDecodingNextFrame FIXME");
+
+    for(size_t i=0; i<segments.size(); i++)
+    {
+        if (segments[i].parameters.compressed && isVisible(segments[i]))
+        {
+            frameDecoders_[i]->startDecoding(segments[i]);
+        }
+    }
 }
 
 void PixelStream::render(float tX, float tY, float tW, float tH)
 {
     updateRenderedFrameCount();
 
-    for(std::map<int, boost::shared_ptr<PixelStreamSegmentRenderer> >::iterator it=segmentRenderers_.begin(); it != segmentRenderers_.end(); it++)
+    const bool showSegmentBorders = g_displayGroupManager->getOptions()->getShowStreamingSegments();
+    const bool showSegmentStatistics = g_displayGroupManager->getOptions()->getShowStreamingStatistics();
+
+    glPushMatrix();
+    glScalef(1.f/width_, 1.f/height_, 0.);
+
+    for(std::vector<PixelStreamSegmentRendererPtr>::iterator it=segmentRenderers_.begin(); it != segmentRenderers_.end(); it++)
     {
-        int sourceIndex = (*it).first;
-        boost::shared_ptr<PixelStreamSegmentRenderer> segmentRenderer = (*it).second;
-
-        // skip segments not visible
-        if(!isSegmentVisible(pixelStreamParameters_[sourceIndex]))
+        if (isVisible( (*it)->getRect( )))
         {
-            // don't render, continue to next segment
-            continue;
+            (*it)->render(showSegmentBorders, showSegmentStatistics);
         }
-
-        // OpenGL transformation
-        glPushMatrix();
-
-        float x = (float)(pixelStreamParameters_[sourceIndex].x) / (float)width_;
-        float y = (float)(pixelStreamParameters_[sourceIndex].y) / (float)height_;
-        float width = (float)(pixelStreamParameters_[sourceIndex].width) / (float)width_;
-        float height = (float)(pixelStreamParameters_[sourceIndex].height) / (float)height_;
-
-        glTranslatef(x, y, 0.);
-        glScalef(width, height, 0.);
-
-        // todo: compute actual texture bounds to render considering zoom, pan
-
-        segmentRenderer->render(0.,0.,1.,1.);
-
-        bool showStreamingSegments = g_displayGroupManager->getOptions()->getShowStreamingSegments();
-        bool showStreamingStatistics = g_displayGroupManager->getOptions()->getShowStreamingStatistics();
-
-        if(showStreamingSegments == true || showStreamingStatistics == true)
-        {
-            glPushAttrib(GL_CURRENT_BIT | GL_LINE_BIT | GL_DEPTH_BUFFER_BIT);
-            glLineWidth(2);
-
-            glPushMatrix();
-            glTranslatef(0.,0.,0.05);
-
-            // render segment borders
-            if(showStreamingSegments == true)
-            {
-                glColor4f(1.,1.,1.,1.);
-
-                glBegin(GL_LINE_LOOP);
-
-                glVertex2f(0.,0.);
-                glVertex2f(1.,0.);
-                glVertex2f(1.,1.);
-                glVertex2f(0.,1.);
-
-                glEnd();
-            }
-
-            // render segment statistics
-            if(showStreamingStatistics == true)
-            {
-                // render statistics
-                std::string statisticsString = getStatistics((*it).first);
-
-                QFont font;
-                font.setPixelSize(48);
-
-                glColor4f(1.,0.,0.,1.);
-                glDisable(GL_DEPTH_TEST);
-                g_mainWindow->getActiveGLWindow()->renderText(0.1, 0.95, 0., QString(statisticsString.c_str()), font);
-            }
-
-            glPopMatrix();
-            glPopAttrib();
-        }
-
-        glPopMatrix();
     }
 
-    // get rid of old / stale pixel streams
-    //clearStalePixelStreams();
+    glPopMatrix();
 }
 
-void PixelStream::insertSegment(PixelStreamSegment segment)
+void PixelStream::adjustFrameDecoderCount(size_t count)
 {
-    QMutexLocker locker(&segmentsMutex_);
+    for (size_t i = frameDecoders_.size(); i<count; ++i)
+        frameDecoders_.push_back(PixelStreamSegmentDecoderPtr(new PixelStreamSegmentDecoder()));
+    frameDecoders_.resize(count);
+}
 
-    // Clear all the buffers if the number of segments has changed
-    if (segment.parameters.segmentCount != segmentCount_)
+void PixelStream::adjustSegmentRendererCount(size_t count)
+{
+    // Recreate the renderers if the number of segments has changed
+    if (segmentRenderers_.size() != count)
     {
-        segmentCount_ = segment.parameters.segmentCount;
-
-        segments_.clear();
         segmentRenderers_.clear();
-        pixelStreamParameters_.clear();
+        for (size_t i=0; i<count; i++)
+            segmentRenderers_.push_back(PixelStreamSegmentRendererPtr(new PixelStreamSegmentRenderer(uri_)));
     }
-
-    // update total dimensions if we have non-blank parameters
-    if(segment.parameters.totalWidth != 0 && segment.parameters.totalHeight != 0)
-    {
-        width_ = segment.parameters.totalWidth;
-        height_ = segment.parameters.totalHeight;
-    }
-
-    int index = segment.parameters.sourceIndex;
-
-    // update parameters
-    pixelStreamParameters_[index] = segment.parameters;
-
-    // update segment
-    segments_[index].push_back(segment);
-
-    // delete any blank segments
-    // filter out segments that are not visible (only for rank != 0)
-    // rank 0 must keep the blank segments to forward them to the other ranks
-    if(g_mpiRank != 0)
-    {
-        if(segment.parameters.totalWidth == 0 && segment.parameters.totalHeight == 0)
-        {
-            // this is a blank segment, clear out everything for its sourceIndex...
-            segments_.erase(index);
-            segmentRenderers_.erase(index);
-            pixelStreamParameters_.erase(index);
-
-            // drop the segment
-            return;
-        }
-        else if(!isSegmentVisible(segment.parameters))
-        {
-            // clear any unprocessed segments for this source index
-            if(segments_.count(index) != 0)
-            {
-                segments_.erase(index);
-            }
-
-            // drop the segment
-            return;
-        }
-    }
-    else
-    {
-        if (segment.parameters.requestViewAdjustment)
-        {
-            changeViewDimensionsRequested_ = true;
-        }
-    }
-
 }
 
-std::vector<PixelStreamSegment> PixelStream::getAndPopLatestSegments()
+void PixelStream::insertNewFrame(const PixelStreamSegments &segments)
 {
-    QMutexLocker locker(&segmentsMutex_);
-
-    std::vector<PixelStreamSegment> latestSegments;
-
-    for(std::map<int, std::vector<PixelStreamSegment> >::iterator it=segments_.begin(); it != segments_.end(); it++)
-    {
-        if((*it).second.size() > 0)
-        {
-            latestSegments.push_back((*it).second.back());
-        }
-    }
-
-    // clear the map since we got all the latest segments
-    segments_.clear();
-
-    return latestSegments;
-}
-
-std::vector<PixelStreamSegment> PixelStream::getAndPopAllSegments()
-{
-    QMutexLocker locker(&segmentsMutex_);
-
-    std::vector<PixelStreamSegment> allSegments;
-
-    for(std::map<int, std::vector<PixelStreamSegment> >::iterator it=segments_.begin(); it != segments_.end(); it++)
-    {
-        if((*it).second.size() > 0)
-        {
-            allSegments.insert(allSegments.end(), (*it).second.begin(), (*it).second.end());
-        }
-    }
-
-    // clear the map since we got all the segments
-    segments_.clear();
-
-    return allSegments;
-}
-
-std::vector<PixelStreamSegment> PixelStream::getAndPopSegments(int frameIndex)
-{
-    QMutexLocker locker(&segmentsMutex_);
-
-    std::vector<PixelStreamSegment> frameIndexSegments;
-
-    for(std::map<int, std::vector<PixelStreamSegment> >::iterator it=segments_.begin(); it != segments_.end(); it++)
-    {
-        for(unsigned int i=0; i<(*it).second.size(); i++)
-        {
-            if((*it).second[i].parameters.frameIndex == frameIndex)
-            {
-                frameIndexSegments.push_back((*it).second[i]);
-
-                // erase this segment and the earlier segments (i+1 segments will be erased)
-                (*it).second.erase((*it).second.begin(), (*it).second.begin() + i+1);
-
-                // continue to next source index in the map (breaking from this for loop)
-                break;
-            }
-        }
-    }
-
-    return frameIndexSegments;
+    if (frameBuffer_.size() <= MAX_FRAME_QUEUE_SIZE)
+        frameBuffer_.push(segments);
 }
 
 
-int PixelStream::getGlobalLoadImageDataThreadsRunning()
+bool PixelStream::isDecodingInProgress()
 {
     // determine if threads are running on any processes for this PixelStream
 
     // first, for this local process
     int localThreadsRunning = 0;
 
-    std::map<int, boost::shared_ptr<PixelStreamSegmentRenderer> >::iterator it;
-    for (it = segmentRenderers_.begin(); it != segmentRenderers_.end(); it++)
+    std::vector<PixelStreamSegmentDecoderPtr>::const_iterator it;
+    for (it = frameDecoders_.begin(); it != frameDecoders_.end(); it++)
     {
-        localThreadsRunning += (int)(*it).second->getLoadImageDataThreadRunning();
+        if ((*it)->isRunning())
+            ++localThreadsRunning;
     }
 
     // now, globally for all render processes
@@ -295,240 +223,53 @@ int PixelStream::getGlobalLoadImageDataThreadsRunning()
 
     MPI_Allreduce((void *)&localThreadsRunning, (void *)&globalThreadsRunning, 1, MPI_INT, MPI_SUM, g_mpiRenderComm);
 
-    return globalThreadsRunning;
+    return (globalThreadsRunning > 0);
 }
 
-
-int PixelStream::getGlobalLatestVisibleFrameIndex()
-{
-    // find the latest frame index we have locally for all visible parameters
-
-    // the visible source indices
-    std::vector<int> visibleSourceIndices = getSourceIndicesVisible();
-
-    // the latest frame index we have for all visible source indices
-    int latestFrameIndex = INT_MAX;
-
-    for(unsigned int i=0; i<visibleSourceIndices.size(); i++)
-    {
-        if(segments_.count(visibleSourceIndices[i]) == 0 || segments_[visibleSourceIndices[i]].size() == 0)
-        {
-            latestFrameIndex = -1;
-        }
-        else
-        {
-            latestFrameIndex = std::min(latestFrameIndex, segments_[visibleSourceIndices[i]].back().parameters.frameIndex);
-        }
-    }
-
-    // now, find the latest frame index for visible source indices across all nodes
-    int globalLatestFrameIndex;
-
-    MPI_Allreduce((void *)&latestFrameIndex, (void *)&globalLatestFrameIndex, 1, MPI_INT, MPI_MIN, g_mpiRenderComm);
-
-    return globalLatestFrameIndex;
-}
-
-
-void PixelStream::updateSegmentRenderers()
-{
-    // segments we want to process
-    std::vector<PixelStreamSegment> segments;
-
-    // process differently depending on synchronization option
-    bool enableStreamingSynchronization = g_displayGroupManager->getOptions()->getEnableStreamingSynchronization();
-
-    // make sure all of our segments have a valid frame index
-    // if this is not the case, then we can't have synchronization
-    if(enableStreamingSynchronization && !getValidFrameIndices())
-    {
-        enableStreamingSynchronization = false;
-    }
-
-    if(enableStreamingSynchronization)
-    {
-        // do nothing if threads are still running
-        if(getGlobalLoadImageDataThreadsRunning() > 0)
-        {
-            return;
-        }
-
-        // if no threads are running, attempt to update textures (this will be synchronous across all streams!)
-        std::map<int, boost::shared_ptr<PixelStreamSegmentRenderer> >::iterator it;
-        for (it = segmentRenderers_.begin(); it != segmentRenderers_.end(); it++)
-        {
-            (*it).second->updateTextureIfAvailable();
-        }
-
-        int globalLatestFrameIndex = getGlobalLatestVisibleFrameIndex();
-
-        if(globalLatestFrameIndex > 0 && globalLatestFrameIndex != INT_MAX)
-        {
-            segments = getAndPopSegments(globalLatestFrameIndex);
-        }
-    }
-    else
-    {
-        // synchronization disabled
-        segments = getAndPopLatestSegments();
-    }
-
-    for(unsigned int i=0; i<segments.size(); i++)
-    {
-        int sourceIndex = segments[i].parameters.sourceIndex;
-
-        if(segmentRenderers_[sourceIndex] == NULL)
-        {
-            boost::shared_ptr<PixelStreamSegmentRenderer> ps(new PixelStreamSegmentRenderer());
-            segmentRenderers_[sourceIndex] = ps;
-        }
-
-        // auto texture uploading depending on synchronous setting
-        segmentRenderers_[sourceIndex]->setAutoUpdateTexture(!enableStreamingSynchronization);
-
-        bool success = segmentRenderers_[sourceIndex]->setImageData(segments[i].imageData, segments[i].parameters.compressed,
-                                                                    segments[i].parameters.width, segments[i].parameters.height);
-
-        if(success)
-        {
-            updateStatistics(sourceIndex);
-        }
-    }
-}
-
-bool PixelStream::changeViewDimensionsRequested()
-{
-    QMutexLocker locker(&segmentsMutex_);
-
-    if (changeViewDimensionsRequested_)
-    {
-        changeViewDimensionsRequested_ = false;
-        return true;
-    }
-    return false;
-}
-
-bool PixelStream::isSegmentVisible(PixelStreamSegmentParameters parameters)
+bool PixelStream::isVisible(const QRectF& segment)
 {
     boost::shared_ptr<ContentWindowManager> cwm = g_displayGroupManager->getContentWindowManager(uri_, CONTENT_TYPE_PIXEL_STREAM);
 
-    if(cwm != NULL)
+    if(cwm)
     {
-        // todo: also consider zoom / pan (texture coordinates!)
+        const QRectF& window = cwm->getCoordinates();
 
-        double x, y, w, h;
-        cwm->getCoordinates(x, y, w, h);
+        // coordinates of segment in global tiled display space
+        double segmentX = window.x() + (double)segment.x() / (double)width_ * window.width();
+        double segmentY = window.y() + (double)segment.y() / (double)height_ * window.height();
+        double segmentW = (double)segment.width() / (double)width_ * window.width();
+        double segmentH = (double)segment.height() / (double)height_ * window.height();
 
-        // coordinates of segment in tiled display space
-        double segmentX = x + (double)parameters.x / (double)parameters.totalWidth * w;
-        double segmentY = y + (double)parameters.y / (double)parameters.totalHeight * h;
-        double segmentW = (double)parameters.width / (double)parameters.totalWidth * w;
-        double segmentH = (double)parameters.height / (double)parameters.totalHeight * h;
-
-        bool segmentVisible = false;
-
-        std::vector<boost::shared_ptr<GLWindow> > glWindows = g_mainWindow->getGLWindows();
-
-        for(unsigned int i=0; i<glWindows.size(); i++)
-        {
-            if(glWindows[i]->isScreenRectangleVisible(segmentX, segmentY, segmentW, segmentH) == true)
-            {
-                segmentVisible = true;
-                break;
-            }
-        }
-
-        return segmentVisible;
+        return g_mainWindow->isRegionVisible(segmentX, segmentY, segmentW, segmentH);
     }
     else
     {
-        // return true if we can't find a window
         put_flog(LOG_WARN, "could not find window for segment");
-
-        return true;
+        return false;
     }
 }
 
-std::vector<int> PixelStream::getSourceIndicesVisible()
+bool PixelStream::isVisible(const dc::PixelStreamSegment& segment)
 {
-    std::vector<int> sourceIndices;
+    boost::shared_ptr<ContentWindowManager> cwm = g_displayGroupManager->getContentWindowManager(uri_, CONTENT_TYPE_PIXEL_STREAM);
 
-    std::map<int, PixelStreamSegmentParameters>::iterator it = pixelStreamParameters_.begin();
-
-    while(it != pixelStreamParameters_.end())
+    if(cwm)
     {
-        if(isSegmentVisible((*it).second) == true)
-        {
-            sourceIndices.push_back((*it).first);
-        }
+        const dc::PixelStreamSegmentParameters& segmentParams = segment.parameters;
+        const QRectF& window = cwm->getCoordinates();
 
-        it++;
+        // coordinates of segment in global tiled display space
+        double segmentX = window.x() + (double)segmentParams.x / (double)width_ * window.width();
+        double segmentY = window.y() + (double)segmentParams.y / (double)height_ * window.height();
+        double segmentW = (double)segmentParams.width / (double)width_ * window.width();
+        double segmentH = (double)segmentParams.height / (double)height_ * window.height();
+
+        return g_mainWindow->isRegionVisible(segmentX, segmentY, segmentW, segmentH);
     }
-
-    return sourceIndices;
-}
-
-bool PixelStream::getValidFrameIndices()
-{
-    std::map<int, PixelStreamSegmentParameters>::iterator it = pixelStreamParameters_.begin();
-
-    while(it != pixelStreamParameters_.end())
+    else
     {
-        if((*it).second.frameIndex == FRAME_INDEX_UNDEFINED)
-        {
-            return false;
-        }
-
-        it++;
-    }
-
-    return true;
-}
-
-//void PixelStream::clearStalePixelStreams()
-//{
-//    std::map<int, boost::shared_ptr<PixelStream> >::iterator it = pixelStreams_.begin();
-
-//    while(it != pixelStreams_.end())
-//    {
-//        boost::shared_ptr<PixelStream> pixelStream = (*it).second;
-
-//        if(g_frameCount - pixelStream->getRenderedFrameCount() > 1)
-//        {
-//            put_flog(LOG_DEBUG, "erasing stale pixel stream");
-//            pixelStreams_.erase(it++);  // note the post increment; increments the iterator but returns original value for erase
-//        }
-//        else
-//        {
-//            it++;
-//        }
-//    }
-//}
-
-void PixelStream::updateStatistics(int sourceIndex)
-{
-    static unsigned int numHistory = 30;
-
-    segmentsRenderTimes_[sourceIndex].push_back(QTime::currentTime());
-
-    // see if we need to remove an entry
-    while(segmentsRenderTimes_[sourceIndex].size() > numHistory)
-    {
-        segmentsRenderTimes_[sourceIndex].erase(segmentsRenderTimes_[sourceIndex].begin());
+        put_flog(LOG_WARN, "could not find window for segment");
+        return false;
     }
 }
 
-std::string PixelStream::getStatistics(int sourceIndex)
-{
-    QString result;
-
-    if(segmentsRenderTimes_[sourceIndex].size() > 0)
-    {
-        float fps = (float)segmentsRenderTimes_[sourceIndex].size() / (float)segmentsRenderTimes_[sourceIndex].front().msecsTo(segmentsRenderTimes_[sourceIndex].back()) * 1000.;
-
-        result += QString::number(fps, 'g', 4);
-        result += " fps";
-    }
-
-    return result.toStdString();
-}

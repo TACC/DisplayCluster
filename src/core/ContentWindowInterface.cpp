@@ -126,6 +126,11 @@ void ContentWindowInterface::getCoordinates(double &x, double &y, double &w, dou
     h = h_;
 }
 
+QRectF ContentWindowInterface::getCoordinates() const
+{
+    return QRectF(x_, y_, w_, h_);
+}
+
 void ContentWindowInterface::getPosition(double &x, double &y)
 {
     x = x_;

@@ -47,68 +47,53 @@
 
 #include <boost/serialization/access.hpp>
 
-#define FRAME_INDEX_UNDEFINED -1
+namespace dc
+{
 
-struct PixelStreamSegmentParameters {
+/**
+ * Parameters for a PixelStream Segment
+ */
+struct PixelStreamSegmentParameters
+{
+    /** @name Coordinates */
+    /*@{*/
+    int32_t x;  /**< The x position in pixels. */
+    int32_t y;  /**< The y position in pixels. */
+    /*@}*/
 
-    // source identifier
-    int32_t sourceIndex;
+    /** @name Dimensions */
+    /*@{*/
+    int32_t width;   /**< The width in pixels. */
+    int32_t height;  /**< The height in pixels. */
+    /*@}*/
 
-    // frame index (used for synchronization)
-    int32_t frameIndex;
-
-    // coordinates of segment (pixel coordinates)
-    int32_t x;
-    int32_t y;
-    int32_t width;
-    int32_t height;
-
-    // coordinates of total image
-    int32_t totalWidth;
-    int32_t totalHeight;
-
-    // Number of segments in the stream
-    int32_t segmentCount;
-
-    // Sender requests the view dimensions to be adjusted
-    bool requestViewAdjustment;
-
-    // Is the image raw pixel data or compressed in jpeg format
+    /** Is the image raw pixel data or compressed in jpeg format */
     bool compressed;
 
-    // Default constructor
+    /** Default constructor */
     PixelStreamSegmentParameters()
-        : sourceIndex(0)
-        , frameIndex(FRAME_INDEX_UNDEFINED)
-        , x(0)
+        : x(0)
         , y(0)
         , width(0)
         , height(0)
-        , totalWidth(0)
-        , totalHeight(0)
-        , segmentCount(0)
-        , requestViewAdjustment(false)
         , compressed(true)
     {
     }
 
     friend class boost::serialization::access;
 
+    /** Serialization method */
     template<class Archive>
     void serialize(Archive & ar, const unsigned int)
     {
-        ar & sourceIndex;
-        ar & frameIndex;
         ar & x;
         ar & y;
         ar & width;
         ar & height;
-        ar & totalWidth;
-        ar & totalHeight;
-        ar & segmentCount;
-        ar & requestViewAdjustment;
         ar & compressed;
     }
 };
+
+}
 
 #endif

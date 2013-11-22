@@ -53,6 +53,7 @@
 #endif
 
 class ContentWindowManager;
+using dc::InteractionState;
 
 enum ControlState
 {
@@ -84,6 +85,7 @@ class ContentWindowInterface : public QObject {
 
         void getContentDimensions(int &contentWidth, int &contentHeight);
         void getCoordinates(double &x, double &y, double &w, double &h);
+        QRectF getCoordinates() const;
         void getPosition(double &x, double &y);
         void getSize(double &w, double &h);
         void getCenter(double &centerX, double &centerY);

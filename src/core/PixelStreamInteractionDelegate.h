@@ -42,7 +42,11 @@
 
 #include "ContentInteractionDelegate.h"
 
-struct InteractionState;
+namespace dc
+{
+    struct InteractionState;
+}
+using dc::InteractionState;
 
 class PixelStreamInteractionDelegate : public ContentInteractionDelegate
 {

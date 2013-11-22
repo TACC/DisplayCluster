@@ -68,7 +68,7 @@ public:
     QWebView* getView() const;
 
 public slots:
-    virtual void updateInteractionState(InteractionState interactionState);
+    virtual void updateInteractionState(dc::InteractionState interactionState);
 
 private slots:
     void update();
@@ -79,7 +79,6 @@ private:
     WebkitAuthenticationHelper* authenticationHelper_;
     QTimer* timer_;
     QMutex mutex_;
-    int frameIndex_;
 
     QImage image_;
 
@@ -96,7 +95,6 @@ private:
 
     QWebHitTestResult performHitTest(const InteractionState &interactionState) const;
     QPoint getPointerPosition(const InteractionState &interactionState) const;
-    PixelStreamSegmentParameters createSegmentHeader() const;
     bool isWebGLElement(const QWebElement &element) const;
 };
 

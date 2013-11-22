@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,36 +37,55 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef SVG_STREAM_SOURCE_H
-#define SVG_STREAM_SOURCE_H
+#include "DcImageWrapper.h"
+#include <cstring>
 
-#include "Factory.hpp"
-#include <QtGui>
+#define DEFAULT_COMPRESSION_QUALITY  75
 
-class SVGStreamSource {
+namespace dc
+{
 
-    public:
+ImageWrapper::ImageWrapper(const void *data, const unsigned int width, const unsigned int height,
+                           const PixelFormat format, const unsigned int x, const unsigned int y)
+    : data(data)
+    , width(width)
+    , height(height)
+    , pixelFormat(format)
+    , x(x)
+    , y(y)
+    , compressionPolicy(COMPRESSION_AUTO)
+    , compressionQuality(DEFAULT_COMPRESSION_QUALITY)
+{}
 
-        SVGStreamSource(QString uri);
+unsigned int ImageWrapper::getBytesPerPixel() const
+{
+    // enum PixelFormat { RGB, RGBA, ARGB, BGR, BGRA, ABGR };
+    static const unsigned int dcBytesPerPixel[] = { 3, 4, 4, 3, 4, 4 };
 
-        QByteArray getImageData(bool & updated);
-        void setImageData(QByteArray imageData);
+    return dcBytesPerPixel[pixelFormat];
+}
 
-    private:
+size_t ImageWrapper::getBufferSize() const
+{
+    return width * height * getBytesPerPixel();
+}
 
-        // SVG stream source identifier
-        QString uri_;
+void ImageWrapper::reorderGLImageData(void *data, const unsigned int width, const unsigned int height, const unsigned int bpp)
+{
+    unsigned char* src = (unsigned char*)data;
 
-        // image data, mutex for accessing it, and counter for updates
-        QMutex imageDataMutex_;
-        QByteArray imageData_;
-        long imageDataCount_;
+    size_t bytesPerLine = width*bpp;
+    size_t bufferSize = bytesPerLine*height;
 
-        // imageDataCount of last retrieval via getImageData()
-        long getImageDataCount_;
-};
+    unsigned char* tmp = new unsigned char[bufferSize];
 
-// global SVG stream source factory
-extern Factory<SVGStreamSource> g_SVGStreamSourceFactory;
+    for (size_t y=0; y<height; y++)
+    {
+        memcpy( (void*)(&tmp[y*bytesPerLine]), (const void*)&src[(height-y-1)*bytesPerLine], bytesPerLine);
+    }
+    memcpy(data, (const void*)tmp, bufferSize);
 
-#endif
+    delete[] tmp;
+}
+
+}

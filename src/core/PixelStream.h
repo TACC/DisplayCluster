@@ -41,88 +41,66 @@
 
 #include "FactoryObject.h"
 #include "PixelStreamSegment.h"
-#include "PixelStreamSegmentParameters.h"
-#include "PixelStreamSegmentRenderer.h"
+#include "types.h"
+
 #include <QtGui>
 #include <boost/shared_ptr.hpp>
-#include <boost/serialization/binary_object.hpp>
-#include <boost/serialization/split_member.hpp>
-#include <map>
 #include <vector>
+#include <queue>
 
-class PixelStream : public FactoryObject {
+using dc::PixelStreamSegment;
+using dc::PixelStreamSegmentParameters;
+typedef std::vector<PixelStreamSegment> PixelStreamSegments;
 
-    public:
+class PixelStreamSegmentRenderer;
+class PixelStreamSegmentDecoder;
+typedef boost::shared_ptr<PixelStreamSegmentDecoder> PixelStreamSegmentDecoderPtr;
+typedef boost::shared_ptr<PixelStreamSegmentRenderer> PixelStreamSegmentRendererPtr;
 
-        PixelStream(QString uri);
+class PixelStream : public FactoryObject
+{
+public:
+    PixelStream(const QString& uri);
 
-        void getDimensions(int &width, int &height);
-        void render(float tX, float tY, float tW, float tH);
+    void getDimensions(int &width, int &height) const;
 
-        void insertSegment(PixelStreamSegment segment);
+    void preRenderUpdate();
+    void render(float tX, float tY, float tW, float tH);
 
-        // retrieve latest segments and remove them (and older segments) from the map
-        std::vector<PixelStreamSegment> getAndPopLatestSegments();
+    void insertNewFrame(const PixelStreamSegments& segments);
 
-        // retrieve all segments and clear the map
-        std::vector<PixelStreamSegment> getAndPopAllSegments();
+private:
+    // pixel stream identifier
+    QString uri_;
 
-        // retrieve all segments for the given frame index and clear older entries in the map
-        std::vector<PixelStreamSegment> getAndPopSegments(int frameIndex);
+    // dimensions of entire pixel stream
+    int width_;
+    int height_;
 
-        // update renderers to the latest segments
-        void updateSegmentRenderers();
+    // Has a decoding sequence been started
+    bool decodingStarted_;
 
-        // Has sender requested the view dimensions to be changed
-        bool changeViewDimensionsRequested();
+    // Keep a queue of incoming frames
+    std::queue<PixelStreamSegments> frameBuffer_;
 
-    private:
+    // The list of decoded images for the next frame
+    std::vector<PixelStreamSegmentDecoderPtr> frameDecoders_;
 
-        // pixel stream identifier
-        QString uri_;
+    // For each segment, object for image decoding, rendering and storing parameters
+    std::vector<PixelStreamSegmentRendererPtr> segmentRenderers_;
 
-        // dimensions of entire pixel stream
-        int width_;
-        int height_;
+    void updateVisibleTextures();
+    void nextFrame();
+    void recomputeDimensions(const PixelStreamSegments& segments);
+    void decodeVisibleTextures();
 
-        // Number of segments
-        int segmentCount_;
+    void adjustFrameDecoderCount(size_t count);
+    void adjustSegmentRendererCount(size_t count);
 
-        // Sender requests the view dimensions to be changed
-        bool changeViewDimensionsRequested_;
+    bool isDecodingInProgress();
 
-        // segments mutex
-        QMutex segmentsMutex_;
-
-        // for each source, vector of pixel stream segments
-        // use a vector here since it may allow for easier frame synchronization later
-        std::map<int, std::vector<PixelStreamSegment> > segments_;
-
-        // for each source, pixel stream object for image decoding and parameters
-        std::map<int, boost::shared_ptr<PixelStreamSegmentRenderer> > segmentRenderers_;
-        std::map<int, PixelStreamSegmentParameters> pixelStreamParameters_;
-
-        // determine if segment is visible on any of the screens of this process
-        bool isSegmentVisible(PixelStreamSegmentParameters parameters);
-
-        // get vector of source indices visible on any of the screens of this process
-        std::vector<int> getSourceIndicesVisible();
-
-        // get whether or not we have valid frame indices for all segments
-        bool getValidFrameIndices();
-
-        // clear old / stale pixel streams from map
-        //void clearStalePixelStreams();
-
-        // statistics
-        std::map<int, std::vector<QTime> > segmentsRenderTimes_;
-
-        void updateStatistics(int sourceIndex);
-        std::string getStatistics(int sourceIndex);
-
-        // Global streaming synchronization helper methods
-        int getGlobalLoadImageDataThreadsRunning();
-        int getGlobalLatestVisibleFrameIndex();
+    bool isVisible(const QRectF& segment);
+    bool isVisible(const PixelStreamSegment& segment);
 };
 
 

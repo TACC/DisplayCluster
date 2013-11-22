@@ -45,28 +45,46 @@
     #include <stdint.h>
 #endif
 
+/** The message types. */
 enum MESSAGE_TYPE
 {
+    MESSAGE_TYPE_NONE,
     MESSAGE_TYPE_CONTENTS,
     MESSAGE_TYPE_CONTENTS_DIMENSIONS,
+    MESSAGE_TYPE_PIXELSTREAM_OPEN,
+    MESSAGE_TYPE_PIXELSTREAM_FINISH_FRAME,
     MESSAGE_TYPE_PIXELSTREAM,
-    MESSAGE_TYPE_SVG_STREAM,
     MESSAGE_TYPE_BIND_INTERACTION,
     MESSAGE_TYPE_BIND_INTERACTION_EX,
     MESSAGE_TYPE_BIND_INTERACTION_REPLY,
     MESSAGE_TYPE_INTERACTION,
     MESSAGE_TYPE_FRAME_CLOCK,
     MESSAGE_TYPE_QUIT,
-    MESSAGE_TYPE_ACK,
-    MESSAGE_TYPE_NONE
+    MESSAGE_TYPE_ACK
 };
 
 #define MESSAGE_HEADER_URI_LENGTH 64
 
-struct MessageHeader {
+/** Fixed-size message header. */
+struct MessageHeader
+{
+    /** Size of the message payload. */
     int32_t size;
+
+    /** Message type. */
     MESSAGE_TYPE type;
-    char uri[MESSAGE_HEADER_URI_LENGTH]; // optional URI related to message. needs to be a fixed size so sizeof(MessageHeader) is constant
+
+    /**
+     * Optional URI related to message.
+     * @note Needs to be of fixed size so that sizeof(MessageHeader) is constant.
+     */
+    char uri[MESSAGE_HEADER_URI_LENGTH];
+
+    /** Construct a default message header */
+    MessageHeader()
+        : size(0)
+        , type(MESSAGE_TYPE_NONE)
+    {}
 };
 
 #endif

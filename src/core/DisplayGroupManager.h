@@ -59,10 +59,8 @@
     #include "SkeletonState.h"
 #endif
 
-#include "PixelStream.h"
 #include "serializationHelpers.h"
 #include "types.h"
-
 
 class ContentWindowManager;
 struct MessageHeader;
@@ -116,9 +114,6 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
 
         void sendDisplayGroup();
         void sendContentsDimensionsRequest();
-        void sendPixelStreams();
-        void sendPixelStreamSegments(const std::vector<PixelStreamSegment> &segments, const QString& uri);
-        void sendSVGStreams();
         void sendFrameClockUpdate();
         void receiveFrameClockUpdate();
         void sendQuit();
@@ -129,10 +124,13 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         void setSkeletons(std::vector<boost::shared_ptr<SkeletonState> > skeletons);
 #endif
         // Rank0 manages pixel stream events
-        void processPixelStreamSegment(QString uri, PixelStreamSegment segment);
         void openPixelStream(QString uri, int width, int height);
+        void closePixelStream(const QString& uri);
         void adjustPixelStreamContentDimensions(QString uri, int width, int height, bool changeViewSize);
-        void deletePixelStream(const QString& uri);
+
+    signals:
+        // Rank0 signals pixel streams events
+        void pixelStreamViewClosed(QString uri);
 
     private:
         friend class boost::serialization::access;
@@ -172,19 +170,12 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         // rank 1 - rank 0 timestamp offset
         boost::posix_time::time_duration timestampOffset_;
 
-        // Rank0: Input buffer for PixelStreams
-        Factory<PixelStream> pixelStreamSourceFactory_;
-
         State state_;
 
+        // ranks 1-n recieve data through MPI
         void receiveDisplayGroup(const MessageHeader& messageHeader);
         void receiveContentsDimensionsRequest(const MessageHeader& messageHeader);
         void receivePixelStreams(const MessageHeader& messageHeader);
-        void receiveSVGStreams(const MessageHeader& messageHeader);
-
-    signals:
-        // Rank0 signals pixel streams events
-        void pixelStreamViewClosed(QString uri);
 };
 
 #endif

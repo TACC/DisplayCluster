@@ -46,70 +46,90 @@
 #include "SVG.h"
 #include "Movie.h"
 #include "PixelStream.h"
+#include "FpsCounter.h"
 #include <QGLWidget>
 
 class WallConfiguration;
 
 class GLWindow : public QGLWidget
 {
+public:
+    GLWindow(int tileIndex);
+    GLWindow(int tileIndex, QRect windowRect, QGLWidget * shareWidget = 0);
+    ~GLWindow();
 
-    public:
+    Factory<Texture> & getTextureFactory();
+    Factory<DynamicTexture> & getDynamicTextureFactory();
+    Factory<PDF> &getPDFFactory();
+    Factory<SVG> & getSVGFactory();
+    Factory<Movie> & getMovieFactory();
+    Factory<PixelStream> & getPixelStreamFactory();
 
-        GLWindow(int tileIndex);
-        GLWindow(int tileIndex, QRect windowRect, QGLWidget * shareWidget = 0);
-        ~GLWindow();
+    void insertPurgeTextureId(GLuint textureId);
+    void purgeTextures();
 
-        Factory<Texture> & getTextureFactory();
-        Factory<DynamicTexture> & getDynamicTextureFactory();
-        Factory<PDF> &getPDFFactory();
-        Factory<SVG> & getSVGFactory();
-        Factory<Movie> & getMovieFactory();
-        Factory<PixelStream> & getPixelStreamFactory();
+    void finalize();
 
-        void insertPurgeTextureId(GLuint textureId);
-        void purgeTextures();
+    /**
+     * Is the given region visible in this window.
+     * @param rect The region in normalized global screen space, i.e. top-left
+     *        of tiled display is (0,0) and bottom-right is (1,1)
+     * @return true if (partially) visible, false otherwise
+     */
+    bool isRegionVisible(const QRectF& rect) const;
 
-        void initializeGL();
-        void paintGL();
-        void resizeGL(int width, int height);
+    /** Unused?? */
+    //static bool isRectangleVisibleInCurrentGlView(double x, double y, double w, double h);
 
-        bool isScreenRectangleVisible(double x, double y, double w, double h);
+    /** Used by PDF and SVG renderers */
+    QRectF getProjectedPixelRect(bool onScreenOnly);
 
-        static bool isRectangleVisible(double x, double y, double w, double h);
-        static void drawRectangle(double x, double y, double w, double h);
+    /** Draw an un-textured rectangle.
+     * @param x,y postion
+     * @param w,h dimensions
+     */
+    static void drawRectangle(double x, double y, double w, double h);
 
-        void finalize();
-
-        QRectF getProjectedPixelRect(bool onScreenOnly);
+protected:
+    void initializeGL();
+    void paintGL();
+    void resizeGL(int width, int height);
 
 private:
+    const WallConfiguration* configuration_;
 
-        const WallConfiguration* configuration_;
+    int tileIndex_;
 
-        int tileIndex_;
+    double left_;
+    double right_;
+    double bottom_;
+    double top_;
 
-        double left_;
-        double right_;
-        double bottom_;
-        double top_;
+    Factory<Texture> textureFactory_;
+    Factory<DynamicTexture> dynamicTextureFactory_;
+    Factory<PDF> pdfFactory_;
+    Factory<SVG> svgFactory_;
+    Factory<Movie> movieFactory_;
+    Factory<PixelStream> pixelStreamFactory_;
 
-        Factory<Texture> textureFactory_;
-        Factory<DynamicTexture> dynamicTextureFactory_;
-        Factory<PDF> pdfFactory_;
-        Factory<SVG> svgFactory_;
-        Factory<Movie> movieFactory_;
-        Factory<PixelStream> pixelStreamFactory_;
+    // mutex and vector of texture id's to purge
+    // this allows other threads to trigger deletion of a texture during the main OpenGL thread execution
+    QMutex purgeTexturesMutex_;
+    std::vector<GLuint> purgeTextureIds_;
 
-        // mutex and vector of texture id's to purge
-        // this allows other threads to trigger deletion of a texture during the main OpenGL thread execution
-        QMutex purgeTexturesMutex_;
-        std::vector<GLuint> purgeTextureIds_;
+    FpsCounter fpsCounter;
 
-        void renderTestPattern();
-        void setOrthographicView();
+    void renderBackgroundContent();
+    void renderContentWindows();
+    void renderMarkers();
+
+    void setOrthographicView();
 #if ENABLE_SKELETON_SUPPORT
-        bool setPerspectiveView(double x=0., double y=0., double w=1., double h=1.);
+    bool setPerspectiveView(double x=0., double y=0., double w=1., double h=1.);
 #endif
+
+    void renderTestPattern();
+    void drawFps();
 };
 
 #endif

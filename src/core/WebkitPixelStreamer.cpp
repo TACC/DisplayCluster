@@ -63,7 +63,6 @@ WebkitPixelStreamer::WebkitPixelStreamer(QString uri)
     , webView_(0)
     , authenticationHelper_(0)
     , timer_(0)
-    , frameIndex_(0)
     , interactionModeActive_(false)
 {
     webView_ = new QWebView();
@@ -107,7 +106,7 @@ QWebView* WebkitPixelStreamer::getView() const
     return webView_;
 }
 
-void WebkitPixelStreamer::updateInteractionState(InteractionState interactionState)
+void WebkitPixelStreamer::updateInteractionState(dc::InteractionState interactionState)
 {
     QMutexLocker locker(&mutex_);
 
@@ -288,15 +287,7 @@ void WebkitPixelStreamer::update()
         page->mainFrame()->render( &painter );
         painter.end();
 
-        PixelStreamSegment segment;
-        segment.parameters = createSegmentHeader();
-
-        segment.imageData = QByteArray::fromRawData((const char*)image_.bits(), image_.byteCount());
-        segment.imageData.detach();
-
-        ++frameIndex_;
-
-        emit segmentUpdated(uri_, segment);
+        emit imageUpdated(image_);
     }
 }
 
@@ -318,27 +309,6 @@ QPoint WebkitPixelStreamer::getPointerPosition(const InteractionState &interacti
     y = std::max(0, std::min(y, page->viewportSize().height()-1));
 
     return QPoint(x, y);
-}
-
-PixelStreamSegmentParameters WebkitPixelStreamer::createSegmentHeader() const
-{
-    PixelStreamSegmentParameters parameters;
-
-    parameters.sourceIndex = 0;
-    parameters.frameIndex = frameIndex_;
-
-    parameters.totalHeight = webView_->page()->viewportSize().height();
-    parameters.totalWidth = webView_->page()->viewportSize().width();
-
-    parameters.height = parameters.totalHeight;
-    parameters.width = parameters.totalWidth;
-
-    parameters.x = 0;
-    parameters.y = 0;
-
-    parameters.compressed = false;
-
-    return parameters;
 }
 
 bool WebkitPixelStreamer::isWebGLElement(const QWebElement& element) const

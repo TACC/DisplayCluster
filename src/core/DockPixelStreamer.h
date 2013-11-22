@@ -94,7 +94,6 @@ private:
     QLinkedList<int> slideImagesToLoad_;
 
     void onItem();
-    PixelStreamSegmentParameters makeSegmentHeader();
     bool openFile(const QString &filename);
     void changeDirectory( const QString& dir );
     void addRootDirToFlow();

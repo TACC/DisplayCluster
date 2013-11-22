@@ -80,12 +80,6 @@ MainWindow::MainWindow()
 
         setupMasterWindowUI();
 
-        // timer will trigger polling of PixelStreams
-        connect(&pixelStreamTimer_, SIGNAL(timeout()), g_displayGroupManager.get(), SLOT(sendPixelStreams()));
-
-        // start the timer
-        pixelStreamTimer_.start(1000 / 30); // 30 fps
-
         show();
     }
     else
@@ -415,6 +409,18 @@ boost::shared_ptr<GLWindow> MainWindow::getActiveGLWindow()
 std::vector<boost::shared_ptr<GLWindow> > MainWindow::getGLWindows()
 {
     return glWindows_;
+}
+
+bool MainWindow::isRegionVisible(double x, double y, double w, double h) const
+{
+    for(unsigned int i=0; i<glWindows_.size(); i++)
+    {
+        if(glWindows_[i]->isRegionVisible(QRectF(x, y, w, h)))
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 void MainWindow::addContent(const QString& filename)
