@@ -211,6 +211,8 @@ void display()
         static float mouseX = 0.;
         static float mouseY = 0.;
 
+        // Note: there is a risk of missing events since we only process the latest state available.
+        // For more advanced applications, event processing should be done in a separate thread.
         InteractionState interactionState = dcStreamGetInteractionState(dcSocket);
 
         float newMouseX = interactionState.mouseX;

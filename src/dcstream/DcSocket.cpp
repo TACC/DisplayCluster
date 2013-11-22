@@ -44,12 +44,13 @@
 #include <QtNetwork/QTcpSocket>
 
 DcSocket::DcSocket(const char * hostname, bool async)
-    : interactionReply_( -1 )
+    : async_(async)
+    , socket_(0)
+    , disconnectFlag_(false)
+    , interactionReply_( -1 )
 {
-    // defaults
-    socket_ = NULL;
-    disconnectFlag_ = false;
-    async_ = async;
+    // register Interactionstate in Qt
+    qRegisterMetaType<InteractionState>("InteractionState");
 
     if(connect(hostname) != true)
     {
@@ -326,6 +327,7 @@ bool DcSocket::receiveMessage_( MESSAGE_TYPE& type )
     {
         QMutexLocker locker(&interactionStateMutex_);
         interactionState_ = *(InteractionState *)(message.data());
+        emit received(interactionState_);
     }
     else if(type == MESSAGE_TYPE_BIND_INTERACTION_REPLY)
     {

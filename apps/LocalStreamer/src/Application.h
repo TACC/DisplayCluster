@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,86 +37,37 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DC_SOCKET_H
-#define DC_SOCKET_H
+#ifndef APPLICATION_H
+#define APPLICATION_H
 
-#include "InteractionState.h"
-#include "MessageHeader.h"
+#include <QApplication>
 
-#include <QtCore>
-#include <queue>
+#include "PixelStreamSegment.h"
+#include "dcStream.h"
 
-class QTcpSocket;
+#include "CommandLineOptions.h"
 
-// we can't use the signal / slot model for handling threads without a Qt event
-// loop. so, we make our own thread class and override run()...
+class LocalPixelStreamer;
 
-class DcSocket : public QThread
+class Application : public QApplication
 {
     Q_OBJECT
 
-    public:
+public:
+    explicit Application(int &argc, char **argv);
+    virtual ~Application();
 
-        DcSocket(const char * hostname, bool async = true );
-        ~DcSocket();
+    bool initalize(const CommandLineOptions &options);
 
-        bool isConnected();
+signals:
+    void interactionStateUpdated(InteractionState state);
 
-        // queue a message to be sent (non-blocking)
-        bool queueMessage(QByteArray message);
+private slots:
+    void processPixelStreamSegment(QString uri, PixelStreamSegment segment);
 
-        // wait for count acks to be received
-        void waitForAck(int count=1);
-
-        // -1 for no reply yet, 0 for not bound (if exclusive mode),
-        // 1 for successful bound
-        int hasInteraction();
-
-        InteractionState getInteractionState();
-
-        int socketDescriptor() const;
-
-        // for synchronous read operations (non-blocking)
-        bool hasNewInteractionState();
-
-    signals:
-        void received(InteractionState state);
-
-    protected:
-
-        bool async_;
-        QTcpSocket * socket_;
-
-        // mutex and queue for messages to send
-        QMutex sendMessagesQueueMutex_;
-        std::queue<QByteArray> sendMessagesQueue_;
-
-        // semaphore for ack count
-        QSemaphore ackSemaphore_;
-
-        // mutex and flag to trigger socket thread to disconnect
-        QMutex disconnectFlagMutex_;
-        bool disconnectFlag_;
-
-        // current interaction state
-        QMutex interactionStateMutex_;
-        InteractionState interactionState_;
-
-        QAtomicInt interactionReply_;
-
-        // socket connections
-        bool connect(const char * hostname);
-        void disconnect();
-
-        // thread execution
-        void run();
-
-        // these are only called in the thread execution
-        bool socketSendMessage(QByteArray message);
-        bool socketReceiveMessage(MessageHeader & messageHeader, QByteArray & message);
-
-        bool sendMessage_();
-        bool receiveMessage_( MESSAGE_TYPE& type );
+private:
+    LocalPixelStreamer* streamer_;
+    DcSocket* dcSocket;
 };
 
-#endif
+#endif // APPLICATION_H

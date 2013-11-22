@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,86 +37,61 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DC_SOCKET_H
-#define DC_SOCKET_H
+#include "Application.h"
+#include "CommandLineOptions.h"
+#include "globals.h"
 
-#include "InteractionState.h"
-#include "MessageHeader.h"
+#include "configuration/MasterConfiguration.h"
+#include "Options.h"
 
-#include <QtCore>
-#include <queue>
+#include <QFile>
 
-class QTcpSocket;
+#define INVALID_CONFIG_FILE_ERROR_CODE       1
+#define INVALID_STREAMER_TYPE_ERROR_CODE     2
+#define FAILED_APP_INITIALIZTION_ERROR_CODE  3
 
-// we can't use the signal / slot model for handling threads without a Qt event
-// loop. so, we make our own thread class and override run()...
 
-class DcSocket : public QThread
+bool createGlobalConfiguration(const QString& configFileName)
 {
-    Q_OBJECT
+    if (QFile(configFileName).exists())
+    {
+        g_configuration = new MasterConfiguration(configFileName, OptionsPtr(new Options));
+        return true;
+    }
+    return false;
+}
 
-    public:
+int main(int argc, char * argv[])
+{
+    // The objects have to be initialized in the following sequence:
+    // QApplication -> g_configuration -> PixelStreamers (app.initalize)
 
-        DcSocket(const char * hostname, bool async = true );
-        ~DcSocket();
+    Application app(argc, argv);
 
-        bool isConnected();
+    CommandLineOptions options(argc, argv);
 
-        // queue a message to be sent (non-blocking)
-        bool queueMessage(QByteArray message);
+    if (options.getHelp())
+    {
+        options.showSyntax();
+        return 0;
+    }
 
-        // wait for count acks to be received
-        void waitForAck(int count=1);
+    if (options.getPixelStreamerType() == PS_UNKNOWN)
+    {
+        std::cerr << "Invalid streamer type." << std::endl;
+        return INVALID_STREAMER_TYPE_ERROR_CODE;
+    }
 
-        // -1 for no reply yet, 0 for not bound (if exclusive mode),
-        // 1 for successful bound
-        int hasInteraction();
+    if (!createGlobalConfiguration(options.getConfigFilename()))
+    {
+        std::cerr << "Configuration file not found: '" << options.getConfigFilename().toStdString() << "'" << std::endl;
+        return INVALID_CONFIG_FILE_ERROR_CODE;
+    }
 
-        InteractionState getInteractionState();
+    if (!app.initalize(options))
+        return FAILED_APP_INITIALIZTION_ERROR_CODE;
 
-        int socketDescriptor() const;
+    // enter Qt event loop
+    return app.exec();
+}
 
-        // for synchronous read operations (non-blocking)
-        bool hasNewInteractionState();
-
-    signals:
-        void received(InteractionState state);
-
-    protected:
-
-        bool async_;
-        QTcpSocket * socket_;
-
-        // mutex and queue for messages to send
-        QMutex sendMessagesQueueMutex_;
-        std::queue<QByteArray> sendMessagesQueue_;
-
-        // semaphore for ack count
-        QSemaphore ackSemaphore_;
-
-        // mutex and flag to trigger socket thread to disconnect
-        QMutex disconnectFlagMutex_;
-        bool disconnectFlag_;
-
-        // current interaction state
-        QMutex interactionStateMutex_;
-        InteractionState interactionState_;
-
-        QAtomicInt interactionReply_;
-
-        // socket connections
-        bool connect(const char * hostname);
-        void disconnect();
-
-        // thread execution
-        void run();
-
-        // these are only called in the thread execution
-        bool socketSendMessage(QByteArray message);
-        bool socketReceiveMessage(MessageHeader & messageHeader, QByteArray & message);
-
-        bool sendMessage_();
-        bool receiveMessage_( MESSAGE_TYPE& type );
-};
-
-#endif

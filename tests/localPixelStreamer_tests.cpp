@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,86 +37,69 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DC_SOCKET_H
-#define DC_SOCKET_H
+#define BOOST_TEST_MODULE LocalPixelStreamer
+#include <boost/test/unit_test.hpp>
+namespace ut = boost::unit_test;
 
-#include "InteractionState.h"
-#include "MessageHeader.h"
+#include "GlobalQtApp.h"
 
-#include <QtCore>
-#include <queue>
+#include "LocalPixelStreamerType.h"
+#include "LocalPixelStreamerFactory.h"
+#include "LocalPixelStreamer.h"
+#include "WebkitPixelStreamer.h"
+#include "DockPixelStreamer.h"
 
-class QTcpSocket;
 
-// we can't use the signal / slot model for handling threads without a Qt event
-// loop. so, we make our own thread class and override run()...
+BOOST_GLOBAL_FIXTURE( GlobalQtApp );
 
-class DcSocket : public QThread
+BOOST_AUTO_TEST_CASE( test_local_pixel_streamer_type )
 {
-    Q_OBJECT
+    BOOST_CHECK_EQUAL( getStreamerTypeString(PS_UNKNOWN).toStdString(), "unknown" );
+    BOOST_CHECK_EQUAL( getStreamerTypeString(PS_WEBKIT).toStdString(), "webkit" );
+    BOOST_CHECK_EQUAL( getStreamerTypeString(PS_DOCK).toStdString(), "dock" );
 
-    public:
+    BOOST_CHECK_EQUAL( getStreamerType(""), PS_UNKNOWN );
+    BOOST_CHECK_EQUAL( getStreamerType("zorglump"), PS_UNKNOWN );
+    BOOST_CHECK_EQUAL( getStreamerType("webkit"), PS_WEBKIT );
+    BOOST_CHECK_EQUAL( getStreamerType("dock"), PS_DOCK );
+}
 
-        DcSocket(const char * hostname, bool async = true );
-        ~DcSocket();
+BOOST_AUTO_TEST_CASE( test_local_pixel_streamer_factory_unknown_type )
+{
+    // Create should return a nullptr
+    BOOST_CHECK( !LocalPixelStreamerFactory::create(PS_UNKNOWN, "") );
+    BOOST_CHECK( !LocalPixelStreamerFactory::create(PS_UNKNOWN, "iefuiw") );
+}
 
-        bool isConnected();
+BOOST_AUTO_TEST_CASE( test_local_pixel_streamer_factory_webkit_type )
+{
+    if( !hasGLXDisplay( ))
+      return;
 
-        // queue a message to be sent (non-blocking)
-        bool queueMessage(QByteArray message);
+    LocalPixelStreamer* streamer = LocalPixelStreamerFactory::create(PS_WEBKIT, "testuri");
 
-        // wait for count acks to be received
-        void waitForAck(int count=1);
+    BOOST_CHECK( streamer );
+    BOOST_CHECK_EQUAL(streamer->getUri().toStdString(), "testuri");
 
-        // -1 for no reply yet, 0 for not bound (if exclusive mode),
-        // 1 for successful bound
-        int hasInteraction();
+    WebkitPixelStreamer* webkit = dynamic_cast<WebkitPixelStreamer*>(streamer);
+    BOOST_CHECK( webkit );
 
-        InteractionState getInteractionState();
+    delete streamer;
+}
 
-        int socketDescriptor() const;
+BOOST_AUTO_TEST_CASE( test_local_pixel_streamer_factory_dock_type )
+{
+    if( !hasGLXDisplay( ))
+      return;
 
-        // for synchronous read operations (non-blocking)
-        bool hasNewInteractionState();
+    LocalPixelStreamer* streamer = LocalPixelStreamerFactory::create(PS_DOCK, "testuri");
 
-    signals:
-        void received(InteractionState state);
+    BOOST_CHECK( streamer );
+    BOOST_CHECK_EQUAL(streamer->getUri().toStdString(), DockPixelStreamer::getUniqueURI().toStdString());
 
-    protected:
+    DockPixelStreamer* dock = dynamic_cast<DockPixelStreamer*>(streamer);
+    BOOST_CHECK( dock );
 
-        bool async_;
-        QTcpSocket * socket_;
+    delete streamer;
+}
 
-        // mutex and queue for messages to send
-        QMutex sendMessagesQueueMutex_;
-        std::queue<QByteArray> sendMessagesQueue_;
-
-        // semaphore for ack count
-        QSemaphore ackSemaphore_;
-
-        // mutex and flag to trigger socket thread to disconnect
-        QMutex disconnectFlagMutex_;
-        bool disconnectFlag_;
-
-        // current interaction state
-        QMutex interactionStateMutex_;
-        InteractionState interactionState_;
-
-        QAtomicInt interactionReply_;
-
-        // socket connections
-        bool connect(const char * hostname);
-        void disconnect();
-
-        // thread execution
-        void run();
-
-        // these are only called in the thread execution
-        bool socketSendMessage(QByteArray message);
-        bool socketReceiveMessage(MessageHeader & messageHeader, QByteArray & message);
-
-        bool sendMessage_();
-        bool receiveMessage_( MESSAGE_TYPE& type );
-};
-
-#endif

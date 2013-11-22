@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,86 +37,69 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DC_SOCKET_H
-#define DC_SOCKET_H
+#include "CommandLineOptions.h"
 
-#include "InteractionState.h"
-#include "MessageHeader.h"
+#include <iostream>
+#include <boost/program_options.hpp>
 
-#include <QtCore>
-#include <queue>
+#define DEFAULT_CONFIG_FILENAME    "configuration.xml"
 
-class QTcpSocket;
-
-// we can't use the signal / slot model for handling threads without a Qt event
-// loop. so, we make our own thread class and override run()...
-
-class DcSocket : public QThread
+CommandLineOptions::CommandLineOptions(int &argc, char **argv)
+    : getHelp_(false)
+    , configFileName_(DEFAULT_CONFIG_FILENAME)
+    , streamerType_(PS_UNKNOWN)
+    , desc_("Allowed options")
 {
-    Q_OBJECT
+    desc_.add_options()
+        ("help", "produce help message")
+        ("type", boost::program_options::value<std::string>()->default_value(""), "streamer type [webkit | dock]")
+        ("config", boost::program_options::value<std::string>()->default_value(DEFAULT_CONFIG_FILENAME), "configuration xml file")
+        ("url", boost::program_options::value<std::string>()->default_value(""), "webkit only: url")
+    ;
 
-    public:
+    parseCommandLineArguments(argc, argv);
+}
 
-        DcSocket(const char * hostname, bool async = true );
-        ~DcSocket();
+bool CommandLineOptions::getHelp() const
+{
+    return getHelp_;
+}
 
-        bool isConnected();
+const QString &CommandLineOptions::getConfigFilename() const
+{
+    return configFileName_;
+}
 
-        // queue a message to be sent (non-blocking)
-        bool queueMessage(QByteArray message);
+PixelStreamerType CommandLineOptions::getPixelStreamerType() const
+{
+    return streamerType_;
+}
 
-        // wait for count acks to be received
-        void waitForAck(int count=1);
+const QString &CommandLineOptions::getUrl() const
+{
+    return url_;
+}
 
-        // -1 for no reply yet, 0 for not bound (if exclusive mode),
-        // 1 for successful bound
-        int hasInteraction();
+void CommandLineOptions::parseCommandLineArguments(int &argc, char **argv)
+{
+    boost::program_options::variables_map vm;
+    try {
+        boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc_), vm);
+        boost::program_options::notify(vm);
+    }
+    catch (const std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        return;
+    }
 
-        InteractionState getInteractionState();
+    getHelp_ = vm.count("help");
+    streamerType_ = getStreamerType(vm["type"].as<std::string>().c_str());
+    configFileName_ = vm["config"].as<std::string>().c_str();
+    url_ = vm["url"].as<std::string>().c_str();
+}
 
-        int socketDescriptor() const;
+void CommandLineOptions::showSyntax() const
+{
+    std::cout << desc_;
+}
 
-        // for synchronous read operations (non-blocking)
-        bool hasNewInteractionState();
-
-    signals:
-        void received(InteractionState state);
-
-    protected:
-
-        bool async_;
-        QTcpSocket * socket_;
-
-        // mutex and queue for messages to send
-        QMutex sendMessagesQueueMutex_;
-        std::queue<QByteArray> sendMessagesQueue_;
-
-        // semaphore for ack count
-        QSemaphore ackSemaphore_;
-
-        // mutex and flag to trigger socket thread to disconnect
-        QMutex disconnectFlagMutex_;
-        bool disconnectFlag_;
-
-        // current interaction state
-        QMutex interactionStateMutex_;
-        InteractionState interactionState_;
-
-        QAtomicInt interactionReply_;
-
-        // socket connections
-        bool connect(const char * hostname);
-        void disconnect();
-
-        // thread execution
-        void run();
-
-        // these are only called in the thread execution
-        bool socketSendMessage(QByteArray message);
-        bool socketReceiveMessage(MessageHeader & messageHeader, QByteArray & message);
-
-        bool sendMessage_();
-        bool receiveMessage_( MESSAGE_TYPE& type );
-};
-
-#endif

@@ -42,18 +42,17 @@
 #include "MessageHeader.h"
 #include "PixelStreamSegmentParameters.h"
 #include "log.h"
+#include "PixelStreamSegment.h"
 
 #include <QtCore>
-#include <cmath>
 #include <turbojpeg.h>
-#include <algorithm>
-#include <unistd.h>
+#include <set>
 
 // default to undefined frame index
 int g_dcStreamFrameIndex = FRAME_INDEX_UNDEFINED;
 
 // all current source indices for each stream name
-typedef std::map< std::string, std::vector<int> > SourcesIndices;
+typedef std::map< std::string, std::set<int> > SourcesIndices;
 typedef std::map< DcSocket*, SourcesIndices > StreamSources;
 StreamSources g_dcStreamSourceIndices;
 
@@ -252,9 +251,9 @@ void dcStreamReset(DcSocket * socket)
          ++j )
     {
         const std::string& name = j->first;
-        for( size_t k = 0; k < j->second.size(); ++k )
+        for( std::set<int>::const_iterator k = j->second.begin(); k != j->second.end(); ++k )
         {
-            int sourceIndex = j->second[k];
+            int sourceIndex = *k;
 
             // blank parameters object
             DcStreamParameters parameters = dcStreamGenerateParameters(name, sourceIndex, 0, 0, 0, 0, 0);
@@ -293,24 +292,27 @@ std::vector<DcStreamParameters> dcStreamGenerateParameters(std::string name, int
     // segment dimensions will be approximately nominalSegmentWidth x nominalSegmentHeight
 
     // number of subdivisions in each dimension
-    int numSubdivisionsX = (int)floor((float)width / (float)nominalSegmentWidth + 0.5);
-    int numSubdivisionsY = (int)floor((float)height / (float)nominalSegmentHeight + 0.5);
+    const unsigned int numSubdivisionsX = (unsigned int)floor((float)width / (float)nominalSegmentWidth + 0.5);
+    const unsigned int numSubdivisionsY = (unsigned int)floor((float)height / (float)nominalSegmentHeight + 0.5);
+
+    const unsigned int uniformSegmentWidth = (unsigned int)((float)width / (float)numSubdivisionsX);
+    const unsigned int uniformSegmentHeight = (unsigned int)((float)height / (float)numSubdivisionsY);
 
     // now, create parameters for each segment
     std::vector<DcStreamParameters> parameters;
 
-    for(int i=0; i<numSubdivisionsX; i++)
+    for(unsigned int i=0; i<numSubdivisionsX; i++)
     {
-        for(int j=0; j<numSubdivisionsY; j++)
+        for(unsigned int j=0; j<numSubdivisionsY; j++)
         {
             DcStreamParameters p;
 
             p.name = name;
             p.sourceIndex = firstSourceIndex;
-            p.x = x + i * (int)((float)width / (float)numSubdivisionsX);
-            p.y = y + j * (int)((float)height / (float)numSubdivisionsY);
-            p.width = (int)((float)width / (float)numSubdivisionsX);
-            p.height = (int)((float)height / (float)numSubdivisionsY);
+            p.x = x + i * uniformSegmentWidth;
+            p.y = y + j * uniformSegmentHeight;
+            p.width = uniformSegmentWidth;
+            p.height = uniformSegmentHeight;
             p.totalWidth = totalWidth;
             p.totalHeight = totalHeight;
             p.segmentCount = numSubdivisionsX*numSubdivisionsY;
@@ -432,7 +434,7 @@ bool dcStreamSendImage(DcSocket * socket, DcStreamParameters parameters, const u
         return false;
     }
 
-    if(socket->isConnected() != true)
+    if(!socket->isConnected())
     {
         put_flog(LOG_ERROR, "socket is not connected");
 
@@ -478,15 +480,65 @@ bool dcStreamSendImage(DcSocket * socket, DcStreamParameters parameters, const u
     // queue the message to be sent
     bool success = socket->queueMessage(message);
 
-    SourcesIndices& indices = g_dcStreamSourceIndices[socket];
     // make sure this sourceIndex is in the vector of current source indices for this stream name
-    if(count(indices[parameters.name].begin(), indices[parameters.name].end(), parameters.sourceIndex) == 0)
-    {
-        indices[parameters.name].push_back(parameters.sourceIndex);
-    }
+    SourcesIndices& indices = g_dcStreamSourceIndices[socket];
+    indices[parameters.name].insert(parameters.sourceIndex);
 
     // wait for acknowledgment if requested. this wait can be disabled to buffer all sends before waiting for acknowledgments, for example.
-    if(waitForAck == true)
+    if(waitForAck)
+    {
+        socket->waitForAck();
+    }
+
+    return success;
+}
+
+bool dcStreamSendPixelStreamSegment(DcSocket *socket, const PixelStreamSegment &segment, const std::string &senderName, bool waitForAck)
+{
+    if(socket == NULL)
+    {
+        put_flog(LOG_ERROR, "socket is NULL");
+
+        return false;
+    }
+
+    if(!socket->isConnected())
+    {
+        put_flog(LOG_ERROR, "socket is not connected");
+
+        return false;
+    }
+
+    // Create message header
+    MessageHeader mh;
+    mh.size = sizeof(PixelStreamSegmentParameters) + segment.imageData.size();
+    mh.type = MESSAGE_TYPE_PIXELSTREAM;
+    // add the truncated URI to the header
+    size_t len = senderName.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
+    mh.uri[len] = '\0';
+
+    // This byte array will hold the entire message to be sent over the socket
+    QByteArray message;
+
+    // Message payload part 0: header
+    message.append((const char *)&mh, sizeof(MessageHeader));
+
+    // Message payload part 1: segment parameters
+    message.append((const char *)(&segment.parameters), sizeof(PixelStreamSegmentParameters));
+
+    // Message payload part 2: image data
+    message.append(segment.imageData);
+
+
+    // queue the message to be sent
+    bool success = socket->queueMessage(message);
+
+    // make sure this sourceIndex is in the vector of current source indices for this stream name
+    SourcesIndices& indices = g_dcStreamSourceIndices[socket];
+    indices[senderName].insert(segment.parameters.sourceIndex);
+
+    // wait for acknowledgment if requested. This wait can be disabled to buffer all sends before waiting for acknowledgments, for example.
+    if(waitForAck)
     {
         socket->waitForAck();
     }

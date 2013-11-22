@@ -41,63 +41,17 @@
 #include <boost/test/unit_test.hpp>
 namespace ut = boost::unit_test;
 
-#include "globals.h"
-#include "Options.h"
-#include "configuration/Configuration.h"
+#include "GlobalQtApp.h"
+
 #include "WebkitPixelStreamer.h"
 
-#include <QApplication>
 #include <QWebElementCollection>
 #include <QWebFrame>
 #include <QWebPage>
 #include <QWebView>
 
-#include <X11/Xlib.h>
-
 #define TEST_PAGE_URL         "webgl_interaction.html"
-#define CONFIG_TEST_FILENAME  "configuration.xml"
 
-namespace ut = boost::unit_test;
-
-bool hasGLXDisplay()
-{
-    Display* display = XOpenDisplay( 0 );
-    if( !display )
-        return false;
-    int major, event, error;
-    const bool hasGLX = XQueryExtension( display, "GLX", &major, &event,
-                                         &error );
-    XCloseDisplay( display );
-    return hasGLX;
-}
-
-// We need a global fixture because a bug in QApplication prevents
-// deleting then recreating a QApplication in the same process.
-// https://bugreports.qt-project.org/browse/QTBUG-7104
-struct GlobalQtApp
-{
-    GlobalQtApp()
-        : app( 0 )
-    {
-        if( !hasGLXDisplay( ))
-          return;
-
-        // need QApplication to instantiate WebkitPixelStreamer
-        ut::master_test_suite_t& testSuite = ut::framework::master_test_suite();
-        app = new QApplication( testSuite.argc, testSuite.argv );
-
-        // To test wheel events the WebkitPixelStreamer needs access to the g_configuration element
-        OptionsPtr options(new Options());
-        g_configuration = new Configuration(CONFIG_TEST_FILENAME, options);
-    }
-    ~GlobalQtApp()
-    {
-        delete g_configuration;
-        delete app;
-    }
-
-    QApplication* app;
-};
 
 BOOST_GLOBAL_FIXTURE( GlobalQtApp );
 

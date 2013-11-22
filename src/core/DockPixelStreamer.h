@@ -68,14 +68,13 @@ public:
 
     void open();
 
-    void onItem();
-
 public slots:
+    virtual void updateInteractionState(InteractionState interactionState);
+
+private slots:
     void update(const QImage &image);
     void loadThumbnails(int newCenterIndex);
     void loadNextThumbnailInList();
-
-    virtual void updateInteractionState(InteractionState interactionState);
 
 signals:
     void renderPreview( const QString& fileName, const int index );
@@ -94,6 +93,7 @@ private:
     QVector<SlideImageLoadingStatus> slideImagesLoaded_;
     QLinkedList<int> slideImagesToLoad_;
 
+    void onItem();
     PixelStreamSegmentParameters makeSegmentHeader();
     bool openFile(const QString &filename);
     void changeDirectory( const QString& dir );

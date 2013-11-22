@@ -70,6 +70,7 @@ public:
 public slots:
     virtual void updateInteractionState(InteractionState interactionState);
 
+private slots:
     void update();
 
 private:

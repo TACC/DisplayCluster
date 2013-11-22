@@ -45,6 +45,7 @@
 #include <vector>
 
 class DcSocket;
+class PixelStreamSegment;
 
 struct DcStreamParameters  {
     std::string name;
@@ -100,6 +101,16 @@ extern bool dcStreamSend(DcSocket * socket, unsigned char * imageBuffer, int ima
 // parameters and sends it to a DisplayCluster instance over socket. If
 // waitForAck is true, this function will block until an acknowledgment is received.
 extern bool dcStreamSendImage(DcSocket * socket, DcStreamParameters parameters, const unsigned char * buffer, int size, bool waitForAck=true);
+
+/**
+ * @brief dcStreamSendPixelStreamSegment send an existing PixelStreamSegment via the DcSocket
+ * @param socket The DcSocket instance
+ * @param segment A pixel stream segement with valid parameters and imageData
+ * @param senderName Used to identifiy the sender on the receiver side
+ * @param waitForAck if true, this function will block until an acknowledgment is received
+ * @return true if the message could be sent (or added to the queue if waitForAck==false)
+ */
+extern bool dcStreamSendPixelStreamSegment(DcSocket * socket, const PixelStreamSegment& segment, const std::string& senderName, bool waitForAck=true);
 
 // increment the frame index for all segments sent by this process. this is
 // used for frame synchronization.

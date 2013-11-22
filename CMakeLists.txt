@@ -72,7 +72,7 @@ find_package(LibJpegTurbo REQUIRED)
 include_directories(${LibJpegTurbo_INCLUDE_DIRS})
 list(APPEND LIBS ${LibJpegTurbo_LIBRARIES})
 
-find_package(Boost REQUIRED COMPONENTS serialization date_time unit_test_framework)
+find_package(Boost REQUIRED COMPONENTS serialization date_time unit_test_framework program_options)
 include_directories(${Boost_INCLUDE_DIRS})
 list(APPEND LIBS ${Boost_LIBRARIES})
 

@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,86 +37,35 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DC_SOCKET_H
-#define DC_SOCKET_H
+#ifndef COMMANDLINEOPTIONS_H
+#define COMMANDLINEOPTIONS_H
 
-#include "InteractionState.h"
-#include "MessageHeader.h"
+#include <QString>
+#include <boost/program_options/options_description.hpp>
 
-#include <QtCore>
-#include <queue>
+#include "LocalPixelStreamerType.h"
 
-class QTcpSocket;
-
-// we can't use the signal / slot model for handling threads without a Qt event
-// loop. so, we make our own thread class and override run()...
-
-class DcSocket : public QThread
+class CommandLineOptions
 {
-    Q_OBJECT
+public:
+    CommandLineOptions(int &argc, char **argv);
 
-    public:
+    void showSyntax() const;
 
-        DcSocket(const char * hostname, bool async = true );
-        ~DcSocket();
+    bool getHelp() const;
+    const QString& getConfigFilename() const;
+    PixelStreamerType getPixelStreamerType() const;
+    const QString& getUrl() const;
 
-        bool isConnected();
+private:
+    void parseCommandLineArguments(int &argc, char **argv);
 
-        // queue a message to be sent (non-blocking)
-        bool queueMessage(QByteArray message);
+    bool getHelp_;
+    QString configFileName_;
+    PixelStreamerType streamerType_;
+    QString url_;
 
-        // wait for count acks to be received
-        void waitForAck(int count=1);
-
-        // -1 for no reply yet, 0 for not bound (if exclusive mode),
-        // 1 for successful bound
-        int hasInteraction();
-
-        InteractionState getInteractionState();
-
-        int socketDescriptor() const;
-
-        // for synchronous read operations (non-blocking)
-        bool hasNewInteractionState();
-
-    signals:
-        void received(InteractionState state);
-
-    protected:
-
-        bool async_;
-        QTcpSocket * socket_;
-
-        // mutex and queue for messages to send
-        QMutex sendMessagesQueueMutex_;
-        std::queue<QByteArray> sendMessagesQueue_;
-
-        // semaphore for ack count
-        QSemaphore ackSemaphore_;
-
-        // mutex and flag to trigger socket thread to disconnect
-        QMutex disconnectFlagMutex_;
-        bool disconnectFlag_;
-
-        // current interaction state
-        QMutex interactionStateMutex_;
-        InteractionState interactionState_;
-
-        QAtomicInt interactionReply_;
-
-        // socket connections
-        bool connect(const char * hostname);
-        void disconnect();
-
-        // thread execution
-        void run();
-
-        // these are only called in the thread execution
-        bool socketSendMessage(QByteArray message);
-        bool socketReceiveMessage(MessageHeader & messageHeader, QByteArray & message);
-
-        bool sendMessage_();
-        bool receiveMessage_( MESSAGE_TYPE& type );
+    boost::program_options::options_description desc_;
 };
 
-#endif
+#endif // COMMANDLINEOPTIONS_H

@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,86 +37,80 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DC_SOCKET_H
-#define DC_SOCKET_H
+#include "Application.h"
 
-#include "InteractionState.h"
-#include "MessageHeader.h"
+#include "LocalPixelStreamer.h"
+#include "WebkitPixelStreamer.h"
+#include "DockPixelStreamer.h"
 
-#include <QtCore>
-#include <queue>
+#include "LocalPixelStreamerFactory.h"
+#include "LocalPixelStreamerType.h"
 
-class QTcpSocket;
+#include "dcstream/DcSocket.h"
 
-// we can't use the signal / slot model for handling threads without a Qt event
-// loop. so, we make our own thread class and override run()...
-
-class DcSocket : public QThread
+Application::Application(int &argc, char **argv)
+    : QApplication(argc, argv)
+    , streamer_(0)
+    , dcSocket(0)
 {
-    Q_OBJECT
+}
 
-    public:
+Application::~Application()
+{
+    dcStreamDisconnect(dcSocket);
 
-        DcSocket(const char * hostname, bool async = true );
-        ~DcSocket();
+    delete streamer_;
+}
 
-        bool isConnected();
+QString getUriForStreamer(PixelStreamerType type)
+{
+    qint64 pid = QCoreApplication::applicationPid();
+    switch(type)
+    {
+    case PS_WEBKIT:
+        return QString("WebBrowser_%1").arg(pid);
+    default:
+        return "";
+    }
+}
 
-        // queue a message to be sent (non-blocking)
-        bool queueMessage(QByteArray message);
+bool Application::initalize(const CommandLineOptions& options)
+{
+    // Connect via DcStream to Master application
+    dcSocket = dcStreamConnect("localhost");
+    if (!dcSocket)
+        return false;
 
-        // wait for count acks to be received
-        void waitForAck(int count=1);
+    // Create the streamer
+    QString uri = getUriForStreamer(options.getPixelStreamerType());
+    streamer_ = LocalPixelStreamerFactory::create(options.getPixelStreamerType(), uri);
+    if (!streamer_)
+        return false;
+    connect(streamer_, SIGNAL(segmentUpdated(QString,PixelStreamSegment)), this, SLOT(processPixelStreamSegment(QString,PixelStreamSegment)));
 
-        // -1 for no reply yet, 0 for not bound (if exclusive mode),
-        // 1 for successful bound
-        int hasInteraction();
+    // Forward InteractionState updates to the pixel streamer
+    connect(dcSocket, SIGNAL(received(InteractionState)), streamer_, SLOT(updateInteractionState(InteractionState)), Qt::QueuedConnection);
+    if (!dcStreamBindInteraction(dcSocket, streamer_->getUri().toStdString()))
+        return false;
 
-        InteractionState getInteractionState();
+    if(options.getPixelStreamerType() == PS_WEBKIT)
+    {
+        static_cast<WebkitPixelStreamer*>(streamer_)->setUrl(options.getUrl());
+    }
 
-        int socketDescriptor() const;
+    return true;
+}
 
-        // for synchronous read operations (non-blocking)
-        bool hasNewInteractionState();
+void Application::processPixelStreamSegment(QString uri, PixelStreamSegment segment)
+{
+    bool success = dcStreamSendPixelStreamSegment(dcSocket, segment, streamer_->getUri().toStdString());
 
-    signals:
-        void received(InteractionState state);
+    if(!success)
+    {
+        QApplication::quit();
+        return;
+    }
 
-    protected:
+    dcStreamIncrementFrameIndex();
+}
 
-        bool async_;
-        QTcpSocket * socket_;
-
-        // mutex and queue for messages to send
-        QMutex sendMessagesQueueMutex_;
-        std::queue<QByteArray> sendMessagesQueue_;
-
-        // semaphore for ack count
-        QSemaphore ackSemaphore_;
-
-        // mutex and flag to trigger socket thread to disconnect
-        QMutex disconnectFlagMutex_;
-        bool disconnectFlag_;
-
-        // current interaction state
-        QMutex interactionStateMutex_;
-        InteractionState interactionState_;
-
-        QAtomicInt interactionReply_;
-
-        // socket connections
-        bool connect(const char * hostname);
-        void disconnect();
-
-        // thread execution
-        void run();
-
-        // these are only called in the thread execution
-        bool socketSendMessage(QByteArray message);
-        bool socketReceiveMessage(MessageHeader & messageHeader, QByteArray & message);
-
-        bool sendMessage_();
-        bool receiveMessage_( MESSAGE_TYPE& type );
-};
-
-#endif

@@ -108,7 +108,9 @@ list(APPEND SRCS
     gestures/PinchGestureRecognizer.cpp
     ../log.cpp
     LocalPixelStreamer.cpp
+    LocalPixelStreamerFactory.cpp
     LocalPixelStreamerManager.cpp
+    LocalPixelStreamerType.cpp
     MainWindow.cpp
     Movie.cpp
     MovieContent.cpp
