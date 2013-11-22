@@ -36,7 +36,7 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "DcSocket.h"
+#include "Socket.h"
 
 #include "MessageHeader.h"
 #include "NetworkProtocol.h"
@@ -64,6 +64,7 @@ Socket::Socket(const std::string &hostname, unsigned short port)
 
 Socket::~Socket()
 {
+    socket_->flush();
     delete socket_;
 }
 

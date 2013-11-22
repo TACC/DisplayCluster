@@ -37,9 +37,9 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "DcImageSegmenter.h"
+#include "ImageSegmenter.h"
 
-#include "DcImageWrapper.h"
+#include "ImageWrapper.h"
 
 #include "log.h"
 #include "PixelStreamSegment.h"

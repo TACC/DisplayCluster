@@ -39,96 +39,82 @@
 #ifndef MAIN_WINDOW_H
 #define MAIN_WINDOW_H
 
-#define SUPPORTED_NETWORK_PROTOCOL_VERSION 7
-
-#define SHARE_DESKTOP_UPDATE_DELAY 1
-
-#define FRAME_RATE_AVERAGE_NUM_FRAMES 10
-
-#define JPEG_QUALITY 75
-
 #include <QtGui>
-#include <QtNetwork/QTcpSocket>
 
-#include "PixelStreamSegment.h"
+namespace dc
+{
+class Stream;
+}
 
-class MainWindow : public QMainWindow {
+class DesktopSelectionWindow;
+
+class MainWindow : public QMainWindow
+{
     Q_OBJECT
 
-    public:
+public:
+    MainWindow();
 
-        MainWindow();
+signals:
+    void streaming(bool);
 
-        void getCoordinates(int &x, int &y, int &width, int &height);
-        void setCoordinates(int x, int y, int width, int height);
+protected:
+    virtual void closeEvent( QCloseEvent* event );
 
-        QImage getImage();
+private slots:
+    void shareDesktop(bool set);
+    void showDesktopSelectionWindow(bool set);
 
-    public slots:
+    void shareDesktopUpdate();
 
-        void shareDesktop(bool set);
-        void showDesktopSelectionWindow(bool set);
-        void setParallelStreaming(bool set);
-        void shareDesktopUpdate();
-        void updateCoordinates();
+    void setCoordinates(int x, int y, int width, int height);
+    void updateCoordinates();
 
-    private:
+private:
+    dc::Stream* dcStream_;
 
-        virtual void closeEvent( QCloseEvent* event );
+    DesktopSelectionWindow* desktopSelectionWindow_;
 
-        bool updatedDimensions_;
+    /** @name User Interface Elements */
+    /*@{*/
+    QLineEdit hostnameLineEdit_;
+    QLineEdit uriLineEdit_;
+    QSpinBox xSpinBox_;
+    QSpinBox ySpinBox_;
+    QSpinBox widthSpinBox_;
+    QSpinBox heightSpinBox_;
+    QCheckBox retinaBox_;
+    QSpinBox frameRateSpinBox_;
+    QLabel frameRateLabel_;
 
-        QLineEdit hostnameLineEdit_;
-        QLineEdit uriLineEdit_;
-        QSpinBox xSpinBox_;
-        QSpinBox ySpinBox_;
-        QSpinBox widthSpinBox_;
-        QSpinBox heightSpinBox_;
-        QCheckBox retinaBox_;
-        QSpinBox frameRateSpinBox_;
-        QLabel frameRateLabel_;
+    QAction * shareDesktopAction_;
+    QAction * showDesktopSelectionWindowAction_;
+    /*@}*/
 
-        QAction * shareDesktopAction_;
-        QAction * showDesktopSelectionWindowAction_;
+    /** @name Status */
+    /*@{*/
+    int x_;
+    int y_;
+    int width_;
+    int height_;
+    float deviceScale_;
+    /*@}*/
 
-        std::string hostname_;
-        std::string uri_;
-        int x_;
-        int y_;
-        int width_;
-        int height_;
-        float deviceScale_;
+    QImage cursor_;
 
-        bool parallelStreaming_;
+    QTimer shareDesktopUpdateTimer_;
 
-        // full image
-        QImage image_;
+    // used for frame rate calculations
+    std::vector<QTime> frameSentTimes_;
 
-        // mouse cursor pixmap
-        QImage cursor_;
+    void setupUI();
+    void generateCursorImage();
 
-        // for regular pixel streaming
-        QByteArray previousImageData_;
+    void startStreaming();
+    void stopStreaming();
+    void handleStreamingError(const QString& errorMessage);
 
-        // for parallel pixel streaming
-        std::vector<dc::PixelStreamSegment> segments_;
-
-        QTimer shareDesktopUpdateTimer_;
-
-        // used for frame rate calculations
-        std::vector<QTime> frameSentTimes_;
-
-        QTcpSocket tcpSocket_;
-
-        bool streamSegments();
-        void sendQuit();
-
-        void setupSegments();
-        void setupSingleSegment();
-        void setupMultipleSegments();
-        void updateSegments(bool requestViewAdjustment);
-        void sendSegment(const dc::PixelStreamSegment &segment);
-        void resetSegments();
+    void regulateFrameRate(const int elapsedFrameTime);
 };
 
 #endif

@@ -43,7 +43,7 @@
 #include <string>
 
 #include "InteractionState.h"
-#include "DcImageWrapper.h"
+#include "ImageWrapper.h"
 #include "NonCopyable.h"
 
 namespace dc

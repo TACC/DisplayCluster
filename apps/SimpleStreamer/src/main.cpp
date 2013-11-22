@@ -10,7 +10,7 @@
 #endif
 
 // DisplayCluster streaming
-#include "dcstream/DcStream.h"
+#include "dcstream/Stream.h"
 
 bool dcInteraction = false;
 bool dcCompressImage = true;

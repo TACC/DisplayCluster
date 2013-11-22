@@ -48,8 +48,6 @@
 
 #include "CommandLineOptions.h"
 
-#include "dcstream/DcSocket.h"
-
 #include <QTimer>
 
 #define DC_STREAM_HOST_ADDRESS "localhost"
@@ -90,11 +88,13 @@ bool Application::initalize(const CommandLineOptions& options)
         return false;
     connect(streamer_, SIGNAL(imageUpdated(QImage)), this, SLOT(sendImage(QImage)));
 
-    // Connect via DcStream to Master application    // connect to DisplayCluster
-    try {
-        dcStream_ = new dc::Stream(uri.toStdString(), DC_STREAM_HOST_ADDRESS);
-    }
-    catch (std::exception& e) {
+    // Connect to DisplayCluster
+    dcStream_ = new dc::Stream(uri.toStdString(), DC_STREAM_HOST_ADDRESS);
+    if (!dcStream_->isConnected())
+    {
+        std::cerr << "Could not connect to host!" << std::endl;
+        delete dcStream_;
+        dcStream_ = 0;
         return false;
     }
 

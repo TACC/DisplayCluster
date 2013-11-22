@@ -4,19 +4,19 @@ set(DISPLAYCLUSTER_LIBRARY_LIBS ${DISPLAYCLUSTER_LIBRARY_LIBS} ${LibJpegTurbo_LI
 
 set(DISPLAYCLUSTER_LIBRARY_SRCS
     ../log.cpp
-    DcSocket.cpp
-    DcStream.cpp
-    DcStreamPrivate.cpp
-    DcImageWrapper.cpp
-    DcImageSegmenter.cpp
+    Socket.cpp
+    Stream.cpp
+    StreamPrivate.cpp
+    ImageWrapper.cpp
+    ImageSegmenter.cpp
 )
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/dcVersion.in.h
                ${CMAKE_BINARY_DIR}/dcVersion.h)
 
 set(DISPLAYCLUSTER_LIBRARY_PUBLIC_HEADERS
-    DcStream.h
-    DcImageWrapper.h
+    Stream.h
+    ImageWrapper.h
     ../InteractionState.h
     ../NonCopyable.h
     ${CMAKE_BINARY_DIR}/dcVersion.h

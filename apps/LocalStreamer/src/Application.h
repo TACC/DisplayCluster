@@ -43,7 +43,7 @@
 #include <QApplication>
 #include <QImage>
 
-#include "DcStream.h"
+#include "Stream.h"
 
 class LocalPixelStreamer;
 class CommandLineOptions;

@@ -1,15 +1,16 @@
 
 set(DESKTOP_STREAMER_SRCS ${DESKTOP_STREAMER_SRCS}
-  ../../src/log.cpp
-  src/DesktopSelectionRectangle.cpp
-  src/DesktopSelectionWindow.cpp
-  src/DesktopSelectionView.cpp
-  src/main.cpp
-  src/MainWindow.cpp
+    src/DesktopSelectionRectangle.cpp
+    src/DesktopSelectionWindow.cpp
+    src/DesktopSelectionView.cpp
+    src/main.cpp
+    src/MainWindow.cpp
 )
 
 set(DESKTOP_STREAMER_MOC_HEADERS
-  src/MainWindow.h
+    src/MainWindow.h
+    src/DesktopSelectionWindow.h
+    src/DesktopSelectionRectangle.h
 )
 
 qt4_wrap_cpp(DESKTOP_STREAMER_MOC_OUTFILES ${DESKTOP_STREAMER_MOC_HEADERS})
@@ -18,7 +19,8 @@ qt4_add_resources(DESKTOP_STREAMER_RRC resources.qrc)
 set(DESKTOP_STREAMER_LIBS ${QT_QTCORE_LIBRARY}
                           ${QT_QTGUI_LIBRARY}
                           ${QT_QTNETWORK_LIBRARY}
-                          ${LibJpegTurbo_LIBRARIES})
+                          ${LibJpegTurbo_LIBRARIES}
+                          DisplayClusterLibrary)
 
 if(APPLE)
   set(STREAMER_APP_NAME DesktopStreamer)

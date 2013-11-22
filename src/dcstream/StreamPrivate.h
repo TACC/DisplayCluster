@@ -44,7 +44,7 @@
 
 #include "InteractionState.h"
 #include "MessageHeader.h"
-#include "DcImageSegmenter.h"
+#include "ImageSegmenter.h"
 
 namespace dc
 {

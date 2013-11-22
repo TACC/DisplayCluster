@@ -141,24 +141,25 @@ void NetworkListenerThread::process()
 
     // flush the socket
     tcpSocket_->flush();
+
+    // Finish reading messages from the socket if connection closed
+    if(tcpSocket_->state() != QAbstractSocket::ConnectedState)
+    {
+        while (tcpSocket_->bytesAvailable() >= (int)sizeof(MessageHeader))
+        {
+            socketReceiveMessage();
+        }
+        emit(finished());
+    }
 }
 
 void NetworkListenerThread::socketReceiveMessage()
 {
-    if(tcpSocket_->state() != QAbstractSocket::ConnectedState)
-    {
-        emit(finished());
-        return;
-    }
-
     // first, read the message header
     MessageHeader mh = receiveMessageHeader();
 
     // next, read the actual message
     QByteArray messageByteArray = receiveMessageBody(mh.size);
-
-//    // send acknowledgment
-//    sendAck();
 
     // got the message
     handleMessage(mh, messageByteArray);

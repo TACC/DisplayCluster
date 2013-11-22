@@ -37,9 +37,11 @@
 /*********************************************************************/
 
 #include "DesktopSelectionWindow.h"
-#include "main.h"
+
+#include "DesktopSelectionView.h"
 
 DesktopSelectionWindow::DesktopSelectionWindow()
+    : desktopSelectionView_(new DesktopSelectionView(this))
 {
     // make window transparent
     setStyleSheet("background:transparent;");
@@ -51,7 +53,7 @@ DesktopSelectionWindow::DesktopSelectionWindow()
     setWindowFlags(flags | Qt::CustomizeWindowHint | Qt::WindowStaysOnTopHint);
 
     // add the view after showing the window to avoid shadow artifacts on Mac
-    setCentralWidget(&desktopSelectionView_);
+    setCentralWidget(desktopSelectionView_);
 
     // button to hide the window
     QPushButton * hideWindowButton = new QPushButton("Exit selection mode");
@@ -61,17 +63,17 @@ DesktopSelectionWindow::DesktopSelectionWindow()
     hideWindowButton->setFlat(true);
 
     // add it to the scene
-    desktopSelectionView_.scene()->addWidget(hideWindowButton);
+    desktopSelectionView_->scene()->addWidget(hideWindowButton);
 }
 
-DesktopSelectionView * DesktopSelectionWindow::getDesktopSelectionView()
+DesktopSelectionView* DesktopSelectionWindow::getDesktopSelectionView()
 {
-    return &desktopSelectionView_;
+    return desktopSelectionView_;
 }
 
 void DesktopSelectionWindow::hideEvent(QHideEvent * event)
 {
     QWidget::hideEvent(event);
 
-    g_mainWindow->showDesktopSelectionWindow(false);
+    emit windowVisible(false);
 }

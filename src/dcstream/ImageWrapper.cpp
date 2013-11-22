@@ -37,92 +37,55 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "DcStreamPrivate.h"
+#include "ImageWrapper.h"
+#include <cstring>
 
-#include "DcStream.h" // For defaultCompressionQuality
-
-#include "DcSocket.h"
-#include "PixelStreamSegment.h"
-#include "PixelStreamSegmentParameters.h"
-
-#define SEGMENT_SIZE 512
+#define DEFAULT_COMPRESSION_QUALITY  75
 
 namespace dc
 {
 
-StreamPrivate::StreamPrivate(const std::string &name)
-    : name_(name)
-    , dcSocket_(0)
-    , interactionBound_(false)
+ImageWrapper::ImageWrapper(const void *data, const unsigned int width, const unsigned int height,
+                           const PixelFormat format, const unsigned int x, const unsigned int y)
+    : data(data)
+    , width(width)
+    , height(height)
+    , pixelFormat(format)
+    , x(x)
+    , y(y)
+    , compressionPolicy(COMPRESSION_AUTO)
+    , compressionQuality(DEFAULT_COMPRESSION_QUALITY)
+{}
+
+unsigned int ImageWrapper::getBytesPerPixel() const
 {
-    imageSegmenter_.setNominalSegmentDimensions(SEGMENT_SIZE, SEGMENT_SIZE);
+    // enum PixelFormat { RGB, RGBA, ARGB, BGR, BGRA, ABGR };
+    static const unsigned int dcBytesPerPixel[] = { 3, 4, 4, 3, 4, 4 };
+
+    return dcBytesPerPixel[pixelFormat];
 }
 
-MessageHeader StreamPrivate::createMessageHeader(MESSAGE_TYPE type, size_t payloadSize) const
+size_t ImageWrapper::getBufferSize() const
 {
-    MessageHeader mh;
-    mh.type = type;
-    mh.size = payloadSize;
-
-    // add the truncated URI to the header
-    const size_t len = name_.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
-    mh.uri[len] = '\0';
-
-    return mh;
+    return width * height * getBytesPerPixel();
 }
 
-bool StreamPrivate::sendPixelStreamSegment(const PixelStreamSegment &segment)
+void ImageWrapper::reorderGLImageData(void *data, const unsigned int width, const unsigned int height, const unsigned int bpp)
 {
-    // Create message header
-    size_t segmentSize = sizeof(PixelStreamSegmentParameters) + segment.imageData.size();
-    MessageHeader mh = createMessageHeader(MESSAGE_TYPE_PIXELSTREAM, segmentSize);
+    unsigned char* src = (unsigned char*)data;
 
-    // This byte array will hold the message to be sent over the socket
-    QByteArray message;
+    size_t bytesPerLine = width*bpp;
+    size_t bufferSize = bytesPerLine*height;
 
-    // Message payload part 1: segment parameters
-    message.append((const char *)(&segment.parameters), sizeof(PixelStreamSegmentParameters));
+    unsigned char* tmp = new unsigned char[bufferSize];
 
-    // Message payload part 2: image data
-    message.append(segment.imageData);
-
-    bool success = dcSocket_->send(mh, message);
-
-    return success;
-}
-
-bool StreamPrivate::open(const std::string& address)
-{
-    // Connect to DisplayCluster application
-    dcSocket_ = new Socket(address);
-
-    if(!dcSocket_->isConnected())
+    for (size_t y=0; y<height; y++)
     {
-        delete dcSocket_;
-        dcSocket_ = 0;
-
-        return false;
+        memcpy( (void*)(&tmp[y*bytesPerLine]), (const void*)&src[(height-y-1)*bytesPerLine], bytesPerLine);
     }
+    memcpy(data, (const void*)tmp, bufferSize);
 
-    // Open a window for the PixelStream
-    MessageHeader mh = createMessageHeader(MESSAGE_TYPE_PIXELSTREAM_OPEN, 0);
-    return dcSocket_->send(mh, QByteArray());
-}
-
-bool StreamPrivate::close()
-{
-    if( !dcSocket_ || !dcSocket_->isConnected( ))
-        return true;
-
-    MessageHeader mh = createMessageHeader(MESSAGE_TYPE_QUIT, 0);
-    dcSocket_->send(mh, QByteArray());
-
-    delete dcSocket_;
-    dcSocket_ = 0;
-
-    interactionBound_ = false;
-
-    return true;
+    delete[] tmp;
 }
 
 }
