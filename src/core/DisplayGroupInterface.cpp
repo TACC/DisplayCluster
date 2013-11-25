@@ -141,9 +141,9 @@ void DisplayGroupInterface::removeContentWindowManager(ContentWindowManagerPtr c
         return;
     }
 
-    InteractionState interactionState;
-    interactionState.type = InteractionState::EVT_CLOSE;
-    contentWindowManager->setInteractionState( interactionState );
+    Event event;
+    event.type = Event::EVT_CLOSE;
+    contentWindowManager->setEvent( event );
 
     // find vector entry for content window manager
     ContentWindowManagerPtrs::iterator it;

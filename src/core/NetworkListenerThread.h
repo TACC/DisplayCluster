@@ -40,7 +40,7 @@
 #define NETWORK_LISTENER_THREAD_H
 
 #include "MessageHeader.h"
-#include "InteractionState.h"
+#include "Event.h"
 #include "PixelStreamSegment.h"
 
 #include <QtCore>
@@ -49,7 +49,7 @@
 
 #include "DisplayGroupInterface.h" // TODO REMOVE??
 
-using dc::InteractionState;
+using dc::Event;
 using dc::PixelStreamSegment;
 
 class PixelStreamDispatcher;
@@ -66,7 +66,7 @@ public:
 
 public slots:
 
-    void setInteractionState(InteractionState interactionState);
+    void processEvent(Event event);
     void pixelStreamerClosed(QString uri);
 
 signals:
@@ -93,13 +93,10 @@ private:
 
     QString pixelStreamUri_;
 
-    QString interactionName_;
-    bool interactionBound_;
-    bool interactionExclusive_;
+    bool registeredToEvents_;
+    bool eventRegistrationExclusive_;
+    QQueue<Event> events_;
 
-    QQueue<InteractionState> interactionStates_;
-
-    // Event receivers
     PixelStreamDispatcher& pixelStreamDispatcher_;
     DisplayGroupManager& displayGroupManager_;
 
@@ -108,10 +105,10 @@ private:
 
     void handleMessage(MessageHeader messageHeader, QByteArray byteArray);
     void handlePixelStreamMessage(const QString& uri, const QByteArray& byteArray);
-    bool bindInteraction();
+    bool registerToEvents();
 
     void sendBindReply( bool successful );
-    void send(const InteractionState &interactionState);
+    void send(const Event &event);
     void sendQuit();
     bool send(const MessageHeader& messageHeader);
 };

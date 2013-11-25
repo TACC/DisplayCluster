@@ -68,7 +68,7 @@ public:
     QWebView* getView() const;
 
 public slots:
-    virtual void updateInteractionState(dc::InteractionState interactionState);
+    virtual void processEvent(dc::Event event);
 
 private slots:
     void update();
@@ -84,17 +84,17 @@ private:
 
     bool interactionModeActive_;
 
-    void processClickEvent(const InteractionState &interactionState);
-    void processPressEvent(const InteractionState &interactionState);
-    void processMoveEvent(const InteractionState &interactionState);
-    void processReleaseEvent(const InteractionState &interactionState);
-    void processWheelEvent(const InteractionState &interactionState);
-    void processKeyPress(const InteractionState &interactionState);
-    void processKeyRelease(const InteractionState &interactionState);
-    void processViewSizeChange(const InteractionState &interactionState);
+    void processClickEvent(const Event &event);
+    void processPressEvent(const Event &event);
+    void processMoveEvent(const Event &event);
+    void processReleaseEvent(const Event &event);
+    void processWheelEvent(const Event &event);
+    void processKeyPress(const Event &event);
+    void processKeyRelease(const Event &event);
+    void processViewSizeChange(const Event &event);
 
-    QWebHitTestResult performHitTest(const InteractionState &interactionState) const;
-    QPoint getPointerPosition(const InteractionState &interactionState) const;
+    QWebHitTestResult performHitTest(const Event &event) const;
+    QPoint getPointerPosition(const Event &event) const;
     bool isWebGLElement(const QWebElement &element) const;
 };
 

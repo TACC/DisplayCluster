@@ -45,9 +45,9 @@
 #include <QSize>
 #include <QImage>
 
-#include "InteractionState.h"
+#include "Event.h"
 
-using dc::InteractionState;
+using dc::Event;
 
 class LocalPixelStreamer : public QObject {
     Q_OBJECT
@@ -61,7 +61,7 @@ public:
     QString getUri() const;
 
 public slots:
-    virtual void updateInteractionState(InteractionState interactionState) = 0;
+    virtual void processEvent(Event event) = 0;
 
 protected:
     QString uri_;

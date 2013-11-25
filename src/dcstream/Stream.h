@@ -42,7 +42,7 @@
 
 #include <string>
 
-#include "InteractionState.h"
+#include "Event.h"
 #include "ImageWrapper.h"
 #include "NonCopyable.h"
 
@@ -104,33 +104,35 @@ public:
     bool finishFrame();
 
     /**
-     * Bind interaction for this stream.
+     * Register to receive Events for this Stream.
      *
-     * When binding interaction, the DisplayCluster master application will send InteractionState updates.
-     * The user of the library can query it using hasPendingInteractionState() and isInteractionBound()
+     * After registering for events, the DisplayCluster master application will send updates
+     * whenever a user is interacting with this Stream's window.
+     * The user of the library can retrieve them using hasEvent() and getEvent().
+     * The current registration status can be checked with isRegisterdForEvents().
      * @param exclusive Binds only one stream source for the same name
-     * @return true if the binding could be established, false otherwise.
+     * @return true if the registration could be established, false otherwise.
      * @note This call will fail until the window has been created, which should happen some time after the
      * first finishFrame() has succeeded.
      * @version 1.0
      */
-    bool bindInteraction(const bool exclusive = false);
+    bool registerForEvents(const bool exclusive = false);
 
     /**
-     * Is this stream bound for interaction.
+     * Is this stream registered to receive events.
      *
-     * Check if the stream has already been bound for interaction by bindInteraction().
-     * @return true after the DisplayCluster application has acknowledged the binding request, false otherwise
+     * Check if the stream has already been register to receive events with registerForEvents().
+     * @return true after the DisplayCluster application has acknowledged the registration request, false otherwise
      * @version 1.0
      */
-    bool isInteractionBound() const;
+    bool isRegisterdForEvents() const;
 
     /**
      * Get the native descriptor for the data stream.
      *
      * This descriptor can for instance be used by poll() on UNIX systems.
      * Having this descriptor lets a Stream class user detect when the Stream has received any data.
-     * The user can the use query the state of the Stream, for example using hasPendingInteractionState(),
+     * The user can the use query the state of the Stream, for example using hasEvent(),
      * and process the events accordingly.
      * @return The native descriptor if available; otherwise returns -1.
      * @version 1.0
@@ -138,26 +140,26 @@ public:
     int getDescriptor() const;
 
     /**
-     * Check if a new InteractionState is available.
+     * Check if a new Event is available.
      *
      * This method is non-blocking.
-     * @return True if an InteractionState is available, false otherwise
-     * @note Use this method prior to calling retreiveInteractionState(), for example as the condition
+     * @return True if an Event is available, false otherwise
+     * @note Use this method prior to calling getEvent(), for example as the condition
      * for a while() loop to process all pending events.
      * @version 1.0
      */
-    bool hasInteractionState() const;
+    bool hasEvent() const;
 
     /**
-     * Retrieve the next InteractionState.
+     * Get the next Event.
      *
      * This method is blocking.
-     * @return The next InteractionState in the queue if available, otherwise an empty (default) InteractionState.
-     * @note users are advised to check if an InteractionState is available with
-     * hasPendingInteractionState() before calling this method.
+     * @return The next Event in the queue if available, otherwise an empty (default) Event.
+     * @note users are advised to check if an Event is available with
+     *       hasEvent() before calling this method.
      * @version 1.0
      */
-    InteractionState retrieveInteractionState();
+    Event getEvent();
 
 private:
     StreamPrivate* impl_;

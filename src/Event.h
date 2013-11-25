@@ -37,55 +37,90 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "MessageHeader.h"
+#ifndef EVENT_H
+#define EVENT_H
 
-#include <QDataStream>
+#include <cstring>
 
-const size_t MessageHeader::serializedSize = sizeof(quint32) + sizeof(qint32) + MESSAGE_HEADER_URI_LENGTH;
+#define UNICODE_TEXT_SIZE 4
 
-MessageHeader::MessageHeader()
-    : type(MESSAGE_TYPE_NONE)
-    , size(0)
+class QDataStream;
+
+namespace dc
 {
-    uri[0] = '\0';
-}
 
-MessageHeader::MessageHeader(MessageType type, uint32_t size, const std::string& streamUri)
-    : type(type)
-    , size(size)
+/**
+ * A user event within a window.
+ *
+ * Typically used to forward user inputs from a window to classes that
+ * generate content for it.
+ *
+ * @version 1.0
+ */
+struct Event
 {
-    // add the truncated URI to the header
-    const size_t len = streamUri.copy(uri, MESSAGE_HEADER_URI_LENGTH - 1);
-    uri[len] = '\0';
-}
-
-QDataStream& operator<<(QDataStream& out, const MessageHeader& header)
-{
-    out << (qint32)header.type << (quint32)header.size;
-
-    for(size_t i = 0; i < MESSAGE_HEADER_URI_LENGTH; i++)
-        out << (quint8)header.uri[i];
-
-    return out;
-}
-
-QDataStream& operator>>(QDataStream& in, MessageHeader& header)
-{
-    qint32 type;
-    quint32 size;
-
-    in >> type;
-    header.type = (MessageType)type;
-    in >> size;
-    header.size = size;
-
-    quint8 character;
-    for(size_t i = 0; i < MESSAGE_HEADER_URI_LENGTH; i++)
+    /**
+     * The EventType enum defines the different types of interaction.
+     * @version 1.0
+     */
+    enum EventType
     {
-        in >> character;
-        header.uri[i] = (char)character;
-    }
+        EVT_NONE,
+        EVT_PRESS,
+        EVT_RELEASE,
+        EVT_CLICK,
+        EVT_DOUBLECLICK,
+        EVT_MOVE,
+        EVT_WHEEL,
+        EVT_SWIPE_LEFT,
+        EVT_SWIPE_RIGHT,
+        EVT_SWIPE_UP,
+        EVT_SWIPE_DOWN,
+        EVT_CLOSE,
+        EVT_KEY_PRESS,
+        EVT_KEY_RELEASE,
+        EVT_VIEW_SIZE_CHANGED
+    };
 
-    return in;
+    /** The type of event */
+    EventType type;
+
+    /** @name Mouse and touch events */
+    /*@{*/
+    double mouseX, mouseY;  /**< Normalized mouse/touch position relative to the window */
+    double dx, dy;          /**< Delta for wheel/scroll events */
+    bool mouseLeft, mouseRight, mouseMiddle;  /**< The state of the mouse buttons (pressed=true) */
+    /*@}*/
+
+    /** @name Keyboard events */
+    /*@{*/
+    int key;         /**< The key code, see QKeyEvent::key() */
+    int modifiers;   /**< The keyboard modifiers, see QKeyEvent::modifiers() */
+    char text[UNICODE_TEXT_SIZE];   /**< Carries unicode for key, see QKeyEvent::text() */
+    /*@}*/
+
+    /** Construct a new event. @version 1.0 */
+    Event()
+        : type(EVT_NONE)
+        , mouseX(0)
+        , mouseY(0)
+        , dx(0)
+        , dy(0)
+        , mouseLeft(false)
+        , mouseRight(false)
+        , mouseMiddle(false)
+        , key(0)
+        , modifiers(0)
+    {}
+
+    /** The size of the QDataStream serialized output. */
+    static const size_t serializedSize;
+};
+
+/** Serialization for network, where sizeof(Event) can differ between compilers. */
+QDataStream& operator<<(QDataStream& out, const Event& event);
+QDataStream& operator>>(QDataStream& in, Event& event);
+
 }
 
+#endif

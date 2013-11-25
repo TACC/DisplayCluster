@@ -116,27 +116,27 @@ BOOST_AUTO_TEST_CASE( test_webgl_interaction )
     BOOST_REQUIRE( frame );
 
     // Normalized mouse coordinates
-    InteractionState pressState;
+    Event pressState;
     pressState.mouseX = 0.1;
     pressState.mouseY = 0.1;
     pressState.mouseLeft = true;
-    pressState.type = InteractionState::EVT_PRESS;
+    pressState.type = Event::EVT_PRESS;
 
-    InteractionState moveState;
+    Event moveState;
     moveState.mouseX = 0.2;
     moveState.mouseY = 0.2;
     moveState.mouseLeft = true;
-    moveState.type = InteractionState::EVT_MOVE;
+    moveState.type = Event::EVT_MOVE;
 
-    InteractionState releaseState;
+    Event releaseState;
     releaseState.mouseX = 0.2;
     releaseState.mouseY = 0.2;
     releaseState.mouseLeft = true;
-    releaseState.type = InteractionState::EVT_RELEASE;
+    releaseState.type = Event::EVT_RELEASE;
 
-    streamer->updateInteractionState(pressState);
-    streamer->updateInteractionState(moveState);
-    streamer->updateInteractionState(releaseState);
+    streamer->processEvent(pressState);
+    streamer->processEvent(moveState);
+    streamer->processEvent(releaseState);
 
     const int expectedDisplacementX = (releaseState.mouseX-pressState.mouseX) *
                                 streamer->size().width() / streamer->getView()->zoomFactor();
@@ -173,13 +173,13 @@ BOOST_AUTO_TEST_CASE( test_webgl_click )
     BOOST_REQUIRE( frame );
 
     // Normalized mouse coordinates
-    InteractionState clickState;
+    Event clickState;
     clickState.mouseX = 0.1;
     clickState.mouseY = 0.1;
     clickState.mouseLeft = true;
-    clickState.type = InteractionState::EVT_CLICK;
+    clickState.type = Event::EVT_CLICK;
 
-    streamer->updateInteractionState(clickState);
+    streamer->processEvent(clickState);
 
     const int expectedPosX = clickState.mouseX * streamer->size().width() /
                              streamer->getView()->zoomFactor();
@@ -213,13 +213,13 @@ BOOST_AUTO_TEST_CASE( test_webgl_wheel )
     BOOST_REQUIRE( frame );
 
     // Normalized mouse coordinates
-    InteractionState wheelState;
+    Event wheelState;
     wheelState.mouseX = 0.1;
     wheelState.mouseY = 0.1;
     wheelState.dy = 0.05;
-    wheelState.type = InteractionState::EVT_WHEEL;
+    wheelState.type = Event::EVT_WHEEL;
 
-    streamer->updateInteractionState(wheelState);
+    streamer->processEvent(wheelState);
 
     const int expectedPosX = wheelState.mouseX * streamer->size().width() /
                              streamer->getView()->zoomFactor();

@@ -42,7 +42,7 @@
 
 #include <string>
 
-#include "InteractionState.h"
+#include "Event.h"
 #include "MessageHeader.h"
 #include "ImageSegmenter.h"
 
@@ -70,23 +70,8 @@ public:
     /** The image segmenter */
     ImageSegmenter imageSegmenter_;
 
-    /** Has the interaction binding reply been received */
-    bool interactionBound_;
-
-    /**
-     * Send an existing PixelStreamSegment via the DcSocket.
-     * @param socket The DcSocket instance
-     * @param segment A pixel stream segement with valid parameters and imageData
-     * @param senderName Used to identifiy the sender on the receiver side
-     * @return true if the message could be sent
-     */
-    bool sendPixelStreamSegment(const PixelStreamSegment& segment);
-
-    /**
-     * Close the stream.
-     * @return true if the connection could be terminated or the Stream was not connected, false otherwise
-     */
-    bool close();
+    /** Has a successful event registration reply been received */
+    bool registeredForEvents_;
 
     /**
      * Open a new connection to the DisplayCluster application
@@ -97,6 +82,21 @@ public:
      * @return true if the connection could be established
      */
     bool open(const std::string &address);
+
+    /**
+     * Close the stream.
+     * @return true if the connection could be terminated or the Stream was not connected, false otherwise
+     */
+    bool close();
+
+    /**
+     * Send an existing PixelStreamSegment via the DcSocket.
+     * @param socket The DcSocket instance
+     * @param segment A pixel stream segement with valid parameters and imageData
+     * @param senderName Used to identifiy the sender on the receiver side
+     * @return true if the message could be sent
+     */
+    bool sendPixelStreamSegment(const PixelStreamSegment& segment);
 };
 
 }

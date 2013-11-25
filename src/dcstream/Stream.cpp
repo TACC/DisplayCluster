@@ -47,7 +47,7 @@
 #include "PixelStreamSegment.h"
 #include "PixelStreamSegmentParameters.h"
 
-#include <stdexcept>
+#include <QDataStream>
 
 namespace dc
 {
@@ -79,11 +79,11 @@ bool Stream::isConnected() const
 
 bool Stream::send(const ImageWrapper& image)
 {
-//    if (!(image.compressionPolicy == COMPRESSION_ON) && image.pixelFormat != dc::ARGB)
-//    {
-//        put_flog(LOG_ERROR, "Currently, RAW images only be sent in ARGB format. Other formats remain to be implemented.");
-//        return false;
-//    }
+    if ( !(image.compressionPolicy == COMPRESSION_ON) && (image.pixelFormat != dc::ARGB ||  image.pixelFormat != dc::ABGR ))
+    {
+        put_flog(LOG_ERROR, "Currently, RAW images only be sent in ARGB format. Other formats remain to be implemented.");
+        return false;
+    }
 
     PixelStreamSegments segments = impl_->imageSegmenter_.generateSegments(image);
 
@@ -102,7 +102,7 @@ bool Stream::finishFrame()
     return impl_->dcSocket_->send(mh, QByteArray());
 }
 
-bool Stream::bindInteraction(const bool exclusive)
+bool Stream::registerForEvents(const bool exclusive)
 {
     if(!isConnected())
     {
@@ -110,8 +110,8 @@ bool Stream::bindInteraction(const bool exclusive)
         return false;
     }
 
-    MESSAGE_TYPE type = exclusive ? MESSAGE_TYPE_BIND_INTERACTION_EX :
-                                    MESSAGE_TYPE_BIND_INTERACTION;
+    MessageType type = exclusive ? MESSAGE_TYPE_BIND_EVENTS_EX :
+                                    MESSAGE_TYPE_BIND_EVENTS;
     MessageHeader mh(type, 0, impl_->name_);
 
     // Send the bind message
@@ -124,20 +124,20 @@ bool Stream::bindInteraction(const bool exclusive)
     // Wait for bind reply
     QByteArray message;
     bool success = impl_->dcSocket_->receive(mh, message);
-    if(!success || mh.type != MESSAGE_TYPE_BIND_INTERACTION_REPLY)
+    if(!success || mh.type != MESSAGE_TYPE_BIND_EVENTS_REPLY)
     {
         put_flog(LOG_ERROR, "Invalid reply from host");
         return false;
     }
 
-    impl_->interactionBound_= *(bool*)(message.data());
+    impl_->registeredForEvents_= *(bool*)(message.data());
 
-    return isInteractionBound();
+    return isRegisterdForEvents();
 }
 
-bool Stream::isInteractionBound() const
+bool Stream::isRegisterdForEvents() const
 {
-    return impl_->interactionBound_;
+    return impl_->registeredForEvents_;
 }
 
 int Stream::getDescriptor() const
@@ -145,25 +145,32 @@ int Stream::getDescriptor() const
     return impl_->dcSocket_->getFileDescriptor();
 }
 
-bool Stream::hasInteractionState() const
+bool Stream::hasEvent() const
 {
-    return impl_->dcSocket_->hasMessage(sizeof(InteractionState));
+    return impl_->dcSocket_->hasMessage(Event::serializedSize);
 }
 
-InteractionState Stream::retrieveInteractionState()
+Event Stream::getEvent()
 {
     MessageHeader mh;
     QByteArray message;
 
     bool success = impl_->dcSocket_->receive(mh, message);
 
-    if(!success || mh.type != MESSAGE_TYPE_INTERACTION)
+    if(!success || mh.type != MESSAGE_TYPE_EVENT)
     {
         put_flog(LOG_ERROR, "Invalid reply from host");
-        return InteractionState();
+        return Event();
     }
 
-    return *(InteractionState *)(message.data());
+    assert ((size_t)message.size() == Event::serializedSize);
+
+    Event event;
+    {
+        QDataStream stream(message);
+        stream >> event;
+    }
+    return event;
 }
 
 }

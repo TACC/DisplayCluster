@@ -3,6 +3,7 @@ set(DISPLAYCLUSTER_LIBRARY_LIBS ${QT_QTCORE_LIBRARY} ${QT_QTNETWORK_LIBRARY})
 set(DISPLAYCLUSTER_LIBRARY_LIBS ${DISPLAYCLUSTER_LIBRARY_LIBS} ${LibJpegTurbo_LIBRARIES})
 
 set(DISPLAYCLUSTER_LIBRARY_SRCS
+    ../Event.cpp
     ../log.cpp
     ../MessageHeader.cpp
     Socket.cpp
@@ -18,7 +19,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/dcVersion.in.h
 set(DISPLAYCLUSTER_LIBRARY_PUBLIC_HEADERS
     Stream.h
     ImageWrapper.h
-    ../InteractionState.h
+    ../Event.h
     ../NonCopyable.h
     ${CMAKE_BINARY_DIR}/dcVersion.h
 )

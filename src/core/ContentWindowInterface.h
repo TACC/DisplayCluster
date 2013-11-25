@@ -42,7 +42,7 @@
 #define HIGHLIGHT_TIMEOUT_MILLISECONDS 1500
 #define HIGHLIGHT_BLINK_INTERVAL 250 // milliseconds
 
-#include "InteractionState.h"
+#include "Event.h"
 #include "types.h"
 
 #include <QtGui>
@@ -54,7 +54,7 @@
 #  include <boost/date_time/posix_time/posix_time.hpp>
 #endif
 
-using dc::InteractionState;
+using dc::Event;
 
 enum ControlState
 {
@@ -74,9 +74,10 @@ class ContentWindowInterface : public QObject {
 
     public:
 
-        enum WindowState {
-            UNSELECTED,   // the window is not selected and interaction changes its position/size
-            SELECTED     // the window is selected and interaction may be forwarded to the ContentInteractionDelegate
+        enum WindowState
+        {
+            UNSELECTED,   // the window is not selected and interaction modifies its position/size
+            SELECTED      // the window is selected and interaction may be forwarded to the ContentInteractionDelegate
         };
 
         ContentWindowInterface();
@@ -96,7 +97,7 @@ class ContentWindowInterface : public QObject {
 
         void setControlState( const ControlState state ) { controlState_ = state; }
         ControlState getControlState() const { return controlState_; }
-        InteractionState getInteractionState();
+        Event getEvent();
 
         void toggleWindowState();
         ContentWindowInterface::WindowState getWindowState();
@@ -109,11 +110,11 @@ class ContentWindowInterface : public QObject {
 
         bool selected() const { return windowState_ == SELECTED; }
 
-        bool isInteractionBound() const { return boundInteractions_ > 0; }
+        bool hasEventReceivers() const { return eventReceiversCount_ > 0; }
 
-        void bindInteraction( const QObject* receiver, const char* slot );
+        void bindEventsReceiver( const QObject* receiver, const char* slot );
 
-        QMutex* getInteractionBindMutex() { return &interactionBindMutex_; }
+        QMutex* getEventRegistrationMutex() { return &eventRegistrationMutex_; }
 
     public slots:
 
@@ -130,7 +131,7 @@ class ContentWindowInterface : public QObject {
         virtual void setZoom(double zoom, ContentWindowInterface * source=NULL);
         virtual void highlight(ContentWindowInterface * source=NULL);
         virtual void setWindowState(ContentWindowInterface::WindowState windowState, ContentWindowInterface * source=NULL);
-        virtual void setInteractionState(InteractionState interactionState, ContentWindowInterface * source=NULL);
+        virtual void setEvent(Event event, ContentWindowInterface * source=NULL);
         virtual void moveToFront(ContentWindowInterface * source=NULL);
         virtual void close(ContentWindowInterface * source=NULL);
 
@@ -146,13 +147,13 @@ class ContentWindowInterface : public QObject {
         void zoomChanged(double zoom, ContentWindowInterface * source);
         void highlighted(ContentWindowInterface * source);
         void windowStateChanged(ContentWindowInterface::WindowState windowState, ContentWindowInterface * source);
-        void interactionStateChanged(InteractionState interactionState, ContentWindowInterface * source);
+        void eventChanged(Event event, ContentWindowInterface * source);
         void movedToFront(ContentWindowInterface * source);
         void closed(ContentWindowInterface * source);
 
     protected:
 
-        void setInteractionStateToNewDimensions();
+        void setEventToNewDimensions();
 
         // optional: reference to ContentWindowManager for non-ContentWindowManager objects
         boost::weak_ptr<ContentWindowManager> contentWindowManager_;
@@ -176,15 +177,15 @@ class ContentWindowInterface : public QObject {
         // window state
         ContentWindowInterface::WindowState windowState_;
 
-        // interaction state
-        InteractionState interactionState_;
+        // Window interaction
+        Event event_;
 
         SizeState sizeState_;
 
         ControlState controlState_;
 
-        QMutex interactionBindMutex_;
-        int boundInteractions_;
+        QMutex eventRegistrationMutex_;
+        int eventReceiversCount_;
 
         // highlighted timestamp
         boost::posix_time::ptime highlightedTimestamp_;

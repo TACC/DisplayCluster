@@ -68,18 +68,14 @@ DisplayGroupManager::DisplayGroupManager()
     // make Options trigger sendDisplayGroup() when it is updated
     connect(options_.get(), SIGNAL(updated()), this, SLOT(sendDisplayGroup()), Qt::QueuedConnection);
 
-    // register Interactionstate in Qt
-    qRegisterMetaType<InteractionState>("InteractionState");
-
     // register types for use in signals/slots
-    qRegisterMetaType<ContentWindowManagerPtr >("ContentWindowManagerPtr");
+    qRegisterMetaType<Event>("Event");
+    qRegisterMetaType<ContentWindowManagerPtr>("ContentWindowManagerPtr");
+    qRegisterMetaType<PixelStreamSegment>("PixelStreamSegment");
 
-    // serialization support for the vector of skeleton states
 #if ENABLE_SKELETON_SUPPORT
     qRegisterMetaType<std::vector< boost::shared_ptr<SkeletonState> > >("std::vector< boost::shared_ptr<SkeletonState> >");
 #endif
-    // For using PixelStreamSegment in QSignals
-    qRegisterMetaType<PixelStreamSegment>("PixelStreamSegment");
 }
 
 DisplayGroupManager::~DisplayGroupManager()
@@ -612,7 +608,7 @@ void DisplayGroupManager::sendQuit()
     MessageHeader mh;
     mh.type = MESSAGE_TYPE_QUIT;
 
-    // will send EVT_CLOSE through InteractionState
+    // will send EVT_CLOSE through Event
     ContentWindowManagerPtrs contentWindowManagers;
     setContentWindowManagers( contentWindowManagers );
 

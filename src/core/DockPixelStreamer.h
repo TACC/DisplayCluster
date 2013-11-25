@@ -69,7 +69,7 @@ public:
     void open();
 
 public slots:
-    virtual void updateInteractionState(InteractionState interactionState);
+    virtual void processEvent(Event event);
 
 private slots:
     void update(const QImage &image);

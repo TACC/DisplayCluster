@@ -58,9 +58,6 @@ public:
 
     bool initalize(const CommandLineOptions &options);
 
-signals:
-    void interactionStateUpdated(dc::InteractionState state);
-
 private slots:
     void sendImage(QImage image);
     void processPendingEvents();

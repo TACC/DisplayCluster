@@ -99,12 +99,12 @@ DockPixelStreamer::~DockPixelStreamer()
 }
 
 
-void DockPixelStreamer::updateInteractionState(InteractionState interactionState)
+void DockPixelStreamer::processEvent(Event event)
 {
-    if (interactionState.type == InteractionState::EVT_CLICK)
+    if (event.type == Event::EVT_CLICK)
     {
         // xPos is click position in (pixel) units inside the dock
-        const int xPos = interactionState.mouseX * flow_->size().width();
+        const int xPos = event.mouseX * flow_->size().width();
 
         // mid is half the width of the dock in (pixel) units
         const int dockHalfWidth = flow_->size().width() / 2;
@@ -125,9 +125,9 @@ void DockPixelStreamer::updateInteractionState(InteractionState interactionState
         }
     }
 
-    else if (interactionState.type == InteractionState::EVT_MOVE || interactionState.type == InteractionState::EVT_WHEEL)
+    else if (event.type == Event::EVT_MOVE || event.type == Event::EVT_WHEEL)
     {
-        const int offs = interactionState.dx * flow_->size().width() * COVERFLOW_SPEED_FACTOR;
+        const int offs = event.dx * flow_->size().width() * COVERFLOW_SPEED_FACTOR;
         flow_->showSlide( flow_->centerIndex() - offs );
     }
 }

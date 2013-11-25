@@ -98,7 +98,7 @@ bool Application::initalize(const CommandLineOptions& options)
         return false;
     }
 
-    // Use a timer to process InteractionStates received from the dcStream
+    // Use a timer to process Event received from the dc::Stream
     QTimer* timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), SLOT(processPendingEvents()));
     timer->start(1);
@@ -126,15 +126,15 @@ void Application::sendImage(QImage image)
 
 void Application::processPendingEvents()
 {
-    if (!dcStream_->isInteractionBound())
+    if (!dcStream_->isRegisterdForEvents())
     {
-        dcStream_->bindInteraction();
+        dcStream_->registerForEvents();
     }
     else
     {
-        while(dcStream_->hasInteractionState())
+        while(dcStream_->hasEvent())
         {
-            streamer_->updateInteractionState(dcStream_->retrieveInteractionState());
+            streamer_->processEvent(dcStream_->getEvent());
         }
     }
 }

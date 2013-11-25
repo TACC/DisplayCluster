@@ -53,29 +53,9 @@ namespace dc
 StreamPrivate::StreamPrivate(const std::string &name)
     : name_(name)
     , dcSocket_(0)
-    , interactionBound_(false)
+    , registeredForEvents_(false)
 {
     imageSegmenter_.setNominalSegmentDimensions(SEGMENT_SIZE, SEGMENT_SIZE);
-}
-
-bool StreamPrivate::sendPixelStreamSegment(const PixelStreamSegment &segment)
-{
-    // Create message header
-    size_t segmentSize = sizeof(PixelStreamSegmentParameters) + segment.imageData.size();
-    MessageHeader mh(MESSAGE_TYPE_PIXELSTREAM, segmentSize, name_);
-
-    // This byte array will hold the message to be sent over the socket
-    QByteArray message;
-
-    // Message payload part 1: segment parameters
-    message.append((const char *)(&segment.parameters), sizeof(PixelStreamSegmentParameters));
-
-    // Message payload part 2: image data
-    message.append(segment.imageData);
-
-    bool success = dcSocket_->send(mh, message);
-
-    return success;
 }
 
 bool StreamPrivate::open(const std::string& address)
@@ -107,9 +87,29 @@ bool StreamPrivate::close()
     delete dcSocket_;
     dcSocket_ = 0;
 
-    interactionBound_ = false;
+    registeredForEvents_ = false;
 
     return true;
+}
+
+bool StreamPrivate::sendPixelStreamSegment(const PixelStreamSegment &segment)
+{
+    // Create message header
+    size_t segmentSize = sizeof(PixelStreamSegmentParameters) + segment.imageData.size();
+    MessageHeader mh(MESSAGE_TYPE_PIXELSTREAM, segmentSize, name_);
+
+    // This byte array will hold the message to be sent over the socket
+    QByteArray message;
+
+    // Message payload part 1: segment parameters
+    message.append((const char *)(&segment.parameters), sizeof(PixelStreamSegmentParameters));
+
+    // Message payload part 2: image data
+    message.append(segment.imageData);
+
+    bool success = dcSocket_->send(mh, message);
+
+    return success;
 }
 
 }

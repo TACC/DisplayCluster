@@ -191,32 +191,32 @@ void display()
     // note that mouse position is in normalized window coordinates: (0,0) to (1,1)
     if(dcInteraction)
     {
-        if (dcStream->isInteractionBound() || dcStream->bindInteraction())
+        if (dcStream->isRegisterdForEvents() || dcStream->registerForEvents())
         {
             static float mouseX = 0.;
             static float mouseY = 0.;
 
             // Note: there is a risk of missing events since we only process the latest state available.
             // For more advanced applications, event processing should be done in a separate thread.
-            while (dcStream->hasInteractionState())
+            while (dcStream->hasEvent())
             {
-                const dc::InteractionState& interactionState = dcStream->retrieveInteractionState();
+                const dc::Event& event = dcStream->getEvent();
 
-                if (interactionState.type == dc::InteractionState::EVT_CLOSE)
+                if (event.type == dc::Event::EVT_CLOSE)
                 {
                     std::cout << "Received close..." << std::endl;
                     exit(0);
                 }
 
-                float newMouseX = interactionState.mouseX;
-                float newMouseY = interactionState.mouseY;
+                float newMouseX = event.mouseX;
+                float newMouseY = event.mouseY;
 
-                if(interactionState.mouseLeft)
+                if(event.mouseLeft)
                 {
                     angleX += (newMouseX - mouseX) * 360.;
                     angleY += (newMouseY - mouseY) * 360.;
                 }
-                else if(interactionState.mouseRight)
+                else if(event.mouseRight)
                 {
                     zoom += (newMouseY - mouseY);
                 }

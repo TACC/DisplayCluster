@@ -53,7 +53,7 @@
 NetworkListenerThread::NetworkListenerThread(PixelStreamDispatcher &pixelStreamDispatcher, DisplayGroupManager &displayGroupManager, int socketDescriptor)
     : socketDescriptor_(socketDescriptor)
     , tcpSocket_(0)
-    , interactionBound_(false)
+    , registeredToEvents_(false)
     , pixelStreamDispatcher_(pixelStreamDispatcher)
     , displayGroupManager_(displayGroupManager)
 {
@@ -92,7 +92,7 @@ void NetworkListenerThread::initialize()
     connect(this, SIGNAL(receivedPixelStreamFinishFrame(QString,int)), &pixelStreamDispatcher_, SLOT(processFrameFinished(QString,int)));
     connect(this, SIGNAL(receivedRemovePixelStreamSource(QString,int)), &pixelStreamDispatcher_, SLOT(removeSource(QString,int)));
 
-    // get a local DisplayGroupInterface to help manage interaction
+    // get a local DisplayGroupInterface to help manage event
     bool success = QMetaObject::invokeMethod(&displayGroupManager_, "getDisplayGroupInterface", Qt::BlockingQueuedConnection, Q_RETURN_ARG(boost::shared_ptr<DisplayGroupInterface>, displayGroupInterface_), Q_ARG(QThread *, QThread::currentThread()));
 
     if(success != true)
@@ -133,11 +133,11 @@ void NetworkListenerThread::process()
     }
 
     // send events if needed
-    foreach (const InteractionState& interactionState, interactionStates_)
+    foreach (const Event& event, events_)
     {
-        send(interactionState);
+        send(event);
     }
-    interactionStates_.clear();
+    events_.clear();
 
     // flush the socket
     tcpSocket_->flush();
@@ -195,9 +195,9 @@ QByteArray NetworkListenerThread::receiveMessageBody(int size)
     return messageByteArray;
 }
 
-void NetworkListenerThread::setInteractionState(InteractionState interactionState)
+void NetworkListenerThread::processEvent(Event event)
 {
-    interactionStates_.enqueue(interactionState);
+    events_.enqueue(event);
 }
 
 void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArray byteArray)
@@ -233,18 +233,17 @@ void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArra
         handlePixelStreamMessage(uri, byteArray);
         break;
 
-    case MESSAGE_TYPE_BIND_INTERACTION:
-    case MESSAGE_TYPE_BIND_INTERACTION_EX:
-        if (interactionBound_)
+    case MESSAGE_TYPE_BIND_EVENTS:
+    case MESSAGE_TYPE_BIND_EVENTS_EX:
+        if (registeredToEvents_)
         {
             put_flog(LOG_DEBUG, "WE are already bound!!");
         }
         else
         {
-            interactionName_ = uri;
-            interactionExclusive_ = (messageHeader.type == MESSAGE_TYPE_BIND_INTERACTION_EX);
-            interactionBound_ = bindInteraction();
-            sendBindReply( interactionBound_ );
+            eventRegistrationExclusive_ = (messageHeader.type == MESSAGE_TYPE_BIND_EVENTS_EX);
+            registeredToEvents_ = registerToEvents();
+            sendBindReply( registeredToEvents_ );
         }
         break;
 
@@ -283,34 +282,32 @@ void NetworkListenerThread::pixelStreamerClosed(QString uri)
     }
 }
 
-bool NetworkListenerThread::bindInteraction()
+bool NetworkListenerThread::registerToEvents()
 {
-    // try to bind to the ContentWindowManager corresponding to interactionName
-    ContentWindowManagerPtr cwm = displayGroupInterface_->getContentWindowManager(interactionName_);
+    // Try to register with the ContentWindowManager corresponding to this stream
+    ContentWindowManagerPtr cwm = displayGroupInterface_->getContentWindowManager(pixelStreamUri_);
 
     if(cwm)
     {
-        put_flog(LOG_DEBUG, "found window: '%s'", interactionName_.toStdString().c_str());
+        put_flog(LOG_DEBUG, "found window: '%s'", pixelStreamUri_.toStdString().c_str());
 
-        QMutexLocker locker( cwm->getInteractionBindMutex( ));
+        QMutexLocker locker( cwm->getEventRegistrationMutex( ));
 
-        // if an interaction is already bound, don't bind this one if exclusive
-        // was requested
-        if( cwm->isInteractionBound() && interactionExclusive_ )
+        // If a receiver is already registered, don't register this one if exclusive was requested
+        if( cwm->hasEventReceivers() && eventRegistrationExclusive_ )
         {
             return false;
         }
 
-        // todo: disconnect any existing signal connections to the setInteractionState() slot
+        // todo: disconnect any existing signal connections to the setEvent() slot
         // in case we're binding to another window in the same connection / socket
 
-        // make connection to get interaction updates
-        cwm->bindInteraction( this, SLOT(setInteractionState(InteractionState)));
+        cwm->bindEventsReceiver( this, SLOT(processEvent(Event)));
         return true;
     }
     else
     {
-        put_flog(LOG_DEBUG, "could not find window: '%s'", interactionName_.toStdString().c_str());
+        put_flog(LOG_DEBUG, "could not find window: '%s'", pixelStreamUri_.toStdString().c_str());
         return false;
     }
 }
@@ -318,7 +315,7 @@ bool NetworkListenerThread::bindInteraction()
 void NetworkListenerThread::sendBindReply( bool successful )
 {
     // send message header
-    MessageHeader mh(MESSAGE_TYPE_BIND_INTERACTION_REPLY, sizeof(bool));
+    MessageHeader mh(MESSAGE_TYPE_BIND_EVENTS_REPLY, sizeof(bool));
     send(mh);
 
     tcpSocket_->write((const char *)&successful, sizeof(bool));
@@ -330,24 +327,18 @@ void NetworkListenerThread::sendBindReply( bool successful )
     {
         tcpSocket_->waitForBytesWritten();
     }
-
-    interactionName_.clear();
 }
 
-void NetworkListenerThread::send(const InteractionState& interactionState)
+void NetworkListenerThread::send(const Event& event)
 {
     // send message header
-    MessageHeader mh(MESSAGE_TYPE_INTERACTION, sizeof(InteractionState));
+    MessageHeader mh(MESSAGE_TYPE_EVENT, Event::serializedSize);
     send(mh);
 
-    // send interaction state
-    int sent = tcpSocket_->write((const char *)&interactionState, sizeof(InteractionState));
-
-    while(sent < (int)sizeof(InteractionState))
     {
-        sent += tcpSocket_->write((const char *)&interactionState + sent, sizeof(InteractionState) - sent);
+        QDataStream stream(tcpSocket_);
+        stream << event;
     }
-
     // we want the message to be sent immediately
     tcpSocket_->flush();
 

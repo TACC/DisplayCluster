@@ -37,77 +37,57 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef INTERACTION_STATE_H
-#define INTERACTION_STATE_H
+#include "Event.h"
+
+#include <QDataStream>
 
 namespace dc
 {
 
-/**
- * The state of interaction within a window.
- *
- * Typically used to forward user inputs from a window to classes that
- * generate content for it.
- *
- * @version 1.0
- */
-struct InteractionState
+const size_t Event::serializedSize = 3*sizeof(quint32) + 4*sizeof(double) +
+                                     3*sizeof(bool) + UNICODE_TEXT_SIZE;
+
+QDataStream& operator<<(QDataStream& out, const dc::Event& event)
 {
-    /**
-     * The EventType enum defines the different types of interaction.
-     * @version 1.0
-     */
-    enum EventType
-    {
-        EVT_NONE,
-        EVT_PRESS,
-        EVT_RELEASE,
-        EVT_CLICK,
-        EVT_DOUBLECLICK,
-        EVT_MOVE,
-        EVT_WHEEL,
-        EVT_SWIPE_LEFT,
-        EVT_SWIPE_RIGHT,
-        EVT_SWIPE_UP,
-        EVT_SWIPE_DOWN,
-        EVT_CLOSE,
-        EVT_KEY_PRESS,
-        EVT_KEY_RELEASE,
-        EVT_VIEW_SIZE_CHANGED
-    };
+    out << (qint32)event.type;
 
-    /** The type of interaction */
-    EventType type;
+    out << event.mouseX << event.mouseY;
+    out << event.dx << event.dy;
 
-    /** @name Mouse and touch events */
-    /*@{*/
-    double mouseX, mouseY;  /**< Normalized mouse/touch position relative to the window */
-    double dx, dy;          /**< Delta for wheel/scroll events */
-    bool mouseLeft, mouseRight, mouseMiddle;  /**< The state of the mouse buttons (pressed=true) */
-    /*@}*/
+    out << event.mouseLeft << event.mouseRight << event.mouseMiddle;
 
-    /** @name Keyboard events */
-    /*@{*/
-    int key;         /**< The key code, see QKeyEvent::key() */
-    int modifiers;   /**< The keyboard modifiers, see QKeyEvent::modifiers() */
-    char text[4];    /**< Carries unicode for key, see QKeyEvent::text() */
-    /*@}*/
+    out << (qint32)event.key << (qint32)event.modifiers;
 
-    /** Construct a new state. @version 1.0 */
-    InteractionState()
-        : type(EVT_NONE)
-        , mouseX(0)
-        , mouseY(0)
-        , dx(0)
-        , dy(0)
-        , mouseLeft(false)
-        , mouseRight(false)
-        , mouseMiddle(false)
-        , key(0)
-        , modifiers(0)
-    {}
-};
+    for(size_t i = 0; i < UNICODE_TEXT_SIZE; i++)
+        out << (quint8)event.text[i];
 
+    return out;
 }
 
-#endif
+QDataStream& operator>>(QDataStream& in, dc::Event& event)
+{
+    qint32 type;
+    in >> type;
+    event.type = (Event::EventType)type;
+
+    in >> event.mouseX >> event.mouseY;
+    in >> event.dx >> event.dy;
+
+    in >> event.mouseLeft >> event.mouseRight >> event.mouseMiddle;
+
+    qint32 key, modifiers;
+    in >> key >> modifiers;
+    event.key = (int)key;
+    event.modifiers = (int)modifiers;
+
+    quint8 character;
+    for(size_t i = 0; i < UNICODE_TEXT_SIZE; i++)
+    {
+        in >> character;
+        event.text[i] = (char)character;
+    }
+
+    return in;
+}
+
+}

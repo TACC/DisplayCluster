@@ -107,6 +107,7 @@ list(APPEND SRCS
     gestures/PanGestureRecognizer.cpp
     gestures/PinchGesture.cpp
     gestures/PinchGestureRecognizer.cpp
+    ../Event.cpp
     ../log.cpp
     ../MessageHeader.cpp
     LocalPixelStreamer.cpp

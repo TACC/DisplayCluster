@@ -155,12 +155,12 @@ void ContentWindowGraphicsItem::setWindowState(ContentWindowInterface::WindowSta
     ContentWindowInterface::setWindowState(windowState, source);
 }
 
-void ContentWindowGraphicsItem::setInteractionState(InteractionState interactionState, ContentWindowInterface * source)
+void ContentWindowGraphicsItem::setEvent(Event event, ContentWindowInterface * source)
 {
     if(source != this)
         prepareGeometryChange();
 
-    ContentWindowInterface::setInteractionState(interactionState, source);
+    ContentWindowInterface::setEvent(event, source);
 }
 
 void ContentWindowGraphicsItem::setZToFront()
@@ -528,11 +528,11 @@ void ContentWindowGraphicsItem::drawTextLabel_( QPainter* painter )
     QString coordinatesLabel = QString(" (") + QString::number(x_, 'f', 2) + QString(" ,") + QString::number(y_, 'f', 2) + QString(", ") + QString::number(w_, 'f', 2) + QString(", ") + QString::number(h_, 'f', 2) + QString(")\n");
     QString zoomCenterLabel = QString(" zoom = ") + QString::number(zoom_, 'f', 2) + QString(" @ (") + QString::number(centerX_, 'f', 2) + QString(", ") + QString::number(centerY_, 'f', 2) + QString(")");
     QString interactionLabel = QString(" x: ") +
-            QString::number(interactionState_.mouseX, 'f', 2) +
-            QString(" y: ") + QString::number(interactionState_.mouseY, 'f', 2) +
-            QString(" mouseLeft: ") + QString::number((int) interactionState_.mouseLeft, 'b', 1) +
-            QString(" mouseMiddle: ") + QString::number((int) interactionState_.mouseMiddle, 'b', 1) +
-            QString(" mouseRight: ") + QString::number((int) interactionState_.mouseRight, 'b', 1);
+            QString::number(event_.mouseX, 'f', 2) +
+            QString(" y: ") + QString::number(event_.mouseY, 'f', 2) +
+            QString(" mouseLeft: ") + QString::number((int) event_.mouseLeft, 'b', 1) +
+            QString(" mouseMiddle: ") + QString::number((int) event_.mouseMiddle, 'b', 1) +
+            QString(" mouseRight: ") + QString::number((int) event_.mouseRight, 'b', 1);
 
     QString windowInfoLabel = coordinatesLabel + zoomCenterLabel + interactionLabel;
     painter->drawText(textBoundingRect, Qt::AlignLeft | Qt::AlignBottom, windowInfoLabel);
