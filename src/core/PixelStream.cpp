@@ -228,7 +228,7 @@ bool PixelStream::isDecodingInProgress()
 
 bool PixelStream::isVisible(const QRectF& segment)
 {
-    boost::shared_ptr<ContentWindowManager> cwm = g_displayGroupManager->getContentWindowManager(uri_, CONTENT_TYPE_PIXEL_STREAM);
+    ContentWindowManagerPtr cwm = g_displayGroupManager->getContentWindowManager(uri_, CONTENT_TYPE_PIXEL_STREAM);
 
     if(cwm)
     {
@@ -251,7 +251,7 @@ bool PixelStream::isVisible(const QRectF& segment)
 
 bool PixelStream::isVisible(const dc::PixelStreamSegment& segment)
 {
-    boost::shared_ptr<ContentWindowManager> cwm = g_displayGroupManager->getContentWindowManager(uri_, CONTENT_TYPE_PIXEL_STREAM);
+    ContentWindowManagerPtr cwm = g_displayGroupManager->getContentWindowManager(uri_, CONTENT_TYPE_PIXEL_STREAM);
 
     if(cwm)
     {

@@ -57,17 +57,17 @@ DisplayGroupInterface::DisplayGroupInterface(boost::shared_ptr<DisplayGroupManag
 
     // connect signals from this to slots on the DisplayGroupManager
     // use queued connections for thread-safety
-    connect(this, SIGNAL(contentWindowManagerAdded(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), displayGroupManager.get(), SLOT(addContentWindowManager(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), Qt::QueuedConnection);
-    connect(this, SIGNAL(contentWindowManagerRemoved(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), displayGroupManager.get(), SLOT(removeContentWindowManager(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), Qt::QueuedConnection);
-    connect(this, SIGNAL(contentWindowManagerMovedToFront(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), displayGroupManager.get(), SLOT(moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect(this, SIGNAL(contentWindowManagerAdded(ContentWindowManagerPtr, DisplayGroupInterface *)), displayGroupManager.get(), SLOT(addContentWindowManager(ContentWindowManagerPtr, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect(this, SIGNAL(contentWindowManagerRemoved(ContentWindowManagerPtr, DisplayGroupInterface *)), displayGroupManager.get(), SLOT(removeContentWindowManager(ContentWindowManagerPtr, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect(this, SIGNAL(contentWindowManagerMovedToFront(ContentWindowManagerPtr, DisplayGroupInterface *)), displayGroupManager.get(), SLOT(moveContentWindowManagerToFront(ContentWindowManagerPtr, DisplayGroupInterface *)), Qt::QueuedConnection);
     connect(this, SIGNAL(stateSaved(QString, DisplayGroupInterface *)), displayGroupManager.get(), SLOT(saveState(QString, DisplayGroupInterface *)), Qt::QueuedConnection);
     connect(this, SIGNAL(stateLoaded(QString, DisplayGroupInterface *)), displayGroupManager.get(), SLOT(loadState(QString, DisplayGroupInterface *)), Qt::QueuedConnection);
 
     // connect signals on the DisplayGroupManager to slots on this
     // use queued connections for thread-safety
-    connect(displayGroupManager.get(), SIGNAL(contentWindowManagerAdded(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), this, SLOT(addContentWindowManager(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), Qt::QueuedConnection);
-    connect(displayGroupManager.get(), SIGNAL(contentWindowManagerRemoved(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), this, SLOT(removeContentWindowManager(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), Qt::QueuedConnection);
-    connect(displayGroupManager.get(), SIGNAL(contentWindowManagerMovedToFront(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), this, SLOT(moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager>, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect(displayGroupManager.get(), SIGNAL(contentWindowManagerAdded(ContentWindowManagerPtr, DisplayGroupInterface *)), this, SLOT(addContentWindowManager(ContentWindowManagerPtr, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect(displayGroupManager.get(), SIGNAL(contentWindowManagerRemoved(ContentWindowManagerPtr, DisplayGroupInterface *)), this, SLOT(removeContentWindowManager(ContentWindowManagerPtr, DisplayGroupInterface *)), Qt::QueuedConnection);
+    connect(displayGroupManager.get(), SIGNAL(contentWindowManagerMovedToFront(ContentWindowManagerPtr, DisplayGroupInterface *)), this, SLOT(moveContentWindowManagerToFront(ContentWindowManagerPtr, DisplayGroupInterface *)), Qt::QueuedConnection);
     connect(displayGroupManager.get(), SIGNAL(stateSaved(QString, DisplayGroupInterface *)), this, SLOT(saveState(QString, DisplayGroupInterface *)), Qt::QueuedConnection);
     connect(displayGroupManager.get(), SIGNAL(stateLoaded(QString, DisplayGroupInterface *)), this, SLOT(loadState(QString, DisplayGroupInterface *)), Qt::QueuedConnection);
 
@@ -80,12 +80,12 @@ boost::shared_ptr<DisplayGroupManager> DisplayGroupInterface::getDisplayGroupMan
     return displayGroupManager_.lock();
 }
 
-std::vector<boost::shared_ptr<ContentWindowManager> > DisplayGroupInterface::getContentWindowManagers()
+ContentWindowManagerPtrs DisplayGroupInterface::getContentWindowManagers()
 {
     return contentWindowManagers_;
 }
 
-boost::shared_ptr<ContentWindowManager> DisplayGroupInterface::getContentWindowManager(const QString& uri, CONTENT_TYPE contentType)
+ContentWindowManagerPtr DisplayGroupInterface::getContentWindowManager(const QString& uri, CONTENT_TYPE contentType)
 {
     for(size_t i=0; i<contentWindowManagers_.size(); i++)
     {
@@ -96,10 +96,10 @@ boost::shared_ptr<ContentWindowManager> DisplayGroupInterface::getContentWindowM
         }
     }
 
-    return boost::shared_ptr<ContentWindowManager>();
+    return ContentWindowManagerPtr();
 }
 
-void DisplayGroupInterface::setContentWindowManagers(std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers)
+void DisplayGroupInterface::setContentWindowManagers(ContentWindowManagerPtrs contentWindowManagers)
 {
     // remove existing content window managers
     while(contentWindowManagers_.size() > 0)
@@ -114,7 +114,7 @@ void DisplayGroupInterface::setContentWindowManagers(std::vector<boost::shared_p
     }
 }
 
-void DisplayGroupInterface::addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
+void DisplayGroupInterface::addContentWindowManager(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source)
 {
     if(source == this)
     {
@@ -134,7 +134,7 @@ void DisplayGroupInterface::addContentWindowManager(boost::shared_ptr<ContentWin
     }
 }
 
-void DisplayGroupInterface::removeContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
+void DisplayGroupInterface::removeContentWindowManager(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source)
 {
     if(source == this)
     {
@@ -146,7 +146,7 @@ void DisplayGroupInterface::removeContentWindowManager(boost::shared_ptr<Content
     contentWindowManager->setInteractionState( interactionState );
 
     // find vector entry for content window manager
-    std::vector<boost::shared_ptr<ContentWindowManager> >::iterator it;
+    ContentWindowManagerPtrs::iterator it;
 
     it = find(contentWindowManagers_.begin(), contentWindowManagers_.end(), contentWindowManager);
 
@@ -168,7 +168,7 @@ void DisplayGroupInterface::removeContentWindowManager(boost::shared_ptr<Content
     }
 }
 
-void DisplayGroupInterface::moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
+void DisplayGroupInterface::moveContentWindowManagerToFront(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source)
 {
     if(source == this)
     {
@@ -176,7 +176,7 @@ void DisplayGroupInterface::moveContentWindowManagerToFront(boost::shared_ptr<Co
     }
 
     // find vector entry for content window manager
-    std::vector<boost::shared_ptr<ContentWindowManager> >::iterator it;
+    ContentWindowManagerPtrs::iterator it;
 
     it = find(contentWindowManagers_.begin(), contentWindowManagers_.end(), contentWindowManager);
 

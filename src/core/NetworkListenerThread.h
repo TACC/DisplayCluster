@@ -107,12 +107,13 @@ private:
     QByteArray receiveMessageBody(int size);
 
     void handleMessage(MessageHeader messageHeader, QByteArray byteArray);
+    void handlePixelStreamMessage(const QString& uri, const QByteArray& byteArray);
     bool bindInteraction();
 
     void sendBindReply( bool successful );
     void send(const InteractionState &interactionState);
-    void sendAck();
     void sendQuit();
+    bool send(const MessageHeader& messageHeader);
 };
 
 #endif

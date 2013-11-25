@@ -4,6 +4,7 @@ set(DISPLAYCLUSTER_LIBRARY_LIBS ${DISPLAYCLUSTER_LIBRARY_LIBS} ${LibJpegTurbo_LI
 
 set(DISPLAYCLUSTER_LIBRARY_SRCS
     ../log.cpp
+    ../MessageHeader.cpp
     Socket.cpp
     Stream.cpp
     StreamPrivate.cpp

@@ -166,19 +166,13 @@ void NetworkListenerThread::socketReceiveMessage()
 }
 
 MessageHeader NetworkListenerThread::receiveMessageHeader()
-{
-    QByteArray byteArray = tcpSocket_->read(sizeof(MessageHeader));
+{    
+    MessageHeader messageHeader;
 
-    while(byteArray.size() < (int)sizeof(MessageHeader))
-    {
-        tcpSocket_->waitForReadyRead();
+    QDataStream stream(tcpSocket_);
+    stream >> messageHeader;
 
-        byteArray.append(tcpSocket_->read(sizeof(MessageHeader) - byteArray.size()));
-    }
-
-    // got the header
-    MessageHeader * mh = (MessageHeader *)byteArray.data();
-    return *mh;
+    return messageHeader;
 }
 
 QByteArray NetworkListenerThread::receiveMessageBody(int size)
@@ -210,56 +204,74 @@ void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArra
 {
     QString uri(messageHeader.uri);
 
-    if(messageHeader.type == MESSAGE_TYPE_QUIT)
+    switch(messageHeader.type)
     {
+    case MESSAGE_TYPE_QUIT:
         if (pixelStreamUri_ == uri)
         {
             emit receivedRemovePixelStreamSource(uri, socketDescriptor_);
             pixelStreamUri_ = QString();
         }
-    }
-    else if(messageHeader.type == MESSAGE_TYPE_PIXELSTREAM_OPEN)
-    {
+        break;
+
+    case MESSAGE_TYPE_PIXELSTREAM_OPEN:
         if (pixelStreamUri_.isEmpty())
         {
             pixelStreamUri_ = uri;
             emit receivedAddPixelStreamSource(uri, socketDescriptor_);
         }
-    }
-    else if(messageHeader.type == MESSAGE_TYPE_PIXELSTREAM_FINISH_FRAME)
-    {
+        break;
+
+    case MESSAGE_TYPE_PIXELSTREAM_FINISH_FRAME:
         if (pixelStreamUri_ == uri)
         {
             emit receivedPixelStreamFinishFrame(uri, socketDescriptor_);
         }
-    }
-    else if(messageHeader.type == MESSAGE_TYPE_PIXELSTREAM)
-    {
-        const PixelStreamSegmentParameters* parameters = (const PixelStreamSegmentParameters *)(byteArray.data());
+        break;
 
-        PixelStreamSegment segment;
-        segment.parameters = *parameters;
+    case MESSAGE_TYPE_PIXELSTREAM:
+        handlePixelStreamMessage(uri, byteArray);
+        break;
 
-        // read image data
-        QByteArray imageData = byteArray.right(byteArray.size() - sizeof(PixelStreamSegmentParameters));
-        segment.imageData = imageData;
-
-        if (pixelStreamUri_ == uri)
+    case MESSAGE_TYPE_BIND_INTERACTION:
+    case MESSAGE_TYPE_BIND_INTERACTION_EX:
+        if (interactionBound_)
         {
-            emit(receivedPixelStreamSegement(uri, socketDescriptor_, segment));
+            put_flog(LOG_DEBUG, "WE are already bound!!");
         }
         else
         {
-            put_flog(LOG_INFO, "received PixelStreamSegement from incorrect uri: %s", uri.toLocal8Bit().constData());
+            interactionName_ = uri;
+            interactionExclusive_ = (messageHeader.type == MESSAGE_TYPE_BIND_INTERACTION_EX);
+            interactionBound_ = bindInteraction();
+            sendBindReply( interactionBound_ );
         }
+        break;
+
+    default:
+        break;
     }
-    else if(messageHeader.type == MESSAGE_TYPE_BIND_INTERACTION ||
-            messageHeader.type == MESSAGE_TYPE_BIND_INTERACTION_EX )
+
+}
+
+void NetworkListenerThread::handlePixelStreamMessage(const QString& uri, const QByteArray& byteArray)
+{
+    const PixelStreamSegmentParameters* parameters = (const PixelStreamSegmentParameters *)(byteArray.data());
+
+    PixelStreamSegment segment;
+    segment.parameters = *parameters;
+
+    // read image data
+    QByteArray imageData = byteArray.right(byteArray.size() - sizeof(PixelStreamSegmentParameters));
+    segment.imageData = imageData;
+
+    if (pixelStreamUri_ == uri)
     {
-        interactionName_ = uri;
-        interactionExclusive_ = (messageHeader.type == MESSAGE_TYPE_BIND_INTERACTION_EX);
-        interactionBound_ = bindInteraction();
-        sendBindReply( interactionBound_ );
+        emit(receivedPixelStreamSegement(uri, socketDescriptor_, segment));
+    }
+    else
+    {
+        put_flog(LOG_INFO, "received PixelStreamSegement from incorrect uri: %s", uri.toLocal8Bit().constData());
     }
 }
 
@@ -274,7 +286,7 @@ void NetworkListenerThread::pixelStreamerClosed(QString uri)
 bool NetworkListenerThread::bindInteraction()
 {
     // try to bind to the ContentWindowManager corresponding to interactionName
-    boost::shared_ptr<ContentWindowManager> cwm = displayGroupInterface_->getContentWindowManager(interactionName_);
+    ContentWindowManagerPtr cwm = displayGroupInterface_->getContentWindowManager(interactionName_);
 
     if(cwm)
     {
@@ -306,16 +318,8 @@ bool NetworkListenerThread::bindInteraction()
 void NetworkListenerThread::sendBindReply( bool successful )
 {
     // send message header
-    MessageHeader mh;
-    mh.size = sizeof(bool);
-    mh.type = MESSAGE_TYPE_BIND_INTERACTION_REPLY;
-
-    int sent = tcpSocket_->write((const char *)&mh, sizeof(MessageHeader));
-
-    while(sent < (int)sizeof(MessageHeader))
-    {
-        sent += tcpSocket_->write((const char *)&mh + sent, sizeof(MessageHeader) - sent);
-    }
+    MessageHeader mh(MESSAGE_TYPE_BIND_INTERACTION_REPLY, sizeof(bool));
+    send(mh);
 
     tcpSocket_->write((const char *)&successful, sizeof(bool));
 
@@ -333,19 +337,11 @@ void NetworkListenerThread::sendBindReply( bool successful )
 void NetworkListenerThread::send(const InteractionState& interactionState)
 {
     // send message header
-    MessageHeader mh;
-    mh.size = sizeof(InteractionState);
-    mh.type = MESSAGE_TYPE_INTERACTION;
-
-    int sent = tcpSocket_->write((const char *)&mh, sizeof(MessageHeader));
-
-    while(sent < (int)sizeof(MessageHeader))
-    {
-        sent += tcpSocket_->write((const char *)&mh + sent, sizeof(MessageHeader) - sent);
-    }
+    MessageHeader mh(MESSAGE_TYPE_INTERACTION, sizeof(InteractionState));
+    send(mh);
 
     // send interaction state
-    sent = tcpSocket_->write((const char *)&interactionState, sizeof(InteractionState));
+    int sent = tcpSocket_->write((const char *)&interactionState, sizeof(InteractionState));
 
     while(sent < (int)sizeof(InteractionState))
     {
@@ -361,40 +357,10 @@ void NetworkListenerThread::send(const InteractionState& interactionState)
     }
 }
 
-void NetworkListenerThread::sendAck()
-{
-    MessageHeader mhAck;
-    mhAck.size = 0;
-    mhAck.type = MESSAGE_TYPE_ACK;
-
-    int sent = tcpSocket_->write((const char *)&mhAck, sizeof(MessageHeader));
-
-    while(sent < (int)sizeof(MessageHeader))
-    {
-        sent += tcpSocket_->write((const char *)&mhAck + sent, sizeof(MessageHeader) - sent);
-    }
-
-    // we want the ack to be sent immediately
-    tcpSocket_->flush();
-
-    while(tcpSocket_->bytesToWrite() > 0)
-    {
-        tcpSocket_->waitForBytesWritten();
-    }
-}
-
 void NetworkListenerThread::sendQuit()
 {
-    MessageHeader mh;
-    mh.size = 0;
-    mh.type = MESSAGE_TYPE_QUIT;
-
-    // send the header
-    int sent = tcpSocket_->write((const char *)&mh, sizeof(MessageHeader));
-    while(sent < (int)sizeof(MessageHeader))
-    {
-        sent += tcpSocket_->write((const char *)&mh + sent, sizeof(MessageHeader) - sent);
-    }
+    MessageHeader mh(MESSAGE_TYPE_QUIT, 0);
+    send(mh);
 
     // we want the message to be sent immediately
     tcpSocket_->flush();
@@ -405,3 +371,10 @@ void NetworkListenerThread::sendQuit()
     }
 }
 
+bool NetworkListenerThread::send(const MessageHeader& messageHeader)
+{
+    QDataStream stream(tcpSocket_);
+    stream << messageHeader;
+
+    return stream.status() == QDataStream::Ok;
+}

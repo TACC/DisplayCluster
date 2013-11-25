@@ -123,8 +123,8 @@ QSize PixelStreamBuffer::getFrameSize() const
             for(size_t i=0; i<segments.size(); i++)
             {
                 const PixelStreamSegmentParameters& params = segments[i].parameters;
-                size.setWidth(std::max(size.width(), params.width+params.x));
-                size.setHeight(std::max(size.height(), params.height+params.y));
+                size.setWidth(std::max(size.width(), (int)(params.width+params.x)));
+                size.setHeight(std::max(size.height(), (int)(params.height+params.y)));
             }
         }
     }
@@ -139,8 +139,8 @@ QSize PixelStreamBuffer::computeFrameDimensions(const PixelStreamSegments &segme
     for(size_t i=0; i<segments.size(); i++)
     {
         const PixelStreamSegmentParameters& params = segments[i].parameters;
-        size.setWidth(std::max(size.width(), params.width+params.x));
-        size.setHeight(std::max(size.height(), params.height+params.y));
+        size.setWidth(std::max(size.width(), (int)(params.width+params.x)));
+        size.setHeight(std::max(size.height(), (int)(params.height+params.y)));
     }
 
     return size;

@@ -170,7 +170,7 @@ bool BackgroundWidget::setBackgroundContentFromUri(const QString& filename)
 
         if(c != NULL)
         {
-            boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
+            ContentWindowManagerPtr cwm(new ContentWindowManager(c));
 
             g_displayGroupManager->setBackgroundContentWindowManager(cwm);
 
@@ -188,7 +188,7 @@ bool BackgroundWidget::setBackgroundContentFromUri(const QString& filename)
 
 void BackgroundWidget::removeBackground()
 {
-    g_displayGroupManager->setBackgroundContentWindowManager(boost::shared_ptr<ContentWindowManager>());
+    g_displayGroupManager->setBackgroundContentWindowManager(ContentWindowManagerPtr());
 
     backgroundLabel_->setText("");
     g_configuration->setBackgroundUri("");

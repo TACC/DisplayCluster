@@ -68,8 +68,6 @@ public:
     void insertPurgeTextureId(GLuint textureId);
     void purgeTextures();
 
-    void finalize();
-
     /**
      * Is the given region visible in this window.
      * @param rect The region in normalized global screen space, i.e. top-left
@@ -77,9 +75,6 @@ public:
      * @return true if (partially) visible, false otherwise
      */
     bool isRegionVisible(const QRectF& rect) const;
-
-    /** Unused?? */
-    //static bool isRectangleVisibleInCurrentGlView(double x, double y, double w, double h);
 
     /** Used by PDF and SVG renderers */
     QRectF getProjectedPixelRect(bool onScreenOnly);

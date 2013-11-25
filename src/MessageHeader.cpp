@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,72 +37,56 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef PIXEL_STREAM_H
-#define PIXEL_STREAM_H
+#include "MessageHeader.h"
 
-#include "FactoryObject.h"
-#include "PixelStreamSegment.h"
-#include "types.h"
+#include <QDataStream>
 
-#include <QtGui>
-#include <boost/shared_ptr.hpp>
-#include <vector>
-#include <queue>
+const uint32_t MessageHeader::serializedSize = sizeof(quint32) + sizeof(qint32) + MESSAGE_HEADER_URI_LENGTH;
 
-using dc::PixelStreamSegment;
-using dc::PixelStreamSegmentParameters;
-typedef std::vector<PixelStreamSegment> PixelStreamSegments;
 
-class PixelStreamSegmentRenderer;
-class PixelStreamSegmentDecoder;
-typedef boost::shared_ptr<PixelStreamSegmentDecoder> PixelStreamSegmentDecoderPtr;
-typedef boost::shared_ptr<PixelStreamSegmentRenderer> PixelStreamSegmentRendererPtr;
-
-class PixelStream : public FactoryObject
+MessageHeader::MessageHeader()
+    : type(MESSAGE_TYPE_NONE)
+    , size(0)
 {
-public:
-    PixelStream(const QString& uri);
+    uri[0] = '\0';
+}
 
-    void getDimensions(int &width, int &height) const;
+MessageHeader::MessageHeader(MESSAGE_TYPE type, uint32_t size, const std::string& streamUri)
+    : type(type)
+    , size(size)
+{
+    // add the truncated URI to the header
+    const size_t len = streamUri.copy(uri, MESSAGE_HEADER_URI_LENGTH - 1);
+    uri[len] = '\0';
+}
 
-    void preRenderUpdate();
-    void render(float tX, float tY, float tW, float tH);
+QDataStream& operator<<(QDataStream& out, const MessageHeader& header)
+{
+    out << (quint32)header.size << (qint32)header.type;
 
-    void insertNewFrame(const PixelStreamSegments& segments);
+    for(size_t i = 0; i < MESSAGE_HEADER_URI_LENGTH; i++)
+        out << (quint8)header.uri[i];
 
-private:
-    // pixel stream identifier
-    QString uri_;
+    return out;
+}
 
-    // dimensions of entire pixel stream
-    unsigned int width_;
-    unsigned int height_;
+QDataStream& operator>>(QDataStream& in, MessageHeader& header)
+{
+    quint32 size;
+    qint32 type;
 
-    // Has a decoding sequence been started
-    bool decodingStarted_;
+    in >> size;
+    header.size = size;
+    in >> type;
+    header.type = (MESSAGE_TYPE)type;
 
-    // Keep a queue of incoming frames
-    std::queue<PixelStreamSegments> frameBuffer_;
+    quint8 character;
+    for(size_t i = 0; i < MESSAGE_HEADER_URI_LENGTH; i++)
+    {
+        in >> character;
+        header.uri[i] = (char)character;
+    }
 
-    // The list of decoded images for the next frame
-    std::vector<PixelStreamSegmentDecoderPtr> frameDecoders_;
+    return in;
+}
 
-    // For each segment, object for image decoding, rendering and storing parameters
-    std::vector<PixelStreamSegmentRendererPtr> segmentRenderers_;
-
-    void updateVisibleTextures();
-    void nextFrame();
-    void recomputeDimensions(const PixelStreamSegments& segments);
-    void decodeVisibleTextures();
-
-    void adjustFrameDecoderCount(size_t count);
-    void adjustSegmentRendererCount(size_t count);
-
-    bool isDecodingInProgress();
-
-    bool isVisible(const QRectF& segment);
-    bool isVisible(const PixelStreamSegment& segment);
-};
-
-
-#endif

@@ -59,7 +59,7 @@ QListWidget * DisplayGroupListWidgetProxy::getListWidget()
     return listWidget_;
 }
 
-void DisplayGroupListWidgetProxy::addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
+void DisplayGroupListWidgetProxy::addContentWindowManager(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source)
 {
     DisplayGroupInterface::addContentWindowManager(contentWindowManager, source);
 
@@ -71,7 +71,7 @@ void DisplayGroupListWidgetProxy::addContentWindowManager(boost::shared_ptr<Cont
     }
 }
 
-void DisplayGroupListWidgetProxy::removeContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
+void DisplayGroupListWidgetProxy::removeContentWindowManager(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source)
 {
     DisplayGroupInterface::removeContentWindowManager(contentWindowManager, source);
 
@@ -81,7 +81,7 @@ void DisplayGroupListWidgetProxy::removeContentWindowManager(boost::shared_ptr<C
     }
 }
 
-void DisplayGroupListWidgetProxy::moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
+void DisplayGroupListWidgetProxy::moveContentWindowManagerToFront(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source)
 {
     DisplayGroupInterface::moveContentWindowManagerToFront(contentWindowManager, source);
 

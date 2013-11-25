@@ -82,7 +82,15 @@ GLWindow::GLWindow(int tileIndex, QRect windowRect, QGLWidget * shareWidget)
 
 GLWindow::~GLWindow()
 {
+    textureFactory_.clear();
+    dynamicTextureFactory_.clear();
+    pdfFactory_.clear();
+    svgFactory_.clear();
+    movieFactory_.clear();
+    pixelStreamFactory_.clear();
 
+    // The factories need to be cleared before we purge the textures
+    purgeTextures();
 }
 
 Factory<Texture> & GLWindow::getTextureFactory()
@@ -218,7 +226,7 @@ void GLWindow::resizeGL(int width, int height)
 void GLWindow::renderBackgroundContent()
 {
     // Render background content window
-    boost::shared_ptr<ContentWindowManager> backgroundContentWindowManager = g_displayGroupManager->getBackgroundContentWindowManager();
+    ContentWindowManagerPtr backgroundContentWindowManager = g_displayGroupManager->getBackgroundContentWindowManager();
     if (backgroundContentWindowManager != NULL)
     {
         glPushMatrix();
@@ -233,16 +241,21 @@ void GLWindow::renderBackgroundContent()
 void GLWindow::renderContentWindows()
 {
     // render content windows
-    std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers = g_displayGroupManager->getContentWindowManagers();
+    ContentWindowManagerPtrs contentWindowManagers = g_displayGroupManager->getContentWindowManagers();
 
-    for(unsigned int i=0; i<contentWindowManagers.size(); i++)
+    const unsigned int windowCount = contentWindowManagers.size();
+    unsigned int i = 0;
+    for(ContentWindowManagerPtrs::iterator it = contentWindowManagers.begin(); it != contentWindowManagers.end(); it++)
     {
         // manage depth order
-        // the visible depths seem to be in the range (-1,1); make the content window depths be in the range (-1,0)
-        glPushMatrix();
-        glTranslatef(0.,0.,-((float)contentWindowManagers.size() - (float)i) / ((float)contentWindowManagers.size() + 1.));
+        // the visible depths are in the range (-1,1); make the content window depths be in the range (-1,0)
+        const float depth = -(float)(windowCount - i) / (float)(windowCount + 1);
+        ++i;
 
-        contentWindowManagers[i]->render();
+        glPushMatrix();
+        glTranslatef(0.f, 0.f, depth);
+
+        (*it)->render();
 
         glPopMatrix();
     }
@@ -250,10 +263,10 @@ void GLWindow::renderContentWindows()
 
 void GLWindow::renderMarkers()
 {
-    std::vector<boost::shared_ptr<Marker> > markers = g_displayGroupManager->getMarkers();
-    for(unsigned int i=0; i<markers.size(); i++)
+    MarkerPtrs markers = g_displayGroupManager->getMarkers();
+    for(MarkerPtrs::iterator it = markers.begin(); it != markers.end(); it++)
     {
-        markers[i]->render();
+        (*it)->render();
     }
 }
 
@@ -401,55 +414,6 @@ bool GLWindow::isRegionVisible(const QRectF& rect) const
     return screenRect.intersects(rect);
 }
 
-/*
-bool GLWindow::isRectangleVisibleInCurrentGlView(double x, double y, double w, double h)
-{
-    // get four corners in object space
-    double xObj[4][3];
-
-    xObj[0][0] = x;
-    xObj[0][1] = y;
-    xObj[0][2] = 0.;
-
-    xObj[1][0] = x+w;
-    xObj[1][1] = y;
-    xObj[1][2] = 0.;
-
-    xObj[2][0] = x+w;
-    xObj[2][1] = y+h;
-    xObj[2][2] = 0.;
-
-    xObj[3][0] = x;
-    xObj[3][1] = y+h;
-    xObj[3][2] = 0.;
-
-    // get four corners in screen space
-    GLdouble modelview[16];
-    glGetDoublev(GL_MODELVIEW_MATRIX, modelview);
-
-    GLdouble projection[16];
-    glGetDoublev(GL_PROJECTION_MATRIX, projection);
-
-    GLint viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
-
-    GLdouble xWin[4][3];
-
-    for(int i=0; i<4; i++)
-    {
-        gluProject(xObj[i][0], xObj[i][1], xObj[i][2], modelview, projection, viewport, &xWin[i][0], &xWin[i][1], &xWin[i][2]);
-    }
-
-    // screen rectangle
-    QRectF screenRect(0.,0., (double)g_mainWindow->getGLWindow()->width(), (double)g_mainWindow->getGLWindow()->height());
-
-    // the given rectangle
-    QRectF rect(xWin[0][0], xWin[0][1], xWin[2][0]-xWin[0][0], xWin[2][1]-xWin[0][1]);
-
-    return screenRect.intersects(rect);
-}
-*/
-
 void GLWindow::drawRectangle(double x, double y, double w, double h)
 {
     glBegin(GL_QUADS);
@@ -460,18 +424,6 @@ void GLWindow::drawRectangle(double x, double y, double w, double h)
     glVertex2d(x,y+h);
 
     glEnd();
-}
-
-void GLWindow::finalize()
-{
-    textureFactory_.clear();
-    dynamicTextureFactory_.clear();
-    pdfFactory_.clear();
-    svgFactory_.clear();
-    movieFactory_.clear();
-    pixelStreamFactory_.clear();
-
-    purgeTextures();
 }
 
 void GLWindow::renderTestPattern()

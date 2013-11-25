@@ -245,7 +245,7 @@ void ContentWindowManager::render()
     // render buttons if any of the markers are over the window
     bool markerOverWindow = false;
 
-    std::vector<boost::shared_ptr<Marker> > markers = getDisplayGroupManager()->getMarkers();
+    MarkerPtrs markers = getDisplayGroupManager()->getMarkers();
 
     for(unsigned int i=0; i<markers.size(); i++)
     {

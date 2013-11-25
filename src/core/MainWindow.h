@@ -40,6 +40,8 @@
 #define MAIN_WINDOW_H
 
 #include "config.h"
+#include "types.h"
+
 #include <QtGui>
 #include <QGLWidget>
 #include <boost/shared_ptr.hpp>
@@ -57,9 +59,9 @@ class MainWindow : public QMainWindow
         MainWindow();
         ~MainWindow();
 
-        boost::shared_ptr<GLWindow> getGLWindow(int index=0);
-        boost::shared_ptr<GLWindow> getActiveGLWindow();
-        std::vector<boost::shared_ptr<GLWindow> > getGLWindows();
+        GLWindowPtr getGLWindow(int index=0);
+        GLWindowPtr getActiveGLWindow();
+        GLWindowPtrs getGLWindows();
 
         bool isRegionVisible(double x, double y, double w, double h) const;
 
@@ -78,8 +80,6 @@ public slots:
 #endif
 
         void updateGLWindows();
-
-        void finalize();
 
         void showBackgroundWidget();
         void openWebBrowser();
@@ -111,8 +111,8 @@ public slots:
         QStringList extractFolderUrls(const QMimeData *data);
         QString extractStateFile(const QMimeData *data);
 
-        std::vector<boost::shared_ptr<GLWindow> > glWindows_;
-        boost::shared_ptr<GLWindow> activeGLWindow_;
+        GLWindowPtrs glWindows_;
+        GLWindowPtr activeGLWindow_;
 
 #if ENABLE_TUIO_TOUCH_LISTENER
         MultiTouchListener* touchListener_;

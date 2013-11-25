@@ -109,7 +109,7 @@ class ContentWindowManager : public ContentWindowInterface, public boost::enable
 };
 
 // typedef needed for SIP
-typedef boost::shared_ptr<ContentWindowManager> pContentWindowManager;
+typedef ContentWindowManagerPtr pContentWindowManager;
 
 class pyContentWindowManager
 {
@@ -117,16 +117,16 @@ class pyContentWindowManager
 
         pyContentWindowManager(pyContent content)
         {
-            boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(content.get()));
+            ContentWindowManagerPtr cwm(new ContentWindowManager(content.get()));
             ptr_ = cwm;
         }
 
-        pyContentWindowManager(boost::shared_ptr<ContentWindowManager> cwm)
+        pyContentWindowManager(ContentWindowManagerPtr cwm)
         {
             ptr_ = cwm;
         }
 
-        boost::shared_ptr<ContentWindowManager> get()
+        ContentWindowManagerPtr get()
         {
             return ptr_;
         }
@@ -138,7 +138,7 @@ class pyContentWindowManager
 
     private:
 
-        boost::shared_ptr<ContentWindowManager> ptr_;
+        ContentWindowManagerPtr ptr_;
 };
 
 #endif

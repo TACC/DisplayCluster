@@ -50,7 +50,7 @@
 
 qreal ContentWindowGraphicsItem::zCounter_ = 0;
 
-ContentWindowGraphicsItem::ContentWindowGraphicsItem(boost::shared_ptr<ContentWindowManager> contentWindowManager)
+ContentWindowGraphicsItem::ContentWindowGraphicsItem(ContentWindowManagerPtr contentWindowManager)
     : ContentWindowInterface(contentWindowManager)
     , resizing_(false)
     , moving_(false)
@@ -220,7 +220,7 @@ void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
     }
     else
     {
-        boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager();
+        ContentWindowManagerPtr cwm = getContentWindowManager();
         if(cwm)
         {
             // Zoom or forward event depending on type
@@ -264,7 +264,7 @@ void ContentWindowGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent * event
     // move to the front of the GUI display
     moveToFront();
 
-    boost::shared_ptr<ContentWindowManager> window = getContentWindowManager();
+    ContentWindowManagerPtr window = getContentWindowManager();
     if (!window)
         return;
 
@@ -328,7 +328,7 @@ void ContentWindowGraphicsItem::mouseReleaseEvent(QGraphicsSceneMouseEvent * eve
     resizing_ = false;
     moving_ = false;
 
-    boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager();
+    ContentWindowManagerPtr cwm = getContentWindowManager();
 
     if( cwm )
     {
@@ -355,7 +355,7 @@ void ContentWindowGraphicsItem::wheelEvent(QGraphicsSceneWheelEvent * event)
         return;
     }
 
-    boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager();
+    ContentWindowManagerPtr cwm = getContentWindowManager();
 
     if( cwm )
     {
@@ -379,7 +379,7 @@ void ContentWindowGraphicsItem::keyPressEvent(QKeyEvent *event)
 {
     if (selected())
     {
-        boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager();
+        ContentWindowManagerPtr cwm = getContentWindowManager();
 
         if( cwm )
         {
@@ -392,7 +392,7 @@ void ContentWindowGraphicsItem::keyReleaseEvent(QKeyEvent *event)
 {
     if (selected())
     {
-        boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager();
+        ContentWindowManagerPtr cwm = getContentWindowManager();
 
         if( cwm )
         {

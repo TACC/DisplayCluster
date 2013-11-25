@@ -58,24 +58,11 @@ StreamPrivate::StreamPrivate(const std::string &name)
     imageSegmenter_.setNominalSegmentDimensions(SEGMENT_SIZE, SEGMENT_SIZE);
 }
 
-MessageHeader StreamPrivate::createMessageHeader(MESSAGE_TYPE type, size_t payloadSize) const
-{
-    MessageHeader mh;
-    mh.type = type;
-    mh.size = payloadSize;
-
-    // add the truncated URI to the header
-    const size_t len = name_.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
-    mh.uri[len] = '\0';
-
-    return mh;
-}
-
 bool StreamPrivate::sendPixelStreamSegment(const PixelStreamSegment &segment)
 {
     // Create message header
     size_t segmentSize = sizeof(PixelStreamSegmentParameters) + segment.imageData.size();
-    MessageHeader mh = createMessageHeader(MESSAGE_TYPE_PIXELSTREAM, segmentSize);
+    MessageHeader mh(MESSAGE_TYPE_PIXELSTREAM, segmentSize, name_);
 
     // This byte array will hold the message to be sent over the socket
     QByteArray message;
@@ -105,7 +92,7 @@ bool StreamPrivate::open(const std::string& address)
     }
 
     // Open a window for the PixelStream
-    MessageHeader mh = createMessageHeader(MESSAGE_TYPE_PIXELSTREAM_OPEN, 0);
+    MessageHeader mh(MESSAGE_TYPE_PIXELSTREAM_OPEN, 0, name_);
     return dcSocket_->send(mh, QByteArray());
 }
 
@@ -114,7 +101,7 @@ bool StreamPrivate::close()
     if( !dcSocket_ || !dcSocket_->isConnected( ))
         return true;
 
-    MessageHeader mh = createMessageHeader(MESSAGE_TYPE_QUIT, 0);
+    MessageHeader mh(MESSAGE_TYPE_QUIT, 0, name_);
     dcSocket_->send(mh, QByteArray());
 
     delete dcSocket_;

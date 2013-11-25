@@ -74,14 +74,6 @@ public:
     bool interactionBound_;
 
     /**
-     * Create a message header, filling the url field.
-     * @param type The type of the message.
-     * @param payloadSize The size of the message payload.
-     * @return The message header
-     */
-    MessageHeader createMessageHeader(MESSAGE_TYPE type, size_t payloadSize) const;
-
-    /**
      * Send an existing PixelStreamSegment via the DcSocket.
      * @param socket The DcSocket instance
      * @param segment A pixel stream segement with valid parameters and imageData

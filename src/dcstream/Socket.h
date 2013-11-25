@@ -99,12 +99,13 @@ public:
     bool receive(MessageHeader & messageHeader, QByteArray & message);
 
 private:
+    QTcpSocket* socket_;
+
     bool connect(const std::string &hostname, unsigned short port);
     bool checkProtocolVersion();
 
-private:
-    QTcpSocket* socket_;
-
+    bool send(const MessageHeader& messageHeader);
+    bool receive(MessageHeader& messageHeader);
 };
 
 }

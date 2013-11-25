@@ -56,7 +56,7 @@ void PixelStreamContent::getFactoryObjectDimensions(int &width, int &height)
     g_mainWindow->getGLWindow()->getPixelStreamFactory().getObject(getURI())->getDimensions(width, height);
 }
 
-void PixelStreamContent::advance(boost::shared_ptr<ContentWindowManager>)
+void PixelStreamContent::advance(ContentWindowManagerPtr)
 {
     g_mainWindow->getGLWindow()->getPixelStreamFactory().getObject(getURI())->preRenderUpdate();
 }

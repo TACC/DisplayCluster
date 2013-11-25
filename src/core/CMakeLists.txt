@@ -108,6 +108,7 @@ list(APPEND SRCS
     gestures/PinchGesture.cpp
     gestures/PinchGestureRecognizer.cpp
     ../log.cpp
+    ../MessageHeader.cpp
     LocalPixelStreamer.cpp
     LocalPixelStreamerFactory.cpp
     LocalPixelStreamerManager.cpp

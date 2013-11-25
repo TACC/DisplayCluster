@@ -45,6 +45,10 @@
     #include <stdint.h>
 #endif
 
+#include <string>
+
+class QDataStream;
+
 /** The message types. */
 enum MESSAGE_TYPE
 {
@@ -68,11 +72,11 @@ enum MESSAGE_TYPE
 /** Fixed-size message header. */
 struct MessageHeader
 {
-    /** Size of the message payload. */
-    int32_t size;
-
     /** Message type. */
     MESSAGE_TYPE type;
+
+    /** Size of the message payload. */
+    uint32_t size;
 
     /**
      * Optional URI related to message.
@@ -81,10 +85,17 @@ struct MessageHeader
     char uri[MESSAGE_HEADER_URI_LENGTH];
 
     /** Construct a default message header */
-    MessageHeader()
-        : size(0)
-        , type(MESSAGE_TYPE_NONE)
-    {}
+    MessageHeader();
+
+    /** Construct a message header with a uri */
+    MessageHeader(MESSAGE_TYPE type, uint32_t size, const std::string& streamUri = "");
+
+    /** The size of the QDataStream serialized output. */
+    static const uint32_t serializedSize;
 };
+
+/** Serialization for network, where sizeof(MessageHeader) can differ between compilers. */
+QDataStream& operator<<(QDataStream& out, const MessageHeader &header);
+QDataStream& operator>>(QDataStream& in, MessageHeader &header);
 
 #endif

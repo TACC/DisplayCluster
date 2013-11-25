@@ -353,7 +353,7 @@ void MainWindow::setupWallOpenGLWindows()
         move(configuration->getScreenPosition(0));
         resize(configuration->getScreenWidth(), configuration->getScreenHeight());
 
-        boost::shared_ptr<GLWindow> glw(new GLWindow(0));
+        GLWindowPtr glw(new GLWindow(0));
         glWindows_.push_back(glw);
 
         setCentralWidget(glw.get());
@@ -381,7 +381,7 @@ void MainWindow::setupWallOpenGLWindows()
                 shareWidget = glWindows_[0].get();
             }
 
-            boost::shared_ptr<GLWindow> glw(new GLWindow(i, windowRect, shareWidget));
+            GLWindowPtr glw(new GLWindow(i, windowRect, shareWidget));
             glWindows_.push_back(glw);
 
             if(configuration->getFullscreen())
@@ -396,17 +396,17 @@ void MainWindow::setupWallOpenGLWindows()
     }
 }
 
-boost::shared_ptr<GLWindow> MainWindow::getGLWindow(int index)
+GLWindowPtr MainWindow::getGLWindow(int index)
 {
     return glWindows_[index];
 }
 
-boost::shared_ptr<GLWindow> MainWindow::getActiveGLWindow()
+GLWindowPtr MainWindow::getActiveGLWindow()
 {
     return activeGLWindow_;
 }
 
-std::vector<boost::shared_ptr<GLWindow> > MainWindow::getGLWindows()
+GLWindowPtrs MainWindow::getGLWindows()
 {
     return glWindows_;
 }
@@ -429,7 +429,7 @@ void MainWindow::addContent(const QString& filename)
 
     if(c != NULL)
     {
-        boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
+        ContentWindowManagerPtr cwm(new ContentWindowManager(c));
 
         g_displayGroupManager->addContentWindowManager(cwm);
 
@@ -495,7 +495,7 @@ void MainWindow::addContentDirectory(const QString& directoryName, int gridX, in
 
         if(c != NULL)
         {
-            boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
+            ContentWindowManagerPtr cwm(new ContentWindowManager(c));
 
             g_displayGroupManager->addContentWindowManager(cwm);
 
@@ -560,7 +560,7 @@ void MainWindow::openWebBrowser()
 
 void MainWindow::clearContents()
 {
-    g_displayGroupManager->setContentWindowManagers(std::vector<boost::shared_ptr<ContentWindowManager> >());
+    g_displayGroupManager->setContentWindowManagers(ContentWindowManagerPtrs());
 }
 
 void MainWindow::saveState()
@@ -631,7 +631,7 @@ void MainWindow::constrainAspectRatio(bool set)
 
     if(set)
     {
-        std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers = g_displayGroupManager->getContentWindowManagers();
+        ContentWindowManagerPtrs contentWindowManagers = g_displayGroupManager->getContentWindowManagers();
 
         for(unsigned int i=0; i<contentWindowManagers.size(); i++)
         {
@@ -801,12 +801,4 @@ void MainWindow::updateGLWindows()
     g_frameCount = g_frameCount + 1;
 
     emit(updateGLWindowsFinished());
-}
-
-void MainWindow::finalize()
-{
-    for(size_t i=0; i<glWindows_.size(); i++)
-    {
-        glWindows_[i]->finalize();
-    }
 }

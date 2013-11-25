@@ -57,20 +57,20 @@ class DisplayGroupInterface : public QObject {
 
         boost::shared_ptr<DisplayGroupManager> getDisplayGroupManager();
 
-        std::vector<boost::shared_ptr<ContentWindowManager> > getContentWindowManagers();
-        boost::shared_ptr<ContentWindowManager> getContentWindowManager(const QString& uri, CONTENT_TYPE contentType=CONTENT_TYPE_ANY);
+        ContentWindowManagerPtrs getContentWindowManagers();
+        ContentWindowManagerPtr getContentWindowManager(const QString& uri, CONTENT_TYPE contentType=CONTENT_TYPE_ANY);
 
         // remove all current ContentWindowManagers and add the vector of provided ContentWindowManagers
-        void setContentWindowManagers(std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers);
+        void setContentWindowManagers(ContentWindowManagerPtrs contentWindowManagers);
 
     public slots:
 
         // these methods set the local copies of the state variables if source != this
         // they will emit signals if source == NULL or if this is a DisplayGroup object
         // the source argument should not be provided by users -- only by these functions
-        virtual void addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
-        virtual void removeContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
-        virtual void moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
+        virtual void addContentWindowManager(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source=NULL);
+        virtual void removeContentWindowManager(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source=NULL);
+        virtual void moveContentWindowManagerToFront(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source=NULL);
         virtual void saveState(const QString& filename, DisplayGroupInterface * source=NULL);
         virtual void loadState(const QString& filename, DisplayGroupInterface * source=NULL);
 
@@ -78,9 +78,9 @@ class DisplayGroupInterface : public QObject {
 
         // emitting these signals will trigger updates on the corresponding DisplayGroup
         // as well as all other DisplayGroupInterfaces to that DisplayGroup
-        void contentWindowManagerAdded(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
-        void contentWindowManagerRemoved(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
-        void contentWindowManagerMovedToFront(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
+        void contentWindowManagerAdded(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source=NULL);
+        void contentWindowManagerRemoved(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source=NULL);
+        void contentWindowManagerMovedToFront(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source=NULL);
         void stateSaved(QString filename, DisplayGroupInterface * source=NULL);
         void stateLoaded(QString filename, DisplayGroupInterface * source=NULL);
 
@@ -90,7 +90,7 @@ class DisplayGroupInterface : public QObject {
         boost::weak_ptr<DisplayGroupManager> displayGroupManager_;
 
         // vector of all of its content window managers
-        std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers_;
+        ContentWindowManagerPtrs contentWindowManagers_;
 };
 
 #endif

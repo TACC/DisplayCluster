@@ -70,10 +70,9 @@ DisplayGroupManager::DisplayGroupManager()
 
     // register Interactionstate in Qt
     qRegisterMetaType<InteractionState>("InteractionState");
-    qRegisterMetaType<dc::InteractionState>("dc::InteractionState");
 
     // register types for use in signals/slots
-    qRegisterMetaType<boost::shared_ptr<ContentWindowManager> >("boost::shared_ptr<ContentWindowManager>");
+    qRegisterMetaType<ContentWindowManagerPtr >("ContentWindowManagerPtr");
 
     // serialization support for the vector of skeleton states
 #if ENABLE_SKELETON_SUPPORT
@@ -92,11 +91,11 @@ OptionsPtr DisplayGroupManager::getOptions() const
     return options_;
 }
 
-boost::shared_ptr<Marker> DisplayGroupManager::getNewMarker()
+MarkerPtr DisplayGroupManager::getNewMarker()
 {
     QMutexLocker locker(&markersMutex_);
 
-    boost::shared_ptr<Marker> marker(new Marker());
+    MarkerPtr marker(new Marker());
     markers_.push_back(marker);
 
     // the marker needs to be owned by the main thread for queued connections to work properly
@@ -108,6 +107,11 @@ boost::shared_ptr<Marker> DisplayGroupManager::getNewMarker()
     return marker;
 }
 
+const MarkerPtrs& DisplayGroupManager::getMarkers() const
+{
+    return markers_;
+}
+
 void DisplayGroupManager::deleteMarkers()
 {
     QMutexLocker locker(&markersMutex_);
@@ -117,11 +121,6 @@ void DisplayGroupManager::deleteMarkers()
 
     markers_[0]->releaseTexture();
     markers_.clear();
-}
-
-const std::vector<boost::shared_ptr<Marker> >& DisplayGroupManager::getMarkers() const
-{
-    return markers_;
 }
 
 boost::posix_time::ptime DisplayGroupManager::getTimestamp() const
@@ -144,7 +143,7 @@ std::vector<boost::shared_ptr<SkeletonState> > DisplayGroupManager::getSkeletons
 }
 #endif
 
-void DisplayGroupManager::addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
+void DisplayGroupManager::addContentWindowManager(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source)
 {
     DisplayGroupInterface::addContentWindowManager(contentWindowManager, source);
 
@@ -164,7 +163,7 @@ void DisplayGroupManager::addContentWindowManager(boost::shared_ptr<ContentWindo
     }
 }
 
-void DisplayGroupManager::removeContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
+void DisplayGroupManager::removeContentWindowManager(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source)
 {
     DisplayGroupInterface::removeContentWindowManager(contentWindowManager, source);
 
@@ -185,7 +184,7 @@ void DisplayGroupManager::removeContentWindowManager(boost::shared_ptr<ContentWi
     }
 }
 
-void DisplayGroupManager::moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
+void DisplayGroupManager::moveContentWindowManagerToFront(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source)
 {
     DisplayGroupInterface::moveContentWindowManagerToFront(contentWindowManager, source);
 
@@ -272,7 +271,7 @@ void DisplayGroupManager::calibrateTimestampOffset()
     }
 }
 
-void DisplayGroupManager::setBackgroundContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager)
+void DisplayGroupManager::setBackgroundContentWindowManager(ContentWindowManagerPtr contentWindowManager)
 {
     // This method can be used to remove the background by sending a NULL ptr
     if (contentWindowManager != NULL)
@@ -287,7 +286,7 @@ void DisplayGroupManager::setBackgroundContentWindowManager(boost::shared_ptr<Co
     sendDisplayGroup();
 }
 
-boost::shared_ptr<ContentWindowManager> DisplayGroupManager::getBackgroundContentWindowManager() const
+ContentWindowManagerPtr DisplayGroupManager::getBackgroundContentWindowManager() const
 {
     return backgroundContent_;
 }
@@ -304,7 +303,7 @@ void DisplayGroupManager::initBackground()
 
         if(c != NULL)
         {
-            boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
+            ContentWindowManagerPtr cwm(new ContentWindowManager(c));
             g_displayGroupManager->setBackgroundContentWindowManager(cwm);
         }
     }
@@ -504,7 +503,7 @@ void DisplayGroupManager::sendContentsDimensionsRequest()
 
 void DisplayGroupManager::adjustPixelStreamContentDimensions(QString uri, int width, int height, bool changeViewSize)
 {
-    boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
+    ContentWindowManagerPtr cwm = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
     if(cwm)
     {
         // check for updated dimensions
@@ -614,7 +613,7 @@ void DisplayGroupManager::sendQuit()
     mh.type = MESSAGE_TYPE_QUIT;
 
     // will send EVT_CLOSE through InteractionState
-    std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers;
+    ContentWindowManagerPtrs contentWindowManagers;
     setContentWindowManagers( contentWindowManagers );
 
     // the header is sent via a send, so that we can probe it on the render processes
@@ -641,7 +640,7 @@ void DisplayGroupManager::advanceContents()
 void DisplayGroupManager::openPixelStream(QString uri, int width, int height)
 {
     // add a Content/ContentWindowManager for this URI
-    boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
+    ContentWindowManagerPtr cwm = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
 
     if(!cwm)
     {
@@ -649,7 +648,7 @@ void DisplayGroupManager::openPixelStream(QString uri, int width, int height)
 
         boost::shared_ptr<Content> c(new PixelStreamContent(uri));
         c->setDimensions(width, height);
-        cwm = boost::shared_ptr<ContentWindowManager>(new ContentWindowManager(c));
+        cwm = ContentWindowManagerPtr(new ContentWindowManager(c));
         addContentWindowManager(cwm);
     }
 }
@@ -658,7 +657,7 @@ void DisplayGroupManager::closePixelStream(const QString& uri)
 {
     put_flog(LOG_DEBUG, "deleting pixel stream: %s", uri.toLocal8Bit().constData());
 
-    boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
+    ContentWindowManagerPtr cwm = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
     if( cwm )
         removeContentWindowManager( cwm );
 }

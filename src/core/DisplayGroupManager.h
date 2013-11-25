@@ -75,8 +75,8 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
 
         OptionsPtr getOptions() const;
 
-        boost::shared_ptr<Marker> getNewMarker();
-        const std::vector<boost::shared_ptr<Marker> >& getMarkers() const;
+        MarkerPtr getNewMarker();
+        const MarkerPtrs& getMarkers() const;
         void deleteMarkers();
 
         boost::posix_time::ptime getTimestamp() const;
@@ -86,16 +86,16 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
 #endif
 
         // re-implemented DisplayGroupInterface slots
-        void addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
-        void removeContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
-        void moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
+        void addContentWindowManager(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source=NULL);
+        void removeContentWindowManager(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source=NULL);
+        void moveContentWindowManagerToFront(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source=NULL);
 
         // find the offset between the rank 0 clock and the rank 1 clock. recall the rank 1 clock is used across rank 1 - n.
         void calibrateTimestampOffset();
 
         // background content
-        void setBackgroundContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager);
-        boost::shared_ptr<ContentWindowManager> getBackgroundContentWindowManager() const;
+        void setBackgroundContentWindowManager(ContentWindowManagerPtr contentWindowManager);
+        ContentWindowManagerPtr getBackgroundContentWindowManager() const;
 
         // background
         void initBackground();
@@ -150,7 +150,7 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         }
 
         // background
-        boost::shared_ptr<ContentWindowManager> backgroundContent_;
+        ContentWindowManagerPtr backgroundContent_;
         QColor backgroundColor_;
 
         // options
@@ -158,7 +158,7 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
 
         // marker and mutex
         QMutex markersMutex_;
-        std::vector<boost::shared_ptr<Marker> > markers_;
+        MarkerPtrs markers_;
 
         // frame timing
         boost::posix_time::ptime timestamp_;

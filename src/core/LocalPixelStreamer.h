@@ -61,7 +61,7 @@ public:
     QString getUri() const;
 
 public slots:
-    virtual void updateInteractionState(dc::InteractionState interactionState) = 0;
+    virtual void updateInteractionState(InteractionState interactionState) = 0;
 
 protected:
     QString uri_;

@@ -98,7 +98,7 @@ bool Stream::send(const ImageWrapper& image)
 bool Stream::finishFrame()
 {
     // Open a window for the PixelStream
-    MessageHeader mh = impl_->createMessageHeader(MESSAGE_TYPE_PIXELSTREAM_FINISH_FRAME, 0);
+    MessageHeader mh(MESSAGE_TYPE_PIXELSTREAM_FINISH_FRAME, 0, impl_->name_);
     return impl_->dcSocket_->send(mh, QByteArray());
 }
 
@@ -112,7 +112,7 @@ bool Stream::bindInteraction(const bool exclusive)
 
     MESSAGE_TYPE type = exclusive ? MESSAGE_TYPE_BIND_INTERACTION_EX :
                                     MESSAGE_TYPE_BIND_INTERACTION;
-    MessageHeader mh = impl_->createMessageHeader(type, 0);
+    MessageHeader mh(type, 0, impl_->name_);
 
     // Send the bind message
     if( !impl_->dcSocket_->send(mh, QByteArray()) )

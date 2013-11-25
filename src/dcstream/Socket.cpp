@@ -45,7 +45,7 @@
 #include <QtNetwork/QTcpSocket>
 #include <QThread>
 
-#define ACK_TIMEOUT_MS                     1000
+#define RECEIVE_TIMEOUT_MS                 1000
 #define WAIT_FOR_BYTES_WRITTEN_TIMEOUT_MS  1000
 
 namespace dc
@@ -80,24 +80,20 @@ int Socket::getFileDescriptor() const
 
 bool Socket::hasMessage(const size_t messageSize) const
 {
-    return socket_->bytesAvailable() >= (int)(sizeof(MessageHeader) + messageSize);
+    return socket_->bytesAvailable() >= (int)(MessageHeader::serializedSize + messageSize);
 }
 
 bool Socket::send(const MessageHeader& messageHeader, const QByteArray &message)
 {
     // Send header
-    int sent = socket_->write((const char *)&messageHeader, sizeof(MessageHeader));
-
-    while(sent < (int)sizeof(MessageHeader) && isConnected())
-    {
-        sent += socket_->write((const char *)&messageHeader + sent, sizeof(MessageHeader) - sent);
-    }
+    if ( !send(messageHeader) )
+        return false;
 
     // Send message data
     const char* data = message.constData();
     int size = message.size();
 
-    sent = socket_->write(data, size);
+    int sent = socket_->write(data, size);
 
     while(sent < size && isConnected())
     {
@@ -113,26 +109,25 @@ bool Socket::send(const MessageHeader& messageHeader, const QByteArray &message)
     return sent == size;
 }
 
+bool Socket::send(const MessageHeader& messageHeader)
+{
+    QDataStream stream(socket_);
+    stream << messageHeader;
+
+    return stream.status() == QDataStream::Ok;
+}
+
 bool Socket::receive(MessageHeader & messageHeader, QByteArray & message)
 {
-    QByteArray byteArray = socket_->read(sizeof(MessageHeader));
-
-    while(byteArray.size() < (int)sizeof(MessageHeader))
-    {
-        socket_->waitForReadyRead(ACK_TIMEOUT_MS);
-
-        byteArray.append(socket_->read(sizeof(MessageHeader) - byteArray.size()));
-    }
-
-    // got the header
-    messageHeader = *(MessageHeader *)byteArray.data();
+    if (!receive(messageHeader))
+        return false;
 
     // get the message
     if(messageHeader.size > 0)
     {
         message = socket_->read(messageHeader.size);
 
-        while(message.size() < messageHeader.size)
+        while(message.size() < (int)messageHeader.size)
         {
             socket_->waitForReadyRead();
 
@@ -150,6 +145,20 @@ bool Socket::receive(MessageHeader & messageHeader, QByteArray & message)
     return true;
 }
 
+bool Socket::receive(MessageHeader & messageHeader)
+{
+    while( socket_->bytesAvailable() < (qint64)MessageHeader::serializedSize )
+    {
+        if ( !socket_->waitForReadyRead(RECEIVE_TIMEOUT_MS) )
+            return false;
+    }
+
+    QDataStream stream(socket_);
+    stream >> messageHeader;
+
+    return stream.status() == QDataStream::Ok;
+}
+
 bool Socket::connect(const std::string& hostname, unsigned short port)
 {
     // make sure we're disconnected
@@ -158,7 +167,7 @@ bool Socket::connect(const std::string& hostname, unsigned short port)
     // open connection
     socket_->connectToHost(hostname.c_str(), port);
 
-    if(!socket_->waitForConnected(ACK_TIMEOUT_MS))
+    if(!socket_->waitForConnected(RECEIVE_TIMEOUT_MS))
     {
         put_flog(LOG_ERROR, "could not connect to host %s", hostname.c_str());
         return false;
@@ -167,7 +176,7 @@ bool Socket::connect(const std::string& hostname, unsigned short port)
     // handshake
     if (checkProtocolVersion())
     {
-        put_flog(LOG_INFO, "connected to host %s", hostname.c_str());
+        //put_flog(LOG_INFO, "connected to host %s", hostname.c_str());
         return true;
     }
     else
@@ -179,9 +188,9 @@ bool Socket::connect(const std::string& hostname, unsigned short port)
 
 bool Socket::checkProtocolVersion()
 {
-    while(socket_->bytesAvailable() < (int)sizeof(int32_t))
+    while( socket_->bytesAvailable() < (qint64)sizeof(int32_t) )
     {
-        if ( !socket_->waitForReadyRead(ACK_TIMEOUT_MS) )
+        if ( !socket_->waitForReadyRead(RECEIVE_TIMEOUT_MS) )
             return false;
     }
 

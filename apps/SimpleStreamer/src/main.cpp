@@ -14,7 +14,7 @@
 
 bool dcInteraction = false;
 bool dcCompressImage = true;
-int dcCompressionQuality = 75;
+unsigned int dcCompressionQuality = 75;
 char * dcHostname = NULL;
 std::string dcStreamName = "SimpleStreamer";
 dc::Stream* dcStream = NULL;
@@ -172,7 +172,7 @@ void display()
 
     // grab the image data from OpenGL
     const size_t imageSize = windowWidth * windowHeight * 4;
-    unsigned char * imageData = (unsigned char *)malloc(imageSize);
+    unsigned char* imageData = new unsigned char[imageSize];
     glReadPixels(0,0,windowWidth,windowHeight, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)imageData);
 
     dc::ImageWrapper dcImage((const void*)imageData, windowWidth, windowHeight, dc::RGBA);
@@ -183,7 +183,7 @@ void display()
     dcStream->finishFrame();
 
     // and free the allocated image data
-    free(imageData);
+    delete [] imageData;
 
     glutSwapBuffers();
 
@@ -200,7 +200,7 @@ void display()
             // For more advanced applications, event processing should be done in a separate thread.
             while (dcStream->hasInteractionState())
             {
-                dc::InteractionState interactionState = dcStream->retrieveInteractionState();
+                const dc::InteractionState& interactionState = dcStream->retrieveInteractionState();
 
                 if (interactionState.type == dc::InteractionState::EVT_CLOSE)
                 {
@@ -235,7 +235,7 @@ void display()
     {
         if (!dcStream->isConnected())
         {
-            std::cout << "Stream closed" << std::endl;
+            std::cout << "Stream closed, exiting." << std::endl;
             exit(0);
         }
         else

@@ -40,15 +40,14 @@
 #ifndef LOCALPIXELSTREAMERMANAGER_H
 #define LOCALPIXELSTREAMERMANAGER_H
 
+#include "types.h"
+
 #include <map>
-#include <boost/shared_ptr.hpp>
 #include <QMutex>
 #include <QObject>
 #include <QPointF>
 
 class LocalPixelStreamer;
-class DisplayGroupManager;
-class ContentWindowManager;
 class DockPixelStreamer;
 
 class LocalPixelStreamerManager : public QObject
@@ -79,7 +78,7 @@ private:
     // To connect new LocalPixelStreamers
     DisplayGroupManager *displayGroupManager_;
 
-    void setWindowManagerPosition(boost::shared_ptr<ContentWindowManager> cwm, QPointF pos);
+    void setWindowManagerPosition(ContentWindowManagerPtr cwm, QPointF pos);
     void bindPixelStreamerInteraction(LocalPixelStreamer* streamer);
 };
 

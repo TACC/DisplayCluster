@@ -43,6 +43,8 @@
 #define HIGHLIGHT_BLINK_INTERVAL 250 // milliseconds
 
 #include "InteractionState.h"
+#include "types.h"
+
 #include <QtGui>
 #ifndef Q_MOC_RUN
 // https://bugreports.qt.nokia.com/browse/QTBUG-22829: When Qt moc runs on CGAL
@@ -52,7 +54,6 @@
 #  include <boost/date_time/posix_time/posix_time.hpp>
 #endif
 
-class ContentWindowManager;
 using dc::InteractionState;
 
 enum ControlState
@@ -79,9 +80,9 @@ class ContentWindowInterface : public QObject {
         };
 
         ContentWindowInterface();
-        ContentWindowInterface(boost::shared_ptr<ContentWindowManager> contentWindowManager);
+        ContentWindowInterface(ContentWindowManagerPtr contentWindowManager);
 
-        boost::shared_ptr<ContentWindowManager> getContentWindowManager();
+        ContentWindowManagerPtr getContentWindowManager();
 
         void getContentDimensions(int &contentWidth, int &contentHeight);
         void getCoordinates(double &x, double &y, double &w, double &h);
