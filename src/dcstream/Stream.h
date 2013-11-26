@@ -44,7 +44,6 @@
 
 #include "Event.h"
 #include "ImageWrapper.h"
-#include "NonCopyable.h"
 
 namespace dc
 {
@@ -59,7 +58,7 @@ class StreamPrivate;
  *
  * The methods in this class are reentrant (all instances are independant) but are not thread-safe.
  */
-class Stream : public NonCopyable
+class Stream
 {
 public:
     /**
@@ -162,6 +161,12 @@ public:
     Event getEvent();
 
 private:
+    /** Disable copy constructor. */
+    Stream( const Stream& );
+
+    /** Disable assignment operator. */
+    const Stream& operator = ( const Stream& );
+
     StreamPrivate* impl_;
 };
 

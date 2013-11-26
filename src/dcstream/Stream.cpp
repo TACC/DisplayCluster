@@ -79,9 +79,9 @@ bool Stream::isConnected() const
 
 bool Stream::send(const ImageWrapper& image)
 {
-    if ( !(image.compressionPolicy == COMPRESSION_ON) && (image.pixelFormat != dc::ARGB ||  image.pixelFormat != dc::ABGR ))
+    if ( !(image.compressionPolicy == COMPRESSION_ON) && !( image.pixelFormat == dc::RGBA ))
     {
-        put_flog(LOG_ERROR, "Currently, RAW images only be sent in ARGB format. Other formats remain to be implemented.");
+        put_flog(LOG_ERROR, "Currently, RAW images can only be sent in RGBA format. Other formats support remain to be implemented.");
         return false;
     }
 

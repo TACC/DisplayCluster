@@ -406,11 +406,6 @@ GLWindowPtr MainWindow::getActiveGLWindow()
     return activeGLWindow_;
 }
 
-GLWindowPtrs MainWindow::getGLWindows()
-{
-    return glWindows_;
-}
-
 bool MainWindow::isRegionVisible(double x, double y, double w, double h) const
 {
     for(unsigned int i=0; i<glWindows_.size(); i++)
@@ -801,4 +796,12 @@ void MainWindow::updateGLWindows()
     g_frameCount = g_frameCount + 1;
 
     emit(updateGLWindowsFinished());
+}
+
+void MainWindow::finalize()
+{
+    for(size_t i=0; i<glWindows_.size(); i++)
+    {
+        glWindows_[i]->finalize();
+    }
 }

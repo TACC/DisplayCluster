@@ -58,7 +58,7 @@ Socket::Socket(const std::string &hostname, unsigned short port)
 {
     if( !connect( hostname, port ))
     {
-        put_flog(LOG_ERROR, "could not connect to host %s:%i", hostname.c_str(), port);
+//        put_flog(LOG_ERROR, "could not connect to host %s:%i", hostname.c_str(), port);
     }
 }
 
@@ -169,7 +169,7 @@ bool Socket::connect(const std::string& hostname, unsigned short port)
 
     if(!socket_->waitForConnected(RECEIVE_TIMEOUT_MS))
     {
-        put_flog(LOG_ERROR, "could not connect to host %s", hostname.c_str());
+        put_flog(LOG_ERROR, "could not connect to host %s:%i", hostname.c_str(), port);
         return false;
     }
 
@@ -181,6 +181,7 @@ bool Socket::connect(const std::string& hostname, unsigned short port)
     }
     else
     {
+        put_flog(LOG_ERROR, "Protocol version check failed for host: %s:%i", hostname.c_str(), port);
         socket_->disconnectFromHost();
         return false;
     }

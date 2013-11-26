@@ -62,9 +62,7 @@ PixelStreamSegmentRenderer::~PixelStreamSegmentRenderer()
     // delete bound texture
     if(textureId_)
     {
-        // let the OpenGL window delete the texture, so the destructor can occur in any thread...
-        g_mainWindow->getGLWindow()->insertPurgeTextureId(textureId_);
-
+        glDeleteTextures(1, &textureId_);
         textureId_ = 0;
     }
 
@@ -83,34 +81,31 @@ QRectF PixelStreamSegmentRenderer::getRect() const
 }
 
 void PixelStreamSegmentRenderer::updateTexture(const QImage& image)
-
 {
     segmentStatistics->tick();
 
+    // if the size has changed, create a new texture
+    if(textureId_ && (image.width() != textureWidth_ || image.height() != textureHeight_))
+    {
+        // delete bound texture
+        glDeleteTextures(1, &textureId_);
+        textureId_ = 0;
+    }
+
     if(!textureId_)
     {
-        // want mipmaps disabled
-        textureId_ = g_mainWindow->getGLWindow()->bindTexture(image, GL_TEXTURE_2D, GL_RGBA, QGLContext::LinearFilteringBindOption);
+        glGenTextures(1, &textureId_);
+        glBindTexture(GL_TEXTURE_2D, textureId_);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
         textureWidth_ = image.width();
         textureHeight_ = image.height();
     }
     else
     {
-        // if the size has changed, create a new texture
-        if(image.width() != textureWidth_ || image.height() != textureHeight_)
-        {
-            // delete bound texture
-            g_mainWindow->getGLWindow()->deleteTexture(textureId_);
-
-            textureId_ = g_mainWindow->getGLWindow()->bindTexture(image, GL_TEXTURE_2D, GL_RGBA, QGLContext::LinearFilteringBindOption);
-            textureWidth_ = image.width();
-            textureHeight_ = image.height();
-        }
-        else
-        {
-            glBindTexture(GL_TEXTURE_2D, textureId_);
-            glTexSubImage2D(GL_TEXTURE_2D, 0, 0,0, image.width(), image.height(), GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
-        }
+        glBindTexture(GL_TEXTURE_2D, textureId_);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image.width(), image.height(), GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
     }
 
     textureNeedsUpdate_ = false;

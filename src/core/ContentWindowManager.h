@@ -51,8 +51,9 @@
 class DisplayGroupManager;
 class ContentInteractionDelegate;
 
-
-class ContentWindowManager : public ContentWindowInterface, public boost::enable_shared_from_this<ContentWindowManager> {
+class ContentWindowManager : public ContentWindowInterface, public boost::enable_shared_from_this<ContentWindowManager>
+{
+    Q_OBJECT
 
     public:
 

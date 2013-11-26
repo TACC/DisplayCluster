@@ -64,6 +64,7 @@
 
 class ContentWindowManager;
 struct MessageHeader;
+class EventReceiver;
 
 class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_shared_from_this<DisplayGroupManager> {
     Q_OBJECT
@@ -128,9 +129,12 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         void closePixelStream(const QString& uri);
         void adjustPixelStreamContentDimensions(QString uri, int width, int height, bool changeViewSize);
 
+        void registerEventReceiver(QString uri, bool exclusive, EventReceiver* receiver);
+
     signals:
         // Rank0 signals pixel streams events
         void pixelStreamViewClosed(QString uri);
+        void eventRegistrationReply(QString uri, bool success);
 
     private:
         friend class boost::serialization::access;

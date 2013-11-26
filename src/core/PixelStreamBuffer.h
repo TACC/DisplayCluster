@@ -87,13 +87,13 @@ public:
      * Add a source of segments.
      * @param sourceIndex Unique source identifier
      */
-    void addSource(SourceIndex sourceIndex);
+    void addSource(const SourceIndex sourceIndex);
 
     /**
      * Remove a source of segments.
      * @param sourceIndex Unique source identifier
      */
-    void removeSource(SourceIndex sourceIndex);
+    void removeSource(const SourceIndex sourceIndex);
 
     /** Get the number of sources for this Stream */
     size_t getSourceCount() const;
@@ -103,13 +103,13 @@ public:
      * @param segment The segment to insert
      * @param sourceIndex Unique source identifier
      */
-    void insertSegment(const PixelStreamSegment& segment, SourceIndex sourceIndex);
+    void insertSegment(const PixelStreamSegment& segment, const SourceIndex sourceIndex);
 
     /**
      * Notify that the given source has finished sending segment for the current frame.
      * @param sourceIndex Unique source identifier
      */
-    void finishFrameForSource(SourceIndex sourceIndex);
+    void finishFrameForSource(const SourceIndex sourceIndex);
 
     /** Does the Buffer have a complete frame (from all sources) */
     bool hasFrameComplete() const;

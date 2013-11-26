@@ -76,7 +76,7 @@ void decodeSegment(boost::shared_ptr<PixelStreamSegmentDecoder> segmentDecoder, 
     }
 
     // decompress image data
-    int pixelFormat = TJPF_BGRX;
+    int pixelFormat = TJPF_RGBX; // Format for OpenGL texture (GL_RGBA)
     int pitch = width * tjPixelSize[pixelFormat];
     int flags = TJ_FASTUPSAMPLE;
 

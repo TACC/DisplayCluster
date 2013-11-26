@@ -156,11 +156,13 @@ list(APPEND MOC_HEADERS
     BackgroundWidget.h
     Content.h
     ContentWindowInterface.h
+    ContentWindowManager.h
     DisplayGroupManager.h
     DisplayGroupInterface.h
     DisplayGroupGraphicsViewProxy.h
     DisplayGroupListWidgetProxy.h
     DockPixelStreamer.h
+    EventReceiver.h
     LocalPixelStreamer.h
     LocalPixelStreamerManager.h
     MainWindow.h

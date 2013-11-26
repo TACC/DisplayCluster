@@ -61,7 +61,6 @@ class MainWindow : public QMainWindow
 
         GLWindowPtr getGLWindow(int index=0);
         GLWindowPtr getActiveGLWindow();
-        GLWindowPtrs getGLWindows();
 
         bool isRegionVisible(double x, double y, double w, double h) const;
 
@@ -80,6 +79,8 @@ public slots:
 #endif
 
         void updateGLWindows();
+
+        void finalize();
 
         void showBackgroundWidget();
         void openWebBrowser();

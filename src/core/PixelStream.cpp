@@ -145,20 +145,22 @@ void PixelStream::decodeVisibleTextures()
         return;
 
     PixelStreamSegments &segments = frameBuffer_.front();
+    adjustFrameDecodersCount(segments.size());
 
-    adjustFrameDecoderCount(segments.size());
     assert(frameDecoders_.size() == segments.size() && "PixelStream::startDecodingNextFrame FIXME");
 
-    for(size_t i=0; i<segments.size(); i++)
+    std::vector<PixelStreamSegmentDecoderPtr>::iterator frameDecoder_it = frameDecoders_.begin();
+    PixelStreamSegments::iterator segment_it = segments.begin();
+    for ( ; segment_it != segments.end(); ++segment_it, ++frameDecoder_it )
     {
-        if (segments[i].parameters.compressed && isVisible(segments[i]))
+        if ( segment_it->parameters.compressed && isVisible(*segment_it) )
         {
-            frameDecoders_[i]->startDecoding(segments[i]);
+            (*frameDecoder_it)->startDecoding(*segment_it);
         }
     }
 }
 
-void PixelStream::render(float tX, float tY, float tW, float tH)
+void PixelStream::render(const float tX, const float tY, const float tW, const float tH)
 {
     updateRenderedFrameCount();
 
@@ -166,7 +168,7 @@ void PixelStream::render(float tX, float tY, float tW, float tH)
     const bool showSegmentStatistics = g_displayGroupManager->getOptions()->getShowStreamingStatistics();
 
     glPushMatrix();
-    glScalef(1.f/width_, 1.f/height_, 0.);
+    glScalef(1.f/(float)width_, 1.f/(float)height_, 0.f);
 
     for(std::vector<PixelStreamSegmentRendererPtr>::iterator it=segmentRenderers_.begin(); it != segmentRenderers_.end(); it++)
     {
@@ -179,21 +181,23 @@ void PixelStream::render(float tX, float tY, float tW, float tH)
     glPopMatrix();
 }
 
-void PixelStream::adjustFrameDecoderCount(size_t count)
+void PixelStream::adjustFrameDecodersCount(const size_t count)
 {
-    for (size_t i = frameDecoders_.size(); i<count; ++i)
-        frameDecoders_.push_back(PixelStreamSegmentDecoderPtr(new PixelStreamSegmentDecoder()));
-    frameDecoders_.resize(count);
+    // We need to insert NEW objects in the vector if it is smaller
+    for (size_t i=frameDecoders_.size(); i<count; ++i)
+        frameDecoders_.push_back( PixelStreamSegmentDecoderPtr(new PixelStreamSegmentDecoder()) );
+    // Or resize it if it is bigger
+    frameDecoders_.resize( count );
 }
 
-void PixelStream::adjustSegmentRendererCount(size_t count)
+void PixelStream::adjustSegmentRendererCount(const size_t count)
 {
     // Recreate the renderers if the number of segments has changed
     if (segmentRenderers_.size() != count)
     {
         segmentRenderers_.clear();
-        for (size_t i=0; i<count; i++)
-            segmentRenderers_.push_back(PixelStreamSegmentRendererPtr(new PixelStreamSegmentRenderer(uri_)));
+        for (size_t i=0; i<count; ++i)
+            segmentRenderers_.push_back( PixelStreamSegmentRendererPtr(new PixelStreamSegmentRenderer(uri_)) );
     }
 }
 
@@ -235,10 +239,10 @@ bool PixelStream::isVisible(const QRectF& segment)
         const QRectF& window = cwm->getCoordinates();
 
         // coordinates of segment in global tiled display space
-        double segmentX = window.x() + (double)segment.x() / (double)width_ * window.width();
-        double segmentY = window.y() + (double)segment.y() / (double)height_ * window.height();
-        double segmentW = (double)segment.width() / (double)width_ * window.width();
-        double segmentH = (double)segment.height() / (double)height_ * window.height();
+        const double segmentX = window.x() + (double)segment.x() / (double)width_ * window.width();
+        const double segmentY = window.y() + (double)segment.y() / (double)height_ * window.height();
+        const double segmentW = (double)segment.width() / (double)width_ * window.width();
+        const double segmentH = (double)segment.height() / (double)height_ * window.height();
 
         return g_mainWindow->isRegionVisible(segmentX, segmentY, segmentW, segmentH);
     }

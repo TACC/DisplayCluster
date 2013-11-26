@@ -65,7 +65,7 @@ public:
     void getDimensions(int &width, int &height) const;
 
     void preRenderUpdate();
-    void render(float tX, float tY, float tW, float tH);
+    void render(const float tX, const float tY, const float tW, const float tH);
 
     void insertNewFrame(const PixelStreamSegments& segments);
 
@@ -94,8 +94,8 @@ private:
     void recomputeDimensions(const PixelStreamSegments& segments);
     void decodeVisibleTextures();
 
-    void adjustFrameDecoderCount(size_t count);
-    void adjustSegmentRendererCount(size_t count);
+    void adjustFrameDecodersCount(const size_t count);
+    void adjustSegmentRendererCount(const size_t count);
 
     bool isDecodingInProgress();
 

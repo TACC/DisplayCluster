@@ -82,15 +82,6 @@ GLWindow::GLWindow(int tileIndex, QRect windowRect, QGLWidget * shareWidget)
 
 GLWindow::~GLWindow()
 {
-    textureFactory_.clear();
-    dynamicTextureFactory_.clear();
-    pdfFactory_.clear();
-    svgFactory_.clear();
-    movieFactory_.clear();
-    pixelStreamFactory_.clear();
-
-    // The factories need to be cleared before we purge the textures
-    purgeTextures();
 }
 
 Factory<Texture> & GLWindow::getTextureFactory()
@@ -230,7 +221,7 @@ void GLWindow::renderBackgroundContent()
     if (backgroundContentWindowManager != NULL)
     {
         glPushMatrix();
-        glTranslatef(0.,0.,-0.999);
+        glTranslatef(0., 0., -1.f + std::numeric_limits<float>::epsilon());
 
         backgroundContentWindowManager->render();
 
@@ -424,6 +415,19 @@ void GLWindow::drawRectangle(double x, double y, double w, double h)
     glVertex2d(x,y+h);
 
     glEnd();
+}
+
+void GLWindow::finalize()
+{
+    textureFactory_.clear();
+    dynamicTextureFactory_.clear();
+    pdfFactory_.clear();
+    svgFactory_.clear();
+    movieFactory_.clear();
+    pixelStreamFactory_.clear();
+
+    // The factories need to be cleared before we purge the textures
+    purgeTextures();
 }
 
 void GLWindow::renderTestPattern()

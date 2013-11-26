@@ -37,26 +37,27 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DC_NONCOPYABLE_H
-#define DC_NONCOPYABLE_H
+#ifndef EVENTRECEIVER_H
+#define EVENTRECEIVER_H
 
-namespace dc
+#include "Event.h"
+
+#include <QObject>
+
+using dc::Event;
+
+/**
+ * Interface for classes to register as receivers for events.
+ */
+class EventReceiver : public QObject
 {
+    Q_OBJECT
 
-/** Base class to make objects non-copyable. */
-class NonCopyable
-{
-protected:
-    NonCopyable() {}
+public:
+    virtual ~EventReceiver() {}
 
-private:
-    /** Disable copy constructor. */
-    NonCopyable( const NonCopyable& );
-
-    /** Disable assignment operator. */
-    const NonCopyable& operator = ( const NonCopyable& );
+public slots:
+    virtual void processEvent(Event event) = 0;
 };
 
-}
-
-#endif // DC_NONCOPYABLE_H
+#endif // EVENTRECEIVER_H

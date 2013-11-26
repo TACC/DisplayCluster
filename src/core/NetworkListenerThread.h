@@ -42,32 +42,29 @@
 #include "MessageHeader.h"
 #include "Event.h"
 #include "PixelStreamSegment.h"
+#include "EventReceiver.h"
 
-#include <QtCore>
 #include <QtNetwork/QTcpSocket>
 #include <QQueue>
-
-#include "DisplayGroupInterface.h" // TODO REMOVE??
 
 using dc::Event;
 using dc::PixelStreamSegment;
 
-class PixelStreamDispatcher;
-class DisplayGroupManager;
-
-class NetworkListenerThread : public QObject
+class NetworkListenerThread : public EventReceiver
 {
     Q_OBJECT
 
 public:
 
-    NetworkListenerThread(PixelStreamDispatcher& pixelStreamDispatcher, DisplayGroupManager &displayGroupManager, int socketDescriptor);
+    NetworkListenerThread(int socketDescriptor);
     ~NetworkListenerThread();
 
 public slots:
 
     void processEvent(Event event);
     void pixelStreamerClosed(QString uri);
+
+    void eventRegistrationRepy(QString uri, bool success);
 
 signals:
 
@@ -78,6 +75,11 @@ signals:
     void receivedPixelStreamFinishFrame(QString uri, int SourceIndex);
     void receivedRemovePixelStreamSource(QString uri, int sourceIndex);
 
+    void registerToEvents(QString uri, bool exclusive, EventReceiver* receiver);
+
+    /** @internal */
+    void dataAvailable();
+
 private slots:
 
     void initialize();
@@ -87,27 +89,21 @@ private slots:
 private:
 
     int socketDescriptor_;
-    QTcpSocket * tcpSocket_;
-
-    boost::shared_ptr<DisplayGroupInterface> displayGroupInterface_;
+    QTcpSocket* tcpSocket_;
 
     QString pixelStreamUri_;
 
     bool registeredToEvents_;
-    bool eventRegistrationExclusive_;
     QQueue<Event> events_;
 
-    PixelStreamDispatcher& pixelStreamDispatcher_;
-    DisplayGroupManager& displayGroupManager_;
-
     MessageHeader receiveMessageHeader();
-    QByteArray receiveMessageBody(int size);
+    QByteArray receiveMessageBody(const int size);
 
-    void handleMessage(MessageHeader messageHeader, QByteArray byteArray);
+    void handleMessage(const MessageHeader& messageHeader, const QByteArray& byteArray);
     void handlePixelStreamMessage(const QString& uri, const QByteArray& byteArray);
-    bool registerToEvents();
 
-    void sendBindReply( bool successful );
+    void sendProtocolVersion();
+    void sendBindReply(const bool successful);
     void send(const Event &event);
     void sendQuit();
     bool send(const MessageHeader& messageHeader);

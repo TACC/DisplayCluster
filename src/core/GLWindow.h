@@ -68,6 +68,9 @@ public:
     void insertPurgeTextureId(GLuint textureId);
     void purgeTextures();
 
+    /** Must be called before destroying this object to clear all Contents and textures. */
+    void finalize();
+
     /**
      * Is the given region visible in this window.
      * @param rect The region in normalized global screen space, i.e. top-left

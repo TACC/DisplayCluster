@@ -42,6 +42,7 @@
 #include "configuration/Configuration.h"
 #include "DisplayGroupManager.h"
 #include "MainWindow.h"
+#include "EventReceiver.h"
 
 ContentWindowInterface::ContentWindowInterface()
     : windowState_( UNSELECTED )
@@ -167,6 +168,16 @@ ContentWindowInterface::WindowState ContentWindowInterface::getWindowState()
 Event ContentWindowInterface::getEvent()
 {
     return event_;
+}
+
+bool ContentWindowInterface::registerEventReceiver(EventReceiver* receiver)
+{
+    bool success = connect( this, SIGNAL(eventChanged( Event, ContentWindowInterface* )),
+                            receiver, SLOT(processEvent(Event)) );
+    if (success)
+        ++eventReceiversCount_;
+
+    return success;
 }
 
 bool ContentWindowInterface::getHighlighted()
@@ -637,12 +648,4 @@ void ContentWindowInterface::setEventToNewDimensions()
     state.dx = w_ * g_configuration->getTotalWidth();
     state.dy = h_ * g_configuration->getTotalHeight();
     setEvent(state);
-}
-
-void ContentWindowInterface::bindEventsReceiver( const QObject* receiver,
-                                              const char* slot )
-{
-    connect( this, SIGNAL(eventChanged( Event, ContentWindowInterface* )),
-             receiver, slot, Qt::QueuedConnection );
-    ++eventReceiversCount_;
 }

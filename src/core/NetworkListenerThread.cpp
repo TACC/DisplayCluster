@@ -43,20 +43,23 @@
 #include "PixelStream.h"
 #include "log.h"
 
-#include "ContentWindowManager.h"
-
-#include "DisplayGroupManager.h"
-#include "PixelStreamDispatcher.h"
-
 #include <stdint.h>
 
-NetworkListenerThread::NetworkListenerThread(PixelStreamDispatcher &pixelStreamDispatcher, DisplayGroupManager &displayGroupManager, int socketDescriptor)
+NetworkListenerThread::NetworkListenerThread(int socketDescriptor)
     : socketDescriptor_(socketDescriptor)
-    , tcpSocket_(0)
+    , tcpSocket_(new QTcpSocket(this)) // Make sure that tcpSocket_ parent is *this* so it also gets move to thread!
     , registeredToEvents_(false)
-    , pixelStreamDispatcher_(pixelStreamDispatcher)
-    , displayGroupManager_(displayGroupManager)
 {
+    if( !tcpSocket_->setSocketDescriptor(socketDescriptor_) )
+    {
+        put_flog(LOG_ERROR, "could not set socket descriptor: %s", tcpSocket_->errorString().toStdString().c_str());
+        emit(finished());
+        return;
+    }
+
+    connect(tcpSocket_, SIGNAL(disconnected()), this, SIGNAL(finished()));
+    connect(tcpSocket_, SIGNAL(readyRead()), this, SLOT(process()), Qt::QueuedConnection);
+    connect(this, SIGNAL(dataAvailable()), this, SLOT(process()), Qt::QueuedConnection);
 }
 
 NetworkListenerThread::~NetworkListenerThread()
@@ -71,63 +74,12 @@ NetworkListenerThread::~NetworkListenerThread()
 
 void NetworkListenerThread::initialize()
 {
-    tcpSocket_ = new QTcpSocket();
-
-    if(tcpSocket_->setSocketDescriptor(socketDescriptor_) != true)
-    {
-        put_flog(LOG_ERROR, "could not set socket descriptor: %s", tcpSocket_->errorString().toStdString().c_str());
-        emit(finished());
-        return;
-    }
-
-    // Make local connections
-    connect(tcpSocket_, SIGNAL(disconnected()), this, SIGNAL(finished()));
-
-    // DisplayGroupManager
-    connect(&displayGroupManager_, SIGNAL(pixelStreamViewClosed(QString)), this, SLOT(pixelStreamerClosed(QString)));
-
-    // PixelStreamDispatcher
-    connect(this, SIGNAL(receivedAddPixelStreamSource(QString,int)), &pixelStreamDispatcher_, SLOT(addSource(QString,int)));
-    connect(this, SIGNAL(receivedPixelStreamSegement(QString,int,PixelStreamSegment)), &pixelStreamDispatcher_, SLOT(processSegment(QString,int,PixelStreamSegment)));
-    connect(this, SIGNAL(receivedPixelStreamFinishFrame(QString,int)), &pixelStreamDispatcher_, SLOT(processFrameFinished(QString,int)));
-    connect(this, SIGNAL(receivedRemovePixelStreamSource(QString,int)), &pixelStreamDispatcher_, SLOT(removeSource(QString,int)));
-
-    // get a local DisplayGroupInterface to help manage event
-    bool success = QMetaObject::invokeMethod(&displayGroupManager_, "getDisplayGroupInterface", Qt::BlockingQueuedConnection, Q_RETURN_ARG(boost::shared_ptr<DisplayGroupInterface>, displayGroupInterface_), Q_ARG(QThread *, QThread::currentThread()));
-
-    if(success != true)
-    {
-        put_flog(LOG_ERROR, "error getting DisplayGroupInterface");
-        emit(finished());
-        return;
-    }
-
-    // todo: we need to consider the performance of the low delay option
-    // tcpSocket_->setSocketOption(QAbstractSocket::LowDelayOption, 1);
-
-    // handshake
-    int32_t protocolVersion = NETWORK_PROTOCOL_VERSION;
-    tcpSocket_->write((char *)&protocolVersion, sizeof(int32_t));
-
-    tcpSocket_->flush();
-
-    while(tcpSocket_->bytesToWrite() > 0)
-    {
-        tcpSocket_->waitForBytesWritten();
-    }
-
-    // start a timer-based event loop...
-    QTimer * timer = new QTimer(this);
-    connect(timer, SIGNAL(timeout()), this, SLOT(process()));
-    timer->start(1);
+    sendProtocolVersion();
 }
 
 void NetworkListenerThread::process()
 {
-    // receive a message if available
-    tcpSocket_->waitForReadyRead(1);
-
-    if(tcpSocket_->bytesAvailable() >= (int)sizeof(MessageHeader))
+    if(tcpSocket_->bytesAvailable() >= (int)MessageHeader::serializedSize)
     {
         socketReceiveMessage();
     }
@@ -145,11 +97,15 @@ void NetworkListenerThread::process()
     // Finish reading messages from the socket if connection closed
     if(tcpSocket_->state() != QAbstractSocket::ConnectedState)
     {
-        while (tcpSocket_->bytesAvailable() >= (int)sizeof(MessageHeader))
+        while (tcpSocket_->bytesAvailable() >= (int)MessageHeader::serializedSize)
         {
             socketReceiveMessage();
         }
         emit(finished());
+    }
+    else if (tcpSocket_->bytesAvailable() >= (int)MessageHeader::serializedSize)
+    {
+        emit dataAvailable();
     }
 }
 
@@ -175,7 +131,7 @@ MessageHeader NetworkListenerThread::receiveMessageHeader()
     return messageHeader;
 }
 
-QByteArray NetworkListenerThread::receiveMessageBody(int size)
+QByteArray NetworkListenerThread::receiveMessageBody(const int size)
 {
     // next, read the actual message
     QByteArray messageByteArray;
@@ -198,9 +154,10 @@ QByteArray NetworkListenerThread::receiveMessageBody(int size)
 void NetworkListenerThread::processEvent(Event event)
 {
     events_.enqueue(event);
+    emit dataAvailable();
 }
 
-void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArray byteArray)
+void NetworkListenerThread::handleMessage(const MessageHeader& messageHeader, const QByteArray& byteArray)
 {
     QString uri(messageHeader.uri);
 
@@ -241,9 +198,8 @@ void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArra
         }
         else
         {
-            eventRegistrationExclusive_ = (messageHeader.type == MESSAGE_TYPE_BIND_EVENTS_EX);
-            registeredToEvents_ = registerToEvents();
-            sendBindReply( registeredToEvents_ );
+            bool eventRegistrationExclusive = (messageHeader.type == MESSAGE_TYPE_BIND_EVENTS_EX);
+            emit registerToEvents(pixelStreamUri_, eventRegistrationExclusive, this);
         }
         break;
 
@@ -282,37 +238,30 @@ void NetworkListenerThread::pixelStreamerClosed(QString uri)
     }
 }
 
-bool NetworkListenerThread::registerToEvents()
+void NetworkListenerThread::eventRegistrationRepy(QString uri, bool success)
 {
-    // Try to register with the ContentWindowManager corresponding to this stream
-    ContentWindowManagerPtr cwm = displayGroupInterface_->getContentWindowManager(pixelStreamUri_);
-
-    if(cwm)
+    if (uri == pixelStreamUri_)
     {
-        put_flog(LOG_DEBUG, "found window: '%s'", pixelStreamUri_.toStdString().c_str());
+        registeredToEvents_ = success;
 
-        QMutexLocker locker( cwm->getEventRegistrationMutex( ));
-
-        // If a receiver is already registered, don't register this one if exclusive was requested
-        if( cwm->hasEventReceivers() && eventRegistrationExclusive_ )
-        {
-            return false;
-        }
-
-        // todo: disconnect any existing signal connections to the setEvent() slot
-        // in case we're binding to another window in the same connection / socket
-
-        cwm->bindEventsReceiver( this, SLOT(processEvent(Event)));
-        return true;
-    }
-    else
-    {
-        put_flog(LOG_DEBUG, "could not find window: '%s'", pixelStreamUri_.toStdString().c_str());
-        return false;
+        sendBindReply( registeredToEvents_ );
     }
 }
 
-void NetworkListenerThread::sendBindReply( bool successful )
+void NetworkListenerThread::sendProtocolVersion()
+{
+    int32_t protocolVersion = NETWORK_PROTOCOL_VERSION;
+    tcpSocket_->write((char *)&protocolVersion, sizeof(int32_t));
+
+    tcpSocket_->flush();
+
+    while(tcpSocket_->bytesToWrite() > 0)
+    {
+        tcpSocket_->waitForBytesWritten();
+    }
+}
+
+void NetworkListenerThread::sendBindReply(const bool successful)
 {
     // send message header
     MessageHeader mh(MESSAGE_TYPE_BIND_EVENTS_REPLY, sizeof(bool));

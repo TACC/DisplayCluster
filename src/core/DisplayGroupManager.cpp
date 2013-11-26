@@ -519,6 +519,31 @@ void DisplayGroupManager::adjustPixelStreamContentDimensions(QString uri, int wi
     }
 }
 
+void DisplayGroupManager::registerEventReceiver(QString uri, bool exclusive, EventReceiver* receiver)
+{
+    bool success = false;
+
+    // Try to register with the ContentWindowManager corresponding to this stream
+    ContentWindowManagerPtr cwm = getContentWindowManager(uri);
+
+    if(cwm)
+    {
+        put_flog(LOG_DEBUG, "found window: '%s'", uri.toStdString().c_str());
+
+        // If a receiver is already registered, don't register this one if exclusive was requested
+        if( !exclusive || !cwm->hasEventReceivers() )
+        {
+            success = cwm->registerEventReceiver( receiver );
+        }
+    }
+    else
+    {
+        put_flog(LOG_DEBUG, "could not find window: '%s'", uri.toStdString().c_str());
+    }
+
+    emit eventRegistrationReply(uri, success);
+}
+
 void DisplayGroupManager::sendFrameClockUpdate()
 {
     // this should only be called by the rank 1 process

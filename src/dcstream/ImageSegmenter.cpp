@@ -294,9 +294,9 @@ SegmentParameters ImageSegmenter::generateSegmentParameters(const ImageWrapper &
     // now, create parameters for each segment
     SegmentParameters parameters;
 
-    for(unsigned int i=0; i<numSubdivisionsX; i++)
+    for(unsigned int j=0; j<numSubdivisionsY; j++)
     {
-        for(unsigned int j=0; j<numSubdivisionsY; j++)
+        for(unsigned int i=0; i<numSubdivisionsX; i++)
         {
             PixelStreamSegmentParameters p;
 

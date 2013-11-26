@@ -135,7 +135,7 @@ void LocalPixelStreamerManager::removePixelStreamer(QString uri)
 void LocalPixelStreamerManager::bindPixelStreamerInteraction(LocalPixelStreamer *streamer)
 {
     ContentWindowManagerPtr cwm = displayGroupManager_->getContentWindowManager(streamer->getUri(), CONTENT_TYPE_PIXEL_STREAM);
-    cwm->bindEventsReceiver(streamer, SLOT(updateEvent(Event)));
+    //cwm->bindEventsReceiver(streamer, SLOT(updateEvent(Event)));
 
     connect(streamer, SIGNAL(segmentUpdated(QString,PixelStreamSegment)), displayGroupManager_, SLOT(processPixelStreamSegment(QString,PixelStreamSegment)));
     connect(streamer, SIGNAL(streamClosed(QString)), displayGroupManager_, SLOT(deletePixelStream(QString)));

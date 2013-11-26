@@ -51,6 +51,7 @@
 #include <QTimer>
 
 #define DC_STREAM_HOST_ADDRESS "localhost"
+//#define COMPRESS_IMAGES
 
 Application::Application(int &argc, char **argv)
     : QApplication(argc, argv)
@@ -113,8 +114,16 @@ bool Application::initalize(const CommandLineOptions& options)
 
 void Application::sendImage(QImage image)
 {
-    dc::ImageWrapper dcImage((const void*)image.constBits(), image.width(), image.height(), dc::ARGB);
+#ifdef COMPRESS_IMAGES
+    // QImage Format_RGB32 (0xffRRGGBB) corresponds in fact to GL_BGRA == dc::BGRA
+    dc::ImageWrapper dcImage((const void*)image.constBits(), image.width(), image.height(), dc::BGRA);
+    dcImage.compressionPolicy = dc::COMPRESSION_ON;
+#else
+    // This conversion is suboptimal, but the only solution until we send the PixelFormat with the PixelStreamSegment
+    image = image.rgbSwapped();
+    dc::ImageWrapper dcImage((const void*)image.constBits(), image.width(), image.height(), dc::RGBA);
     dcImage.compressionPolicy = dc::COMPRESSION_OFF;
+#endif
     bool success = dcStream_->send(dcImage) && dcStream_->finishFrame();
 
     if(!success)

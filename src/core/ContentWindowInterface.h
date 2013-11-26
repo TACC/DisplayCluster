@@ -54,6 +54,8 @@
 #  include <boost/date_time/posix_time/posix_time.hpp>
 #endif
 
+class EventReceiver;
+
 using dc::Event;
 
 enum ControlState
@@ -69,7 +71,8 @@ enum SizeState
     SIZE_CUSTOM
 };
 
-class ContentWindowInterface : public QObject {
+class ContentWindowInterface : public QObject
+{
     Q_OBJECT
 
     public:
@@ -110,11 +113,8 @@ class ContentWindowInterface : public QObject {
 
         bool selected() const { return windowState_ == SELECTED; }
 
+        bool registerEventReceiver( EventReceiver* receiver );
         bool hasEventReceivers() const { return eventReceiversCount_ > 0; }
-
-        void bindEventsReceiver( const QObject* receiver, const char* slot );
-
-        QMutex* getEventRegistrationMutex() { return &eventRegistrationMutex_; }
 
     public slots:
 
@@ -184,7 +184,6 @@ class ContentWindowInterface : public QObject {
 
         ControlState controlState_;
 
-        QMutex eventRegistrationMutex_;
         int eventReceiversCount_;
 
         // highlighted timestamp

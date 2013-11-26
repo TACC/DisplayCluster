@@ -20,7 +20,6 @@ set(DISPLAYCLUSTER_LIBRARY_PUBLIC_HEADERS
     Stream.h
     ImageWrapper.h
     ../Event.h
-    ../NonCopyable.h
     ${CMAKE_BINARY_DIR}/dcVersion.h
 )
 
