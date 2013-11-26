@@ -54,7 +54,7 @@ Marker::Marker()
 {
     x_ = y_ = 0.;
 
-    if(g_mpiRank != 0 && textureId_ == 0 && g_mainWindow->getGLWindow() != NULL)
+    if(g_mpiRank != 0 && textureId_ == 0 && g_mainWindow->getGLWindow( ))
     {
         // load marker texture
         QImage image(MARKER_IMAGE_FILENAME);
@@ -67,6 +67,16 @@ Marker::Marker()
 
         textureId_ = g_mainWindow->getGLWindow()->bindTexture(image, GL_TEXTURE_2D, GL_RGBA, QGLContext::DefaultBindOption);
     }
+}
+
+Marker::~Marker()
+{
+}
+
+void Marker::releaseTexture()
+{
+    g_mainWindow->getGLWindow()->deleteTexture(textureId_);
+    textureId_ = 0;
 }
 
 void Marker::setPosition(float x, float y)

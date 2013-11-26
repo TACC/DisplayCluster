@@ -65,23 +65,23 @@
 #endif
 
 #define CONFIGURATION_FILENAME "configuration.xml"
+#define DISPLAYCLUSTER_DIR "DISPLAYCLUSTER_DIR"
 
 
 int main(int argc, char * argv[])
 {
-    put_flog(LOG_INFO, "");
-
     // get base directory
-    if(getenv("DISPLAYCLUSTER_DIR") == NULL)
+    if( !getenv( DISPLAYCLUSTER_DIR ))
     {
         put_flog(LOG_FATAL, "DISPLAYCLUSTER_DIR environment variable must be set");
-        return -1;
+        return EXIT_FAILURE;
     }
 
     // get configuration file name
-    QString displayClusterDir = QString(getenv("DISPLAYCLUSTER_DIR"));
+    const QString displayClusterDir = QString(getenv( DISPLAYCLUSTER_DIR ));
     put_flog(LOG_DEBUG, "base directory is %s", displayClusterDir.toLatin1().constData());
-    QString configFilename = QString( "%1/%2" ).arg( displayClusterDir ).arg( CONFIGURATION_FILENAME );
+    const QString configFilename = QString( "%1/%2" ).arg( displayClusterDir )
+                                                     .arg( CONFIGURATION_FILENAME );
 
 #if ENABLE_TUIO_TOUCH_LISTENER
     // we need X multithreading support if we're running the TouchListener thread and creating X events
@@ -95,13 +95,15 @@ int main(int argc, char * argv[])
     MPI_Comm_size(MPI_COMM_WORLD, &g_mpiSize);
     MPI_Comm_split(MPI_COMM_WORLD, g_mpiRank != 0, g_mpiRank, &g_mpiRenderComm);
 
-    g_displayGroupManager = boost::shared_ptr<DisplayGroupManager>(new DisplayGroupManager);
+    g_displayGroupManager.reset( new DisplayGroupManager );
 
     // Load configuration
     if(g_mpiRank == 0)
-        g_configuration = new MasterConfiguration(configFilename, g_displayGroupManager->getOptions());
+        g_configuration = new MasterConfiguration(configFilename,
+                                                  g_displayGroupManager->getOptions());
     else
-        g_configuration = new WallConfiguration(configFilename, g_displayGroupManager->getOptions(), g_mpiRank);
+        g_configuration = new WallConfiguration(configFilename,
+                                                g_displayGroupManager->getOptions(), g_mpiRank);
 
     // calibrate timestamp offset between rank 0 and rank 1 clocks
     g_displayGroupManager->calibrateTimestampOffset();
@@ -170,24 +172,31 @@ int main(int argc, char * argv[])
     // wait for all threads to finish
     QThreadPool::globalInstance()->waitForDone();
 
+    if(g_mpiRank != 0)
+        g_displayGroupManager->deleteMarkers();
+
     // call finalize cleanup actions
     g_mainWindow->finalize();
 
     // destruct the main window
     delete g_mainWindow;
+    g_mainWindow = 0;
 
     if(g_mpiRank == 0)
     {
         g_displayGroupManager->sendQuit();
-        delete networkListener;
         delete g_localPixelStreamers;
+        g_localPixelStreamers = 0;
+        delete networkListener;
     }
 
     delete g_configuration;
+    g_configuration = 0;
+    g_displayGroupManager.reset();
 
     // clean up the MPI environment after the Qt event loop exits
     MPI_Comm_free(&g_mpiRenderComm);
     MPI_Finalize();
 
-    return 0;
+    return EXIT_SUCCESS;
 }

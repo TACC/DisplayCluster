@@ -182,7 +182,7 @@ void GLWindow::paintGL()
 
     // render the markers
     // these should be rendered last since they're blended
-    std::vector<boost::shared_ptr<Marker> > markers = g_displayGroupManager->getMarkers();
+    const std::vector<boost::shared_ptr<Marker> >& markers = g_displayGroupManager->getMarkers();
 
     for(unsigned int i=0; i<markers.size(); i++)
     {
