@@ -198,5 +198,5 @@ endif()
 
 # install Python module
 if(ENABLE_PYTHON_SUPPORT)
-  install(FILES ${CMAKE_BINARY_DIR}/pydc.so DESTINATION python)
+  install(FILES ${CMAKE_BINARY_DIR}/pydc.so DESTINATION python COMPONENT lib)
 endif()

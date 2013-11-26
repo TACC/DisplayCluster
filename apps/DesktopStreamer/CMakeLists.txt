@@ -43,8 +43,8 @@ target_link_libraries(desktopstreamer ${DESKTOP_STREAMER_LIBS})
 
 # install executable
 install(TARGETS desktopstreamer
-    RUNTIME DESTINATION bin COMPONENT Runtime
-    BUNDLE DESTINATION . COMPONENT Runtime
+    RUNTIME DESTINATION bin COMPONENT app
+    BUNDLE DESTINATION . COMPONENT app
 )
 if(APPLE)
   install(FILES ${DESKTOP_STREAMER_LIBS}
@@ -52,55 +52,71 @@ if(APPLE)
 endif()
 
 # on Apple platform make the .app bundle; on Windows make the installer
-if(APPLE OR WIN32)
-    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "DesktopStreamer is an application that lets you stream your desktop to a running DisplayCluster instance.")
-    set(CPACK_PACKAGE_EXECUTABLES "desktopstreamer" "DesktopStreamer")
-    set(CPACK_PACKAGE_NAME "DesktopStreamer")
-    set(CPACK_PACKAGE_VENDOR "The University of Texas at Austin")
-    set(CPACK_PACKAGE_VERSION_MAJOR ${VERSION_MAJOR})
-    set(CPACK_PACKAGE_VERSION_MINOR ${VERSION_MINOR})
-    set(CPACK_PACKAGE_VERSION_PATCH ${VERSION_PATCH})
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "DesktopStreamer is an application that lets you stream your desktop to a running DisplayCluster instance.")
+set(CPACK_PACKAGE_EXECUTABLES "desktopstreamer" "DesktopStreamer")
+set(CPACK_PACKAGE_NAME "DesktopStreamer")
+set(CPACK_PACKAGE_CONTACT "Daniel Nachbaur <daniel.nachbaur@epfl.ch>")
+set(CPACK_PACKAGE_VENDOR "The University of Texas at Austin")
+set(CPACK_PACKAGE_VERSION_MAJOR ${VERSION_MAJOR})
+set(CPACK_PACKAGE_VERSION_MINOR ${VERSION_MINOR})
+set(CPACK_PACKAGE_VERSION_PATCH ${VERSION_PATCH})
+set(CPACK_PACKAGE_LICENSE "LGPL")
 
-    if(APPLE)
-        set(APPS "\${CMAKE_INSTALL_PREFIX}/desktopstreamer.app")
+if(APPLE)
+  set(APPS "\${CMAKE_INSTALL_PREFIX}/Desktopstreamer.app")
 
-        # Qt plugins and qt.conf required so we don't accidentally dynamically link against system-installed Qt libraries
-        SET(PLUGIN_DEST_DIR desktopstreamer.app/Contents/MacOS)
-        SET(QTCONF_DEST_DIR desktopstreamer.app/Contents/Resources)
-    elseif(WIN32)
-        set(APPS "\${CMAKE_INSTALL_PREFIX}/bin/desktopstreamer.exe")
+  # Qt plugins and qt.conf required so we don't accidentally dynamically link against system-installed Qt libraries
+  set(PLUGIN_DEST_DIR desktopstreamer.app/Contents/MacOS)
+  set(QTCONF_DEST_DIR desktopstreamer.app/Contents/Resources)
 
-        # Qt plugins and qt.conf required so we don't accidentally dynamically link against system-installed Qt libraries
-        SET(PLUGIN_DEST_DIR bin)
-        SET(QTCONF_DEST_DIR bin)
-    endif()
+  # to create a package, one can run "cpack -G DragNDrop CPackConfig.cmake" for example
+  # where CPackConfig.cmake is created by including CPack
+  set(CPACK_BINARY_DRAGNDROP ON)
+elseif(WIN32)
+  set(APPS "\${CMAKE_INSTALL_PREFIX}/bin/desktopstreamer.exe")
 
-    install(DIRECTORY "${QT_PLUGINS_DIR}/imageformats" DESTINATION ${PLUGIN_DEST_DIR}/plugins COMPONENT Runtime)
+  # Qt plugins and qt.conf required so we don't accidentally dynamically link against system-installed Qt libraries
+  set(PLUGIN_DEST_DIR bin)
+  set(QTCONF_DEST_DIR bin)
 
-    install(CODE "
-        file(WRITE \"\${CMAKE_INSTALL_PREFIX}/${QTCONF_DEST_DIR}/qt.conf\" \"\")
-        " COMPONENT Runtime)
+  # directories to look for dependencies
+  set(DEPENDENCY_DIRS ${QT_BINARY_DIR})
 
-    if(WIN32)
-        # directories to look for dependencies
-        set(DEPENDENCY_DIRS ${QT_BINARY_DIR})
+  set(CPACK_BINARY_NSIS ON)
+else()
+  find_program(DEB_EXE debuild REQUIRED)
+  find_program(LSB_RELEASE_EXECUTABLE lsb_release REQUIRED)
 
-        include(InstallRequiredSystemLibraries)
-    endif()
+  execute_process(COMMAND ${LSB_RELEASE_EXECUTABLE} -sr
+    OUTPUT_VARIABLE LSB_RELEASE OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-    install(CODE "
-        file(GLOB_RECURSE QTPLUGINS \"\${CMAKE_INSTALL_PREFIX}/${PLUGIN_DEST_DIR}/plugins/*${CMAKE_SHARED_LIBRARY_SUFFIX}\")
-        include(BundleUtilities)
-        fixup_bundle(\"${APPS}\" \"\${QTPLUGINS}\" \"${DEPENDENCY_DIRS}\")
-        " COMPONENT Runtime)
+  set(CPACK_GENERATOR "DEB")
+  set(CPACK_PACKAGE_VENDOR "http://www.tacc.utexas.edu/tacc-software/displaycluster")
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "libqt4-core, libqt4-gui, libqt4-network, libturbojpeg" )
+  string(TOLOWER "${CPACK_PACKAGE_NAME}" CPACK_PACKAGE_NAME)
+  set(CMAKE_PACKAGE_VERSION "1")
+  set(CPACK_PACKAGE_VERSION ${VERSION}-${CMAKE_PACKAGE_VERSION}~${LSB_RELEASE})
+  set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}.${CMAKE_SYSTEM_PROCESSOR}")
+  set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "/sbin/ldconfig")
+  set(CPACK_DEBIAN_PACKAGE_MAINTAINER "${CPACK_PACKAGE_CONTACT}")
 
-    # to create a package, one can run "cpack -G DragNDrop CPackConfig.cmake" for example
-    # where CPackConfig.cmake is created by including CPack
-    if(APPLE)
-        set(CPACK_BINARY_DRAGNDROP ON)
-    elseif(WIN32)
-        set(CPACK_BINARY_NSIS ON)
-    endif()
-
-    include(CPack)
+  set(CPACK_DEB_COMPONENT_INSTALL ON)
+  set(CPACK_COMPONENTS_ALL app)
 endif()
+
+if(APPLE OR WIN32)
+  install(DIRECTORY "${QT_PLUGINS_DIR}/imageformats" DESTINATION ${PLUGIN_DEST_DIR}/plugins COMPONENT app)
+
+  install(CODE "
+     file(WRITE \"\${CMAKE_INSTALL_PREFIX}/${QTCONF_DEST_DIR}/qt.conf\" \"\")
+     " COMPONENT app)
+
+  install(CODE "
+     file(GLOB_RECURSE QTPLUGINS \"\${CMAKE_INSTALL_PREFIX}/${PLUGIN_DEST_DIR}/plugins/*${CMAKE_SHARED_LIBRARY_SUFFIX}\")
+     include(BundleUtilities)
+     fixup_bundle(\"${APPS}\" \"\${QTPLUGINS}\" \"${DEPENDENCY_DIRS}\")
+     " COMPONENT app)
+endif()
+
+include(InstallRequiredSystemLibraries)
+include(CPack)
