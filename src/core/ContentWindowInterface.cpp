@@ -43,8 +43,13 @@
 #include "DisplayGroupManager.h"
 #include "MainWindow.h"
 
+ContentWindowInterface::ContentWindowInterface()
+    : windowState_( UNSELECTED )
+    , boundInteractions_( 0 )
+{}
+
 ContentWindowInterface::ContentWindowInterface(boost::shared_ptr<ContentWindowManager> contentWindowManager)
-    : windowState_(UNSELECTED)
+    : windowState_( UNSELECTED )
     , boundInteractions_( 0 )
 {
     contentWindowManager_ = contentWindowManager;

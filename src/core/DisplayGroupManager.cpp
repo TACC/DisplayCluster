@@ -83,6 +83,10 @@ DisplayGroupManager::DisplayGroupManager()
     qRegisterMetaType<PixelStreamSegment>("PixelStreamSegment");
 }
 
+DisplayGroupManager::~DisplayGroupManager()
+{
+}
+
 OptionsPtr DisplayGroupManager::getOptions() const
 {
     return options_;
@@ -102,6 +106,17 @@ boost::shared_ptr<Marker> DisplayGroupManager::getNewMarker()
     connect(marker.get(), SIGNAL(positionChanged()), this, SLOT(sendDisplayGroup()), Qt::QueuedConnection);
 
     return marker;
+}
+
+void DisplayGroupManager::deleteMarkers()
+{
+    QMutexLocker locker(&markersMutex_);
+
+    if( markers_.empty( ))
+        return;
+
+    markers_[0]->releaseTexture();
+    markers_.clear();
 }
 
 const std::vector<boost::shared_ptr<Marker> >& DisplayGroupManager::getMarkers() const

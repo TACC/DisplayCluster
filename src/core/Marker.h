@@ -56,6 +56,7 @@ class Marker : public QObject {
     public:
 
         Marker();
+        ~Marker();
 
         void setPosition(float x, float y);
         void getPosition(float &x, float &y);
@@ -63,6 +64,8 @@ class Marker : public QObject {
         bool getActive();
 
         void render();
+
+        void releaseTexture();
 
     signals:
         void positionChanged();
