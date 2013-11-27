@@ -227,7 +227,7 @@ bool PixelStream::isDecodingInProgress()
 
     MPI_Allreduce((void *)&localThreadsRunning, (void *)&globalThreadsRunning, 1, MPI_INT, MPI_SUM, g_mpiRenderComm);
 
-    return (globalThreadsRunning > 0);
+    return globalThreadsRunning > 0;
 }
 
 bool PixelStream::isVisible(const QRectF& segment)
@@ -246,11 +246,9 @@ bool PixelStream::isVisible(const QRectF& segment)
 
         return g_mainWindow->isRegionVisible(segmentX, segmentY, segmentW, segmentH);
     }
-    else
-    {
-        put_flog(LOG_WARN, "could not find window for segment");
-        return false;
-    }
+
+    put_flog(LOG_WARN, "could not find window for segment");
+    return false;
 }
 
 bool PixelStream::isVisible(const dc::PixelStreamSegment& segment)

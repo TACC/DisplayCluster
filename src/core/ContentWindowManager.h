@@ -53,8 +53,6 @@ class ContentInteractionDelegate;
 
 class ContentWindowManager : public ContentWindowInterface, public boost::enable_shared_from_this<ContentWindowManager>
 {
-    Q_OBJECT
-
     public:
 
         ContentWindowManager(); // no-argument constructor required for serialization

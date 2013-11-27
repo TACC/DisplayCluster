@@ -72,7 +72,7 @@ public slots:
      * @param uri Identifier for the Stream
      * @param sourceIndex Identifier for the source in this stream
      */
-    void addSource(QString uri, int sourceIndex);
+    void addSource(const QString uri, const size_t sourceIndex);
 
     /**
      * Add a source of Segments for a Stream
@@ -80,7 +80,7 @@ public slots:
      * @param uri Identifier for the Stream
      * @param sourceIndex Identifier for the source in this stream
      */
-    void removeSource(QString uri, int sourceIndex);
+    void removeSource(const QString uri, const size_t sourceIndex);
 
     /**
      * Process a new Segement
@@ -88,7 +88,7 @@ public slots:
      * @param uri Identifier for the Stream
      * @param sourceIndex Identifier for the source in this stream
      */
-    void processSegment(QString uri, int sourceIndex, PixelStreamSegment segment);
+    void processSegment(const QString uri, const size_t sourceIndex, PixelStreamSegment segment);
 
     /**
      * The given source has finished sending segments for the current frame
@@ -96,14 +96,14 @@ public slots:
      * @param uri Identifier for the Stream
      * @param sourceIndex Identifier for the source in this stream
      */
-    void processFrameFinished(QString uri, int sourceIndex);
+    void processFrameFinished(const QString uri, const size_t sourceIndex);
 
     /**
      * Delete an entire stream
      *
      * @param uri Identifier for the Stream
      */
-    void deleteStream(const QString& uri);
+    void deleteStream(const QString uri);
 
 signals:
     /**

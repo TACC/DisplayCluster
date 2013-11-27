@@ -52,8 +52,10 @@ CommandLineOptions::CommandLineOptions(int &argc, char **argv)
 {
     desc_.add_options()
         ("help", "produce help message")
-        ("type", boost::program_options::value<std::string>()->default_value(""), "streamer type [webkit | dock]")
-        ("config", boost::program_options::value<std::string>()->default_value(DEFAULT_CONFIG_FILENAME), "configuration xml file")
+        ("type", boost::program_options::value<std::string>()->default_value(""),
+                 "streamer type [webkit | dock]")
+        ("config", boost::program_options::value<std::string>()->default_value(DEFAULT_CONFIG_FILENAME),
+                   "configuration xml file")
         ("url", boost::program_options::value<std::string>()->default_value(""), "webkit only: url")
     ;
 
@@ -83,11 +85,13 @@ const QString &CommandLineOptions::getUrl() const
 void CommandLineOptions::parseCommandLineArguments(int &argc, char **argv)
 {
     boost::program_options::variables_map vm;
-    try {
+    try
+    {
         boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc_), vm);
         boost::program_options::notify(vm);
     }
-    catch (const std::exception& e) {
+    catch (const std::exception& e)
+    {
         std::cerr << e.what() << std::endl;
         return;
     }

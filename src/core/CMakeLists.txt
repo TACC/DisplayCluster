@@ -156,7 +156,6 @@ list(APPEND MOC_HEADERS
     BackgroundWidget.h
     Content.h
     ContentWindowInterface.h
-    ContentWindowManager.h
     DisplayGroupManager.h
     DisplayGroupInterface.h
     DisplayGroupGraphicsViewProxy.h

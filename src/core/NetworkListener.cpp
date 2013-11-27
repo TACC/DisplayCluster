@@ -49,6 +49,8 @@ NetworkListener::NetworkListener(DisplayGroupManager& displayGroupManager, int p
     : displayGroupManager_(displayGroupManager)
     , pixelStreamDispatcher_(0)
 {
+    qRegisterMetaType<size_t>("size_t");
+
     if( !listen(QHostAddress::Any, port) )
     {
         put_flog(LOG_FATAL, "could not listen on port %i", port);
@@ -84,10 +86,10 @@ void NetworkListener::incomingConnection(int socketDescriptor)
     connect(worker, SIGNAL(registerToEvents(QString,bool,EventReceiver*)), &displayGroupManager_, SLOT(registerEventReceiver(QString,bool,EventReceiver*)));
 
     // PixelStreamDispatcher
-    connect(worker, SIGNAL(receivedAddPixelStreamSource(QString,int)), pixelStreamDispatcher_, SLOT(addSource(QString,int)));
-    connect(worker, SIGNAL(receivedPixelStreamSegement(QString,int,PixelStreamSegment)), pixelStreamDispatcher_, SLOT(processSegment(QString,int,PixelStreamSegment)));
-    connect(worker, SIGNAL(receivedPixelStreamFinishFrame(QString,int)), pixelStreamDispatcher_, SLOT(processFrameFinished(QString,int)));
-    connect(worker, SIGNAL(receivedRemovePixelStreamSource(QString,int)), pixelStreamDispatcher_, SLOT(removeSource(QString,int)));
+    connect(worker, SIGNAL(receivedAddPixelStreamSource(QString,size_t)), pixelStreamDispatcher_, SLOT(addSource(QString,size_t)));
+    connect(worker, SIGNAL(receivedPixelStreamSegement(QString,size_t,PixelStreamSegment)), pixelStreamDispatcher_, SLOT(processSegment(QString,size_t,PixelStreamSegment)));
+    connect(worker, SIGNAL(receivedPixelStreamFinishFrame(QString,size_t)), pixelStreamDispatcher_, SLOT(processFrameFinished(QString,size_t)));
+    connect(worker, SIGNAL(receivedRemovePixelStreamSource(QString,size_t)), pixelStreamDispatcher_, SLOT(removeSource(QString,size_t)));
 
     thread->start();
 }

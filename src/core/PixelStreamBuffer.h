@@ -51,7 +51,6 @@
 using dc::PixelStreamSegment;
 using dc::PixelStreamSegmentParameters;
 
-typedef int SourceIndex;
 typedef unsigned int FrameIndex;
 
 typedef std::vector<PixelStreamSegment> PixelStreamSegments;
@@ -70,12 +69,12 @@ struct SourceBuffer
     std::queue<PixelStreamSegments> segments;
 };
 
-typedef std::map<SourceIndex, SourceBuffer> SourceBufferMap;
+typedef std::map<size_t, SourceBuffer> SourceBufferMap;
 
 /**
  * Buffer PixelStreamSegments from (multiple) sources
  *
- * The buffer agregates segments coming from different sources delivers complete frames.
+ * The buffer aggregates segments coming from different sources and delivers complete frames.
  */
 class PixelStreamBuffer
 {
@@ -87,13 +86,13 @@ public:
      * Add a source of segments.
      * @param sourceIndex Unique source identifier
      */
-    void addSource(const SourceIndex sourceIndex);
+    void addSource(const size_t sourceIndex);
 
     /**
      * Remove a source of segments.
      * @param sourceIndex Unique source identifier
      */
-    void removeSource(const SourceIndex sourceIndex);
+    void removeSource(const size_t sourceIndex);
 
     /** Get the number of sources for this Stream */
     size_t getSourceCount() const;
@@ -103,13 +102,13 @@ public:
      * @param segment The segment to insert
      * @param sourceIndex Unique source identifier
      */
-    void insertSegment(const PixelStreamSegment& segment, const SourceIndex sourceIndex);
+    void insertSegment(const PixelStreamSegment& segment, const size_t sourceIndex);
 
     /**
      * Notify that the given source has finished sending segment for the current frame.
      * @param sourceIndex Unique source identifier
      */
-    void finishFrameForSource(const SourceIndex sourceIndex);
+    void finishFrameForSource(const size_t sourceIndex);
 
     /** Does the Buffer have a complete frame (from all sources) */
     bool hasFrameComplete() const;

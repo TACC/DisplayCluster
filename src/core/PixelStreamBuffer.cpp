@@ -45,7 +45,7 @@ PixelStreamBuffer::PixelStreamBuffer()
 {
 }
 
-void PixelStreamBuffer::addSource(const SourceIndex sourceIndex)
+void PixelStreamBuffer::addSource(const size_t sourceIndex)
 {
     assert(!sourceBuffers_.count(sourceIndex));
 
@@ -53,7 +53,7 @@ void PixelStreamBuffer::addSource(const SourceIndex sourceIndex)
     sourceBuffers_[sourceIndex].segments.push(PixelStreamSegments());
 }
 
-void PixelStreamBuffer::removeSource(const SourceIndex sourceIndex)
+void PixelStreamBuffer::removeSource(const size_t sourceIndex)
 {
     sourceBuffers_.erase(sourceIndex);
 }
@@ -63,14 +63,14 @@ size_t PixelStreamBuffer::getSourceCount() const
     return sourceBuffers_.size();
 }
 
-void PixelStreamBuffer::insertSegment(const dc::PixelStreamSegment &segment, const SourceIndex sourceIndex)
+void PixelStreamBuffer::insertSegment(const dc::PixelStreamSegment& segment, const size_t sourceIndex)
 {
     assert(sourceBuffers_.count(sourceIndex));
 
     sourceBuffers_[sourceIndex].segments.back().push_back(segment);
 }
 
-void PixelStreamBuffer::finishFrameForSource(const SourceIndex sourceIndex)
+void PixelStreamBuffer::finishFrameForSource(const size_t sourceIndex)
 {
     assert(sourceBuffers_.count(sourceIndex));
 

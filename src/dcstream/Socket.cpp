@@ -53,12 +53,12 @@ namespace dc
 
 const unsigned short Socket::defaultPortNumber_ = 1701;
 
-Socket::Socket(const std::string &hostname, unsigned short port)
+Socket::Socket(const std::string &hostname, const unsigned short port)
     : socket_(new QTcpSocket())
 {
     if( !connect( hostname, port ))
     {
-//        put_flog(LOG_ERROR, "could not connect to host %s:%i", hostname.c_str(), port);
+        put_flog(LOG_ERROR, "could not connect to host %s:%i", hostname.c_str(), port);
     }
 }
 
@@ -127,7 +127,7 @@ bool Socket::receive(MessageHeader & messageHeader, QByteArray & message)
     {
         message = socket_->read(messageHeader.size);
 
-        while(message.size() < (int)messageHeader.size)
+        while(message.size() < int(messageHeader.size))
         {
             socket_->waitForReadyRead();
 
@@ -147,7 +147,7 @@ bool Socket::receive(MessageHeader & messageHeader, QByteArray & message)
 
 bool Socket::receive(MessageHeader & messageHeader)
 {
-    while( socket_->bytesAvailable() < (qint64)MessageHeader::serializedSize )
+    while( socket_->bytesAvailable() < qint64(MessageHeader::serializedSize) )
     {
         if ( !socket_->waitForReadyRead(RECEIVE_TIMEOUT_MS) )
             return false;
@@ -159,7 +159,7 @@ bool Socket::receive(MessageHeader & messageHeader)
     return stream.status() == QDataStream::Ok;
 }
 
-bool Socket::connect(const std::string& hostname, unsigned short port)
+bool Socket::connect(const std::string& hostname, const unsigned short port)
 {
     // make sure we're disconnected
     socket_->disconnectFromHost();
@@ -176,7 +176,7 @@ bool Socket::connect(const std::string& hostname, unsigned short port)
     // handshake
     if (checkProtocolVersion())
     {
-        //put_flog(LOG_INFO, "connected to host %s", hostname.c_str());
+        put_flog(LOG_INFO, "connected to host %s", hostname.c_str());
         return true;
     }
     else
@@ -189,7 +189,7 @@ bool Socket::connect(const std::string& hostname, unsigned short port)
 
 bool Socket::checkProtocolVersion()
 {
-    while( socket_->bytesAvailable() < (qint64)sizeof(int32_t) )
+    while( socket_->bytesAvailable() < qint64(sizeof(int32_t)) )
     {
         if ( !socket_->waitForReadyRead(RECEIVE_TIMEOUT_MS) )
             return false;

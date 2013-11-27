@@ -53,7 +53,7 @@ class Application : public QApplication
     Q_OBJECT
 
 public:
-    explicit Application(int &argc, char **argv);
+    Application(int &argc, char **argv);
     virtual ~Application();
 
     bool initalize(const CommandLineOptions &options);

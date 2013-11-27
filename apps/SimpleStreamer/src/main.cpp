@@ -208,8 +208,8 @@ void display()
                     exit(0);
                 }
 
-                float newMouseX = event.mouseX;
-                float newMouseY = event.mouseY;
+                const float newMouseX = event.mouseX;
+                const float newMouseY = event.mouseY;
 
                 if(event.mouseLeft)
                 {

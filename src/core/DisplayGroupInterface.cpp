@@ -146,9 +146,8 @@ void DisplayGroupInterface::removeContentWindowManager(ContentWindowManagerPtr c
     contentWindowManager->setEvent( event );
 
     // find vector entry for content window manager
-    ContentWindowManagerPtrs::iterator it;
-
-    it = find(contentWindowManagers_.begin(), contentWindowManagers_.end(), contentWindowManager);
+    ContentWindowManagerPtrs::iterator it = find(contentWindowManagers_.begin(),
+                                                 contentWindowManagers_.end(), contentWindowManager);
 
     if(it != contentWindowManagers_.end())
     {

@@ -66,12 +66,12 @@ PixelStreamDispatcher::PixelStreamDispatcher()
     connect(g_displayGroupManager.get(), SIGNAL(pixelStreamViewClosed(QString)), this, SLOT(deleteStream(QString)));
 }
 
-void PixelStreamDispatcher::addSource(QString uri, int sourceIndex)
+void PixelStreamDispatcher::addSource(const QString uri, const size_t sourceIndex)
 {
     streamBuffers_[uri].addSource(sourceIndex);
 }
 
-void PixelStreamDispatcher::removeSource(QString uri, int sourceIndex)
+void PixelStreamDispatcher::removeSource(const QString uri, const size_t sourceIndex)
 {
     assert(streamBuffers_.count(uri));
 
@@ -83,13 +83,13 @@ void PixelStreamDispatcher::removeSource(QString uri, int sourceIndex)
     }
 }
 
-void PixelStreamDispatcher::processSegment(QString uri, int sourceIndex, dc::PixelStreamSegment segment)
+void PixelStreamDispatcher::processSegment(const QString uri, const size_t sourceIndex, dc::PixelStreamSegment segment)
 {
     if (streamBuffers_.count(uri))
         streamBuffers_[uri].insertSegment(segment, sourceIndex);
 }
 
-void PixelStreamDispatcher::processFrameFinished(QString uri, int sourceIndex)
+void PixelStreamDispatcher::processFrameFinished(const QString uri, const size_t sourceIndex)
 {
     if (!streamBuffers_.count(uri))
         return;
@@ -115,7 +115,7 @@ void PixelStreamDispatcher::processFrameFinished(QString uri, int sourceIndex)
 #endif
 }
 
-void PixelStreamDispatcher::deleteStream(const QString &uri)
+void PixelStreamDispatcher::deleteStream(const QString uri)
 {
     if (streamBuffers_.count(uri))
     {

@@ -184,7 +184,7 @@ class ContentWindowInterface : public QObject
 
         ControlState controlState_;
 
-        int eventReceiversCount_;
+        unsigned int eventReceiversCount_;
 
         // highlighted timestamp
         boost::posix_time::ptime highlightedTimestamp_;

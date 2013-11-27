@@ -107,9 +107,7 @@ bool StreamPrivate::sendPixelStreamSegment(const PixelStreamSegment &segment)
     // Message payload part 2: image data
     message.append(segment.imageData);
 
-    bool success = dcSocket_->send(mh, message);
-
-    return success;
+    return dcSocket_->send(mh, message);
 }
 
 }

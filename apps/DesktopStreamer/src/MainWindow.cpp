@@ -248,8 +248,6 @@ void MainWindow::showDesktopSelectionWindow(bool set)
     {
         desktopSelectionWindow_->hide();
     }
-
-    qDebug() << "showDesktopSelectionWindow " << set;
 }
 
 void MainWindow::shareDesktopUpdate()
@@ -258,11 +256,6 @@ void MainWindow::shareDesktopUpdate()
     QTime frameTime;
     frameTime.start();
 
-    // Make sure we bound the area we want to grab!
-//    const int screen = -1;
-//    QRect desktopRect = QApplication::desktop()->screenGeometry( screen );
-//    const int w = std::min((int)(width_ * deviceScale_), desktopRect.width() - x_);
-//    const int h = std::min((int)(height_ * deviceScale_), desktopRect.height() - y_);
     const int w = width_ * deviceScale_;
     const int h = height_ * deviceScale_;
 

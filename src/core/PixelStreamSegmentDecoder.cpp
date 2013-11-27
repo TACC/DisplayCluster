@@ -48,10 +48,8 @@
 
 
 PixelStreamSegmentDecoder::PixelStreamSegmentDecoder()
-    : handle_(0)
+    : handle_(tjInitDecompress())
 {
-    // initialize libjpeg-turbo handle
-    handle_ = tjInitDecompress();
 }
 
 PixelStreamSegmentDecoder::~PixelStreamSegmentDecoder()

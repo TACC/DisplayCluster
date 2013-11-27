@@ -172,8 +172,8 @@ Event ContentWindowInterface::getEvent()
 
 bool ContentWindowInterface::registerEventReceiver(EventReceiver* receiver)
 {
-    bool success = connect( this, SIGNAL(eventChanged( Event, ContentWindowInterface* )),
-                            receiver, SLOT(processEvent(Event)) );
+    const bool success = connect( this, SIGNAL(eventChanged( Event, ContentWindowInterface* )),
+                                  receiver, SLOT(processEvent(Event)) );
     if (success)
         ++eventReceiversCount_;
 
@@ -182,7 +182,7 @@ bool ContentWindowInterface::registerEventReceiver(EventReceiver* receiver)
 
 bool ContentWindowInterface::getHighlighted()
 {
-    long dtMilliseconds = (g_displayGroupManager->getTimestamp() - highlightedTimestamp_).total_milliseconds();
+    const long dtMilliseconds = (g_displayGroupManager->getTimestamp() - highlightedTimestamp_).total_milliseconds();
 
     if(dtMilliseconds > HIGHLIGHT_TIMEOUT_MILLISECONDS || dtMilliseconds % (HIGHLIGHT_BLINK_INTERVAL*2) < HIGHLIGHT_BLINK_INTERVAL)
     {

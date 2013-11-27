@@ -91,7 +91,6 @@ int main(int argc, char * argv[])
     if (!app.initalize(options))
         return FAILED_APP_INITIALIZTION_ERROR_CODE;
 
-    // enter Qt event loop
     return app.exec();
 }
 

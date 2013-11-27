@@ -115,7 +115,7 @@ void computeJpegMapped(SegmentCompressionWrapper& dcSegment)
     // use a new handle each time for thread-safety
     tjhandle tjHandle = tjInitCompress();
 
-    // tjCompress API is incorrect and takes a non-const input buffer, event though it does not modify it.
+    // tjCompress API is incorrect and takes a non-const input buffer, even though it does not modify it.
     // We can "safely" cast it to non-const pointer to comply to the incorrect API.
     unsigned char* tjSrcBuffer = (unsigned char*) dcSegment.image->data;
     tjSrcBuffer += (dcSegment.segment->parameters.y - dcSegment.image->y) * dcSegment.image->width * dcSegment.image->getBytesPerPixel();
