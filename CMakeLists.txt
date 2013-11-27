@@ -104,7 +104,7 @@ if(BUILD_CORE_LIBRARY)
 endif()
 
 # install doc files
-install(DIRECTORY doc DESTINATION .)
+install(DIRECTORY doc DESTINATION . COMPONENT doc)
 
 # install example files
-install(DIRECTORY examples DESTINATION .)
+install(DIRECTORY examples DESTINATION . COMPONENT examples)
