@@ -37,46 +37,69 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef GLOBALQTAPP_H
-#define GLOBALQTAPP_H
+#define BOOST_TEST_MODULE LocalPixelStreamer
+#include <boost/test/unit_test.hpp>
+namespace ut = boost::unit_test;
 
-#include <QApplication>
+#include "GlobalQtApp.h"
 
-#include "globals.h"
-#include "Options.h"
-#include "configuration/MasterConfiguration.h"
+#include "LocalPixelStreamerType.h"
+#include "LocalPixelStreamerFactory.h"
+#include "LocalPixelStreamer.h"
+#include "WebkitPixelStreamer.h"
+#include "DockPixelStreamer.h"
 
-#include "glxDisplay.h"
 
-#define CONFIG_TEST_FILENAME "configuration.xml"
+BOOST_GLOBAL_FIXTURE( MinimalGlobalQtApp );
 
-// We need a global fixture because a bug in QApplication prevents
-// deleting then recreating a QApplication in the same process.
-// https://bugreports.qt-project.org/browse/QTBUG-7104
-struct MinimalGlobalQtApp
+BOOST_AUTO_TEST_CASE( test_local_pixel_streamer_type )
 {
-    MinimalGlobalQtApp()
-        : app( 0 )
-    {
-        if( !hasGLXDisplay( ))
-          return;
+    BOOST_CHECK_EQUAL( getStreamerTypeString(PS_UNKNOWN).toStdString(), "unknown" );
+    BOOST_CHECK_EQUAL( getStreamerTypeString(PS_WEBKIT).toStdString(), "webkit" );
+    BOOST_CHECK_EQUAL( getStreamerTypeString(PS_DOCK).toStdString(), "dock" );
 
-        // need QApplication to instantiate WebkitPixelStreamer
-        ut::master_test_suite_t& testSuite = ut::framework::master_test_suite();
-        app = new QApplication( testSuite.argc, testSuite.argv );
+    BOOST_CHECK_EQUAL( getStreamerType(""), PS_UNKNOWN );
+    BOOST_CHECK_EQUAL( getStreamerType("zorglump"), PS_UNKNOWN );
+    BOOST_CHECK_EQUAL( getStreamerType("webkit"), PS_WEBKIT );
+    BOOST_CHECK_EQUAL( getStreamerType("dock"), PS_DOCK );
+}
 
-        // To test wheel events the WebkitPixelStreamer needs access to the g_configuration element
-        OptionsPtr options(new Options());
-        g_configuration = new MasterConfiguration(CONFIG_TEST_FILENAME, options);
-    }
-    ~MinimalGlobalQtApp()
-    {
-        delete g_configuration;
-        delete app;
-    }
+BOOST_AUTO_TEST_CASE( test_local_pixel_streamer_factory_unknown_type )
+{
+    // Create should return a nullptr
+    BOOST_CHECK( !LocalPixelStreamerFactory::create(PS_UNKNOWN, "") );
+    BOOST_CHECK( !LocalPixelStreamerFactory::create(PS_UNKNOWN, "iefuiw") );
+}
 
-    QApplication* app;
-};
+BOOST_AUTO_TEST_CASE( test_local_pixel_streamer_factory_webkit_type )
+{
+    if( !hasGLXDisplay( ))
+      return;
 
+    LocalPixelStreamer* streamer = LocalPixelStreamerFactory::create(PS_WEBKIT, "testuri");
 
-#endif // GLOBALQTAPP_H
+    BOOST_CHECK( streamer );
+    BOOST_CHECK_EQUAL(streamer->getUri().toStdString(), "testuri");
+
+    WebkitPixelStreamer* webkit = dynamic_cast<WebkitPixelStreamer*>(streamer);
+    BOOST_CHECK( webkit );
+
+    delete streamer;
+}
+
+BOOST_AUTO_TEST_CASE( test_local_pixel_streamer_factory_dock_type )
+{
+    if( !hasGLXDisplay( ))
+      return;
+
+    LocalPixelStreamer* streamer = LocalPixelStreamerFactory::create(PS_DOCK, "testuri");
+
+    BOOST_CHECK( streamer );
+    BOOST_CHECK_EQUAL(streamer->getUri().toStdString(), DockPixelStreamer::getUniqueURI().toStdString());
+
+    DockPixelStreamer* dock = dynamic_cast<DockPixelStreamer*>(streamer);
+    BOOST_CHECK( dock );
+
+    delete streamer;
+}
+

@@ -37,46 +37,44 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef GLOBALQTAPP_H
-#define GLOBALQTAPP_H
+#define BOOST_TEST_MODULE PixelStreamSegmentParametersTests
+#include <boost/test/unit_test.hpp>
+namespace ut = boost::unit_test;
 
-#include <QApplication>
+#include "PixelStreamSegmentParameters.h"
 
-#include "globals.h"
-#include "Options.h"
-#include "configuration/MasterConfiguration.h"
+#include <iostream>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
 
-#include "glxDisplay.h"
-
-#define CONFIG_TEST_FILENAME "configuration.xml"
-
-// We need a global fixture because a bug in QApplication prevents
-// deleting then recreating a QApplication in the same process.
-// https://bugreports.qt-project.org/browse/QTBUG-7104
-struct MinimalGlobalQtApp
+BOOST_AUTO_TEST_CASE( testSegementParametersSerialization )
 {
-    MinimalGlobalQtApp()
-        : app( 0 )
-    {
-        if( !hasGLXDisplay( ))
-          return;
+    dc::PixelStreamSegmentParameters params;
+    params.x = 212;
+    params.y = 365;
+    params.height = 32;
+    params.width = 78;
+    params.compressed = false;
 
-        // need QApplication to instantiate WebkitPixelStreamer
-        ut::master_test_suite_t& testSuite = ut::framework::master_test_suite();
-        app = new QApplication( testSuite.argc, testSuite.argv );
 
-        // To test wheel events the WebkitPixelStreamer needs access to the g_configuration element
-        OptionsPtr options(new Options());
-        g_configuration = new MasterConfiguration(CONFIG_TEST_FILENAME, options);
-    }
-    ~MinimalGlobalQtApp()
+    // serialize
+    std::stringstream stream;
     {
-        delete g_configuration;
-        delete app;
+        boost::archive::binary_oarchive oa(stream);
+        oa << params;
     }
 
-    QApplication* app;
-};
+    // deserialize
+    dc::PixelStreamSegmentParameters paramsDeserialized;
+    {
+        boost::archive::binary_iarchive ia(stream);
+        ia >> paramsDeserialized;
+    }
 
+    BOOST_CHECK_EQUAL( params.x, paramsDeserialized.x );
+    BOOST_CHECK_EQUAL( params.y, paramsDeserialized.y );
+    BOOST_CHECK_EQUAL( params.height, paramsDeserialized.height );
+    BOOST_CHECK_EQUAL( params.width, paramsDeserialized.width );
+    BOOST_CHECK_EQUAL( params.compressed, paramsDeserialized.compressed );
+}
 
-#endif // GLOBALQTAPP_H

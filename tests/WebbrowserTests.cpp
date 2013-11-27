@@ -53,7 +53,7 @@ namespace ut = boost::unit_test;
 #define TEST_PAGE_URL         "webgl_interaction.html"
 
 
-BOOST_GLOBAL_FIXTURE( GlobalQtApp );
+BOOST_GLOBAL_FIXTURE( MinimalGlobalQtApp );
 
 BOOST_AUTO_TEST_CASE( test_webgl_support )
 {

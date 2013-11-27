@@ -53,15 +53,15 @@ namespace ut = boost::unit_test;
 // We need a global fixture because a bug in QApplication prevents
 // deleting then recreating a QApplication in the same process.
 // https://bugreports.qt-project.org/browse/QTBUG-7104
-struct GlobalQtApp
+struct MinimalGlobalQtApp
 {
-    GlobalQtApp()
+    MinimalGlobalQtApp()
     {
         // need QApplication to instantiate WebkitPixelStreamer
         ut::master_test_suite_t& testSuite = ut::framework::master_test_suite();
         app = new QCoreApplication( testSuite.argc, testSuite.argv );
     }
-    ~GlobalQtApp()
+    ~MinimalGlobalQtApp()
     {
         delete app;
     }
@@ -69,7 +69,7 @@ struct GlobalQtApp
     QCoreApplication* app;
 };
 
-BOOST_GLOBAL_FIXTURE( GlobalQtApp );
+BOOST_GLOBAL_FIXTURE( MinimalGlobalQtApp );
 
 void testBaseParameters(const Configuration& config, OptionsPtr options)
 {

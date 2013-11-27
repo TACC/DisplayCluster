@@ -37,46 +37,26 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef GLOBALQTAPP_H
-#define GLOBALQTAPP_H
+#define BOOST_TEST_MODULE Socket
+#include <boost/test/unit_test.hpp>
+namespace ut = boost::unit_test;
 
-#include <QApplication>
+#include "MinimalGlobalQtApp.h"
+#include "MockNetworkListener.h"
 
-#include "globals.h"
-#include "Options.h"
-#include "configuration/MasterConfiguration.h"
+#include "dcstream/Socket.h"
 
-#include "glxDisplay.h"
+BOOST_GLOBAL_FIXTURE( MinimalGlobalQtApp );
 
-#define CONFIG_TEST_FILENAME "configuration.xml"
-
-// We need a global fixture because a bug in QApplication prevents
-// deleting then recreating a QApplication in the same process.
-// https://bugreports.qt-project.org/browse/QTBUG-7104
-struct MinimalGlobalQtApp
+BOOST_AUTO_TEST_CASE( testSocketConnection )
 {
-    MinimalGlobalQtApp()
-        : app( 0 )
-    {
-        if( !hasGLXDisplay( ))
-          return;
+    QThread* thread = new QThread();
+    MockNetworkListener server(dc::Socket::defaultPortNumber_);
+    server.moveToThread(thread);
+    server.connect(&server, SIGNAL(finished()), thread, SLOT(deleteLater()));
+    thread->start();
 
-        // need QApplication to instantiate WebkitPixelStreamer
-        ut::master_test_suite_t& testSuite = ut::framework::master_test_suite();
-        app = new QApplication( testSuite.argc, testSuite.argv );
+    dc::Socket socket( "localhost", dc::Socket::defaultPortNumber_);
 
-        // To test wheel events the WebkitPixelStreamer needs access to the g_configuration element
-        OptionsPtr options(new Options());
-        g_configuration = new MasterConfiguration(CONFIG_TEST_FILENAME, options);
-    }
-    ~MinimalGlobalQtApp()
-    {
-        delete g_configuration;
-        delete app;
-    }
-
-    QApplication* app;
-};
-
-
-#endif // GLOBALQTAPP_H
+    BOOST_CHECK( socket.isConnected() );
+}

@@ -37,46 +37,70 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef GLOBALQTAPP_H
-#define GLOBALQTAPP_H
+#define BOOST_TEST_MODULE PixelStreamSegmentDecoderTests
+#include <boost/test/unit_test.hpp>
+namespace ut = boost::unit_test;
 
-#include <QApplication>
+#include "MinimalGlobalQtApp.h"
 
-#include "globals.h"
-#include "Options.h"
-#include "configuration/MasterConfiguration.h"
+#include "PixelStreamSegmentDecoder.h"
+#include "PixelStreamSegment.h"
 
-#include "glxDisplay.h"
+#include "dcstream/ImageWrapper.h"
+#include "dcstream/ImageSegmenter.h"
 
-#define CONFIG_TEST_FILENAME "configuration.xml"
+BOOST_GLOBAL_FIXTURE( MinimalGlobalQtApp );
 
-// We need a global fixture because a bug in QApplication prevents
-// deleting then recreating a QApplication in the same process.
-// https://bugreports.qt-project.org/browse/QTBUG-7104
-struct MinimalGlobalQtApp
+typedef boost::shared_ptr<PixelStreamSegmentDecoder> PixelStreamSegmentDecoderPtr;
+
+BOOST_AUTO_TEST_CASE( testSocketConnection )
 {
-    MinimalGlobalQtApp()
-        : app( 0 )
+    // Vector of rgba data
+    std::vector<char> data;
+    data.reserve(8*8*4);
+    for (size_t i = 0; i<8*8; ++i)
     {
-        if( !hasGLXDisplay( ))
-          return;
-
-        // need QApplication to instantiate WebkitPixelStreamer
-        ut::master_test_suite_t& testSuite = ut::framework::master_test_suite();
-        app = new QApplication( testSuite.argc, testSuite.argv );
-
-        // To test wheel events the WebkitPixelStreamer needs access to the g_configuration element
-        OptionsPtr options(new Options());
-        g_configuration = new MasterConfiguration(CONFIG_TEST_FILENAME, options);
-    }
-    ~MinimalGlobalQtApp()
-    {
-        delete g_configuration;
-        delete app;
+        data.push_back(192); // R
+        data.push_back(128); // G
+        data.push_back(64);  // B
+        data.push_back(255); // A
     }
 
-    QApplication* app;
-};
+    // Compress image
+    dc::ImageWrapper imageWrapper(data.data(), 8, 8, dc::RGBA);
+    imageWrapper.compressionPolicy = dc::COMPRESSION_ON;
 
+    dc::PixelStreamSegments segments;
+    {
+        dc::ImageSegmenter segmenter;
+        segments = segmenter.generateSegments(imageWrapper);
+    }
+    BOOST_REQUIRE_EQUAL( segments.size(), 1 );
 
-#endif // GLOBALQTAPP_H
+    dc::PixelStreamSegment& segment = segments.front();
+    BOOST_REQUIRE( segment.parameters.compressed );
+    BOOST_REQUIRE( segment.imageData.size() != (int)data.size() );
+
+    // Decompress image
+    PixelStreamSegmentDecoderPtr decoder(new PixelStreamSegmentDecoder);
+    decoder->startDecoding(segment);
+
+    size_t timeout = 0;
+    while(decoder->isRunning())
+    {
+        usleep(10);
+        if (++timeout >= 10)
+            break;
+    }
+    BOOST_REQUIRE( timeout < 10 );
+
+    // Check decoded image in format RGBA
+    BOOST_REQUIRE( !segment.parameters.compressed );
+    BOOST_REQUIRE_EQUAL( segment.imageData.size(), data.size() );
+
+    for(size_t i = 0; i < data.size(); ++i)
+    {
+        BOOST_CHECK_EQUAL( data[i], segment.imageData.at(i) );
+    }
+}
+

@@ -37,46 +37,31 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef GLOBALQTAPP_H
-#define GLOBALQTAPP_H
+#include "MockNetworkListener.h"
 
-#include <QApplication>
-
-#include "globals.h"
-#include "Options.h"
-#include "configuration/MasterConfiguration.h"
-
-#include "glxDisplay.h"
-
-#define CONFIG_TEST_FILENAME "configuration.xml"
-
-// We need a global fixture because a bug in QApplication prevents
-// deleting then recreating a QApplication in the same process.
-// https://bugreports.qt-project.org/browse/QTBUG-7104
-struct MinimalGlobalQtApp
+MockNetworkListener::MockNetworkListener(const unsigned short port)
 {
-    MinimalGlobalQtApp()
-        : app( 0 )
-    {
-        if( !hasGLXDisplay( ))
-          return;
+    if ( !listen(QHostAddress::Any, port) )
+        qDebug("MockNetworkListener could not start listening!!");
+}
 
-        // need QApplication to instantiate WebkitPixelStreamer
-        ut::master_test_suite_t& testSuite = ut::framework::master_test_suite();
-        app = new QApplication( testSuite.argc, testSuite.argv );
+MockNetworkListener::~MockNetworkListener()
+{
+    emit finished();
+}
 
-        // To test wheel events the WebkitPixelStreamer needs access to the g_configuration element
-        OptionsPtr options(new Options());
-        g_configuration = new MasterConfiguration(CONFIG_TEST_FILENAME, options);
-    }
-    ~MinimalGlobalQtApp()
-    {
-        delete g_configuration;
-        delete app;
-    }
+void MockNetworkListener::incomingConnection(int socketDescriptor)
+{
+    QThread * thread = new QThread();
+    NetworkListenerThread * worker = new NetworkListenerThread(socketDescriptor);
 
-    QApplication* app;
-};
+    worker->moveToThread(thread);
 
+    worker->connect(thread, SIGNAL(started()), worker, SLOT(initialize()));
+    worker->connect(worker, SIGNAL(finished()), thread, SLOT(quit()));
+    // Make sure the thread gets deleted
+    worker->connect(thread, SIGNAL(finished()), worker, SLOT(deleteLater()));
+    worker->connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
 
-#endif // GLOBALQTAPP_H
+    thread->start();
+}

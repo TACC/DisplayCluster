@@ -37,46 +37,70 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef GLOBALQTAPP_H
-#define GLOBALQTAPP_H
+#define BOOST_TEST_MODULE NetworkSerializationTests
+#include <boost/test/unit_test.hpp>
+namespace ut = boost::unit_test;
 
-#include <QApplication>
+#include "MessageHeader.h"
+#include "Event.h"
 
-#include "globals.h"
-#include "Options.h"
-#include "configuration/MasterConfiguration.h"
+#include <QDataStream>
+#include <QByteArray>
 
-#include "glxDisplay.h"
-
-#define CONFIG_TEST_FILENAME "configuration.xml"
-
-// We need a global fixture because a bug in QApplication prevents
-// deleting then recreating a QApplication in the same process.
-// https://bugreports.qt-project.org/browse/QTBUG-7104
-struct MinimalGlobalQtApp
+BOOST_AUTO_TEST_CASE( testMessageHeaderSerialization )
 {
-    MinimalGlobalQtApp()
-        : app( 0 )
-    {
-        if( !hasGLXDisplay( ))
-          return;
+    QByteArray storage;
 
-        // need QApplication to instantiate WebkitPixelStreamer
-        ut::master_test_suite_t& testSuite = ut::framework::master_test_suite();
-        app = new QApplication( testSuite.argc, testSuite.argv );
+    MessageHeader messageHeader(MESSAGE_TYPE_PIXELSTREAM, 512, "MyUri");
+    QDataStream dataStreamOut(&storage, QIODevice::Append);
+    dataStreamOut << messageHeader;
 
-        // To test wheel events the WebkitPixelStreamer needs access to the g_configuration element
-        OptionsPtr options(new Options());
-        g_configuration = new MasterConfiguration(CONFIG_TEST_FILENAME, options);
-    }
-    ~MinimalGlobalQtApp()
-    {
-        delete g_configuration;
-        delete app;
-    }
+    MessageHeader messageHeaderDeserialized;
+    QDataStream dataStreamIn(storage);
+    dataStreamIn >> messageHeaderDeserialized;
 
-    QApplication* app;
-};
+    BOOST_CHECK_EQUAL( messageHeaderDeserialized.type, messageHeader.type );
+    BOOST_CHECK_EQUAL( messageHeaderDeserialized.size, messageHeader.size );
+    BOOST_CHECK_EQUAL( std::string(messageHeaderDeserialized.uri), std::string(messageHeader.uri) );
+}
 
 
-#endif // GLOBALQTAPP_H
+BOOST_AUTO_TEST_CASE( testEventSerialization )
+{
+    QByteArray storage;
+
+    dc::Event event;
+    event.type = dc::Event::EVT_PRESS;
+    event.mouseX = 0.78;
+    event.mouseY = 0.456;
+
+    event.dx = 0.6;
+    event.dy = 0.2;
+
+    event.mouseLeft = true;
+    event.mouseRight = true;
+    event.mouseMiddle = true;
+
+    event.key = 'Y';
+    event.modifiers = Qt::ControlModifier;
+
+    QDataStream dataStreamOut(&storage, QIODevice::Append);
+    dataStreamOut << event;
+
+    dc::Event eventDeserialized;
+    QDataStream dataStreamIn(storage);
+    dataStreamIn >> eventDeserialized;
+
+    BOOST_CHECK_EQUAL( eventDeserialized.type, event.type );
+    BOOST_CHECK_EQUAL( eventDeserialized.mouseX, event.mouseX );
+    BOOST_CHECK_EQUAL( eventDeserialized.mouseY, event.mouseY );
+    BOOST_CHECK_EQUAL( eventDeserialized.dx, event.dx );
+    BOOST_CHECK_EQUAL( eventDeserialized.dy, event.dy );
+    BOOST_CHECK_EQUAL( eventDeserialized.mouseLeft, event.mouseLeft);
+    BOOST_CHECK_EQUAL( eventDeserialized.mouseRight, event.mouseRight );
+    BOOST_CHECK_EQUAL( eventDeserialized.mouseMiddle, event.mouseMiddle);
+    BOOST_CHECK_EQUAL( eventDeserialized.key, event.key);
+    BOOST_CHECK_EQUAL( eventDeserialized.modifiers, event.modifiers );
+}
+
+

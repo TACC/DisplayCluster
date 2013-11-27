@@ -37,46 +37,25 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef GLOBALQTAPP_H
-#define GLOBALQTAPP_H
+#ifndef MOCKNETWORKLISTENER_H
+#define MOCKNETWORKLISTENER_H
 
-#include <QApplication>
+#include "NetworkListenerThread.h"
 
-#include "globals.h"
-#include "Options.h"
-#include "configuration/MasterConfiguration.h"
+#include <QtNetwork/QTcpServer>
+#include <QThread>
 
-#include "glxDisplay.h"
-
-#define CONFIG_TEST_FILENAME "configuration.xml"
-
-// We need a global fixture because a bug in QApplication prevents
-// deleting then recreating a QApplication in the same process.
-// https://bugreports.qt-project.org/browse/QTBUG-7104
-struct MinimalGlobalQtApp
+class MockNetworkListener : public QTcpServer
 {
-    MinimalGlobalQtApp()
-        : app( 0 )
-    {
-        if( !hasGLXDisplay( ))
-          return;
+    Q_OBJECT
 
-        // need QApplication to instantiate WebkitPixelStreamer
-        ut::master_test_suite_t& testSuite = ut::framework::master_test_suite();
-        app = new QApplication( testSuite.argc, testSuite.argv );
-
-        // To test wheel events the WebkitPixelStreamer needs access to the g_configuration element
-        OptionsPtr options(new Options());
-        g_configuration = new MasterConfiguration(CONFIG_TEST_FILENAME, options);
-    }
-    ~MinimalGlobalQtApp()
-    {
-        delete g_configuration;
-        delete app;
-    }
-
-    QApplication* app;
+public:
+    MockNetworkListener(const unsigned short port);
+    virtual ~MockNetworkListener();
+signals:
+    void finished();
+protected:
+    virtual void incomingConnection(int socketDescriptor);
 };
 
-
-#endif // GLOBALQTAPP_H
+#endif // MOCKNETWORKLISTENER_H
