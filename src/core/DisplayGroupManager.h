@@ -65,7 +65,7 @@
 
 
 class ContentWindowManager;
-class MessageHeader;
+struct MessageHeader;
 
 class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_shared_from_this<DisplayGroupManager> {
     Q_OBJECT

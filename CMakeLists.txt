@@ -15,7 +15,7 @@ if(COMMAND cmake_policy)
 endif(COMMAND cmake_policy)
 
 # show all warnings
-set(CMAKE_CXX_FLAGS "-Wall")
+set(CMAKE_CXX_FLAGS "-Wall -ftemplate-depth-1024")
 
 # build options
 option(BUILD_DISPLAYCLUSTER_LIBRARY "Build DisplayCluster library" OFF)
