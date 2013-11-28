@@ -1,30 +1,25 @@
 
-set(DESKTOP_STREAMER_LIBS ${QT_QTCORE_LIBRARY} ${QT_QTGUI_LIBRARY} ${QT_QTNETWORK_LIBRARY})
-
-if(WIN32)
-    set(DESKTOP_STREAMER_LIBS ${DESKTOP_STREAMER_LIBS} ${QT_QTMAIN_LIBRARY})
-endif()
-
-# libjpeg-turbo
-set(DESKTOP_STREAMER_LIBS ${DESKTOP_STREAMER_LIBS} ${LibJpegTurbo_LIBRARIES})
-
 set(DESKTOP_STREAMER_SRCS ${DESKTOP_STREAMER_SRCS}
-    ../../src/log.cpp
-    src/DesktopSelectionRectangle.cpp
-    src/DesktopSelectionWindow.cpp
-    src/DesktopSelectionView.cpp
-    src/main.cpp
-    src/MainWindow.cpp
+  ../../src/log.cpp
+  src/DesktopSelectionRectangle.cpp
+  src/DesktopSelectionWindow.cpp
+  src/DesktopSelectionView.cpp
+  src/main.cpp
+  src/MainWindow.cpp
 )
 
 set(DESKTOP_STREAMER_MOC_HEADERS
-    src/MainWindow.h
+  src/MainWindow.h
 )
 
 qt4_wrap_cpp(DESKTOP_STREAMER_MOC_OUTFILES ${DESKTOP_STREAMER_MOC_HEADERS})
 qt4_add_resources(DESKTOP_STREAMER_RRC resources.qrc)
 
-# on Apple platform set the icon
+set(DESKTOP_STREAMER_LIBS ${QT_QTCORE_LIBRARY}
+                          ${QT_QTGUI_LIBRARY}
+                          ${QT_QTNETWORK_LIBRARY}
+                          ${LibJpegTurbo_LIBRARIES})
+
 if(APPLE)
   set(STREAMER_APP_NAME DesktopStreamer)
 
@@ -32,30 +27,35 @@ if(APPLE)
   set_source_files_properties(${STREAMER_APP_NAME}.icns
     PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 
-  # include the icns file in the target
-  set(DESKTOP_STREAMER_SRCS ${DESKTOP_STREAMER_SRCS}
-    ${STREAMER_APP_NAME}.icns)
+  add_executable(${STREAMER_APP_NAME} MACOSX_BUNDLE
+    ${DESKTOP_STREAMER_SRCS} ${DESKTOP_STREAMER_MOC_OUTFILES} ${DESKTOP_STREAMER_RRC})
+  set_target_properties(${STREAMER_APP_NAME} PROPERTIES
+    MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/src/Info.plist)
+
+  install(FILES ${DESKTOP_STREAMER_LIBS}
+    DESTINATION ${CMAKE_BINARY_DIR}/${STREAMER_APP_NAME}.app/Contents/MacOS)
+elseif(WIN32)
+  set(STREAMER_APP_NAME desktopstreamer)
+  list(APPEND DESKTOP_STREAMER_LIBS ${QT_QTMAIN_LIBRARY})
+
+  add_executable(${STREAMER_APP_NAME} WIN32
+    ${DESKTOP_STREAMER_SRCS} ${DESKTOP_STREAMER_MOC_OUTFILES} ${DESKTOP_STREAMER_RRC})
 else()
   set(STREAMER_APP_NAME desktopstreamer)
+
+  add_executable(${STREAMER_APP_NAME}
+    ${DESKTOP_STREAMER_SRCS} ${DESKTOP_STREAMER_MOC_OUTFILES} ${DESKTOP_STREAMER_RRC})
 endif()
 
-add_executable(${STREAMER_APP_NAME} MACOSX_BUNDLE WIN32
-  ${DESKTOP_STREAMER_SRCS} ${DESKTOP_STREAMER_MOC_OUTFILES} ${DESKTOP_STREAMER_RRC})
-set_target_properties(${STREAMER_APP_NAME} PROPERTIES
-  MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/src/Info.plist)
 target_link_libraries(${STREAMER_APP_NAME} ${DESKTOP_STREAMER_LIBS})
 
 # install executable
 install(TARGETS ${STREAMER_APP_NAME}
-    RUNTIME DESTINATION bin COMPONENT app
-    BUNDLE DESTINATION . COMPONENT app
+  RUNTIME DESTINATION bin COMPONENT app
+  BUNDLE DESTINATION . COMPONENT app
 )
-if(APPLE)
-  install(FILES ${DESKTOP_STREAMER_LIBS}
-    DESTINATION ${CMAKE_BINARY_DIR}/${STREAMER_APP_NAME}.app/Contents/MacOS)
-endif()
 
-# on Apple platform make the .app bundle; on Windows make the installer
+
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "DesktopStreamer is an application that lets you stream your desktop to a running DisplayCluster instance.")
 set(CPACK_PACKAGE_EXECUTABLES "${STREAMER_APP_NAME}")
 set(CPACK_PACKAGE_NAME "${STREAMER_APP_NAME}")
