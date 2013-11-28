@@ -76,6 +76,8 @@ if(APPLE)
   # to create a package, one can run "cpack -G DragNDrop CPackConfig.cmake" for example
   # where CPackConfig.cmake is created by including CPack
   set(CPACK_BINARY_DRAGNDROP ON)
+
+  set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${VERSION}")
 elseif(WIN32)
   set(APPS "\${CMAKE_INSTALL_PREFIX}/bin/${STREAMER_APP_NAME}.exe")
 
