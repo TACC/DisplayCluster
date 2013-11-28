@@ -45,10 +45,8 @@
 #include "PixelStreamSegment.h"
 
 // Image Jpeg compression
+#include "ImageJpegCompressor.h"
 #include <QtConcurrentMap>
-#include <cmath>
-#include <turbojpeg.h>
-
 
 namespace dc
 {
@@ -87,67 +85,17 @@ struct SegmentCompressionWrapper
     {}
 };
 
-int getTurboJpegImageFormat(PixelFormat pixelFormat)
-{
-    switch(pixelFormat)
-    {
-        case RGB:
-            return TJPF_RGB;
-        case RGBA:
-            return TJPF_RGBX;
-        case ARGB:
-            return TJPF_XRGB;
-        case BGR:
-            return TJPF_BGR;
-        case BGRA:
-            return TJPF_BGRX;
-        case ABGR:
-            return TJPF_XBGR;
-        default:
-            put_flog(LOG_ERROR, "unknown pixel format");
-            return TJPF_RGB;
-    }
-}
-
 // use libjpeg-turbo for JPEG conversion
-void computeJpegMapped(SegmentCompressionWrapper& dcSegment)
+void computeJpegMapped(SegmentCompressionWrapper& segmentWrapper)
 {
-    // use a new handle each time for thread-safety
-    tjhandle tjHandle = tjInitCompress();
+    QRect imageRegion(segmentWrapper.segment->parameters.x - segmentWrapper.image->x,
+                      segmentWrapper.segment->parameters.y - segmentWrapper.image->y,
+                      segmentWrapper.segment->parameters.width,
+                      segmentWrapper.segment->parameters.height);
 
-    // tjCompress API is incorrect and takes a non-const input buffer, even though it does not modify it.
-    // We can "safely" cast it to non-const pointer to comply to the incorrect API.
-    unsigned char* tjSrcBuffer = (unsigned char*) dcSegment.image->data;
-    tjSrcBuffer += (dcSegment.segment->parameters.y - dcSegment.image->y) * dcSegment.image->width * dcSegment.image->getBytesPerPixel();
-    tjSrcBuffer += (dcSegment.segment->parameters.x - dcSegment.image->x) * dcSegment.image->getBytesPerPixel();
+    ImageJpegCompressor compressor;
+    segmentWrapper.segment->imageData = compressor.computeJpeg(*segmentWrapper.image, imageRegion);
 
-    int tjWidth = dcSegment.segment->parameters.width;
-    int tjPitch = dcSegment.image->width * dcSegment.image->getBytesPerPixel(); // assume imageBuffer isn't padded
-    int tjHeight = dcSegment.segment->parameters.height;
-    int tjPixelFormat = getTurboJpegImageFormat(dcSegment.image->pixelFormat);
-    unsigned char * tjJpegBuf = 0;
-    unsigned long tjJpegSize = 0;
-    int tjJpegSubsamp = TJSAMP_444;
-    int tjJpegQual = dcSegment.image->compressionQuality;
-    int tjFlags = 0; // was TJFLAG_BOTTOMUP
-
-    int success = tjCompress2(tjHandle, tjSrcBuffer, tjWidth, tjPitch, tjHeight, tjPixelFormat, &tjJpegBuf, &tjJpegSize, tjJpegSubsamp, tjJpegQual, tjFlags);
-
-    if(success != 0)
-    {
-        put_flog(LOG_ERROR, "libjpeg-turbo image conversion failure");
-        tjDestroy(tjHandle);
-        return;
-    }
-
-    // move the JPEG buffer to a byte array
-    dcSegment.segment->imageData.append((char *)tjJpegBuf, tjJpegSize);
-
-    // free the libjpeg-turbo allocated memory
-    free(tjJpegBuf);
-
-    // destroy libjpeg-turbo handle
-    tjDestroy(tjHandle);
 }
 
 PixelStreamSegments ImageSegmenter::generateJpegSegments(const ImageWrapper &image) const

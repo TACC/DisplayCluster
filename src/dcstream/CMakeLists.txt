@@ -11,6 +11,7 @@ set(DISPLAYCLUSTER_LIBRARY_SRCS
     StreamPrivate.cpp
     ImageWrapper.cpp
     ImageSegmenter.cpp
+    ImageJpegCompressor.cpp
 )
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/dcVersion.in.h

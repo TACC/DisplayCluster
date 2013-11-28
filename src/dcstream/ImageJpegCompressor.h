@@ -37,14 +37,40 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef PIXELSTREAMSEGMENTJPEGCOMPRESSOR_H
-#define PIXELSTREAMSEGMENTJPEGCOMPRESSOR_H
+#ifndef IMAGEJPEGCOMPRESSOR_H
+#define IMAGEJPEGCOMPRESSOR_H
 
-#include <QImage>
-#include "PixelStreamSegment.h"
+#include <turbojpeg.h>
+#include <QByteArray>
+#include <QRect>
 
-using dc::PixelStreamSegment;
+namespace dc
+{
 
-void computeSegmentJpeg(const QImage image, PixelStreamSegment & segment);
+struct ImageWrapper;
 
-#endif // PIXELSTREAMSEGMENTJPEGCOMPRESSOR_H
+/**
+ * Perform JPEG compression for a PixelStreamSegment
+ */
+class ImageJpegCompressor
+{
+public:
+    ImageJpegCompressor();
+    ~ImageJpegCompressor();
+
+    /**
+     * Compute the JPEG imageData for a segment
+     *
+     * @param sourceImage The source image containing the uncompressed image data.
+     * @param imageRegion The region of the image to be compressed. It must not
+     *        exceed image dimensions.
+     */
+    QByteArray computeJpeg(const ImageWrapper& sourceImage, const QRect& imageRegion);
+
+private:
+    tjhandle tjHandle_;
+};
+
+}
+
+#endif // IMAGEJPEGCOMPRESSOR_H

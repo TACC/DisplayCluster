@@ -128,7 +128,6 @@ list(APPEND SRCS
     PixelStreamInteractionDelegate.cpp
     PixelStreamSegmentDecoder.cpp
     PixelStreamSegmentRenderer.cpp
-    PixelStreamSegmentJpegCompressor.cpp
     State.cpp
     StatePreview.cpp
     SVG.cpp
