@@ -201,7 +201,6 @@ BOOST_AUTO_TEST_CASE( test_webgl_interaction )
     delete streamer;
 }
 
-
 BOOST_AUTO_TEST_CASE( test_webgl_click )
 {
     if( !hasGLXDisplay( ))
@@ -242,8 +241,6 @@ BOOST_AUTO_TEST_CASE( test_webgl_click )
     delete streamer;
 }
 
-
-
 BOOST_AUTO_TEST_CASE( test_webgl_wheel )
 {
     if( !hasGLXDisplay( ))
@@ -283,6 +280,35 @@ BOOST_AUTO_TEST_CASE( test_webgl_wheel )
     BOOST_CHECK( frame->evaluateJavaScript(jsX).toBool());
     BOOST_CHECK( frame->evaluateJavaScript(jsY).toBool());
     BOOST_CHECK( frame->evaluateJavaScript(jsD).toBool());
+
+    delete streamer;
+}
+
+BOOST_AUTO_TEST_CASE( test_localstorage )
+{
+    if( !hasGLXDisplay( ))
+        return;
+
+    // load the webgl website, exec() returns when loading is finished
+    WebkitPixelStreamer* streamer = new WebkitPixelStreamer( "testBrowser" );
+    QObject::connect( streamer->getView(), SIGNAL(loadFinished(bool)),
+                      QApplication::instance(), SLOT(quit()));
+    streamer->setUrl( TEST_PAGE_URL );
+    QApplication::instance()->exec();
+
+    QWebPage* page = streamer->getView()->page();
+    BOOST_REQUIRE( page );
+    QWebFrame* frame = page->mainFrame();
+    BOOST_REQUIRE( frame );
+
+    BOOST_CHECK( page->settings()->testAttribute( QWebSettings::LocalStorageEnabled ));
+
+    const QVariant hasLocalStorage = frame->evaluateJavaScript(
+                                                "var hasLocalStorage = false;"
+                                                "if( window.localStorage ) {"
+                                                "  hasLocalStorage = true;"
+                                                "}");
+    BOOST_CHECK( hasLocalStorage.toBool( ));
 
     delete streamer;
 }
