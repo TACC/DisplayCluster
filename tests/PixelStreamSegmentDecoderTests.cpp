@@ -41,21 +41,13 @@
 #include <boost/test/unit_test.hpp>
 namespace ut = boost::unit_test;
 
-#include "MinimalGlobalQtApp.h"
-
-#include "PixelStreamSegmentDecoder.h"
-#include "PixelStreamSegment.h"
-
 #include "dcstream/ImageWrapper.h"
-#include "dcstream/ImageSegmenter.h"
+#include "dcstream/ImageJpegCompressor.h"
+#include "ImageJpegDecompressor.h"
 
-BOOST_GLOBAL_FIXTURE( MinimalGlobalQtApp );
-
-typedef boost::shared_ptr<PixelStreamSegmentDecoder> PixelStreamSegmentDecoderPtr;
-
-BOOST_AUTO_TEST_CASE( testSocketConnection )
+BOOST_AUTO_TEST_CASE( testImageCompressionAndDecompression )
 {
-    // Vector of rgba data
+    // Vector of RGBA data
     std::vector<char> data;
     data.reserve(8*8*4);
     for (size_t i = 0; i<8*8; ++i)
@@ -65,42 +57,25 @@ BOOST_AUTO_TEST_CASE( testSocketConnection )
         data.push_back(64);  // B
         data.push_back(255); // A
     }
+    dc::ImageWrapper imageWrapper(data.data(), 8, 8, dc::RGBA);
 
     // Compress image
-    dc::ImageWrapper imageWrapper(data.data(), 8, 8, dc::RGBA);
-    imageWrapper.compressionPolicy = dc::COMPRESSION_ON;
+    dc::ImageJpegCompressor compressor;
+    QByteArray jpegData = compressor.computeJpeg(imageWrapper, QRect(0,0,8,8));
 
-    dc::PixelStreamSegments segments;
-    {
-        dc::ImageSegmenter segmenter;
-        segments = segmenter.generateSegments(imageWrapper);
-    }
-    BOOST_REQUIRE_EQUAL( segments.size(), 1 );
-
-    dc::PixelStreamSegment& segment = segments.front();
-    BOOST_REQUIRE( segment.parameters.compressed );
-    BOOST_REQUIRE( segment.imageData.size() != (int)data.size() );
+    BOOST_REQUIRE( jpegData.size() > 0 );
+    BOOST_REQUIRE( jpegData.size() != (int)data.size() );
 
     // Decompress image
-    PixelStreamSegmentDecoderPtr decoder(new PixelStreamSegmentDecoder);
-    decoder->startDecoding(segment);
-
-    size_t timeout = 0;
-    while(decoder->isRunning())
-    {
-        usleep(10);
-        if (++timeout >= 10)
-            break;
-    }
-    BOOST_REQUIRE( timeout < 10 );
+    ImageJpegDecompressor decompressor;
+    QByteArray decodedData = decompressor.decompress(jpegData);
 
     // Check decoded image in format RGBA
-    BOOST_REQUIRE( !segment.parameters.compressed );
-    BOOST_REQUIRE_EQUAL( segment.imageData.size(), data.size() );
+    BOOST_REQUIRE( !decodedData.isEmpty() );
+    BOOST_REQUIRE_EQUAL( decodedData.size(), data.size() );
 
-    for(size_t i = 0; i < data.size(); ++i)
-    {
-        BOOST_CHECK_EQUAL( data[i], segment.imageData.at(i) );
-    }
+    const char* dataOut = decodedData.constData();
+    BOOST_CHECK_EQUAL_COLLECTIONS( data.data(), data.data()+data.size(),
+                                   dataOut, dataOut+data.size() );
 }
 

@@ -40,58 +40,30 @@
 #include "PixelStreamSegmentDecoder.h"
 
 #include "PixelStreamSegment.h"
+#include "ImageJpegDecompressor.h"
 #include "log.h"
 
 #include <QtConcurrentRun>
 
-#include "globals.h"
-
-
 PixelStreamSegmentDecoder::PixelStreamSegmentDecoder()
-    : handle_(tjInitDecompress())
+    : decompressor_(new ImageJpegDecompressor())
 {
 }
 
 PixelStreamSegmentDecoder::~PixelStreamSegmentDecoder()
 {
-    // destroy libjpeg-turbo handle
-    tjDestroy(handle_);
+    delete decompressor_;
 }
 
-void decodeSegment(boost::shared_ptr<PixelStreamSegmentDecoder> segmentDecoder, PixelStreamSegment* segment)
+void decodeSegment(ImageJpegDecompressor* decompressor, PixelStreamSegment* segment)
 {
-    // use libjpeg-turbo for JPEG conversion
-    tjhandle handle = segmentDecoder->getTjHandle();
+    QByteArray decodedData = decompressor->decompress(segment->imageData);
 
-    // get information from header
-    int width, height, jpegSubsamp;
-    int success = tjDecompressHeader2(handle, (unsigned char *)segment->imageData.data(), (unsigned long)segment->imageData.size(), &width, &height, &jpegSubsamp);
-
-    if(success != 0)
+    if ( !decodedData.isEmpty() )
     {
-        put_flog(LOG_ERROR, "libjpeg-turbo header decompression failure");
-        return;
+        segment->imageData = decodedData;
+        segment->parameters.compressed = false;
     }
-
-    // decompress image data
-    int pixelFormat = TJPF_RGBX; // Format for OpenGL texture (GL_RGBA)
-    int pitch = width * tjPixelSize[pixelFormat];
-    int flags = TJ_FASTUPSAMPLE;
-
-    QByteArray decodedData;
-    decodedData.resize(height*pitch);
-
-    success = tjDecompress2(handle, (unsigned char *)segment->imageData.data(), (unsigned long)segment->imageData.size(), (unsigned char *)decodedData.data(), width, pitch, height, pixelFormat, flags);
-
-    if(success != 0)
-    {
-        put_flog(LOG_ERROR, "libjpeg-turbo image decompression failure");
-        return;
-    }
-
-    // Modify the inupt segment
-    segment->imageData = decodedData;
-    segment->parameters.compressed = false;
 }
 
 void PixelStreamSegmentDecoder::startDecoding(dc::PixelStreamSegment& segment)
@@ -103,15 +75,10 @@ void PixelStreamSegmentDecoder::startDecoding(dc::PixelStreamSegment& segment)
         return;
     }
 
-    decodingThread_ = QtConcurrent::run(decodeSegment, shared_from_this(), &segment);
+    decodingFuture_ = QtConcurrent::run(decodeSegment, decompressor_, &segment);
 }
 
 bool PixelStreamSegmentDecoder::isRunning() const
 {
-    return decodingThread_.isRunning();
-}
-
-tjhandle PixelStreamSegmentDecoder::getTjHandle() const
-{
-    return handle_;
+    return decodingFuture_.isRunning();
 }

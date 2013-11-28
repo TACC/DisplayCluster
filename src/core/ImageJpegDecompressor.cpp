@@ -37,50 +37,47 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef PIXELSTREAMSEGMENTDECODER_H
-#define PIXELSTREAMSEGMENTDECODER_H
+#include "ImageJpegDecompressor.h"
 
-#include <QFuture>
+#include "log.h"
 
-namespace dc
+ImageJpegDecompressor::ImageJpegDecompressor()
+    : tjHandle_(tjInitDecompress())
 {
-class PixelStreamSegment;
 }
-using dc::PixelStreamSegment;
 
-class ImageJpegDecompressor;
-
-/**
- * Decode a PixelStreamSegment image data asynchronously.
- */
-class PixelStreamSegmentDecoder
+ImageJpegDecompressor::~ImageJpegDecompressor()
 {
-public:
-    /** Construct a Decoder */
-    PixelStreamSegmentDecoder();
+    tjDestroy(tjHandle_);
+}
 
-    /** Destruct a Decoder */
-    ~PixelStreamSegmentDecoder();
+QByteArray ImageJpegDecompressor::decompress(const QByteArray& jpegData)
+{
+    // get information from header
+    int width, height, jpegSubsamp;
+    int success = tjDecompressHeader2(tjHandle_, (unsigned char *)jpegData.data(), (unsigned long)jpegData.size(), &width, &height, &jpegSubsamp);
 
-    /**
-     * Start decoding a segment.
-     *
-     * This function will silently ignore the request if a decoding is already in progress.
-     * @param segment The segement to decode. The segment is NOT copied internally and is modified by this
-     * function. It must remain valid and should not be accessed until the decoding procedure has completed.
-     * @see isRunning()
-     */
-    void startDecoding(PixelStreamSegment& segment);
+    if(success != 0)
+    {
+        put_flog(LOG_ERROR, "libjpeg-turbo header decompression failure");
+        return QByteArray();
+    }
 
-    /** Check if the decoding thread is running. */
-    bool isRunning() const;
+    // decompress image data
+    int pixelFormat = TJPF_RGBX; // Format for OpenGL texture (GL_RGBA)
+    int pitch = width * tjPixelSize[pixelFormat];
+    int flags = TJ_FASTUPSAMPLE;
 
-private:
-    /** The decompressor instance */
-    ImageJpegDecompressor* decompressor_;
+    QByteArray decodedData;
+    decodedData.resize(height*pitch);
 
-    /** Async image decoding future */
-    QFuture<void> decodingFuture_;
-};
+    success = tjDecompress2(tjHandle_, (unsigned char *)jpegData.data(), (unsigned long)jpegData.size(), (unsigned char *)decodedData.data(), width, pitch, height, pixelFormat, flags);
 
-#endif // PIXELSTREAMSEGMENTDECODER_H
+    if(success != 0)
+    {
+        put_flog(LOG_ERROR, "libjpeg-turbo image decompression failure");
+        return QByteArray();
+    }
+
+    return decodedData;
+}

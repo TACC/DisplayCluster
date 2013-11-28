@@ -81,9 +81,9 @@ BOOST_AUTO_TEST_CASE( testImageSegmenterSegmentParameters )
         BOOST_REQUIRE_EQUAL( segments.size(), 8 );
 
         unsigned int i = 0;
-        for(dc::PixelStreamSegments::iterator it = segments.begin(); it != segments.end(); ++it, ++i)
+        for(dc::PixelStreamSegments::const_iterator it = segments.begin(); it != segments.end(); ++it, ++i)
         {
-            dc::PixelStreamSegment& segment = *it;
+            const dc::PixelStreamSegment& segment = *it;
             BOOST_CHECK_EQUAL( segment.parameters.x, i%4 );
             BOOST_CHECK_EQUAL( segment.parameters.y, 2*(i/4) );
             BOOST_CHECK_EQUAL( segment.parameters.width, 2 );
@@ -209,9 +209,9 @@ BOOST_AUTO_TEST_CASE( testImageSegmenterUniformSegmentationData )
     BOOST_REQUIRE_EQUAL( segments.size(), 4 );
 
     size_t i = 0;
-    for(dc::PixelStreamSegments::iterator it = segments.begin(); it != segments.end(); ++it, ++i)
+    for(dc::PixelStreamSegments::const_iterator it = segments.begin(); it != segments.end(); ++it, ++i)
     {
-        dc::PixelStreamSegment& segment = *it;
+        const dc::PixelStreamSegment& segment = *it;
         const char* dataOut = segment.imageData.constData();
         BOOST_CHECK_EQUAL_COLLECTIONS( dataSegmented[i], dataSegmented[i]+24,
                                        dataOut, dataOut+segment.imageData.size() );
@@ -280,11 +280,71 @@ BOOST_AUTO_TEST_CASE( testImageSegmenterNonUniformSegmentationData )
     BOOST_REQUIRE_EQUAL( segments.size(), 4 );
 
     size_t i = 0;
-    for(dc::PixelStreamSegments::iterator it = segments.begin(); it != segments.end(); ++it, ++i)
+    for(dc::PixelStreamSegments::const_iterator it = segments.begin(); it != segments.end(); ++it, ++i)
     {
-        dc::PixelStreamSegment& segment = *it;
+        const dc::PixelStreamSegment& segment = *it;
         const char* dataOut = segment.imageData.constData();
         BOOST_CHECK_EQUAL_COLLECTIONS( dataSegmented[i], dataSegmented[i]+segment.imageData.size(),
                                        dataOut, dataOut+segment.imageData.size() );
     }
 }
+
+
+#include "MinimalGlobalQtApp.h"
+#include "PixelStreamSegmentDecoder.h"
+
+BOOST_GLOBAL_FIXTURE( MinimalGlobalQtApp );
+
+typedef boost::shared_ptr<PixelStreamSegmentDecoder> PixelStreamSegmentDecoderPtr;
+
+BOOST_AUTO_TEST_CASE( testImageSegmenterWithImageCompression )
+{
+    // Vector of rgba data
+    std::vector<char> data;
+    data.reserve(8*8*4);
+    for (size_t i = 0; i<8*8; ++i)
+    {
+        data.push_back(192); // R
+        data.push_back(128); // G
+        data.push_back(64);  // B
+        data.push_back(255); // A
+    }
+
+    // Compress image
+    dc::ImageWrapper imageWrapper(data.data(), 8, 8, dc::RGBA);
+    imageWrapper.compressionPolicy = dc::COMPRESSION_ON;
+
+    dc::PixelStreamSegments segments;
+    {
+        dc::ImageSegmenter segmenter;
+        segments = segmenter.generateSegments(imageWrapper);
+    }
+    BOOST_REQUIRE_EQUAL( segments.size(), 1 );
+
+    dc::PixelStreamSegment& segment = segments.front();
+    BOOST_REQUIRE( segment.parameters.compressed );
+    BOOST_REQUIRE( segment.imageData.size() != (int)data.size() );
+
+    // Decompress image
+    PixelStreamSegmentDecoderPtr decoder(new PixelStreamSegmentDecoder);
+    decoder->startDecoding(segment);
+
+    size_t timeout = 0;
+    while(decoder->isRunning())
+    {
+        usleep(10);
+        if (++timeout >= 10)
+            break;
+    }
+    BOOST_REQUIRE( timeout < 10 );
+
+    // Check decoded image in format RGBA
+    BOOST_REQUIRE( !segment.parameters.compressed );
+    BOOST_REQUIRE_EQUAL( segment.imageData.size(), data.size() );
+
+    const char* dataOut = segment.imageData.constData();
+    BOOST_CHECK_EQUAL_COLLECTIONS( data.data(), data.data()+segment.imageData.size(),
+                                   dataOut, dataOut+segment.imageData.size() );
+
+}
+

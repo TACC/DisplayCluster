@@ -37,50 +37,34 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef PIXELSTREAMSEGMENTDECODER_H
-#define PIXELSTREAMSEGMENTDECODER_H
+#ifndef IMAGEJPEGDECOMPRESSOR_H
+#define IMAGEJPEGDECOMPRESSOR_H
 
-#include <QFuture>
+#include <turbojpeg.h>
 
-namespace dc
-{
-class PixelStreamSegment;
-}
-using dc::PixelStreamSegment;
-
-class ImageJpegDecompressor;
+#include <QByteArray>
 
 /**
- * Decode a PixelStreamSegment image data asynchronously.
+ * Decompress Jpeg compressed data.
  */
-class PixelStreamSegmentDecoder
+class ImageJpegDecompressor
 {
 public:
-    /** Construct a Decoder */
-    PixelStreamSegmentDecoder();
-
-    /** Destruct a Decoder */
-    ~PixelStreamSegmentDecoder();
+    ImageJpegDecompressor();
+    ~ImageJpegDecompressor();
 
     /**
-     * Start decoding a segment.
+     * Decompress a Jpeg image
      *
-     * This function will silently ignore the request if a decoding is already in progress.
-     * @param segment The segement to decode. The segment is NOT copied internally and is modified by this
-     * function. It must remain valid and should not be accessed until the decoding procedure has completed.
-     * @see isRunning()
+     * @param jpegData The compressed Jpeg data
+     * @return The decompressed image data in (GL_)RGBA format, or an
+     *         empty array if the image could not be decoded.
      */
-    void startDecoding(PixelStreamSegment& segment);
-
-    /** Check if the decoding thread is running. */
-    bool isRunning() const;
+    QByteArray decompress(const QByteArray& jpegData);
 
 private:
-    /** The decompressor instance */
-    ImageJpegDecompressor* decompressor_;
-
-    /** Async image decoding future */
-    QFuture<void> decodingFuture_;
+    /** libjpeg-turbo handle for decompression */
+    tjhandle tjHandle_;
 };
 
-#endif // PIXELSTREAMSEGMENTDECODER_H
+#endif // IMAGEJPEGDECOMPRESSOR_H

@@ -110,6 +110,7 @@ list(APPEND SRCS
     ../Event.cpp
     ../log.cpp
     ../MessageHeader.cpp
+    ImageJpegDecompressor.cpp
     LocalPixelStreamer.cpp
     LocalPixelStreamerFactory.cpp
     LocalPixelStreamerManager.cpp

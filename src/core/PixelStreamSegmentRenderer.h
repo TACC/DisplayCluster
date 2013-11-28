@@ -69,7 +69,7 @@ public:
      * Update the texture.
      *
      * This call is blocking (texture upload to GPU).
-     * @param image The new texture to upload
+     * @param image The new texture to upload, in (GL_)RGBA format.
      */
     void updateTexture(const QImage &image);
 
