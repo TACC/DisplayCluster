@@ -65,10 +65,13 @@ public:
      * Open a new connection to the DisplayCluster application.
      *
      * The user can check if the connection was successfully established with isConnected().
-     * @param name An identifier for the stream which cannot be null.
-     *        The DisplayCluster application creates a window for the Stream using this name.
-     *        Different Streams can contribute to a single window by using the same name.
-     *        All the Streams which use the same name must be created before any of them starts sending images.
+     * The DisplayCluster application creates a window for the Stream using the given
+     * name as an identifier.
+     * Different Streams can contribute to a single window by using the same name.
+     * All the Streams which contribute to the same window should be created before
+     * any of them starts sending images.
+     *
+     * @param name An identifier for the stream which cannot be empty.
      * @param address Address of the target DisplayCluster instance.
      *        It can be a hostname like "localhost" or an IP in string format, e.g. "192.168.1.83".
      * @version 1.0
@@ -93,26 +96,34 @@ public:
     /**
      * Notify that all the images for this frame have been sent.
      *
-     * This method must be called everytime this Stream instance has finished sending
-     * its image(s) for the current frame.
-     * The receiver will display the images once all senders using the same stream identifier
-     * have finished a frame.
+     * This method must be called everytime this Stream instance has finished
+     * sending its image(s) for the current frame.
+     * The receiver will display the images once all the senders which use the same
+     * name have finished a frame.
+     *
      * @see send()
      * @version 1.0
      */
     bool finishFrame();
 
     /**
-     * Register to receive Events for this Stream.
+     * Register to receive Events.
      *
-     * After registering for events, the DisplayCluster master application will send updates
+     * After registering, the DisplayCluster master application will send Events
      * whenever a user is interacting with this Stream's window.
-     * The user of the library can retrieve them using hasEvent() and getEvent().
-     * The current registration status can be checked with isRegisterdForEvents().
+     *
+     * Registation is only possible after a window for the stream has been created
+     * on the DisplayWall. A window is first created when all Streams that use the
+     * same identifier have sent the first frame and called finishFrame().
+     *
+     * Events can be retrieved using hasEvent() and getEvent().
+     * The current registration status can be checked with isRegisteredForEvents().
+     *
+     * This method is synchronous and waits for a registration reply from the
+     * DisplayWall before returning.
+     *
      * @param exclusive Binds only one stream source for the same name
      * @return true if the registration could be established, false otherwise.
-     * @note This call will fail until the window has been created, which should happen some time after the
-     * first finishFrame() has succeeded.
      * @version 1.0
      */
     bool registerForEvents(const bool exclusive = false);
@@ -120,11 +131,13 @@ public:
     /**
      * Is this stream registered to receive events.
      *
-     * Check if the stream has already been register to receive events with registerForEvents().
-     * @return true after the DisplayCluster application has acknowledged the registration request, false otherwise
+     * Check if the stream has already successfully registered with registerForEvents().
+     *
+     * @return true after the DisplayCluster application has acknowledged the
+     *         registration request, false otherwise
      * @version 1.0
      */
-    bool isRegisterdForEvents() const;
+    bool isRegisteredForEvents() const;
 
     /**
      * Get the native descriptor for the data stream.
@@ -133,6 +146,7 @@ public:
      * Having this descriptor lets a Stream class user detect when the Stream has received any data.
      * The user can the use query the state of the Stream, for example using hasEvent(),
      * and process the events accordingly.
+     *
      * @return The native descriptor if available; otherwise returns -1.
      * @version 1.0
      */
@@ -141,10 +155,10 @@ public:
     /**
      * Check if a new Event is available.
      *
-     * This method is non-blocking.
+     * This method is non-blocking. Use this method prior to calling getEvent(),
+     * for example as the condition for a while() loop to process all pending events.
+     *
      * @return True if an Event is available, false otherwise
-     * @note Use this method prior to calling getEvent(), for example as the condition
-     * for a while() loop to process all pending events.
      * @version 1.0
      */
     bool hasEvent() const;
@@ -152,10 +166,12 @@ public:
     /**
      * Get the next Event.
      *
-     * This method is blocking.
-     * @return The next Event in the queue if available, otherwise an empty (default) Event.
-     * @note users are advised to check if an Event is available with
-     *       hasEvent() before calling this method.
+     * This method is sychronous and waits until an Event is available before
+     * returning (or a 1 second timeout occurs).
+     *
+     * Check if an Event is available with hasEvent() before calling this method.
+     *
+     * @return The next Event if available, otherwise an empty (default) Event.
      * @version 1.0
      */
     Event getEvent();

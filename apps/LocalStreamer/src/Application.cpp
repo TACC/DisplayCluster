@@ -135,7 +135,7 @@ void Application::sendImage(QImage image)
 
 void Application::processPendingEvents()
 {
-    if (!dcStream_->isRegisterdForEvents())
+    if (!dcStream_->isRegisteredForEvents())
     {
         dcStream_->registerForEvents();
     }

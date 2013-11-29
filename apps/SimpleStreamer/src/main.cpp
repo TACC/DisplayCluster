@@ -191,7 +191,7 @@ void display()
     // note that mouse position is in normalized window coordinates: (0,0) to (1,1)
     if(dcInteraction)
     {
-        if (dcStream->isRegisterdForEvents() || dcStream->registerForEvents())
+        if (dcStream->isRegisteredForEvents() || dcStream->registerForEvents())
         {
             static float mouseX = 0.;
             static float mouseY = 0.;

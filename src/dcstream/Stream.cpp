@@ -132,10 +132,10 @@ bool Stream::registerForEvents(const bool exclusive)
 
     impl_->registeredForEvents_= *(bool*)(message.data());
 
-    return isRegisterdForEvents();
+    return isRegisteredForEvents();
 }
 
-bool Stream::isRegisterdForEvents() const
+bool Stream::isRegisteredForEvents() const
 {
     return impl_->registeredForEvents_;
 }
