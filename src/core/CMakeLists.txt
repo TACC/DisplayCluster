@@ -78,7 +78,6 @@ if(ENABLE_PDF_SUPPORT)
 endif()
 
 list(APPEND SRCS
-    AsyncImageLoader.cpp
     BackgroundWidget.cpp
     Content.cpp
     ContentFactory.cpp
@@ -95,7 +94,6 @@ list(APPEND SRCS
     DisplayGroupGraphicsViewProxy.cpp
     DisplayGroupGraphicsView.cpp
     DisplayGroupListWidgetProxy.cpp
-    DockPixelStreamer.cpp
     DynamicTexture.cpp
     DynamicTextureContent.cpp
     FactoryObject.cpp
@@ -111,17 +109,12 @@ list(APPEND SRCS
     ../log.cpp
     ../MessageHeader.cpp
     ImageJpegDecompressor.cpp
-    LocalPixelStreamer.cpp
-    LocalPixelStreamerFactory.cpp
-    LocalPixelStreamerManager.cpp
-    LocalPixelStreamerType.cpp
     MainWindow.cpp
     Movie.cpp
     MovieContent.cpp
     NetworkListener.cpp
     NetworkListenerThread.cpp
     Options.cpp
-    Pictureflow.cpp
     PixelStream.cpp
     PixelStreamBuffer.cpp
     PixelStreamContent.cpp
@@ -135,12 +128,20 @@ list(APPEND SRCS
     SVGContent.cpp
     Texture.cpp
     TextureContent.cpp
-    WebkitAuthenticationHelper.cpp
-    WebkitPixelStreamer.cpp
     ZoomInteractionDelegate.cpp
     configuration/Configuration.cpp
     configuration/MasterConfiguration.cpp
     configuration/WallConfiguration.cpp
+    localstreamer/AsyncImageLoader.cpp
+    localstreamer/CommandLineOptions.cpp
+    localstreamer/DockPixelStreamer.cpp
+    localstreamer/LocalPixelStreamer.cpp
+    localstreamer/LocalPixelStreamerFactory.cpp
+    localstreamer/LocalPixelStreamerManager.cpp
+    localstreamer/LocalPixelStreamerType.cpp
+    localstreamer/Pictureflow.cpp
+    localstreamer/WebkitAuthenticationHelper.cpp
+    localstreamer/WebkitPixelStreamer.cpp
     thumbnail/DefaultThumbnailGenerator.cpp
     thumbnail/FolderThumbnailGenerator.cpp
     thumbnail/ImageThumbnailGenerator.cpp
@@ -152,27 +153,28 @@ list(APPEND SRCS
 )
 
 list(APPEND MOC_HEADERS
-    AsyncImageLoader.h
     BackgroundWidget.h
     Content.h
     ContentWindowInterface.h
     DisplayGroupManager.h
     DisplayGroupInterface.h
+    DisplayGroupGraphicsView.h
     DisplayGroupGraphicsViewProxy.h
     DisplayGroupListWidgetProxy.h
-    DockPixelStreamer.h
     EventReceiver.h
-    LocalPixelStreamer.h
-    LocalPixelStreamerManager.h
     MainWindow.h
     Marker.h
     NetworkListener.h
     NetworkListenerThread.h
     Options.h
-    Pictureflow.h
     PixelStreamDispatcher.h
-    WebkitAuthenticationHelper.h
-    WebkitPixelStreamer.h
+    localstreamer/AsyncImageLoader.h
+    localstreamer/DockPixelStreamer.h
+    localstreamer/LocalPixelStreamer.h
+    localstreamer/LocalPixelStreamerManager.h
+    localstreamer/Pictureflow.h
+    localstreamer/WebkitAuthenticationHelper.h
+    localstreamer/WebkitPixelStreamer.h
 )
 
 # Qt resource file

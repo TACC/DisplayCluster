@@ -106,13 +106,41 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         QColor getBackgroundColor() const;
         void setBackgroundColor(QColor color);
 
-    public slots:
+        bool openFile(const QString& filename);
+
+public slots:
 
         // this can be invoked from other threads to construct a DisplayGroupInterface and move it to that thread
         boost::shared_ptr<DisplayGroupInterface> getDisplayGroupInterface(QThread * thread);
 
         bool saveStateXMLFile( const QString& filename );
         bool loadStateXMLFile( const QString& filename );
+
+        /**
+         * Position a ContentWindowManager.
+         *
+         * Immediately position the window if it is already open, or postion it
+         * at the time the window first opens (useful for PixelStreamers).
+         * @param uri Window identifier
+         * @param position The position of the center of the window
+         */
+        void positionWindow( const QString uri, const QPointF position );
+
+        /**
+         * Hide a ContentWindowManager.
+         *
+         * Effectively, this positions the ContentWindowManager ouside of the Viewport,
+         * but it remains open and continues to consume resources.
+         * @param uri Window identifier
+         */
+        void hideWindow( const QString uri );
+
+        /**
+         * Handle a content uri depending on the sender identifier.
+         * @param uri The uri of the sender (window identifier)
+         * @param contentUri The uri of the content
+         */
+        void handleUri( QString uri, QString contentUri );
 
         void receiveMessages();
 
@@ -136,6 +164,7 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
 
     signals:
         // Rank0 signals pixel streams events
+        void pixelStreamViewAdded(QString uri);
         void pixelStreamViewClosed(QString uri);
         void eventRegistrationReply(QString uri, bool success);
 
@@ -178,6 +207,9 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         boost::posix_time::time_duration timestampOffset_;
 
         State state_;
+
+        typedef std::map<QString, QPointF> WindowPositions;
+        WindowPositions windowPositions_;
 
         // ranks 1-n recieve data through MPI
         void receiveDisplayGroup(const MessageHeader& messageHeader);

@@ -40,38 +40,40 @@
 #include "DockPixelStreamer.h"
 
 #include "Pictureflow.h"
-#include "configuration/MasterConfiguration.h"
-#include "Content.h"
-#include "ContentFactory.h"
-#include "ContentWindowManager.h"
-#include "DisplayGroupManager.h"
-#include "globals.h"
-#include "types.h"
 #include "AsyncImageLoader.h"
-#include "thumbnail/ThumbnailGeneratorFactory.h"
-#include "thumbnail/FolderThumbnailGenerator.h"
 
-#define COVERFLOW_SLIDE_RELATIVE_WIDTH   0.05
-#define SLIDE_SIZE_MIN  128
-#define SLIDE_SIZE_MAX  512
+#include "../ContentFactory.h"
+#include "../thumbnail/ThumbnailGeneratorFactory.h"
+#include "../thumbnail/FolderThumbnailGenerator.h"
 
-#define COVERFLOW_WIDTH_FACTOR   3.5
-#define COVERFLOW_HEIGHT_FACTOR  1.5
+#define DOCK_ASPECT_RATIO        0.45
+#define SLIDE_REL_HEIGHT_FACTOR  0.6
 
-#define COVERFLOW_SPEED_FACTOR 0.1
+#define SLIDE_MIN_SIZE           128
+#define SLIDE_MAX_SIZE           512
+
+#define COVERFLOW_SPEED_FACTOR   0.1
 
 QString DockPixelStreamer::getUniqueURI()
 {
     return "Dock";
 }
 
-DockPixelStreamer::DockPixelStreamer()
-    : LocalPixelStreamer(getUniqueURI())
+float DockPixelStreamer::getDefaultAspectRatio()
 {
-    const int coverflowSlideSize = std::max(std::min((int)(g_configuration->getTotalWidth()*COVERFLOW_SLIDE_RELATIVE_WIDTH), SLIDE_SIZE_MAX), SLIDE_SIZE_MIN);
-    flow_ = new PictureFlow;
-    flow_->resize(COVERFLOW_WIDTH_FACTOR*coverflowSlideSize, COVERFLOW_HEIGHT_FACTOR*coverflowSlideSize);
-    flow_->setSlideSize( QSize( coverflowSlideSize, coverflowSlideSize ));
+    return DOCK_ASPECT_RATIO;
+}
+
+DockPixelStreamer::DockPixelStreamer(const QSize& size, const QString& rootDir)
+    : LocalPixelStreamer()
+    , flow_(new PictureFlow())
+    , loader_(0)
+{
+    QSize dockSize = getBoundedSize(size);
+
+    const unsigned int slideSize = dockSize.height() * SLIDE_REL_HEIGHT_FACTOR;
+    flow_->resize(dockSize);
+    flow_->setSlideSize( QSize( slideSize, slideSize ));
     flow_->setBackgroundColor( Qt::darkGray );
 
     connect( flow_, SIGNAL( imageUpdated( const QImage& )), this, SLOT( update( const QImage& )));
@@ -87,7 +89,8 @@ DockPixelStreamer::DockPixelStreamer()
              this, SLOT(loadNextThumbnailInList()));
     loadThread_.start();
 
-    changeDirectory( static_cast<MasterConfiguration*>(g_configuration)->getDockStartDir( ));
+    if (rootDir.isEmpty() || !setRootDir(rootDir))
+        setRootDir(QDir::homePath());
 }
 
 DockPixelStreamer::~DockPixelStreamer()
@@ -97,7 +100,6 @@ DockPixelStreamer::~DockPixelStreamer()
     delete flow_;
     delete loader_;
 }
-
 
 void DockPixelStreamer::processEvent(Event event)
 {
@@ -137,10 +139,14 @@ QSize DockPixelStreamer::size() const
     return flow_->size();
 }
 
-
-void DockPixelStreamer::open()
+bool DockPixelStreamer::setRootDir(const QString& dir)
 {
-    flow_->triggerRender();
+    if ( !QDir(dir).exists( ))
+        return false;
+
+    rootDir_ = dir;
+    changeDirectory(dir);
+    return true;
 }
 
 void DockPixelStreamer::onItem()
@@ -150,10 +156,7 @@ void DockPixelStreamer::onItem()
 
     if( image.text( "dir" ).isEmpty( ))
     {
-        if (openFile( source ))
-        {
-            emit(streamClosed(getUniqueURI())); // Hide the dock
-        }
+        emit openContent(source);
     }
     else
     {
@@ -196,34 +199,6 @@ void DockPixelStreamer::loadNextThumbnailInList()
     }
 }
 
-bool DockPixelStreamer::openFile(const QString& filename)
-{
-    const QString& extension = QFileInfo(filename).suffix().toLower();
-
-    if( extension == "dcx" )
-    {
-        return g_displayGroupManager->loadStateXMLFile( filename );
-    }
-
-    ContentPtr content = ContentFactory::getContent( filename );
-    if( !content )
-    {
-        return false;
-    }
-
-    ContentWindowManagerPtr cwm(new ContentWindowManager(content));
-    g_displayGroupManager->addContentWindowManager( cwm );
-    cwm->adjustSize( SIZE_1TO1 ); // TODO Remove this when content dimensions request is no longer needed
-
-    // Center the content where the dock is
-    ContentWindowManagerPtr dockCwm = g_displayGroupManager->getContentWindowManager(getUniqueURI(), CONTENT_TYPE_PIXEL_STREAM);
-    double dockCenterX, dockCenterY;
-    dockCwm->getWindowCenterPosition(dockCenterX, dockCenterY);
-    cwm->centerPositionAround(dockCenterX, dockCenterY, true);
-
-    return true;
-}
-
 void DockPixelStreamer::changeDirectory( const QString& dir )
 {
     slideIndex_[currentDir_.path()] = flow_->centerIndex();
@@ -232,8 +207,11 @@ void DockPixelStreamer::changeDirectory( const QString& dir )
     slideImagesToLoad_.clear();
     slideImagesLoaded_.clear();
 
-    currentDir_ = dir;
-    addRootDirToFlow();
+    currentDir_ = QDir(dir);
+    if (dir != rootDir_)
+    {
+        addRootDirToFlow();
+    }
     addFilesToFlow();
     addFoldersToFlow();
 
@@ -276,7 +254,6 @@ void DockPixelStreamer::addFilesToFlow()
     }
 }
 
-
 void DockPixelStreamer::addFoldersToFlow()
 {
     currentDir_.setFilter( QDir::Dirs | QDir::NoDotAndDotDot );
@@ -296,4 +273,32 @@ void DockPixelStreamer::addFoldersToFlow()
             slideImagesLoaded_.append(qMakePair(false, fileName));
         }
     }
+}
+
+QSize DockPixelStreamer::getMinSize() const
+{
+    const float dockHeight = SLIDE_MIN_SIZE / SLIDE_REL_HEIGHT_FACTOR;
+    const float dockWidth = dockHeight / getDefaultAspectRatio();
+    return QSize( dockWidth, dockHeight );
+}
+
+QSize DockPixelStreamer::getMaxSize() const
+{
+    const float dockHeight = SLIDE_MIN_SIZE / SLIDE_REL_HEIGHT_FACTOR;
+    const float dockWidth = dockHeight / getDefaultAspectRatio();
+    return QSize( dockWidth, dockHeight );
+}
+
+QSize DockPixelStreamer::getBoundedSize(const QSize& size) const
+{
+    QSize minSize = getMinSize();
+    QSize maxSize = getMaxSize();
+
+    if (size.width() < minSize.width() || size.height() < minSize.height())
+        return minSize;
+
+    if (size.width() > maxSize.width() || size.height() > maxSize.height())
+        return maxSize;
+
+    return size;
 }

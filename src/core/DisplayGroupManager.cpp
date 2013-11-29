@@ -50,6 +50,7 @@
 #include "StatePreview.h"
 #include "MessageHeader.h"
 #include "PixelStream.h"
+#include "localstreamer/DockPixelStreamer.h"
 
 #include <sstream>
 #include <boost/serialization/vector.hpp>
@@ -168,7 +169,7 @@ void DisplayGroupManager::removeContentWindowManager(ContentWindowManagerPtr con
         // Notify the (local) pixel stream source of the deletion of the window so the source can be removed too
         if (contentWindowManager->getContent()->getType() == CONTENT_TYPE_PIXEL_STREAM)
         {
-            QString uri = contentWindowManager->getContent()->getURI();
+            const QString& uri = contentWindowManager->getContent()->getURI();
             closePixelStream(uri);
             emit(pixelStreamViewClosed(uri));
         }
@@ -350,6 +351,70 @@ bool DisplayGroupManager::loadStateXMLFile( const QString& filename )
 
     // assign new contents vector to display group
     setContentWindowManagers(contentWindowManagers);
+    return true;
+}
+
+void DisplayGroupManager::positionWindow(const QString uri, const QPointF position)
+{
+    ContentWindowManagerPtr cwm = getContentWindowManager(uri, CONTENT_TYPE_ANY);
+    if (cwm)
+    {
+        cwm->centerPositionAround(position.x(), position.y(), true);
+    }
+    else
+    {
+        // Store position for use when window actually opens
+        windowPositions_[uri] = position;
+    }
+}
+
+void DisplayGroupManager::hideWindow(const QString uri)
+{
+    ContentWindowManagerPtr cwm = getContentWindowManager(uri, CONTENT_TYPE_ANY);
+    if (cwm)
+    {
+        double x, y;
+        cwm->getSize(x, y);
+        cwm->setPosition(0,-2*y);
+    }
+}
+
+void DisplayGroupManager::handleUri(QString uri, QString contentUri)
+{
+    if (uri == DockPixelStreamer::getUniqueURI() && openFile(contentUri))
+    {
+        // Center the new content where the dock is
+        ContentWindowManagerPtr dockWindow = getContentWindowManager(DockPixelStreamer::getUniqueURI(), CONTENT_TYPE_PIXEL_STREAM);
+        ContentWindowManagerPtr contentWindow = getContentWindowManager(contentUri);
+
+        if (dockWindow && contentWindow)
+        {
+            double dockCenterX, dockCenterY;
+            dockWindow->getWindowCenterPosition(dockCenterX, dockCenterY);
+            contentWindow->centerPositionAround(dockCenterX, dockCenterY, true);
+        }
+    }
+}
+
+bool DisplayGroupManager::openFile(const QString& filename)
+{
+    const QString& extension = QFileInfo(filename).suffix().toLower();
+
+    if( extension == "dcx" )
+    {
+        return loadStateXMLFile( filename );
+    }
+
+    ContentPtr content = ContentFactory::getContent( filename );
+    if( !content )
+    {
+        return false;
+    }
+
+    ContentWindowManagerPtr cwm(new ContentWindowManager(content));
+    g_displayGroupManager->addContentWindowManager( cwm );
+    cwm->adjustSize( SIZE_1TO1 ); // TODO Remove this when content dimensions request is no longer needed
+
     return true;
 }
 
@@ -670,7 +735,25 @@ void DisplayGroupManager::openPixelStream(QString uri, int width, int height)
         boost::shared_ptr<Content> c(new PixelStreamContent(uri));
         c->setDimensions(width, height);
         cwm = ContentWindowManagerPtr(new ContentWindowManager(c));
+
+        // Position window if needed
+        WindowPositions::iterator it = windowPositions_.find(uri);
+        if (it != windowPositions_.end())
+        {
+            cwm->centerPositionAround(it->second.x(), it->second.y(), true);
+            windowPositions_.erase(it);
+        }
+
+        // TODO This behavious specific to the Dock is not very nice, remove it when the switch between
+        // selected and unselected mode has been made faster for the user (1-click)
+        if (uri == DockPixelStreamer::getUniqueURI())
+        {
+            cwm->setWindowState(ContentWindowInterface::SELECTED);
+        }
+
         addContentWindowManager(cwm);
+
+        emit(pixelStreamViewAdded(uri));
     }
 }
 

@@ -37,21 +37,33 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "LocalPixelStreamer.h"
-#include "globals.h"
+#ifndef LOCALPIXELSTREAMER_H
+#define LOCALPIXELSTREAMER_H
 
-LocalPixelStreamer::LocalPixelStreamer(QString uri)
-    : uri_(uri)
+#include <QObject>
+#include <QSize>
+#include <QImage>
+
+#include "Event.h"
+
+using dc::Event;
+
+class LocalPixelStreamer : public QObject
 {
-}
+    Q_OBJECT
 
-LocalPixelStreamer::~LocalPixelStreamer()
-{
-    emit(streamClosed(uri_));
-}
+public:
+    LocalPixelStreamer();
+    virtual ~LocalPixelStreamer();
 
-QString LocalPixelStreamer::getUri() const
-{
-    return uri_;
-}
+    virtual QSize size() const = 0;
 
+public slots:
+    virtual void processEvent(Event event) = 0;
+
+signals:
+    void imageUpdated(QImage image);
+    void openContent(QString uri);
+};
+
+#endif // LOCALPIXELSTREAMER_H

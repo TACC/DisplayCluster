@@ -37,49 +37,68 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef LOCALPIXELSTREAMERMANAGER_H
-#define LOCALPIXELSTREAMERMANAGER_H
+#ifndef COMMANDLINEOPTIONS_H
+#define COMMANDLINEOPTIONS_H
 
-#include "types.h"
+#include <QString>
+#include <boost/program_options/options_description.hpp>
 
-#include <map>
-#include <QMutex>
-#include <QObject>
-#include <QPointF>
+#include "LocalPixelStreamerType.h"
 
-class LocalPixelStreamer;
-class DockPixelStreamer;
-
-class LocalPixelStreamerManager : public QObject
+/**
+ * Command line options to pass startup parameters to a LocalPixelStreamer application.
+ */
+class CommandLineOptions
 {
-Q_OBJECT
-
 public:
-    LocalPixelStreamerManager(DisplayGroupManager *displayGroupManager);
+    /** Construct an empty instance */
+    CommandLineOptions();
+    /** Construct from command line parameters */
+    CommandLineOptions(int &argc, char **argv);
 
-    bool createWebBrowser(QString uri, QString url);
+    /** Print syntax to std::out */
+    void showSyntax() const;
 
-    bool isDockOpen();
-    void openDockAt(QPointF pos);
-    DockPixelStreamer* getDockInstance();
+    /** @name Getters */
+    /*@{*/
+    bool getHelp() const;
+    PixelStreamerType getPixelStreamerType() const;
+    const QString& getUrl() const;
+    const QString& getRootDir() const;
+    const QString& getName() const;
+    unsigned int getWidth() const;
+    unsigned int getHeight() const;
+    /*@}*/
 
-    void clear();
+    /** Get the command line arguments corresponding to this object */
+    QStringList getCommandLineArguments() const;
 
-public slots:
+    /** Get the command line arguments joined in a single line (convenience function) */
+    QString getCommandLine() const;
 
-    void removePixelStreamer(QString uri);
+    /** @name Setters */
+    /*@{*/
+    void setHelp(const bool set);
+    void setPixelStreamerType(PixelStreamerType type);
+    void setUrl(const QString& url);
+    void setRootDir(const QString& dir);
+    void setName(const QString& name);
+    void setWidth(const unsigned int width);
+    void setHeight(const unsigned int height);
+    /*@}*/
 
 private:
+    void initDesc();
+    void parseCommandLineArguments(int &argc, char **argv);
 
-    typedef std::map<QString, boost::shared_ptr<LocalPixelStreamer> > Streamers;
-    // all existing objects
-    Streamers map_;
+    bool getHelp_;
+    PixelStreamerType streamerType_;
+    QString url_;
+    QString rootDir_;
+    QString name_;
+    unsigned int width_, height_;
 
-    // To connect new LocalPixelStreamers
-    DisplayGroupManager *displayGroupManager_;
-
-    void setWindowManagerPosition(ContentWindowManagerPtr cwm, QPointF pos);
-    void bindPixelStreamerInteraction(LocalPixelStreamer* streamer);
+    boost::program_options::options_description desc_;
 };
 
-#endif // LOCALPIXELSTREAMERMANAGER_H
+#endif // COMMANDLINEOPTIONS_H

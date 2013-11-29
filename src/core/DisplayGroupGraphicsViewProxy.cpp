@@ -43,12 +43,10 @@
 #include "ContentWindowManager.h"
 #include "ContentWindowGraphicsItem.h"
 
-DisplayGroupGraphicsViewProxy::DisplayGroupGraphicsViewProxy(boost::shared_ptr<DisplayGroupManager> displayGroupManager) : DisplayGroupInterface(displayGroupManager)
+DisplayGroupGraphicsViewProxy::DisplayGroupGraphicsViewProxy(boost::shared_ptr<DisplayGroupManager> displayGroupManager)
+    : DisplayGroupInterface(displayGroupManager)
+    , graphicsView_( new DisplayGroupGraphicsView() )
 {
-    // create actual graphics view
-    graphicsView_ = new DisplayGroupGraphicsView();
-
-    // connect Options updated signal
     connect(displayGroupManager->getOptions().get(), SIGNAL(updated()), this, SLOT(optionsUpdated()));
 }
 

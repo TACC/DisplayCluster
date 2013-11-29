@@ -37,24 +37,71 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef LOCALPIXELSTREAMERFACTORY_H
-#define LOCALPIXELSTREAMERFACTORY_H
+#ifndef DOCKPIXELSTREAMER_H
+#define DOCKPIXELSTREAMER_H
 
-#include "LocalPixelStreamerType.h"
+#include "LocalPixelStreamer.h"
 
-class LocalPixelStreamer;
+#include <QtCore/QDir>
+#include <QtCore/QObject>
+#include <QtCore/QThread>
+#include <QtCore/QHash>
+#include <QtCore/QVector>
+#include <QtCore/QLinkedList>
+#include <QtGui/QImage>
 
-class LocalPixelStreamerFactory
+class PictureFlow;
+class AsyncImageLoader;
+
+class DockPixelStreamer : public LocalPixelStreamer
 {
+    Q_OBJECT
+
 public:
-    /**
-     * @brief create Create a LocalPixelStreamer of the given type
-     * @param type The type of LocalPixelStreamer to create
-     * @param uri A unique identifier for the streamer
-     * @return Pointer to a new LocalPixelStreamer instance. The caller is
-     *         responsible for the deletion of the returned object.
-     */
-    static LocalPixelStreamer* create(PixelStreamerType type, const QString &uri);
+    static QString getUniqueURI();
+    static float getDefaultAspectRatio();
+
+    DockPixelStreamer(const QSize& size, const QString& rootDir);
+    ~DockPixelStreamer();
+
+    virtual QSize size() const;
+
+    bool setRootDir(const QString& dir);
+
+public slots:
+    virtual void processEvent(Event event);
+
+private slots:
+    void update(const QImage &image);
+    void loadThumbnails(int newCenterIndex);
+    void loadNextThumbnailInList();
+
+signals:
+    void renderPreview( const QString& fileName, const int index );
+
+private:
+    PictureFlow* flow_;
+    AsyncImageLoader* loader_;
+
+    QThread loadThread_;
+
+    QString rootDir_;
+    QDir currentDir_;
+    QHash< QString, int > slideIndex_;
+
+    typedef QPair<bool, QString> SlideImageLoadingStatus;
+    QVector<SlideImageLoadingStatus> slideImagesLoaded_;
+    QLinkedList<int> slideImagesToLoad_;
+
+    void onItem();
+    void changeDirectory( const QString& dir );
+    void addRootDirToFlow();
+    void addFilesToFlow();
+    void addFoldersToFlow();
+
+    QSize getMinSize() const;
+    QSize getMaxSize() const;
+    QSize getBoundedSize(const QSize& size) const;
 };
 
-#endif // LOCALPIXELSTREAMERFACTORY_H
+#endif // DOCKPIXELSTREAMER_H

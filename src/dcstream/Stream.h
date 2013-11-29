@@ -176,6 +176,9 @@ public:
      */
     Event getEvent();
 
+    /** Get the private implementation. @internal */
+    StreamPrivate* getPrivateImpl() const;
+
 private:
     /** Disable copy constructor. */
     Stream( const Stream& );

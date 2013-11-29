@@ -37,38 +37,39 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef LOCALPIXELSTREAMER_H
-#define LOCALPIXELSTREAMER_H
+#include "AsyncImageLoader.h"
 
-#include <QString>
-#include <QObject>
-#include <QSize>
-#include <QImage>
+#include "../thumbnail/ThumbnailGeneratorFactory.h"
+#include "../thumbnail/ThumbnailGenerator.h"
 
-#include "Event.h"
+#define USE_CACHE
+#define CACHE_MAX_SIZE 100
 
-using dc::Event;
+AsyncImageLoader::AsyncImageLoader(const QSize& defaultSize)
+    : defaultSize_(defaultSize)
+{
+    cache_.setMaxCost(CACHE_MAX_SIZE);
+}
 
-class LocalPixelStreamer : public QObject {
-    Q_OBJECT
+void AsyncImageLoader::loadImage( const QString& filename, const int index )
+{
+#ifdef USE_CACHE
+    if (cache_.contains(filename))
+    {
+        emit imageLoaded(index, *cache_[filename]);
+    }
+    else
+    {
+#endif
+        QImage image = ThumbnailGeneratorFactory::getGenerator(filename, defaultSize_)->generate(filename);
+        if (!image.isNull())
+        {
+#ifdef USE_CACHE
+            cache_.insert(filename, new QImage(image));
+#endif
+            emit imageLoaded(index, image);
+        }
+    }
 
-public:
-    LocalPixelStreamer(QString uri);
-    virtual ~LocalPixelStreamer();
-
-    virtual QSize size() const = 0;
-
-    QString getUri() const;
-
-public slots:
-    virtual void processEvent(Event event) = 0;
-
-protected:
-    QString uri_;
-
-signals:
-    void imageUpdated(QImage image);
-    void streamClosed(QString uri);
-};
-
-#endif // LOCALPIXELSTREAMER_H
+    emit imageLoadingFinished();
+}

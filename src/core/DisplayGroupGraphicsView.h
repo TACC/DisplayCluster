@@ -46,11 +46,17 @@ class PinchGesture;
 
 class DisplayGroupGraphicsView : public QGraphicsView
 {
+    Q_OBJECT
+
 public:
     DisplayGroupGraphicsView();
     virtual ~DisplayGroupGraphicsView();
 
     void grabGestures();
+
+signals:
+    void backgroundTap(QPointF pos);
+    void backgroundTapAndHold(QPointF pos);
 
 protected:
     virtual bool viewportEvent( QEvent* event );
@@ -62,6 +68,10 @@ protected:
     void pinch( PinchGesture* gesture );
     void tap( QTapGesture* gesture );
     void tapAndHold( QTapAndHoldGesture* gesture );
+
+private:
+    QPointF getNormalizedPosition( const QGesture* gesture ) const;
+    bool isOnBackground( const QPointF& position ) const;
 };
 
 #endif

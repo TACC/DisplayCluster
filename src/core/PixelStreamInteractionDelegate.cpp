@@ -45,6 +45,8 @@
 #include "gestures/PanGesture.h"
 #include "gestures/PinchGesture.h"
 
+#define WHEEL_EVENT_FACTOR 1440.0
+
 PixelStreamInteractionDelegate::PixelStreamInteractionDelegate(ContentWindowManager& cwm)
     : ContentInteractionDelegate(cwm)
 {
@@ -195,11 +197,11 @@ void PixelStreamInteractionDelegate::wheelEvent(QGraphicsSceneWheelEvent* wheelE
     if (wheelEvent->orientation() == Qt::Vertical)
     {
         event.dx = 0.;
-        event.dy = (double)wheelEvent->delta() / 1440.;
+        event.dy = (double)wheelEvent->delta() / WHEEL_EVENT_FACTOR * g_configuration->getTotalHeight();
     }
     else
     {
-        event.dx = (double)wheelEvent->delta() / 1440.;
+        event.dx = (double)wheelEvent->delta() / WHEEL_EVENT_FACTOR * g_configuration->getTotalWidth();
         event.dy = 0.;
     }
 
@@ -268,43 +270,50 @@ void PixelStreamInteractionDelegate::setMouseMoveNormalizedDelta(const QGraphics
 template<typename T>
 Event PixelStreamInteractionDelegate::getGestureEvent(const T *gesture)
 {
-    // Bounding rectangle
+    // Window coordinates (normalized units)
     double x, y, w, h;
     contentWindowManager_.getCoordinates(x, y, w, h);
 
+    // For (almost) all QGestures, position() is the normalized position (on the wall / QGraphicsView)
     Event event;
     event.mouseX = (gesture->position().x() - x) / w;
     event.mouseY = (gesture->position().y() - y) / h;
+
+    // The returned event holds the normalized position inside the window
     return event;
 }
 
 Event PixelStreamInteractionDelegate::getGestureEvent(const QTapGesture *gesture)
 {
-    // Bounding rectangle
+    // Window coordinates (normalized units)
     double x, y, w, h;
     contentWindowManager_.getCoordinates(x, y, w, h);
 
-    // Touchpad dimensions
+    // Overall wall dimensions (in pixels)
     const double tWidth = g_configuration->getTotalWidth();
     const double tHeight = g_configuration->getTotalHeight();
 
+    // For QTapGestures, position() is the position on the WALL (not QGraphicsView!) in pixels
     Event event;
     event.mouseX = (gesture->position().x() / tWidth - x) / w;
     event.mouseY = (gesture->position().y() / tHeight - y) / h;
 
+    // The returned event holds the normalized position inside the window
     return event;
 }
 
 Event PixelStreamInteractionDelegate::getGestureEvent(const PinchGesture *gesture)
 {
-    // Bounding rectangle
+    // Window coordinates (normalized units)
     double x, y, w, h;
     contentWindowManager_.getCoordinates(x, y, w, h);
 
+    // For PinchGesture, normalizedCenterPoint() is the normalized position (on the wall / QGraphicsView)
     Event event;
     event.mouseX = (gesture->normalizedCenterPoint().x() - x) / w;
     event.mouseY = (gesture->normalizedCenterPoint().y() - y) / h;
 
+    // The returned event holds the normalized position inside the window
     return event;
 }
 

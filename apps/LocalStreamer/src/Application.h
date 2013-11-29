@@ -48,19 +48,38 @@
 class LocalPixelStreamer;
 class CommandLineOptions;
 
+/**
+ * Generic application for LocalPixelStreamers.
+ */
 class Application : public QApplication
 {
     Q_OBJECT
 
 public:
+    /**
+     * Create an Application.
+     *
+     * @param argc Command line argument count (required by QApplication)
+     * @param argv Command line arguments (required by QApplication)
+     */
     Application(int &argc, char **argv);
+
+    /** Destruct an Application. */
     virtual ~Application();
 
+    /**
+     * Initialize the Application using commmand line parameters.
+     *
+     * @param options The parsed Command line options.
+     * @return true on success, false on failure.
+     */
     bool initalize(const CommandLineOptions &options);
 
 private slots:
     void sendImage(QImage image);
     void processPendingEvents();
+    void sendOpenContent(QString uri);
+    void checkConnection();
 
 private:
     LocalPixelStreamer* streamer_;

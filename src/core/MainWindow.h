@@ -89,6 +89,11 @@ public slots:
 
         void updateGLWindowsFinished();
 
+        void backgroundTap(QPointF pos);
+        void backgroundTapAndHold(QPointF pos);
+
+        void createWebBrowser(const QString& url, const QSize& size);
+
 #if ENABLE_SKELETON_SUPPORT
         void enableSkeletonTracking();
         void disableSkeletonTracking();
@@ -115,10 +120,11 @@ public slots:
         GLWindowPtrs glWindows_;
         GLWindowPtr activeGLWindow_;
 
+        BackgroundWidget* backgroundWidget_;
+
 #if ENABLE_TUIO_TOUCH_LISTENER
         MultiTouchListener* touchListener_;
 #endif
-        BackgroundWidget* backgroundWidget_;
 };
 
 #endif

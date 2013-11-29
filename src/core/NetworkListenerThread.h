@@ -77,6 +77,8 @@ signals:
 
     void registerToEvents(QString uri, bool exclusive, EventReceiver* receiver);
 
+    void receivedUri(QString uri, QString contentUri);
+
     /** @internal */
     void dataAvailable();
 

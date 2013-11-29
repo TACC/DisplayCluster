@@ -37,35 +37,25 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef COMMANDLINEOPTIONS_H
-#define COMMANDLINEOPTIONS_H
+#include "LocalPixelStreamerFactory.h"
 
-#include <QString>
-#include <boost/program_options/options_description.hpp>
+#include "WebkitPixelStreamer.h"
+#include "DockPixelStreamer.h"
 
 #include "LocalPixelStreamerType.h"
+#include "CommandLineOptions.h"
 
-class CommandLineOptions
+LocalPixelStreamer *LocalPixelStreamerFactory::create(const CommandLineOptions& options)
 {
-public:
-    CommandLineOptions(int &argc, char **argv);
-
-    void showSyntax() const;
-
-    bool getHelp() const;
-    const QString& getConfigFilename() const;
-    PixelStreamerType getPixelStreamerType() const;
-    const QString& getUrl() const;
-
-private:
-    void parseCommandLineArguments(int &argc, char **argv);
-
-    bool getHelp_;
-    QString configFileName_;
-    PixelStreamerType streamerType_;
-    QString url_;
-
-    boost::program_options::options_description desc_;
-};
-
-#endif // COMMANDLINEOPTIONS_H
+    QSize size(options.getWidth(), options.getHeight());
+    switch(options.getPixelStreamerType())
+    {
+    case PS_WEBKIT:
+        return new WebkitPixelStreamer(size, options.getUrl());
+    case PS_DOCK:
+        return new DockPixelStreamer(size, options.getRootDir());
+    case PS_UNKNOWN:
+    default:
+        return 0;
+    }
+}

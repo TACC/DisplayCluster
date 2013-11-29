@@ -38,11 +38,11 @@
 
 #include "DisplayGroupGraphicsView.h"
 #include "DisplayGroupGraphicsScene.h"
+#include "ContentWindowGraphicsItem.h"
+
 #include "globals.h"
 #include "configuration/Configuration.h"
-#include "ContentWindowManager.h"
-#include "ContentWindowGraphicsItem.h"
-#include "LocalPixelStreamerManager.h"
+
 #include "gestures/PanGesture.h"
 #include "gestures/PanGestureRecognizer.h"
 #include "gestures/PinchGesture.h"
@@ -71,6 +71,7 @@ DisplayGroupGraphicsView::~DisplayGroupGraphicsView()
 
 void DisplayGroupGraphicsView::grabGestures()
 {
+    viewport()->grabGesture(Qt::TapGesture);
     viewport()->grabGesture(Qt::TapAndHoldGesture);
     viewport()->grabGesture(Qt::SwipeGesture);
 }
@@ -132,6 +133,14 @@ void DisplayGroupGraphicsView::tap( QTapGesture* gesture )
 {
     if( gesture->state() != Qt::GestureFinished )
         return;
+
+    const QPointF pos = getNormalizedPosition(gesture);
+    qDebug() << pos;
+    qDebug() << gesture->position();
+    qDebug() << gesture->hotSpot();
+
+    if (isOnBackground(pos))
+        emit backgroundTap(pos);
 }
 
 void DisplayGroupGraphicsView::tapAndHold( QTapAndHoldGesture* gesture )
@@ -139,14 +148,12 @@ void DisplayGroupGraphicsView::tapAndHold( QTapAndHoldGesture* gesture )
     if( gesture->state() != Qt::GestureFinished )
         return;
 
-    const QPoint widgetPos = mapFromGlobal( QPoint( gesture->hotSpot().x(),
-                                                    gesture->hotSpot().y( )));
-    const QPointF pos = mapToScene( widgetPos );
-    QGraphicsItem* item = scene()->itemAt( pos );
-    if( dynamic_cast< ContentWindowGraphicsItem* >( item ))
-        return;
-
-    g_localPixelStreamers->openDockAt(pos);
+    const QPointF pos = getNormalizedPosition(gesture);
+    qDebug() << pos;
+    qDebug() << gesture->position();
+    qDebug() << gesture->hotSpot();
+    if (isOnBackground(pos))
+        emit backgroundTapAndHold(pos);
 }
 
 void DisplayGroupGraphicsView::resizeEvent(QResizeEvent * event)
@@ -180,3 +187,30 @@ void DisplayGroupGraphicsView::resizeEvent(QResizeEvent * event)
 
     QGraphicsView::resizeEvent(event);
 }
+
+QPointF DisplayGroupGraphicsView::getNormalizedPosition( const QGesture* gesture ) const
+{
+    // Gesture::hotSpot() is the position (in pixels) in global SCREEN coordinates.
+    // SCREEN is the Display where the Rank0 Qt Window lives.
+
+    // Some gestures also have a position attribute which is inconsistent between
+    // event types. For almost all gestures it is equal to the hotSpot attribute.
+    // For the special case of the QTapGesture, it is actually the position in pixels
+    // in DisplayWall coordinates...
+
+    // The widgetPos is the position (in pixels) in the QGraphicsView.
+    const QPoint widgetPos = mapFromGlobal( QPoint( gesture->hotSpot().x(),
+                                                    gesture->hotSpot().y( )));
+    // The returned value is the normalized position in the QGraphicsView.
+    return mapToScene( widgetPos );
+}
+
+bool DisplayGroupGraphicsView::isOnBackground( const QPointF& position ) const
+{
+    QGraphicsItem* item = scene()->itemAt( position );
+    if( dynamic_cast< ContentWindowGraphicsItem* >( item ))
+        return false;
+    else
+        return true;
+}
+

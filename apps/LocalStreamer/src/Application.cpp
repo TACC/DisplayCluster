@@ -39,14 +39,11 @@
 
 #include "Application.h"
 
-#include "LocalPixelStreamer.h"
-#include "WebkitPixelStreamer.h"
-#include "DockPixelStreamer.h"
+#include "localstreamer/LocalPixelStreamer.h"
+#include "localstreamer/LocalPixelStreamerFactory.h"
 
-#include "LocalPixelStreamerFactory.h"
-#include "LocalPixelStreamerType.h"
-
-#include "CommandLineOptions.h"
+#include "localstreamer/CommandLineOptions.h"
+#include "dcstream/StreamPrivate.h"
 
 #include <QTimer>
 
@@ -66,31 +63,17 @@ Application::~Application()
     delete streamer_;
 }
 
-QString getUriForStreamer(PixelStreamerType type)
-{
-    qint64 pid = QCoreApplication::applicationPid();
-    switch(type)
-    {
-    case PS_WEBKIT:
-        return QString("WebBrowser_%1").arg(pid);
-    case PS_DOCK:
-        return DockPixelStreamer::getUniqueURI();
-    default:
-        return "";
-    }
-}
-
 bool Application::initalize(const CommandLineOptions& options)
 {
     // Create the streamer
-    QString uri = getUriForStreamer(options.getPixelStreamerType());
-    streamer_ = LocalPixelStreamerFactory::create(options.getPixelStreamerType(), uri);
+    streamer_ = LocalPixelStreamerFactory::create(options);
     if (!streamer_)
         return false;
     connect(streamer_, SIGNAL(imageUpdated(QImage)), this, SLOT(sendImage(QImage)));
+    connect(streamer_, SIGNAL(openContent(QString)), this, SLOT(sendOpenContent(QString)));
 
     // Connect to DisplayCluster
-    dcStream_ = new dc::Stream(uri.toStdString(), DC_STREAM_HOST_ADDRESS);
+    dcStream_ = new dc::Stream(options.getName().toStdString(), DC_STREAM_HOST_ADDRESS);
     if (!dcStream_->isConnected())
     {
         std::cerr << "Could not connect to host!" << std::endl;
@@ -103,11 +86,6 @@ bool Application::initalize(const CommandLineOptions& options)
     QTimer* timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), SLOT(processPendingEvents()));
     timer->start(1);
-
-    if(options.getPixelStreamerType() == PS_WEBKIT)
-    {
-        static_cast<WebkitPixelStreamer*>(streamer_)->setUrl(options.getUrl());
-    }
 
     return true;
 }
@@ -135,6 +113,8 @@ void Application::sendImage(QImage image)
 
 void Application::processPendingEvents()
 {
+    checkConnection();
+
     if (!dcStream_->isRegisteredForEvents())
     {
         dcStream_->registerForEvents();
@@ -145,6 +125,20 @@ void Application::processPendingEvents()
         {
             streamer_->processEvent(dcStream_->getEvent());
         }
+    }
+}
+
+void Application::sendOpenContent(QString uri)
+{
+    dcStream_->getPrivateImpl()->sendOpenContent(uri.toStdString());
+}
+
+void Application::checkConnection()
+{
+    if( !dcStream_->isConnected() )
+    {
+        QApplication::quit();
+        return;
     }
 }
 

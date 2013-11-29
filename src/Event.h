@@ -89,8 +89,8 @@ struct Event
     /*@{*/
     double mouseX;    /**< Normalized X mouse/touch position relative to the window */
     double mouseY;    /**< Normalized Y mouse/touch position relative to the window */
-    double dx;        /**< Horizontal delta for wheel/scroll events */
-    double dy;        /**< Vertical delta for wheel/scroll events */
+    double dx;        /**< Normalized horizontal delta for scroll events / delta in pixels for wheel events. */
+    double dy;        /**< Normalized vertical delta for scroll events / delta in pixels for wheel events. */
     bool mouseLeft;   /**< The state of the left mouse button (pressed=true) */
     bool mouseRight;  /**< The state of the right mouse button (pressed=true) */
     bool mouseMiddle; /**< The state of the middle mouse button (pressed=true) */

@@ -7,7 +7,6 @@ set(LOCAL_STREAMER_SRCS
   ../../src/log.cpp
   src/main.cpp
   src/Application.cpp
-  src/CommandLineOptions.cpp
 )
 
 set(LOCAL_STREAMER_MOC_HEADERS

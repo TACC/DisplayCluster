@@ -44,7 +44,8 @@
 
 class DisplayGroupGraphicsView;
 
-class DisplayGroupGraphicsViewProxy : public DisplayGroupInterface {
+class DisplayGroupGraphicsViewProxy : public DisplayGroupInterface
+{
     Q_OBJECT
 
     public:

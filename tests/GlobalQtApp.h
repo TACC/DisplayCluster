@@ -42,10 +42,6 @@
 
 #include <QApplication>
 
-#include "globals.h"
-#include "Options.h"
-#include "configuration/MasterConfiguration.h"
-
 #include "glxDisplay.h"
 
 #define CONFIG_TEST_FILENAME "configuration.xml"
@@ -64,14 +60,9 @@ struct MinimalGlobalQtApp
         // need QApplication to instantiate WebkitPixelStreamer
         ut::master_test_suite_t& testSuite = ut::framework::master_test_suite();
         app = new QApplication( testSuite.argc, testSuite.argv );
-
-        // To test wheel events the WebkitPixelStreamer needs access to the g_configuration element
-        OptionsPtr options(new Options());
-        g_configuration = new MasterConfiguration(CONFIG_TEST_FILENAME, options);
     }
     ~MinimalGlobalQtApp()
     {
-        delete g_configuration;
         delete app;
     }
 

@@ -190,6 +190,10 @@ void NetworkListenerThread::handleMessage(const MessageHeader& messageHeader, co
         handlePixelStreamMessage(uri, byteArray);
         break;
 
+    case MESSAGE_TYPE_URI:
+        emit receivedUri(uri, QString(byteArray.data()));
+        break;
+
     case MESSAGE_TYPE_BIND_EVENTS:
     case MESSAGE_TYPE_BIND_EVENTS_EX:
         if (registeredToEvents_)

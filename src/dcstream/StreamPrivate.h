@@ -97,6 +97,13 @@ public:
      * @return true if the message could be sent
      */
     bool sendPixelStreamSegment(const PixelStreamSegment& segment);
+
+    /**
+     * Send a request to open Content on the wall
+     * @param uri The uri of the content. Must be accessible by all wall processes.
+     * @return true if the request could be sent, false otherwise.
+     */
+    bool sendOpenContent(const std::string& uri);
 };
 
 }

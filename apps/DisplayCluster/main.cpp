@@ -46,7 +46,7 @@
 #include "MainWindow.h"
 #include "NetworkListener.h"
 #include "log.h"
-#include "LocalPixelStreamerManager.h"
+#include "localstreamer/LocalPixelStreamerManager.h"
 #include <mpi.h>
 #include <unistd.h>
 
@@ -145,14 +145,19 @@ int main(int argc, char * argv[])
     }
 #endif
 
+    g_mainWindow = new MainWindow();
+
     NetworkListener* networkListener = 0;
+    LocalPixelStreamerManager* localPixelStreamerManager = 0;
     if(g_mpiRank == 0)
     {
         networkListener = new NetworkListener(*g_displayGroupManager);
-        g_localPixelStreamers = new LocalPixelStreamerManager(g_displayGroupManager.get());
-    }
 
-    g_mainWindow = new MainWindow();
+        localPixelStreamerManager = new LocalPixelStreamerManager(g_displayGroupManager.get());
+        localPixelStreamerManager->connect(g_mainWindow, SIGNAL(backgroundTapAndHold(QPointF)), SLOT(openDockAt(QPointF)));
+        localPixelStreamerManager->connect(g_mainWindow, SIGNAL(backgroundTap(QPointF)), SLOT(hideDock()));
+        localPixelStreamerManager->connect(g_mainWindow, SIGNAL(createWebBrowser(QString,QSize)), SLOT(createWebBrowser(QString,QSize)));
+    }
 
     // wait for render comms to be ready for receiving and rendering background
     MPI_Barrier(MPI_COMM_WORLD);
@@ -185,9 +190,10 @@ int main(int argc, char * argv[])
     if(g_mpiRank == 0)
     {
         g_displayGroupManager->sendQuit();
-        delete g_localPixelStreamers;
-        g_localPixelStreamers = 0;
+        delete localPixelStreamerManager;
+        localPixelStreamerManager = 0;
         delete networkListener;
+        networkListener = 0;
     }
 
     delete g_configuration;

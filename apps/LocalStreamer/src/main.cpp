@@ -38,36 +38,13 @@
 /*********************************************************************/
 
 #include "Application.h"
-#include "CommandLineOptions.h"
-#include "globals.h"
+#include "localstreamer/CommandLineOptions.h"
 
-#include "configuration/MasterConfiguration.h"
-#include "Options.h"
-
-#include <QFile>
-
-#define INVALID_CONFIG_FILE_ERROR_CODE       1
-#define INVALID_STREAMER_TYPE_ERROR_CODE     2
-#define FAILED_APP_INITIALIZTION_ERROR_CODE  3
-
-
-bool createGlobalConfiguration(const QString& configFileName)
-{
-    if (QFile(configFileName).exists())
-    {
-        g_configuration = new MasterConfiguration(configFileName, OptionsPtr(new Options));
-        return true;
-    }
-    return false;
-}
+#define INVALID_STREAMER_TYPE_ERROR_CODE     1
+#define FAILED_APP_INITIALIZTION_ERROR_CODE  2
 
 int main(int argc, char * argv[])
 {
-    // The objects have to be initialized in the following sequence:
-    // QApplication -> g_configuration -> PixelStreamers (app.initalize)
-
-    Application app(argc, argv);
-
     CommandLineOptions options(argc, argv);
 
     if (options.getHelp())
@@ -82,12 +59,7 @@ int main(int argc, char * argv[])
         return INVALID_STREAMER_TYPE_ERROR_CODE;
     }
 
-    if (!createGlobalConfiguration(options.getConfigFilename()))
-    {
-        std::cerr << "Configuration file not found: '" << options.getConfigFilename().toStdString() << "'" << std::endl;
-        return INVALID_CONFIG_FILE_ERROR_CODE;
-    }
-
+    Application app(argc, argv);
     if (!app.initalize(options))
         return FAILED_APP_INITIALIZTION_ERROR_CODE;
 

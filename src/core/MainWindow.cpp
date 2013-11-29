@@ -45,9 +45,10 @@
 #include "log.h"
 #include "DisplayGroupManager.h"
 #include "DisplayGroupGraphicsViewProxy.h"
+#include "DisplayGroupGraphicsView.h"
 #include "DisplayGroupListWidgetProxy.h"
 #include "BackgroundWidget.h"
-#include "LocalPixelStreamerManager.h"
+
 #include "GLWindow.h"
 
 #if ENABLE_PYTHON_SUPPORT
@@ -62,8 +63,14 @@
     #include "MultiTouchListener.h"
 #endif
 
+#define WEBBROWSER_DEFAULT_SIZE  QSize(1280, 1024)
+#define WEBBROWSER_DEFAULT_URL   "http://www.google.ch"
+
 MainWindow::MainWindow()
-: backgroundWidget_(0)
+    : backgroundWidget_(0)
+#if ENABLE_TUIO_TOUCH_LISTENER
+    , touchListener_(0)
+#endif
 {
     // make application quit when last window is closed
     QObject::connect(QApplication::instance(), SIGNAL(lastWindowClosed()),
@@ -84,9 +91,6 @@ MainWindow::MainWindow()
     }
     else
     {
-#if ENABLE_TUIO_TOUCH_LISTENER
-        touchListener_ = 0;
-#endif
         setupWallOpenGLWindows();
 
         // setup connection so updateGLWindows() will be called continuously
@@ -322,6 +326,9 @@ void MainWindow::setupMasterWindowUI()
     // add the local renderer group
     DisplayGroupGraphicsViewProxy * dggv = new DisplayGroupGraphicsViewProxy(g_displayGroupManager);
     mainWidget->addTab((QWidget *)dggv->getGraphicsView(), "Display group 0");
+    // Forward background touch events
+    connect(dggv->getGraphicsView(), SIGNAL(backgroundTap(QPointF)), this, SIGNAL(backgroundTap(QPointF)));
+    connect(dggv->getGraphicsView(), SIGNAL(backgroundTapAndHold(QPointF)), this, SIGNAL(backgroundTapAndHold(QPointF)));
 
 #if ENABLE_TUIO_TOUCH_LISTENER
     touchListener_ = new MultiTouchListener( dggv );
@@ -538,18 +545,13 @@ void MainWindow::showBackgroundWidget()
 
 void MainWindow::openWebBrowser()
 {
-    static int webbrowserCounter = 0;
     bool ok;
     QString url = QInputDialog::getText(this, tr("New WebBrowser Content"),
                                          tr("URL:"), QLineEdit::Normal,
-                                         "http://www.google.ch", &ok);
+                                         WEBBROWSER_DEFAULT_URL, &ok);
     if (ok && !url.isEmpty())
     {
-        bool success = g_localPixelStreamers->createWebBrowser("WebBrowser"+QString::number(webbrowserCounter++), url);
-        if(!success)
-        {
-            QMessageBox::warning(this, "Error", "A WebBrowser with this uri already exists.", QMessageBox::Ok, QMessageBox::Ok);
-        }
+        emit createWebBrowser(url, WEBBROWSER_DEFAULT_SIZE);
     }
 }
 

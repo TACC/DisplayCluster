@@ -84,6 +84,7 @@ void NetworkListener::incomingConnection(int socketDescriptor)
     connect(&displayGroupManager_, SIGNAL(pixelStreamViewClosed(QString)), worker, SLOT(pixelStreamerClosed(QString)));
     connect(&displayGroupManager_, SIGNAL(eventRegistrationReply(QString,bool)), worker, SLOT(eventRegistrationRepy(QString,bool)));
     connect(worker, SIGNAL(registerToEvents(QString,bool,EventReceiver*)), &displayGroupManager_, SLOT(registerEventReceiver(QString,bool,EventReceiver*)));
+    connect(worker, SIGNAL(receivedUri(QString,QString)), &displayGroupManager_, SLOT(handleUri(QString,QString)));
 
     // PixelStreamDispatcher
     connect(worker, SIGNAL(receivedAddPixelStreamSource(QString,size_t)), pixelStreamDispatcher_, SLOT(addSource(QString,size_t)));

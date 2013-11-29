@@ -47,26 +47,22 @@
 #include <QTimer>
 
 #include "log.h"
-#include "globals.h"
-#include "configuration/Configuration.h"
 #include "WebkitAuthenticationHelper.h"
 
-#define WEPPAGE_DEFAULT_WIDTH   1280
-#define WEBPAGE_DEFAULT_HEIGHT  1024
-#define WEBPAGE_DEFAULT_ZOOM    2.0
-#define WEPPAGE_MIN_WIDTH   (WEPPAGE_DEFAULT_WIDTH/2)
-#define WEBPAGE_MIN_HEIGHT  (WEBPAGE_DEFAULT_HEIGHT/2)
+#define WEBPAGE_MIN_WIDTH      640
+#define WEBPAGE_MIN_HEIGHT     512
 
+#define WEBPAGE_DEFAULT_ZOOM   2.0
 
-WebkitPixelStreamer::WebkitPixelStreamer(QString uri)
-    : LocalPixelStreamer(uri)
-    , webView_(0)
+WebkitPixelStreamer::WebkitPixelStreamer(const QSize& size, const QString& url)
+    : LocalPixelStreamer()
+    , webView_(new QWebView())
     , authenticationHelper_(0)
     , timer_(0)
     , interactionModeActive_(false)
+    , initialWidth_( std::max( size.width(), WEBPAGE_MIN_WIDTH ))
 {
-    webView_ = new QWebView();
-    webView_->page()->setViewportSize( QSize( WEPPAGE_DEFAULT_WIDTH*WEBPAGE_DEFAULT_ZOOM, WEBPAGE_DEFAULT_HEIGHT*WEBPAGE_DEFAULT_ZOOM ));
+    setSize( size * WEBPAGE_DEFAULT_ZOOM );
     webView_->setZoomFactor(WEBPAGE_DEFAULT_ZOOM);
 
     authenticationHelper_ = new WebkitAuthenticationHelper(*webView_);
@@ -79,6 +75,8 @@ WebkitPixelStreamer::WebkitPixelStreamer(QString uri)
 #if QT_VERSION >= 0x040800
     settings->setAttribute( QWebSettings::WebGLEnabled, true );
 #endif
+
+    setUrl(url);
 
     timer_ = new QTimer();
     connect(timer_, SIGNAL(timeout()), this, SLOT(update()));
@@ -230,9 +228,7 @@ void WebkitPixelStreamer::processWheelEvent(const Event &event)
 
     if(!hitResult.isNull() && isWebGLElement(hitResult.element()))
     {
-        int delta_y = event.dy * g_configuration->getTotalHeight();
-
-        QWheelEvent myEvent(hitResult.pos(), delta_y, Qt::NoButton,
+        QWheelEvent myEvent(hitResult.pos(), (int)event.dy, Qt::NoButton,
                             (Qt::KeyboardModifiers)event.modifiers,
                             Qt::Vertical);
 
@@ -260,12 +256,20 @@ void WebkitPixelStreamer::processKeyRelease(const Event &event)
 
 void WebkitPixelStreamer::processViewSizeChange(const Event &event)
 {
-    QSize newSize( std::max((int)event.dx, WEPPAGE_MIN_WIDTH), std::max((int)event.dy, WEBPAGE_MIN_HEIGHT) );
+    setSize( QSize((int)event.dx, (int)event.dy) );
+    recomputeZoomFactor();
+}
+
+void WebkitPixelStreamer::setSize(const QSize& size)
+{
+    QSize newSize( std::max(size.width(), WEBPAGE_MIN_WIDTH), std::max(size.height(), WEBPAGE_MIN_HEIGHT) );
 
     webView_->page()->setViewportSize( newSize );
+}
 
-    const qreal zoomFactor = qreal(newSize.width()) / WEPPAGE_DEFAULT_WIDTH;
-    webView_->setZoomFactor(zoomFactor);
+void WebkitPixelStreamer::recomputeZoomFactor()
+{
+    webView_->setZoomFactor( qreal(size().width()) / qreal(initialWidth_) );
 }
 
 QSize WebkitPixelStreamer::size() const

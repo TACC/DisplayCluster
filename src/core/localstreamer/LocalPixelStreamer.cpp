@@ -37,39 +37,12 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "AsyncImageLoader.h"
+#include "LocalPixelStreamer.h"
 
-#include "thumbnail/ThumbnailGeneratorFactory.h"
-#include "thumbnail/ThumbnailGenerator.h"
-
-#define USE_CACHE
-#define CACHE_MAX_SIZE 100
-
-AsyncImageLoader::AsyncImageLoader(const QSize& defaultSize)
-    : defaultSize_(defaultSize)
+LocalPixelStreamer::LocalPixelStreamer()
 {
-    cache_.setMaxCost(CACHE_MAX_SIZE);
 }
 
-void AsyncImageLoader::loadImage( const QString& filename, const int index )
+LocalPixelStreamer::~LocalPixelStreamer()
 {
-#ifdef USE_CACHE
-    if (cache_.contains(filename))
-    {
-        emit imageLoaded(index, *cache_[filename]);
-    }
-    else
-    {
-#endif
-        QImage image = ThumbnailGeneratorFactory::getGenerator(filename, defaultSize_)->generate(filename);
-        if (!image.isNull())
-        {
-#ifdef USE_CACHE
-            cache_.insert(filename, new QImage(image));
-#endif
-            emit imageLoaded(index, image);
-        }
-    }
-
-    emit imageLoadingFinished();
 }

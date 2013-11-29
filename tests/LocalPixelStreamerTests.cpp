@@ -41,14 +41,14 @@
 #include <boost/test/unit_test.hpp>
 namespace ut = boost::unit_test;
 
+#include "localstreamer/CommandLineOptions.h"
+#include "localstreamer/LocalPixelStreamerType.h"
+#include "localstreamer/LocalPixelStreamerFactory.h"
+#include "localstreamer/LocalPixelStreamer.h"
+#include "localstreamer/WebkitPixelStreamer.h"
+#include "localstreamer/DockPixelStreamer.h"
+
 #include "GlobalQtApp.h"
-
-#include "LocalPixelStreamerType.h"
-#include "LocalPixelStreamerFactory.h"
-#include "LocalPixelStreamer.h"
-#include "WebkitPixelStreamer.h"
-#include "DockPixelStreamer.h"
-
 
 BOOST_GLOBAL_FIXTURE( MinimalGlobalQtApp );
 
@@ -66,9 +66,9 @@ BOOST_AUTO_TEST_CASE( test_local_pixel_streamer_type )
 
 BOOST_AUTO_TEST_CASE( test_local_pixel_streamer_factory_unknown_type )
 {
+    CommandLineOptions options;
     // Create should return a nullptr
-    BOOST_CHECK( !LocalPixelStreamerFactory::create(PS_UNKNOWN, "") );
-    BOOST_CHECK( !LocalPixelStreamerFactory::create(PS_UNKNOWN, "iefuiw") );
+    BOOST_CHECK( !LocalPixelStreamerFactory::create( options ));
 }
 
 BOOST_AUTO_TEST_CASE( test_local_pixel_streamer_factory_webkit_type )
@@ -76,10 +76,11 @@ BOOST_AUTO_TEST_CASE( test_local_pixel_streamer_factory_webkit_type )
     if( !hasGLXDisplay( ))
       return;
 
-    LocalPixelStreamer* streamer = LocalPixelStreamerFactory::create(PS_WEBKIT, "testuri");
+    CommandLineOptions options;
+    options.setPixelStreamerType(PS_WEBKIT);
+    LocalPixelStreamer* streamer = LocalPixelStreamerFactory::create( options );
 
     BOOST_CHECK( streamer );
-    BOOST_CHECK_EQUAL(streamer->getUri().toStdString(), "testuri");
 
     WebkitPixelStreamer* webkit = dynamic_cast<WebkitPixelStreamer*>(streamer);
     BOOST_CHECK( webkit );
@@ -92,10 +93,11 @@ BOOST_AUTO_TEST_CASE( test_local_pixel_streamer_factory_dock_type )
     if( !hasGLXDisplay( ))
       return;
 
-    LocalPixelStreamer* streamer = LocalPixelStreamerFactory::create(PS_DOCK, "testuri");
+    CommandLineOptions options;
+    options.setPixelStreamerType(PS_DOCK);
+    LocalPixelStreamer* streamer = LocalPixelStreamerFactory::create( options );
 
     BOOST_CHECK( streamer );
-    BOOST_CHECK_EQUAL(streamer->getUri().toStdString(), DockPixelStreamer::getUniqueURI().toStdString());
 
     DockPixelStreamer* dock = dynamic_cast<DockPixelStreamer*>(streamer);
     BOOST_CHECK( dock );

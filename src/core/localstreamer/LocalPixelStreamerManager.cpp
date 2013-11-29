@@ -39,109 +39,101 @@
 
 #include "LocalPixelStreamerManager.h"
 
-#include "LocalPixelStreamer.h"
-#include "WebkitPixelStreamer.h"
 #include "DockPixelStreamer.h"
+#include "CommandLineOptions.h"
 
-#include "DisplayGroupManager.h"
-#include "ContentWindowManager.h"
+#include "log.h"
+
+#include "../DisplayGroupManager.h"
+#include "../globals.h"
+#include "../configuration/MasterConfiguration.h"
+
+#include <QProcess>
+
+#define LOCALSTREAMER_BIN "./localstreamer"
+#define SIMPLESTREAMER_BIN "./simplestreamer"
+
+#define DOCK_RELATIVE_WIDTH   0.175
 
 LocalPixelStreamerManager::LocalPixelStreamerManager(DisplayGroupManager* displayGroupManager)
     : displayGroupManager_(displayGroupManager)
 {
-    connect(displayGroupManager, SIGNAL(pixelStreamViewClosed(QString)), this, SLOT(removePixelStreamer(QString)));
+    connect(displayGroupManager, SIGNAL(pixelStreamViewClosed(QString)),
+            this, SLOT(dereferenceLocalStreamer(QString)), Qt::QueuedConnection);
 }
 
-bool LocalPixelStreamerManager::createWebBrowser(QString uri, QString url)
+bool LocalPixelStreamerManager::startSimpleStreamer()
 {
-    // see if we need to create the object
-    if(map_.count(uri) == 0)
+    static int simplestreamerCounter = 0;
+    const QString& uri = QString("SimpleStreamer_%1").arg(simplestreamerCounter++);
+
+    QString program = QString("%1/%2").arg(QCoreApplication::applicationDirPath(), SIMPLESTREAMER_BIN);
+    QStringList arguments;
+    arguments << "-i" << "localhost";
+
+    processes_[uri] = new QProcess(this);
+
+    return processes_[uri]->startDetached(program, arguments, QDir::currentPath());
+}
+
+void LocalPixelStreamerManager::createWebBrowser(const QString& url, const QSize& size)
+{
+    static int webbrowserCounter = 0;
+    const QString& uri = QString("WebBrowser_%1").arg(webbrowserCounter++);
+
+    QString program = QString("%1/%2").arg(QCoreApplication::applicationDirPath(), LOCALSTREAMER_BIN);
+
+    CommandLineOptions options;
+    options.setPixelStreamerType(PS_WEBKIT);
+    options.setName(uri);
+    options.setUrl(url);
+    options.setWidth(size.width());
+    options.setHeight(size.height());
+
+    processes_[uri] = new QProcess(this);
+    if ( !processes_[uri]->startDetached(program, options.getCommandLineArguments(), QDir::currentPath( )))
+        put_flog(LOG_WARN, "QProcess could not be started!");
+}
+
+bool LocalPixelStreamerManager::createDock()
+{
+    const QString& uri = DockPixelStreamer::getUniqueURI();
+
+    assert( !processes_.count(uri) );
+
+    const unsigned int dockWidth = g_configuration->getTotalWidth()*DOCK_RELATIVE_WIDTH;
+    const unsigned int dockHeight = dockWidth * DockPixelStreamer::getDefaultAspectRatio();
+
+    QString program = QString("%1/%2").arg(QCoreApplication::applicationDirPath(), LOCALSTREAMER_BIN);
+
+    CommandLineOptions options;
+    options.setPixelStreamerType(PS_DOCK);
+    options.setName(uri);
+    options.setRootDir(static_cast<MasterConfiguration*>(g_configuration)->getDockStartDir());
+    options.setWidth(dockWidth);
+    options.setHeight(dockHeight);
+
+    processes_[uri] = new QProcess(this);
+    return processes_[uri]->startDetached(program, options.getCommandLineArguments(), QDir::currentPath());
+}
+
+void LocalPixelStreamerManager::openDockAt(const QPointF pos)
+{
+    const QString& uri = DockPixelStreamer::getUniqueURI();
+
+    if( !processes_.count(uri) )
     {
-        boost::shared_ptr<WebkitPixelStreamer> lpc(new WebkitPixelStreamer(uri));
-
-        lpc->setUrl(url);
-
-        map_[uri] = lpc;
-
-        displayGroupManager_->openPixelStream(uri, lpc->size().width(), lpc->size().height());
-        bindPixelStreamerInteraction(lpc.get());
-
-        return true;
+        createDock();
     }
-    else
-    {
-        return false;
-    }
+    displayGroupManager_->positionWindow(uri, pos);
 }
 
-DockPixelStreamer* LocalPixelStreamerManager::getDockInstance()
+void LocalPixelStreamerManager::hideDock()
 {
-    const QString uri = DockPixelStreamer::getUniqueURI();
-
-    DockPixelStreamer* dock = 0;
-
-    // see if we need to create the object
-    if(map_.count(uri) == 0)
-    {
-         dock = new DockPixelStreamer();
-
-         map_[uri] = boost::shared_ptr<DockPixelStreamer>(dock);
-    }
-    else
-    {
-        dock = dynamic_cast<DockPixelStreamer*>(map_[uri].get());
-    }
-
-    return dock;
+    displayGroupManager_->hideWindow(DockPixelStreamer::getUniqueURI());
 }
 
-bool LocalPixelStreamerManager::isDockOpen()
+void LocalPixelStreamerManager::dereferenceLocalStreamer(const QString uri)
 {
-    const QString uri = DockPixelStreamer::getUniqueURI();
-
-    return map_.count(uri);
-}
-
-void LocalPixelStreamerManager::openDockAt(QPointF pos)
-{
-    DockPixelStreamer* dock = getDockInstance();
-
-    ContentWindowManagerPtr cwm = displayGroupManager_->getContentWindowManager(dock->getUri(), CONTENT_TYPE_PIXEL_STREAM);
-    if (!cwm)
-    {
-        displayGroupManager_->openPixelStream(dock->getUri(), dock->size().width(), dock->size().height());
-        bindPixelStreamerInteraction(dock);
-        cwm = displayGroupManager_->getContentWindowManager(dock->getUri(), CONTENT_TYPE_PIXEL_STREAM);
-    }
-
-    setWindowManagerPosition(cwm, pos);
-
-    dock->open();
-}
-
-void LocalPixelStreamerManager::clear()
-{
-    map_.clear();
-}
-
-void LocalPixelStreamerManager::removePixelStreamer(QString uri)
-{
-    if(map_.count(uri) && uri != DockPixelStreamer::getUniqueURI())
-    {
-        map_.erase(uri);
-    }
-}
-
-void LocalPixelStreamerManager::bindPixelStreamerInteraction(LocalPixelStreamer *streamer)
-{
-    connect(streamer, SIGNAL(segmentUpdated(QString,PixelStreamSegment)), displayGroupManager_, SLOT(processPixelStreamSegment(QString,PixelStreamSegment)));
-    connect(streamer, SIGNAL(streamClosed(QString)), displayGroupManager_, SLOT(deletePixelStream(QString)));
-}
-
-void LocalPixelStreamerManager::setWindowManagerPosition(ContentWindowManagerPtr cwm, QPointF pos)
-{
-    double w,h;
-    cwm->getSize(w,h);
-    cwm->setPosition(pos.x()-0.5*w, pos.y()-0.5*h);
-    cwm->setWindowState(ContentWindowInterface::SELECTED);
+    processes_.erase(uri);
 }

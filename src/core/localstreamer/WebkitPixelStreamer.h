@@ -37,73 +37,68 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "CommandLineOptions.h"
+#ifndef WEBKITPIXELSTREAMER_H
+#define WEBKITPIXELSTREAMER_H
 
-#include <iostream>
-#include <boost/program_options.hpp>
+#include "LocalPixelStreamer.h"
+#include <QString>
+#include <QImage>
+#include <QMutex>
 
-#define DEFAULT_CONFIG_FILENAME    "configuration.xml"
+class QWebView;
+class QTimer;
+class QRect;
+class QWebHitTestResult;
+class QWebElement;
 
-CommandLineOptions::CommandLineOptions(int &argc, char **argv)
-    : getHelp_(false)
-    , configFileName_(DEFAULT_CONFIG_FILENAME)
-    , streamerType_(PS_UNKNOWN)
-    , desc_("Allowed options")
+class WebkitAuthenticationHelper;
+
+class WebkitPixelStreamer : public LocalPixelStreamer
 {
-    desc_.add_options()
-        ("help", "produce help message")
-        ("type", boost::program_options::value<std::string>()->default_value(""),
-                 "streamer type [webkit | dock]")
-        ("config", boost::program_options::value<std::string>()->default_value(DEFAULT_CONFIG_FILENAME),
-                   "configuration xml file")
-        ("url", boost::program_options::value<std::string>()->default_value(""), "webkit only: url")
-    ;
+    Q_OBJECT
 
-    parseCommandLineArguments(argc, argv);
-}
+public:
+    WebkitPixelStreamer(const QSize& size, const QString& url);
+    ~WebkitPixelStreamer();
 
-bool CommandLineOptions::getHelp() const
-{
-    return getHelp_;
-}
+    virtual QSize size() const;
 
-const QString &CommandLineOptions::getConfigFilename() const
-{
-    return configFileName_;
-}
+    void setUrl(QString url);
 
-PixelStreamerType CommandLineOptions::getPixelStreamerType() const
-{
-    return streamerType_;
-}
+    QWebView* getView() const;
 
-const QString &CommandLineOptions::getUrl() const
-{
-    return url_;
-}
+public slots:
+    virtual void processEvent(dc::Event event);
 
-void CommandLineOptions::parseCommandLineArguments(int &argc, char **argv)
-{
-    boost::program_options::variables_map vm;
-    try
-    {
-        boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc_), vm);
-        boost::program_options::notify(vm);
-    }
-    catch (const std::exception& e)
-    {
-        std::cerr << e.what() << std::endl;
-        return;
-    }
+private slots:
+    void update();
 
-    getHelp_ = vm.count("help");
-    streamerType_ = getStreamerType(vm["type"].as<std::string>().c_str());
-    configFileName_ = vm["config"].as<std::string>().c_str();
-    url_ = vm["url"].as<std::string>().c_str();
-}
+private:
+    QWebView* webView_;
+    WebkitAuthenticationHelper* authenticationHelper_;
+    QTimer* timer_;
+    QMutex mutex_;
 
-void CommandLineOptions::showSyntax() const
-{
-    std::cout << desc_;
-}
+    QImage image_;
 
+    bool interactionModeActive_;
+
+    unsigned int initialWidth_;
+
+    void processClickEvent(const Event &event);
+    void processPressEvent(const Event &event);
+    void processMoveEvent(const Event &event);
+    void processReleaseEvent(const Event &event);
+    void processWheelEvent(const Event &event);
+    void processKeyPress(const Event &event);
+    void processKeyRelease(const Event &event);
+    void processViewSizeChange(const Event &event);
+
+    QWebHitTestResult performHitTest(const Event &event) const;
+    QPoint getPointerPosition(const Event &event) const;
+    bool isWebGLElement(const QWebElement &element) const;
+    void setSize(const QSize& size);
+    void recomputeZoomFactor();
+};
+
+#endif // WEBKITPIXELSTREAMER_H
