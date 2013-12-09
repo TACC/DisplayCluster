@@ -47,8 +47,8 @@
 
 #define WHEEL_EVENT_FACTOR 1440.0
 
-PixelStreamInteractionDelegate::PixelStreamInteractionDelegate(ContentWindowManager& cwm)
-    : ContentInteractionDelegate(cwm)
+PixelStreamInteractionDelegate::PixelStreamInteractionDelegate(ContentWindowManager& contentWindow)
+    : ContentInteractionDelegate(contentWindow)
 {
 }
 
@@ -137,7 +137,7 @@ void PixelStreamInteractionDelegate::pinch(PinchGesture *gesture)
         return;
 
     Event event = getGestureEvent(gesture);
-    event.dy = factor - 1.f;
+    event.dy = (factor - 1.f) * g_configuration->getTotalWidth();
     event.type = Event::EVT_WHEEL;
 
     contentWindowManager_.setEvent(event);

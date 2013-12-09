@@ -39,7 +39,8 @@
 #include "MainWindow.h"
 #include "globals.h"
 #include "configuration/WallConfiguration.h"
-#include "Content.h"
+#include "configuration/MasterConfiguration.h"
+#include "ContentLoader.h"
 #include "ContentFactory.h"
 #include "ContentWindowManager.h"
 #include "log.h"
@@ -48,6 +49,8 @@
 #include "DisplayGroupGraphicsView.h"
 #include "DisplayGroupListWidgetProxy.h"
 #include "BackgroundWidget.h"
+#include "StateSerializationHelper.h"
+#include "localstreamer/DockPixelStreamer.h"
 
 #include "GLWindow.h"
 
@@ -65,6 +68,8 @@
 
 #define WEBBROWSER_DEFAULT_SIZE  QSize(1280, 1024)
 #define WEBBROWSER_DEFAULT_URL   "http://www.google.ch"
+
+#define DOCK_WIDTH_RELATIVE_TO_WALL   0.175
 
 MainWindow::MainWindow()
     : backgroundWidget_(0)
@@ -327,8 +332,8 @@ void MainWindow::setupMasterWindowUI()
     DisplayGroupGraphicsViewProxy * dggv = new DisplayGroupGraphicsViewProxy(g_displayGroupManager);
     mainWidget->addTab((QWidget *)dggv->getGraphicsView(), "Display group 0");
     // Forward background touch events
-    connect(dggv->getGraphicsView(), SIGNAL(backgroundTap(QPointF)), this, SIGNAL(backgroundTap(QPointF)));
-    connect(dggv->getGraphicsView(), SIGNAL(backgroundTapAndHold(QPointF)), this, SIGNAL(backgroundTapAndHold(QPointF)));
+    connect(dggv->getGraphicsView(), SIGNAL(backgroundTap(QPointF)), this, SIGNAL(hideDock()));
+    connect(dggv->getGraphicsView(), SIGNAL(backgroundTapAndHold(QPointF)), this, SLOT(openDock(QPointF)));
 
 #if ENABLE_TUIO_TOUCH_LISTENER
     touchListener_ = new MultiTouchListener( dggv );
@@ -425,43 +430,32 @@ bool MainWindow::isRegionVisible(double x, double y, double w, double h) const
     return false;
 }
 
-void MainWindow::addContent(const QString& filename)
-{
-    boost::shared_ptr<Content> c = ContentFactory::getContent(filename);
-
-    if(c != NULL)
-    {
-        ContentWindowManagerPtr cwm(new ContentWindowManager(c));
-
-        g_displayGroupManager->addContentWindowManager(cwm);
-
-        cwm->adjustSize( SIZE_1TO1 );
-    }
-    else
-    {
-        QMessageBox messageBox;
-        messageBox.setText("Unsupported file format.");
-        messageBox.exec();
-    }
-}
-
 void MainWindow::openContent()
 {
     QString filename = QFileDialog::getOpenFileName(this, tr("Choose content"), QString(), ContentFactory::getSupportedFilesFilterAsString());
 
     if(!filename.isEmpty())
     {
-        addContent(filename);
+        const bool success = ContentLoader(g_displayGroupManager).load(filename);
+
+        if ( !success )
+        {
+            QMessageBox messageBox;
+            messageBox.setText("Unsupported file format.");
+            messageBox.exec();
+        }
     }
 }
 
-void MainWindow::estimateGridSize(unsigned int numElem, int &gridX, int &gridY)
+void MainWindow::estimateGridSize(unsigned int numElem, unsigned int &gridX, unsigned int &gridY)
 {
-    gridX = (int)(ceil(sqrt(numElem)));
-    gridY = (gridX*(gridX-1)>=(int)numElem) ? gridX-1 : gridX;
+    assert(numElem > 0);
+    gridX = (unsigned int)(ceil(sqrt(numElem)));
+    assert(gridX > 0);
+    gridY = (gridX*(gridX-1)>=numElem) ? gridX-1 : gridX;
 }
 
-void MainWindow::addContentDirectory(const QString& directoryName, int gridX, int gridY)
+void MainWindow::addContentDirectory(const QString& directoryName, unsigned int gridX, unsigned int gridY)
 {
     QDir directory(directoryName);
     directory.setFilter(QDir::Files);
@@ -479,7 +473,7 @@ void MainWindow::addContentDirectory(const QString& directoryName, int gridX, in
     }
 
     // If the grid size is unspecified, compute one large enough to hold all the elements
-    if (gridX <= 0 || gridY <= 0)
+    if (gridX == 0 || gridY == 0)
     {
         estimateGridSize(list.size(), gridX, gridY);
     }
@@ -487,27 +481,23 @@ void MainWindow::addContentDirectory(const QString& directoryName, int gridX, in
     float w = 1./(float)gridX;
     float h = 1./(float)gridY;
 
-    int contentIndex = 0;
+    unsigned int contentIndex = 0;
 
     for(int i=0; i<list.size() && contentIndex < gridX*gridY; i++)
     {
         const QFileInfo& fileInfo = list.at(i);
+        const QString& filename = fileInfo.absoluteFilePath();
 
-        boost::shared_ptr<Content> c = ContentFactory::getContent(fileInfo.absoluteFilePath());
+        const unsigned int x = contentIndex % gridX;
+        const unsigned int y = contentIndex / gridX;
+        const QPointF position(x*w + 0.5*w, y*h + 0.5*h);
+        const QSizeF size(w, h);
 
-        if(c != NULL)
+        const bool success = ContentLoader(g_displayGroupManager).load(filename, position, size);
+
+        if(success)
         {
-            ContentWindowManagerPtr cwm(new ContentWindowManager(c));
-
-            g_displayGroupManager->addContentWindowManager(cwm);
-
-            int x = contentIndex % gridX;
-            int y = contentIndex / gridX;
-
-            cwm->setCoordinates(x*w, y*h, w, h);
-
-            contentIndex++;
-
+            ++contentIndex;
             put_flog(LOG_DEBUG, "added file %s", fileInfo.absoluteFilePath().toStdString().c_str());
         }
         else
@@ -523,8 +513,9 @@ void MainWindow::openContentsDirectory()
 
     if(!directoryName.isEmpty())
     {
-        int gridX = QInputDialog::getInt(this, "Grid X dimension", "Grid X dimension");
-        int gridY = QInputDialog::getInt(this, "Grid Y dimension", "Grid Y dimension");
+        int gridX = QInputDialog::getInt(this, "Grid X dimension", "Grid X dimension", 0, 0);
+        int gridY = QInputDialog::getInt(this, "Grid Y dimension", "Grid Y dimension", 0, 0);
+        assert( gridX >= 0 && gridY >= 0 );
 
         addContentDirectory(directoryName, gridX, gridY);
     }
@@ -551,7 +542,7 @@ void MainWindow::openWebBrowser()
                                          WEBBROWSER_DEFAULT_URL, &ok);
     if (ok && !url.isEmpty())
     {
-        emit createWebBrowser(url, WEBBROWSER_DEFAULT_SIZE);
+        emit openWebBrowser(QPointF(), WEBBROWSER_DEFAULT_SIZE, url);
     }
 }
 
@@ -573,9 +564,9 @@ void MainWindow::saveState()
             filename.append(".dcx");
         }
 
-        bool success = g_displayGroupManager->saveStateXMLFile(filename);
+        bool success = StateSerializationHelper(g_displayGroupManager).save(filename);
 
-        if(success != true)
+        if(!success)
         {
             QMessageBox::warning(this, "Error", "Could not save state file.", QMessageBox::Ok, QMessageBox::Ok);
         }
@@ -594,9 +585,7 @@ void MainWindow::loadState()
 
 void MainWindow::loadState(const QString& filename)
 {
-    bool success = g_displayGroupManager->loadStateXMLFile(filename);
-
-    if(!success)
+    if( !StateSerializationHelper(g_displayGroupManager).load(filename ))
     {
         QMessageBox::warning(this, "Error", "Could not load state file.", QMessageBox::Ok, QMessageBox::Ok);
     }
@@ -721,7 +710,7 @@ void MainWindow::dropEvent(QDropEvent* event)
     const QStringList& pathList = extractValidContentUrls(event->mimeData());
     foreach (QString url, pathList)
     {
-        addContent(url);
+        ContentLoader(g_displayGroupManager).load(url);
     }
 
     const QStringList& dirList = extractFolderUrls(event->mimeData());
@@ -739,6 +728,16 @@ void MainWindow::dropEvent(QDropEvent* event)
     }
 
     event->acceptProposedAction();
+}
+
+void MainWindow::openDock(const QPointF pos)
+{
+    const unsigned int dockWidth = g_configuration->getTotalWidth()*DOCK_WIDTH_RELATIVE_TO_WALL;
+    const unsigned int dockHeight = dockWidth * DockPixelStreamer::getDefaultAspectRatio();
+
+    const QString& dockRootDir = static_cast<MasterConfiguration*>(g_configuration)->getDockStartDir();
+
+    emit openDock(pos, QSize(dockWidth, dockHeight), dockRootDir);
 }
 
 void MainWindow::updateGLWindows()
@@ -795,7 +794,7 @@ void MainWindow::updateGLWindows()
     }
 
     // increment frame counter
-    g_frameCount = g_frameCount + 1;
+    ++g_frameCount;
 
     emit(updateGLWindowsFinished());
 }

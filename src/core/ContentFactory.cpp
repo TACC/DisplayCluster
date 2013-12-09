@@ -53,6 +53,7 @@
 #  include "PDF.h"
 #  include "DisplayGroupManager.h"
 #endif
+#include "PixelStreamContent.h"
 
 #define ERROR_IMAGE_FILENAME ":/img/error.png"
 
@@ -63,7 +64,7 @@ ContentPtr ContentFactory::getContent(const QString& uri)
     {
         put_flog(LOG_ERROR, "could not find file '%s'", uri.toLocal8Bit().constData());
 
-        boost::shared_ptr<Content> content(new TextureContent(ERROR_IMAGE_FILENAME));
+        ContentPtr content(new TextureContent(ERROR_IMAGE_FILENAME));
         return content;
     }
 
@@ -107,7 +108,7 @@ ContentPtr ContentFactory::getContent(const QString& uri)
         QSize size = imageReader.size();
 
         // small images will use Texture; larger images will use DynamicTexture
-        boost::shared_ptr<Content> content;
+        ContentPtr content;
 
         if(size.width() <= 4096 && size.height() <= 4096)
         {
@@ -147,6 +148,11 @@ ContentPtr ContentFactory::getContent(const QString& uri)
 
     ContentPtr content(new TextureContent(ERROR_IMAGE_FILENAME));
     return content;
+}
+
+ContentPtr ContentFactory::getPixelStreamContent(const QString& uri)
+{
+    return ContentPtr(new PixelStreamContent(uri));
 }
 
 const QStringList& ContentFactory::getSupportedExtensions()

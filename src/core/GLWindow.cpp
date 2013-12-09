@@ -238,17 +238,19 @@ void GLWindow::renderContentWindows()
     unsigned int i = 0;
     for(ContentWindowManagerPtrs::iterator it = contentWindowManagers.begin(); it != contentWindowManagers.end(); it++)
     {
-        // manage depth order
-        // the visible depths are in the range (-1,1); make the content window depths be in the range (-1,0)
-        const float depth = -(float)(windowCount - i) / (float)(windowCount + 1);
+        if ( isRegionVisible( (*it)->getCoordinates( )))
+        {
+            // the visible depths are in the range (-1,1); make the content window depths be in the range (-1,0)
+            const float depth = -(float)(windowCount - i) / (float)(windowCount + 1);
+
+            glPushMatrix();
+            glTranslatef(0.f, 0.f, depth);
+
+            (*it)->render();
+            glPopMatrix();
+        }
+
         ++i;
-
-        glPushMatrix();
-        glTranslatef(0.f, 0.f, depth);
-
-        (*it)->render();
-
-        glPopMatrix();
     }
 }
 

@@ -220,11 +220,11 @@ void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
     }
     else
     {
-        ContentWindowManagerPtr cwm = getContentWindowManager();
-        if(cwm)
+        ContentWindowManagerPtr contentWindow = getContentWindowManager();
+        if(contentWindow)
         {
             // Zoom or forward event depending on type
-            cwm->getInteractionDelegate().mouseMoveEvent(event);
+            contentWindow->getInteractionDelegate().mouseMoveEvent(event);
 
             // force a redraw to update window info label
             update();
@@ -328,15 +328,15 @@ void ContentWindowGraphicsItem::mouseReleaseEvent(QGraphicsSceneMouseEvent * eve
     resizing_ = false;
     moving_ = false;
 
-    ContentWindowManagerPtr cwm = getContentWindowManager();
+    ContentWindowManagerPtr contentWindow = getContentWindowManager();
 
-    if( cwm )
+    if( contentWindow )
     {
-        cwm->getContent()->blockAdvance( false );
+        contentWindow->getContent()->blockAdvance( false );
 
         if (selected())
         {
-            cwm->getInteractionDelegate().mouseReleaseEvent(event);
+            contentWindow->getInteractionDelegate().mouseReleaseEvent(event);
         }
     }
 
@@ -355,14 +355,14 @@ void ContentWindowGraphicsItem::wheelEvent(QGraphicsSceneWheelEvent * event)
         return;
     }
 
-    ContentWindowManagerPtr cwm = getContentWindowManager();
+    ContentWindowManagerPtr contentWindow = getContentWindowManager();
 
-    if( cwm )
+    if( contentWindow )
     {
         // handle wheel movements differently depending on state of item window
         if (selected())
         {
-            cwm->getInteractionDelegate().wheelEvent(event);
+            contentWindow->getInteractionDelegate().wheelEvent(event);
         }
         else
         {
@@ -379,11 +379,11 @@ void ContentWindowGraphicsItem::keyPressEvent(QKeyEvent *event)
 {
     if (selected())
     {
-        ContentWindowManagerPtr cwm = getContentWindowManager();
+        ContentWindowManagerPtr contentWindow = getContentWindowManager();
 
-        if( cwm )
+        if( contentWindow )
         {
-            cwm->getInteractionDelegate().keyPressEvent(event);
+            contentWindow->getInteractionDelegate().keyPressEvent(event);
         }
     }
 }
@@ -392,11 +392,11 @@ void ContentWindowGraphicsItem::keyReleaseEvent(QKeyEvent *event)
 {
     if (selected())
     {
-        ContentWindowManagerPtr cwm = getContentWindowManager();
+        ContentWindowManagerPtr contentWindow = getContentWindowManager();
 
-        if( cwm )
+        if( contentWindow )
         {
-            cwm->getInteractionDelegate().keyReleaseEvent(event);
+            contentWindow->getInteractionDelegate().keyReleaseEvent(event);
         }
     }
 }

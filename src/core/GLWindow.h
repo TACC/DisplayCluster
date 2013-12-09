@@ -98,6 +98,7 @@ private:
 
     int tileIndex_;
 
+    // Postion and dimensions of the GLWindow in normalized Wall coordinates
     double left_;
     double right_;
     double bottom_;

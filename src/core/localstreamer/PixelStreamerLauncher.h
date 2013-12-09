@@ -37,22 +37,85 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef LOCALPIXELSTREAMERFACTORY_H
-#define LOCALPIXELSTREAMERFACTORY_H
+#ifndef PIXELSTREAMERLAUNCHER_H
+#define PIXELSTREAMERLAUNCHER_H
 
-class CommandLineOptions;
-class LocalPixelStreamer;
+#include <map>
 
-class LocalPixelStreamerFactory
+#include <QObject>
+#include <QPointF>
+#include <QSize>
+
+class QProcess;
+class DisplayGroupManager;
+
+/**
+ * Launch Pixel Streamers as separate processes.
+ *
+ * The processes connect to the Master application on localhost using the dc::Stream API.
+ * They can be terminated by the user by closing their associated window.
+ *
+ * Due to an incompatibility between QProcess and MPI(*), we must start the
+ * processes DETACHED.
+ * In theory they might stay alive after the main application has exited.
+ * In practice, this doesn't seem to happen; our processes exit when the
+ * dc::Stream is closed in any case.
+ *
+ * (*) MPI captures the SIGCHLD that QProcess relies on to detect that the process has finished.
+ * Thus, the call to waitForFinished() blocks forever in QProcess destructor...
+ */
+class PixelStreamerLauncher : public QObject
 {
+Q_OBJECT
+
 public:
     /**
-     * @brief create Create a LocalPixelStreamer of the given type
-     * @param options The options to use to build the LocalPixelStreamer
-     * @return Pointer to a new LocalPixelStreamer instance. The caller is
-     *         responsible for the deletion of the returned object.
+     * Create a new PixelStreamerLauncher
+     *
+     * @param displayGroupManager The DisplayGroupManager instance,
+     *        where the Stream windows will be rendered.
      */
-    static LocalPixelStreamer* create(const CommandLineOptions& options);
+    PixelStreamerLauncher(DisplayGroupManager* displayGroupManager);
+
+public slots:
+    /**
+     * Open a WebBrowser.
+     *
+     * @param pos The position of the center of the browser window. If pos.isNull(),
+     *        the window will be centered on the DisplayWall.
+     * @param size The initial size of the viewport of the webbrowser in pixels.
+     * @param url The webpage to open.
+     */
+    void openWebBrowser(const QPointF pos, const QSize size, const QString url);
+
+    /**
+     * Open the Dock.
+     *
+     * A new dock instance is created if it was closed, otherwise the existing
+     * Dock instance is moved to the given position.
+     * @param pos The position of the center of the Dock
+     * @param size The initial size of the Dock in pixels.
+     * @param rootDir The initial root directory of the Dock.
+     */
+    void openDock(const QPointF pos, const QSize size, const QString rootDir);
+
+    /**
+     * Hide the Dock.
+     *
+     * Currently, the dock is simply moved ouside of the viewport and remains open.
+     */
+    void hideDock();
+
+private slots:
+    void dereferenceLocalStreamer(const QString uri);
+
+private:
+    typedef std::map<QString, QProcess*> Streamers;
+    Streamers processes_;
+
+    DisplayGroupManager* displayGroupManager_;
+
+    bool createDock(const QSize& size, const QString& rootDir);
 };
 
-#endif // LOCALPIXELSTREAMERFACTORY_H
+#endif // PIXELSTREAMERLAUNCHER_H

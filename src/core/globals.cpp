@@ -51,4 +51,4 @@ MPI_Comm g_mpiRenderComm;
 Configuration * g_configuration = NULL;
 DisplayGroupManagerPtr g_displayGroupManager;
 MainWindow * g_mainWindow = NULL;
-long g_frameCount = 0;
+uint64_t g_frameCount = 0;

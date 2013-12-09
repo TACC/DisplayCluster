@@ -56,13 +56,13 @@ class ContentWindowManager : public ContentWindowInterface, public boost::enable
     public:
 
         ContentWindowManager(); // no-argument constructor required for serialization
-        ContentWindowManager(boost::shared_ptr<Content> content);
+        ContentWindowManager(ContentPtr content);
         virtual ~ContentWindowManager();
 
-        boost::shared_ptr<Content> getContent();
+        ContentPtr getContent();
 
-        boost::shared_ptr<DisplayGroupManager> getDisplayGroupManager();
-        void setDisplayGroupManager(boost::shared_ptr<DisplayGroupManager> displayGroupManager);
+        DisplayGroupManagerPtr getDisplayGroupManager();
+        void setDisplayGroupManager(DisplayGroupManagerPtr displayGroupManager);
 
         ContentInteractionDelegate& getInteractionDelegate();
 
@@ -70,8 +70,8 @@ class ContentWindowManager : public ContentWindowInterface, public boost::enable
         void moveToFront(ContentWindowInterface * source=NULL);
         void close(ContentWindowInterface * source=NULL);
 
-        void getWindowCenterPosition(double &x, double &y);
-        void centerPositionAround(double x, double y, bool constrainToWindowBorders);
+        QPointF getWindowCenterPosition() const;
+        void centerPositionAround(const QPointF& position, const bool constrainToWindowBorders);
 
         // GLWindow rendering
         void render();
@@ -99,7 +99,7 @@ class ContentWindowManager : public ContentWindowInterface, public boost::enable
         }
 
     private:
-        boost::shared_ptr<Content> content_;
+        ContentPtr content_;
 
         boost::weak_ptr<DisplayGroupManager> displayGroupManager_;
 
@@ -116,13 +116,13 @@ class pyContentWindowManager
 
         pyContentWindowManager(pyContent content)
         {
-            ContentWindowManagerPtr cwm(new ContentWindowManager(content.get()));
-            ptr_ = cwm;
+            ContentWindowManagerPtr contentWindow(new ContentWindowManager(content.get()));
+            ptr_ = contentWindow;
         }
 
-        pyContentWindowManager(ContentWindowManagerPtr cwm)
+        pyContentWindowManager(ContentWindowManagerPtr contentWindow)
         {
-            ptr_ = cwm;
+            ptr_ = contentWindow;
         }
 
         ContentWindowManagerPtr get()

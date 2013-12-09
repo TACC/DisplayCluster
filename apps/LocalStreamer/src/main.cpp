@@ -39,9 +39,10 @@
 
 #include "Application.h"
 #include "localstreamer/CommandLineOptions.h"
+#include <iostream>
 
 #define INVALID_STREAMER_TYPE_ERROR_CODE     1
-#define FAILED_APP_INITIALIZTION_ERROR_CODE  2
+#define FAILED_APP_INITIALIZATION_ERROR_CODE 2
 
 int main(int argc, char * argv[])
 {
@@ -60,8 +61,8 @@ int main(int argc, char * argv[])
     }
 
     Application app(argc, argv);
-    if (!app.initalize(options))
-        return FAILED_APP_INITIALIZTION_ERROR_CODE;
+    if (!app.initialize(options))
+        return FAILED_APP_INITIALIZATION_ERROR_CODE;
 
     return app.exec();
 }

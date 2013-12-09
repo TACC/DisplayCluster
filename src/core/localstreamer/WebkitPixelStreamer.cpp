@@ -55,7 +55,7 @@
 #define WEBPAGE_DEFAULT_ZOOM   2.0
 
 WebkitPixelStreamer::WebkitPixelStreamer(const QSize& size, const QString& url)
-    : LocalPixelStreamer()
+    : PixelStreamer()
     , webView_(new QWebView())
     , authenticationHelper_(0)
     , timer_(0)

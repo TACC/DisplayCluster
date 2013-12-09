@@ -40,7 +40,7 @@
 #ifndef DOCKPIXELSTREAMER_H
 #define DOCKPIXELSTREAMER_H
 
-#include "LocalPixelStreamer.h"
+#include "PixelStreamer.h"
 
 #include <QtCore/QDir>
 #include <QtCore/QObject>
@@ -53,7 +53,7 @@
 class PictureFlow;
 class AsyncImageLoader;
 
-class DockPixelStreamer : public LocalPixelStreamer
+class DockPixelStreamer : public PixelStreamer
 {
     Q_OBJECT
 
@@ -101,7 +101,7 @@ private:
 
     QSize getMinSize() const;
     QSize getMaxSize() const;
-    QSize getBoundedSize(const QSize& size) const;
+    QSize constrainSize(const QSize& size) const;
 };
 
 #endif // DOCKPIXELSTREAMER_H

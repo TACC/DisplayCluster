@@ -99,7 +99,7 @@ private:
 
     bool isDecodingInProgress();
 
-    bool isVisible(const QRectF& segment);
+    bool isVisible(const QRect& segment);
     bool isVisible(const PixelStreamSegment& segment);
 };
 

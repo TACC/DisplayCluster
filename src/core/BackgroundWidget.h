@@ -65,8 +65,6 @@ private:
 
     QColor previousColor_;
     QString previousBackgroundURI_;
-
-    bool setBackgroundContentFromUri(const QString &filename);
 };
 
 #endif // BACKGROUNDWIDGET_H

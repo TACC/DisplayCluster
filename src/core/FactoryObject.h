@@ -39,18 +39,20 @@
 #ifndef FACTORY_OBJECT_H
 #define FACTORY_OBJECT_H
 
+#include <stdint.h>
+
 class FactoryObject {
 
     public:
 
-        long getRenderedFrameCount();
+        uint64_t getRenderedFrameCount() const;
 
     protected:
 
         void updateRenderedFrameCount();
 
         // frame count object was last rendered
-        long renderedFrameCount_;
+        uint64_t renderedFrameCount_;
 };
 
 #endif

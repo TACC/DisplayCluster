@@ -40,6 +40,7 @@
 #define GLOBALS_H
 
 #include <mpi.h>
+#include <stdint.h>
 #include "types.h"
 
 class Configuration;
@@ -52,7 +53,7 @@ extern MPI_Comm g_mpiRenderComm;
 extern Configuration* g_configuration;
 extern DisplayGroupManagerPtr g_displayGroupManager;
 extern MainWindow * g_mainWindow;
-extern long g_frameCount;
+extern uint64_t g_frameCount;
 
 #if ENABLE_SKELETON_SUPPORT
     class SkeletonThread;

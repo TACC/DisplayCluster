@@ -95,6 +95,10 @@ void PixelStream::updateVisibleTextures()
 
     for(size_t i=0; i<segments.size(); i++)
     {
+        // The parameters always need to be up to date to determine visibility when rendering.
+        segmentRenderers_[i]->setParameters(segments[i].parameters.x, segments[i].parameters.y,
+                                            segments[i].parameters.width, segments[i].parameters.height);
+
         if (segmentRenderers_[i]->textureNeedsUpdate() && isVisible(segments[i]))
         {
             if (!segments[i].parameters.compressed)
@@ -105,7 +109,6 @@ void PixelStream::updateVisibleTextures()
                                             QImage::Format_RGB32);
 
                 segmentRenderers_[i]->updateTexture(textureWrapper);
-                segmentRenderers_[i]->setParameters(segments[i].parameters.x, segments[i].parameters.y);
             }
         }
     }
@@ -230,13 +233,13 @@ bool PixelStream::isDecodingInProgress()
     return globalThreadsRunning > 0;
 }
 
-bool PixelStream::isVisible(const QRectF& segment)
+bool PixelStream::isVisible(const QRect& segment)
 {
-    ContentWindowManagerPtr cwm = g_displayGroupManager->getContentWindowManager(uri_, CONTENT_TYPE_PIXEL_STREAM);
+    ContentWindowManagerPtr contentWindow = g_displayGroupManager->getContentWindowManager(uri_, CONTENT_TYPE_PIXEL_STREAM);
 
-    if(cwm)
+    if(contentWindow)
     {
-        const QRectF& window = cwm->getCoordinates();
+        const QRectF& window = contentWindow->getCoordinates();
 
         // coordinates of segment in global tiled display space
         const double segmentX = window.x() + (double)segment.x() / (double)width_ * window.width();
@@ -253,25 +256,8 @@ bool PixelStream::isVisible(const QRectF& segment)
 
 bool PixelStream::isVisible(const dc::PixelStreamSegment& segment)
 {
-    ContentWindowManagerPtr cwm = g_displayGroupManager->getContentWindowManager(uri_, CONTENT_TYPE_PIXEL_STREAM);
-
-    if(cwm)
-    {
-        const dc::PixelStreamSegmentParameters& segmentParams = segment.parameters;
-        const QRectF& window = cwm->getCoordinates();
-
-        // coordinates of segment in global tiled display space
-        double segmentX = window.x() + (double)segmentParams.x / (double)width_ * window.width();
-        double segmentY = window.y() + (double)segmentParams.y / (double)height_ * window.height();
-        double segmentW = (double)segmentParams.width / (double)width_ * window.width();
-        double segmentH = (double)segmentParams.height / (double)height_ * window.height();
-
-        return g_mainWindow->isRegionVisible(segmentX, segmentY, segmentW, segmentH);
-    }
-    else
-    {
-        put_flog(LOG_WARN, "could not find window for segment");
-        return false;
-    }
+    QRect segmentRegion(segment.parameters.x, segment.parameters.y,
+                        segment.parameters.width, segment.parameters.height);
+    return isVisible(segmentRegion);
 }
 

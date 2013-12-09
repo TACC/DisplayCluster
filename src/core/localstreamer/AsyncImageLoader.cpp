@@ -39,8 +39,8 @@
 
 #include "AsyncImageLoader.h"
 
-#include "../thumbnail/ThumbnailGeneratorFactory.h"
-#include "../thumbnail/ThumbnailGenerator.h"
+#include "thumbnail/ThumbnailGeneratorFactory.h"
+#include "thumbnail/ThumbnailGenerator.h"
 
 #define USE_CACHE
 #define CACHE_MAX_SIZE 100

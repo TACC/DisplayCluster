@@ -58,7 +58,7 @@ ContentWindowManager::ContentWindowManager()
 {
 }
 
-ContentWindowManager::ContentWindowManager(boost::shared_ptr<Content> content)
+ContentWindowManager::ContentWindowManager(ContentPtr content)
     : interactionDelegate_( 0 )
 {
     // ContentWindowManagers must always belong to the main thread!
@@ -82,7 +82,8 @@ ContentWindowManager::ContentWindowManager(boost::shared_ptr<Content> content)
     content_ = content;
 
     // receive updates to content dimensions
-    connect(content.get(), SIGNAL(dimensionsChanged(int, int)), this, SLOT(setContentDimensions(int, int)));
+    connect(content.get(), SIGNAL(dimensionsChanged(int, int)),
+            this, SLOT(setContentDimensions(int, int)));
 
     if (g_mpiRank == 0)
     {
@@ -108,20 +109,20 @@ ContentWindowManager::~ContentWindowManager()
     delete interactionDelegate_;
 }
 
-boost::shared_ptr<Content> ContentWindowManager::getContent()
+ContentPtr ContentWindowManager::getContent()
 {
     return content_;
 }
 
-boost::shared_ptr<DisplayGroupManager> ContentWindowManager::getDisplayGroupManager()
+DisplayGroupManagerPtr ContentWindowManager::getDisplayGroupManager()
 {
     return displayGroupManager_.lock();
 }
 
-void ContentWindowManager::setDisplayGroupManager(boost::shared_ptr<DisplayGroupManager> displayGroupManager)
+void ContentWindowManager::setDisplayGroupManager(DisplayGroupManagerPtr displayGroupManager)
 {
     // disconnect any existing signals to previous DisplayGroupManager
-    boost::shared_ptr<DisplayGroupManager> oldDisplayGroupManager = getDisplayGroupManager();
+    DisplayGroupManagerPtr oldDisplayGroupManager = getDisplayGroupManager();
 
     if(oldDisplayGroupManager != NULL)
     {
@@ -134,13 +135,20 @@ void ContentWindowManager::setDisplayGroupManager(boost::shared_ptr<DisplayGroup
     // don't use queued connections; we want these to execute immediately and we're in the same thread
     if(displayGroupManager != NULL)
     {
-        connect(this, SIGNAL(contentDimensionsChanged(int, int, ContentWindowInterface *)), displayGroupManager.get(), SLOT(sendDisplayGroup()));
-        connect(this, SIGNAL(coordinatesChanged(double, double, double, double, ContentWindowInterface *)), displayGroupManager.get(), SLOT(sendDisplayGroup()));
-        connect(this, SIGNAL(positionChanged(double, double, ContentWindowInterface *)), displayGroupManager.get(), SLOT(sendDisplayGroup()));
-        connect(this, SIGNAL(sizeChanged(double, double, ContentWindowInterface *)), displayGroupManager.get(), SLOT(sendDisplayGroup()));
-        connect(this, SIGNAL(centerChanged(double, double, ContentWindowInterface *)), displayGroupManager.get(), SLOT(sendDisplayGroup()));
-        connect(this, SIGNAL(zoomChanged(double, ContentWindowInterface *)), displayGroupManager.get(), SLOT(sendDisplayGroup()));
-        connect(this, SIGNAL(windowStateChanged(ContentWindowInterface::WindowState, ContentWindowInterface *)), displayGroupManager.get(), SLOT(sendDisplayGroup()));
+        connect(this, SIGNAL(contentDimensionsChanged(int, int, ContentWindowInterface *)),
+                displayGroupManager.get(), SLOT(sendDisplayGroup()));
+        connect(this, SIGNAL(coordinatesChanged(double, double, double, double, ContentWindowInterface *)),
+                displayGroupManager.get(), SLOT(sendDisplayGroup()));
+        connect(this, SIGNAL(positionChanged(double, double, ContentWindowInterface *)),
+                displayGroupManager.get(), SLOT(sendDisplayGroup()));
+        connect(this, SIGNAL(sizeChanged(double, double, ContentWindowInterface *)),
+                displayGroupManager.get(), SLOT(sendDisplayGroup()));
+        connect(this, SIGNAL(centerChanged(double, double, ContentWindowInterface *)),
+                displayGroupManager.get(), SLOT(sendDisplayGroup()));
+        connect(this, SIGNAL(zoomChanged(double, ContentWindowInterface *)),
+                displayGroupManager.get(), SLOT(sendDisplayGroup()));
+        connect(this, SIGNAL(windowStateChanged(ContentWindowInterface::WindowState, ContentWindowInterface *)),
+                displayGroupManager.get(), SLOT(sendDisplayGroup()));
 
         // we don't call sendDisplayGroup() on movedToFront() or destroyed() since it happens already
     }
@@ -171,16 +179,15 @@ void ContentWindowManager::close(ContentWindowInterface * source)
     }
 }
 
-void ContentWindowManager::getWindowCenterPosition(double &x, double &y)
+QPointF ContentWindowManager::getWindowCenterPosition() const
 {
-    x = x_ + 0.5 * w_;
-    y = y_ + 0.5 * h_;
+    return QPointF(x_ + 0.5 * w_, y_ + 0.5 * h_);
 }
 
-void ContentWindowManager::centerPositionAround(double x, double y, bool constrainToWindowBorders)
+void ContentWindowManager::centerPositionAround(const QPointF& position, const bool constrainToWindowBorders)
 {
-    double newX = x - 0.5 * w_;
-    double newY = y - 0.5 * h_;
+    double newX = position.x() - 0.5 * w_;
+    double newY = position.y() - 0.5 * h_;
 
     if (constrainToWindowBorders)
     {
@@ -203,7 +210,7 @@ void ContentWindowManager::render()
     // optionally render the border
     bool showWindowBorders = true;
 
-    boost::shared_ptr<DisplayGroupManager> dgm = getDisplayGroupManager();
+    DisplayGroupManagerPtr dgm = getDisplayGroupManager();
 
     if(dgm != NULL)
     {
@@ -220,7 +227,8 @@ void ContentWindowManager::render()
             horizontalBorder *= 4.;
         }
 
-        double verticalBorder = (double)g_configuration->getTotalHeight() / (double)g_configuration->getTotalWidth() * horizontalBorder;
+        double verticalBorder = (double)g_configuration->getTotalHeight() /
+                                (double)g_configuration->getTotalWidth() * horizontalBorder;
 
         glPushAttrib(GL_CURRENT_BIT);
 
@@ -234,7 +242,8 @@ void ContentWindowManager::render()
             glColor4f(1,1,1,1);
         }
 
-        GLWindow::drawRectangle(x_-verticalBorder,y_-horizontalBorder,w_+2.*verticalBorder,h_+2.*horizontalBorder);
+        GLWindow::drawRectangle(x_-verticalBorder, y_-horizontalBorder,
+                                w_+2.*verticalBorder, h_+2.*horizontalBorder);
 
         glPopAttrib();
     }

@@ -44,7 +44,7 @@
 #include <boost/shared_ptr.hpp>
 #include <QtGui>
 
-extern long g_frameCount;
+#include "globals.h"
 
 template <class T>
 class Factory {

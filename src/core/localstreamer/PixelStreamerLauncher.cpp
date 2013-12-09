@@ -37,33 +37,87 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef LOCALPIXELSTREAMER_H
-#define LOCALPIXELSTREAMER_H
+#include "PixelStreamerLauncher.h"
 
-#include <QObject>
-#include <QSize>
-#include <QImage>
+#include "DockPixelStreamer.h"
+#include "CommandLineOptions.h"
 
-#include "Event.h"
+#include "log.h"
+#include "DisplayGroupManager.h"
 
-using dc::Event;
+#include <QProcess>
 
-class LocalPixelStreamer : public QObject
+#ifdef _WIN32
+#define LOCALSTREAMER_BIN "localstreamer.exe"
+#else
+#define LOCALSTREAMER_BIN "localstreamer"
+#endif
+
+PixelStreamerLauncher::PixelStreamerLauncher(DisplayGroupManager* displayGroupManager)
+    : displayGroupManager_(displayGroupManager)
 {
-    Q_OBJECT
+    connect(displayGroupManager, SIGNAL(pixelStreamViewClosed(QString)),
+            this, SLOT(dereferenceLocalStreamer(QString)), Qt::QueuedConnection);
+}
 
-public:
-    LocalPixelStreamer();
-    virtual ~LocalPixelStreamer();
+void PixelStreamerLauncher::openWebBrowser(const QPointF pos, const QSize size, const QString url)
+{
+    static int webbrowserCounter = 0;
+    const QString& uri = QString("WebBrowser_%1").arg(webbrowserCounter++);
 
-    virtual QSize size() const = 0;
+    QString program = QString("%1/%2").arg(QCoreApplication::applicationDirPath(), LOCALSTREAMER_BIN);
 
-public slots:
-    virtual void processEvent(Event event) = 0;
+    CommandLineOptions options;
+    options.setPixelStreamerType(PS_WEBKIT);
+    options.setName(uri);
+    options.setUrl(url);
+    options.setWidth(size.width());
+    options.setHeight(size.height());
 
-signals:
-    void imageUpdated(QImage image);
-    void openContent(QString uri);
-};
+    processes_[uri] = new QProcess(this);
+    if ( !processes_[uri]->startDetached(program, options.getCommandLineArguments(), QDir::currentPath( )))
+        put_flog(LOG_WARN, "QProcess could not be started!");
 
-#endif // LOCALPIXELSTREAMER_H
+    if ( !pos.isNull( ))
+        displayGroupManager_->positionWindow(uri, pos);
+}
+
+void PixelStreamerLauncher::openDock(const QPointF pos, const QSize size, const QString rootDir)
+{
+    const QString& uri = DockPixelStreamer::getUniqueURI();
+
+    if( !processes_.count(uri) )
+    {
+        createDock(size, rootDir);
+    }
+    displayGroupManager_->positionWindow(uri, pos);
+}
+
+void PixelStreamerLauncher::hideDock()
+{
+    displayGroupManager_->hideWindow(DockPixelStreamer::getUniqueURI());
+}
+
+void PixelStreamerLauncher::dereferenceLocalStreamer(const QString uri)
+{
+    processes_.erase(uri);
+}
+
+bool PixelStreamerLauncher::createDock(const QSize& size, const QString& rootDir)
+{
+    const QString& uri = DockPixelStreamer::getUniqueURI();
+
+    assert( !processes_.count(uri) );
+
+    QString program = QString("%1/%2").arg(QCoreApplication::applicationDirPath(), LOCALSTREAMER_BIN);
+
+    CommandLineOptions options;
+    options.setPixelStreamerType(PS_DOCK);
+    options.setName(uri);
+    options.setRootDir(rootDir);
+    options.setWidth(size.width());
+    options.setHeight(size.height());
+
+    processes_[uri] = new QProcess(this);
+    return processes_[uri]->startDetached(program, options.getCommandLineArguments(), QDir::currentPath());
+}

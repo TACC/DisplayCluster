@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,57 +37,12 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DISPLAY_GROUP_INTERFACE_H
-#define DISPLAY_GROUP_INTERFACE_H
+#include "PixelStreamer.h"
 
-#include "Content.h"
-#include <QtGui>
-#include <boost/shared_ptr.hpp>
-#include <boost/weak_ptr.hpp>
+PixelStreamer::PixelStreamer()
+{
+}
 
-class DisplayGroupManager;
-class ContentWindowManager;
-
-class DisplayGroupInterface : public QObject {
-    Q_OBJECT
-
-    public:
-
-        DisplayGroupInterface() { }
-        DisplayGroupInterface(DisplayGroupManagerPtr displayGroupManager);
-
-        DisplayGroupManagerPtr getDisplayGroupManager();
-
-        ContentWindowManagerPtrs getContentWindowManagers();
-        ContentWindowManagerPtr getContentWindowManager(const QString& uri, CONTENT_TYPE contentType=CONTENT_TYPE_ANY);
-
-        // remove all current ContentWindowManagers and add the vector of provided ContentWindowManagers
-        void setContentWindowManagers(ContentWindowManagerPtrs contentWindowManagers);
-
-    public slots:
-
-        // these methods set the local copies of the state variables if source != this
-        // they will emit signals if source == NULL or if this is a DisplayGroup object
-        // the source argument should not be provided by users -- only by these functions
-        virtual void addContentWindowManager(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source=NULL);
-        virtual void removeContentWindowManager(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source=NULL);
-        virtual void moveContentWindowManagerToFront(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source=NULL);
-
-    signals:
-
-        // emitting these signals will trigger updates on the corresponding DisplayGroup
-        // as well as all other DisplayGroupInterfaces to that DisplayGroup
-        void contentWindowManagerAdded(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source=NULL);
-        void contentWindowManagerRemoved(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source=NULL);
-        void contentWindowManagerMovedToFront(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source=NULL);
-
-    protected:
-
-        // optional: reference to DisplayGroupManager for non-DisplayGroupManager objects
-        boost::weak_ptr<DisplayGroupManager> displayGroupManager_;
-
-        // vector of all of its content window managers
-        ContentWindowManagerPtrs contentWindowManagers_;
-};
-
-#endif
+PixelStreamer::~PixelStreamer()
+{
+}

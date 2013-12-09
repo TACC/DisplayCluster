@@ -52,6 +52,8 @@ PixelStreamSegmentRenderer::PixelStreamSegmentRenderer(const QString &uri)
     , textureHeight_(0)
     , x_(0)
     , y_(0)
+    , width_(0)
+    , height_(0)
     , segmentStatistics(new FpsCounter())
     , textureNeedsUpdate_(true)
 {
@@ -69,15 +71,9 @@ PixelStreamSegmentRenderer::~PixelStreamSegmentRenderer()
     delete segmentStatistics;
 }
 
-void PixelStreamSegmentRenderer::getDimensions(int &width, int &height) const
+QRect PixelStreamSegmentRenderer::getRect() const
 {
-    width = textureWidth_;
-    height = textureHeight_;
-}
-
-QRectF PixelStreamSegmentRenderer::getRect() const
-{
-    return QRectF(x_, y_, textureWidth_, textureHeight_);
+    return QRect(x_, y_, width_, height_);
 }
 
 void PixelStreamSegmentRenderer::updateTexture(const QImage& image)
@@ -121,10 +117,13 @@ void PixelStreamSegmentRenderer::setTextureNeedsUpdate()
     textureNeedsUpdate_ = true;
 }
 
-void PixelStreamSegmentRenderer::setParameters(unsigned int x, unsigned int y)
+void PixelStreamSegmentRenderer::setParameters(const unsigned int x, const unsigned int y,
+                                               const unsigned int width, const unsigned int height)
 {
     x_ = x;
     y_ = y;
+    width_ = width;
+    height_ = height;
 }
 
 bool PixelStreamSegmentRenderer::render(bool showSegmentBorders, bool showSegmentStatistics)
@@ -139,7 +138,7 @@ bool PixelStreamSegmentRenderer::render(bool showSegmentBorders, bool showSegmen
     glTranslatef(x_, y_, 0.);
 
     // The following draw calls assume normalized coordinates, so we must pre-multiply by this segment's dimensions
-    glScalef(textureWidth_, textureHeight_, 0.);
+    glScalef(width_, height_, 0.);
 
     // todo: compute actual texture bounds to render considering zoom, pan
     drawUnitTexturedQuad(0, 0, 1.f, 1.f);

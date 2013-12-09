@@ -39,7 +39,7 @@
 #include "FactoryObject.h"
 #include "globals.h"
 
-long FactoryObject::getRenderedFrameCount()
+uint64_t FactoryObject::getRenderedFrameCount() const
 {
     return renderedFrameCount_;
 }

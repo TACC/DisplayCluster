@@ -50,14 +50,20 @@ class Content;
 class ContentFactory
 {
 public:
-
-    // get a Content object of the appropriate derived type based on the URI given
+    /** Get a Content object of the appropriate derived type based on the URI given. */
     static ContentPtr getContent(const QString& uri);
 
-    static const QStringList& getSupportedExtensions();
-    static const QStringList& getSupportedFilesFilter();
-    static QString getSupportedFilesFilterAsString();
+    /** Special case: PixelStreamContent type cannot be derived from its uri. */
+    static ContentPtr getPixelStreamContent(const QString& uri);
 
+    /** Get all the supported file extensions. */
+    static const QStringList& getSupportedExtensions();
+
+    /** Get all the supported file extensions prefixed with '.' for use in Qt file filters. */
+    static const QStringList& getSupportedFilesFilter();
+
+    /** Get all the file extensions prefixed with '.' in one string. */
+    static QString getSupportedFilesFilterAsString();
 };
 
 #endif // CONTENTFACTORY_H

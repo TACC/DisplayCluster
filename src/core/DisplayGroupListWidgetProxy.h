@@ -47,7 +47,7 @@ class DisplayGroupListWidgetProxy : public DisplayGroupInterface {
 
     public:
 
-        DisplayGroupListWidgetProxy(boost::shared_ptr<DisplayGroupManager> displayGroupManager);
+        DisplayGroupListWidgetProxy(DisplayGroupManagerPtr displayGroupManager);
         ~DisplayGroupListWidgetProxy();
 
         QListWidget * getListWidget();

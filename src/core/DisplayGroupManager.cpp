@@ -40,17 +40,12 @@
 #include "ContentWindowManager.h"
 #include "ContentFactory.h"
 #include "Content.h"
-#include "configuration/Configuration.h"
 #include "globals.h"
 #include "log.h"
 #include "MainWindow.h"
 #include "GLWindow.h"
-#include "PixelStreamContent.h"
-#include "SVGContent.h"
-#include "StatePreview.h"
 #include "MessageHeader.h"
 #include "PixelStream.h"
-#include "localstreamer/DockPixelStreamer.h"
 
 #include <sstream>
 #include <boost/serialization/vector.hpp>
@@ -175,7 +170,7 @@ void DisplayGroupManager::removeContentWindowManager(ContentWindowManagerPtr con
         }
 
         // set null display group in content window manager object
-        contentWindowManager->setDisplayGroupManager(boost::shared_ptr<DisplayGroupManager>());
+        contentWindowManager->setDisplayGroupManager(DisplayGroupManagerPtr());
 
         sendDisplayGroup();
     }
@@ -288,24 +283,20 @@ ContentWindowManagerPtr DisplayGroupManager::getBackgroundContentWindowManager()
     return backgroundContent_;
 }
 
-void DisplayGroupManager::initBackground()
+bool DisplayGroupManager::setBackgroundContentFromUri(const QString filename)
 {
-    assert(g_configuration != NULL && "initBackground() needs a valid configuration file loaded");
-
-    backgroundColor_ = g_configuration->getBackgroundColor();
-
-    if(!g_configuration->getBackgroundUri().isEmpty())
+    if(!filename.isEmpty())
     {
-        boost::shared_ptr<Content> c = ContentFactory::getContent(g_configuration->getBackgroundUri());
+        ContentPtr content = ContentFactory::getContent(filename);
 
-        if(c != NULL)
+        if( content )
         {
-            ContentWindowManagerPtr cwm(new ContentWindowManager(c));
-            g_displayGroupManager->setBackgroundContentWindowManager(cwm);
+            ContentWindowManagerPtr contentWindow(new ContentWindowManager(content));
+            setBackgroundContentWindowManager(contentWindow);
+            return true;
         }
     }
-    else
-        sendDisplayGroup();
+    return false;
 }
 
 QColor DisplayGroupManager::getBackgroundColor() const
@@ -331,35 +322,12 @@ boost::shared_ptr<DisplayGroupInterface> DisplayGroupManager::getDisplayGroupInt
     return dgi;
 }
 
-bool DisplayGroupManager::saveStateXMLFile( const QString& filename )
-{
-    ContentWindowManagerPtrs contentWindowManagers = getContentWindowManagers();
-
-    const QSize wallDimensions(g_configuration->getTotalWidth(), g_configuration->getTotalHeight());
-    StatePreview filePreview(filename);
-    filePreview.generateImage(wallDimensions, contentWindowManagers);
-    filePreview.saveToFile();
-
-    return state_.saveXML( filename, contentWindowManagers);
-}
-
-bool DisplayGroupManager::loadStateXMLFile( const QString& filename )
-{
-    ContentWindowManagerPtrs contentWindowManagers;
-    if( !state_.loadXML( filename, contentWindowManagers ))
-        return false;
-
-    // assign new contents vector to display group
-    setContentWindowManagers(contentWindowManagers);
-    return true;
-}
-
 void DisplayGroupManager::positionWindow(const QString uri, const QPointF position)
 {
-    ContentWindowManagerPtr cwm = getContentWindowManager(uri, CONTENT_TYPE_ANY);
-    if (cwm)
+    ContentWindowManagerPtr contentWindow = getContentWindowManager(uri, CONTENT_TYPE_ANY);
+    if (contentWindow)
     {
-        cwm->centerPositionAround(position.x(), position.y(), true);
+        contentWindow->centerPositionAround(position, true);
     }
     else
     {
@@ -370,52 +338,13 @@ void DisplayGroupManager::positionWindow(const QString uri, const QPointF positi
 
 void DisplayGroupManager::hideWindow(const QString uri)
 {
-    ContentWindowManagerPtr cwm = getContentWindowManager(uri, CONTENT_TYPE_ANY);
-    if (cwm)
+    ContentWindowManagerPtr contentWindow = getContentWindowManager(uri, CONTENT_TYPE_ANY);
+    if (contentWindow)
     {
         double x, y;
-        cwm->getSize(x, y);
-        cwm->setPosition(0,-2*y);
+        contentWindow->getSize(x, y);
+        contentWindow->setPosition(0,-2*y);
     }
-}
-
-void DisplayGroupManager::handleUri(QString uri, QString contentUri)
-{
-    if (uri == DockPixelStreamer::getUniqueURI() && openFile(contentUri))
-    {
-        // Center the new content where the dock is
-        ContentWindowManagerPtr dockWindow = getContentWindowManager(DockPixelStreamer::getUniqueURI(), CONTENT_TYPE_PIXEL_STREAM);
-        ContentWindowManagerPtr contentWindow = getContentWindowManager(contentUri);
-
-        if (dockWindow && contentWindow)
-        {
-            double dockCenterX, dockCenterY;
-            dockWindow->getWindowCenterPosition(dockCenterX, dockCenterY);
-            contentWindow->centerPositionAround(dockCenterX, dockCenterY, true);
-        }
-    }
-}
-
-bool DisplayGroupManager::openFile(const QString& filename)
-{
-    const QString& extension = QFileInfo(filename).suffix().toLower();
-
-    if( extension == "dcx" )
-    {
-        return loadStateXMLFile( filename );
-    }
-
-    ContentPtr content = ContentFactory::getContent( filename );
-    if( !content )
-    {
-        return false;
-    }
-
-    ContentWindowManagerPtr cwm(new ContentWindowManager(content));
-    g_displayGroupManager->addContentWindowManager( cwm );
-    cwm->adjustSize( SIZE_1TO1 ); // TODO Remove this when content dimensions request is no longer needed
-
-    return true;
 }
 
 void DisplayGroupManager::receiveMessages()
@@ -484,7 +413,7 @@ void DisplayGroupManager::sendDisplayGroup()
     {
         QMutexLocker locker(&markersMutex_);
 
-        boost::shared_ptr<DisplayGroupManager> dgm = shared_from_this();
+        DisplayGroupManagerPtr dgm = shared_from_this();
 
         boost::archive::binary_oarchive oa(oss);
         oa << dgm;
@@ -564,11 +493,11 @@ void DisplayGroupManager::sendContentsDimensionsRequest()
 
 void DisplayGroupManager::adjustPixelStreamContentDimensions(QString uri, int width, int height, bool changeViewSize)
 {
-    ContentWindowManagerPtr cwm = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
-    if(cwm)
+    ContentWindowManagerPtr contentWindow = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
+    if(contentWindow)
     {
         // check for updated dimensions
-        boost::shared_ptr<Content> c = cwm->getContent();
+        ContentPtr c = contentWindow->getContent();
 
         int oldWidth, oldHeight;
         c->getDimensions(oldWidth, oldHeight);
@@ -578,7 +507,7 @@ void DisplayGroupManager::adjustPixelStreamContentDimensions(QString uri, int wi
             c->setDimensions(width, height);
             if (changeViewSize)
             {
-                cwm->adjustSize( SIZE_1TO1 );
+                contentWindow->adjustSize( SIZE_1TO1 );
             }
         }
     }
@@ -589,16 +518,19 @@ void DisplayGroupManager::registerEventReceiver(QString uri, bool exclusive, Eve
     bool success = false;
 
     // Try to register with the ContentWindowManager corresponding to this stream
-    ContentWindowManagerPtr cwm = getContentWindowManager(uri);
+    ContentWindowManagerPtr contentWindow = getContentWindowManager(uri);
 
-    if(cwm)
+    if(contentWindow)
     {
         put_flog(LOG_DEBUG, "found window: '%s'", uri.toStdString().c_str());
 
         // If a receiver is already registered, don't register this one if exclusive was requested
-        if( !exclusive || !cwm->hasEventReceivers() )
+        if( !exclusive || !contentWindow->hasEventReceivers() )
         {
-            success = cwm->registerEventReceiver( receiver );
+            success = contentWindow->registerEventReceiver( receiver );
+
+            if (success)
+                contentWindow->setWindowState(ContentWindowInterface::SELECTED);
         }
     }
     else
@@ -726,32 +658,24 @@ void DisplayGroupManager::advanceContents()
 void DisplayGroupManager::openPixelStream(QString uri, int width, int height)
 {
     // add a Content/ContentWindowManager for this URI
-    ContentWindowManagerPtr cwm = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
+    ContentWindowManagerPtr contentWindow = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
 
-    if(!cwm)
+    if(!contentWindow)
     {
         put_flog(LOG_DEBUG, "adding pixel stream: %s", uri.toLocal8Bit().constData());
 
-        boost::shared_ptr<Content> c(new PixelStreamContent(uri));
-        c->setDimensions(width, height);
-        cwm = ContentWindowManagerPtr(new ContentWindowManager(c));
+        ContentPtr content = ContentFactory::getPixelStreamContent(uri);
+        content->setDimensions(width, height);
+        contentWindow = ContentWindowManagerPtr(new ContentWindowManager(content));
 
         // Position window if needed
         WindowPositions::iterator it = windowPositions_.find(uri);
         if (it != windowPositions_.end())
         {
-            cwm->centerPositionAround(it->second.x(), it->second.y(), true);
+            contentWindow->centerPositionAround(it->second, true);
             windowPositions_.erase(it);
         }
-
-        // TODO This behavious specific to the Dock is not very nice, remove it when the switch between
-        // selected and unselected mode has been made faster for the user (1-click)
-        if (uri == DockPixelStreamer::getUniqueURI())
-        {
-            cwm->setWindowState(ContentWindowInterface::SELECTED);
-        }
-
-        addContentWindowManager(cwm);
+        addContentWindowManager(contentWindow);
 
         emit(pixelStreamViewAdded(uri));
     }
@@ -761,9 +685,9 @@ void DisplayGroupManager::closePixelStream(const QString& uri)
 {
     put_flog(LOG_DEBUG, "deleting pixel stream: %s", uri.toLocal8Bit().constData());
 
-    ContentWindowManagerPtr cwm = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
-    if( cwm )
-        removeContentWindowManager( cwm );
+    ContentWindowManagerPtr contentWindow = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
+    if( contentWindow )
+        removeContentWindowManager( contentWindow );
 }
 
 #if ENABLE_SKELETON_SUPPORT

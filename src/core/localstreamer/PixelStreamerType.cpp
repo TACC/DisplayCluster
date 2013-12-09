@@ -37,12 +37,26 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "LocalPixelStreamer.h"
+#include "PixelStreamerType.h"
 
-LocalPixelStreamer::LocalPixelStreamer()
+#include <boost/bimap.hpp>
+#include <boost/assign/list_of.hpp>
+
+typedef boost::bimap< PixelStreamerType, QString > TypeMap;
+static TypeMap typemap = boost::assign::list_of< TypeMap::relation >
+        (PS_UNKNOWN, QString("unknown"))
+        (PS_WEBKIT, QString("webkit"))
+        (PS_DOCK, QString("dock"));
+
+QString getStreamerTypeString(const PixelStreamerType type)
 {
+    return typemap.left.find( type )->second;
 }
 
-LocalPixelStreamer::~LocalPixelStreamer()
+PixelStreamerType getStreamerType(const QString &typeString)
 {
+    if (typemap.right.count( typeString ) )
+        return typemap.right.find( typeString )->second;
+
+    return PS_UNKNOWN;
 }

@@ -77,10 +77,13 @@ if(ENABLE_PDF_SUPPORT)
   )
 endif()
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
 list(APPEND SRCS
     BackgroundWidget.cpp
     Content.cpp
     ContentFactory.cpp
+    ContentLoader.cpp
     ContentType.cpp
     ContentInteractionDelegate.cpp
     ContentWindowManager.cpp
@@ -124,6 +127,7 @@ list(APPEND SRCS
     PixelStreamSegmentRenderer.cpp
     State.cpp
     StatePreview.cpp
+    StateSerializationHelper.cpp
     SVG.cpp
     SVGContent.cpp
     Texture.cpp
@@ -135,10 +139,10 @@ list(APPEND SRCS
     localstreamer/AsyncImageLoader.cpp
     localstreamer/CommandLineOptions.cpp
     localstreamer/DockPixelStreamer.cpp
-    localstreamer/LocalPixelStreamer.cpp
-    localstreamer/LocalPixelStreamerFactory.cpp
-    localstreamer/LocalPixelStreamerManager.cpp
-    localstreamer/LocalPixelStreamerType.cpp
+    localstreamer/PixelStreamer.cpp
+    localstreamer/PixelStreamerFactory.cpp
+    localstreamer/PixelStreamerLauncher.cpp
+    localstreamer/PixelStreamerType.cpp
     localstreamer/Pictureflow.cpp
     localstreamer/WebkitAuthenticationHelper.cpp
     localstreamer/WebkitPixelStreamer.cpp
@@ -170,8 +174,8 @@ list(APPEND MOC_HEADERS
     PixelStreamDispatcher.h
     localstreamer/AsyncImageLoader.h
     localstreamer/DockPixelStreamer.h
-    localstreamer/LocalPixelStreamer.h
-    localstreamer/LocalPixelStreamerManager.h
+    localstreamer/PixelStreamer.h
+    localstreamer/PixelStreamerLauncher.h
     localstreamer/Pictureflow.h
     localstreamer/WebkitAuthenticationHelper.h
     localstreamer/WebkitPixelStreamer.h

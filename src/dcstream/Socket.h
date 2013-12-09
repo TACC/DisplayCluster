@@ -41,6 +41,7 @@
 
 #include <string>
 #include <QByteArray>
+#include <QObject>
 
 class MessageHeader;
 class QTcpSocket;
@@ -51,8 +52,10 @@ namespace dc
 /**
  * Represent a communication Socket for the Stream Library.
  */
-class Socket
+class Socket : public QObject
 {
+    Q_OBJECT
+
 public:
     /** The default communication port */
     static const unsigned short defaultPortNumber_;
@@ -97,6 +100,10 @@ public:
      * @return true if a message could be received, false otherwise
      */
     bool receive(MessageHeader & messageHeader, QByteArray & message);
+
+signals:
+    /** Signal that the socket has been disconnected. */
+    void disconnected();
 
 private:
     QTcpSocket* socket_;

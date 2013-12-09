@@ -37,71 +37,97 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#define BOOST_TEST_MODULE PixelStreamer
+
+#define BOOST_TEST_MODULE CommandLineOptions
 #include <boost/test/unit_test.hpp>
 namespace ut = boost::unit_test;
 
 #include "localstreamer/CommandLineOptions.h"
-#include "localstreamer/PixelStreamerType.h"
-#include "localstreamer/PixelStreamerFactory.h"
-#include "localstreamer/PixelStreamer.h"
-#include "localstreamer/WebkitPixelStreamer.h"
-#include "localstreamer/DockPixelStreamer.h"
 
-#include "GlobalQtApp.h"
+#include <QStringList>
+#include <vector>
+#include <string>
 
-BOOST_GLOBAL_FIXTURE( MinimalGlobalQtApp );
-
-BOOST_AUTO_TEST_CASE( test_local_pixel_streamer_type )
-{
-    BOOST_CHECK_EQUAL( getStreamerTypeString(PS_UNKNOWN).toStdString(), "unknown" );
-    BOOST_CHECK_EQUAL( getStreamerTypeString(PS_WEBKIT).toStdString(), "webkit" );
-    BOOST_CHECK_EQUAL( getStreamerTypeString(PS_DOCK).toStdString(), "dock" );
-
-    BOOST_CHECK_EQUAL( getStreamerType(""), PS_UNKNOWN );
-    BOOST_CHECK_EQUAL( getStreamerType("zorglump"), PS_UNKNOWN );
-    BOOST_CHECK_EQUAL( getStreamerType("webkit"), PS_WEBKIT );
-    BOOST_CHECK_EQUAL( getStreamerType("dock"), PS_DOCK );
-}
-
-BOOST_AUTO_TEST_CASE( test_local_pixel_streamer_factory_unknown_type )
+BOOST_AUTO_TEST_CASE( testCommandLineDefaults )
 {
     CommandLineOptions options;
-    // Create should return a nullptr
-    BOOST_CHECK( !PixelStreamerFactory::create( options ));
+
+    BOOST_CHECK( !options.getHelp() );
+    BOOST_CHECK_EQUAL( options.getName().toStdString(), "" );
+    BOOST_CHECK_EQUAL( options.getPixelStreamerType(), PS_UNKNOWN );
+    BOOST_CHECK_EQUAL( options.getRootDir().toStdString(), "" );
+    BOOST_CHECK_EQUAL( options.getUrl().toStdString(), "" );
+
+    BOOST_CHECK_EQUAL( options.getHeight(), 0 );
+    BOOST_CHECK_EQUAL( options.getWidth(), 0 );
+
+    BOOST_CHECK_EQUAL( options.getCommandLine().toStdString(), "" );
 }
 
-BOOST_AUTO_TEST_CASE( test_local_pixel_streamer_factory_webkit_type )
+
+void setOptionParameters(CommandLineOptions& options)
 {
-    if( !hasGLXDisplay( ))
-      return;
-
-    CommandLineOptions options;
-    options.setPixelStreamerType(PS_WEBKIT);
-    PixelStreamer* streamer = PixelStreamerFactory::create( options );
-
-    BOOST_CHECK( streamer );
-
-    WebkitPixelStreamer* webkit = dynamic_cast<WebkitPixelStreamer*>(streamer);
-    BOOST_CHECK( webkit );
-
-    delete streamer;
+    options.setHelp(true);
+    options.setName( "MyStreamer" );
+    options.setPixelStreamerType( PS_WEBKIT );
+    options.setRootDir( "/home/me/my_folder" );
+    options.setUrl( "http://www.perdu.com" );
+    options.setHeight( 640 );
+    options.setWidth( 480 );
 }
 
-BOOST_AUTO_TEST_CASE( test_local_pixel_streamer_factory_dock_type )
+void checkOptionParameters(const CommandLineOptions& options)
 {
-    if( !hasGLXDisplay( ))
-      return;
+    BOOST_CHECK( options.getHelp() );
+    BOOST_CHECK_EQUAL( options.getName().toStdString(), "MyStreamer" );
+    BOOST_CHECK_EQUAL( options.getPixelStreamerType(), PS_WEBKIT );
+    BOOST_CHECK_EQUAL( options.getRootDir().toStdString(), "/home/me/my_folder" );
+    BOOST_CHECK_EQUAL( options.getUrl().toStdString(), "http://www.perdu.com" );
+    BOOST_CHECK_EQUAL( options.getHeight(), 640 );
+    BOOST_CHECK_EQUAL( options.getWidth(), 480 );
 
+    BOOST_CHECK_EQUAL( options.getCommandLine().toStdString(),
+                       "--type webkit --width 480 --height 640 --help "
+                       "--name MyStreamer --url http://www.perdu.com "
+                       "--rootdir /home/me/my_folder");
+}
+
+BOOST_AUTO_TEST_CASE( testCommandLineManualCreation )
+{
     CommandLineOptions options;
-    options.setPixelStreamerType(PS_DOCK);
-    PixelStreamer* streamer = PixelStreamerFactory::create( options );
+    setOptionParameters(options);
 
-    BOOST_CHECK( streamer );
+    checkOptionParameters(options);
+}
 
-    DockPixelStreamer* dock = dynamic_cast<DockPixelStreamer*>(streamer);
-    BOOST_CHECK( dock );
+BOOST_AUTO_TEST_CASE( testCommandLineFromCommandLineArguments )
+{
+    CommandLineOptions options;
+    setOptionParameters(options);
 
-    delete streamer;
+    // Create a c-style representation of the command line options
+    QStringList arguments = options.getCommandLineArguments();
+    int argc = arguments.size() + 1;
+    char* argv[argc];
+    std::vector<char> argList[argc];
+
+    // Program name
+    {
+        std::string tmp("/test/program");
+        argList[0].assign(tmp.begin(), tmp.end());
+        argList[0].push_back('\0');
+        argv[0] = &(argList[0][0]);
+    }
+    // Command line arguments
+    for (int i = 1; i < argc; i++)
+    {
+        std::string tmp = arguments.at(i-1).toStdString();
+        argList[i].assign(tmp.begin(), tmp.end());
+        argList[i].push_back('\0');
+        argv[i] = &(argList[i][0]);
+    }
+
+    CommandLineOptions optionsDeserialized( argc, argv );
+    checkOptionParameters(optionsDeserialized);
 }
 

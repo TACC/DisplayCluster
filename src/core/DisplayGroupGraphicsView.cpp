@@ -135,9 +135,6 @@ void DisplayGroupGraphicsView::tap( QTapGesture* gesture )
         return;
 
     const QPointF pos = getNormalizedPosition(gesture);
-    qDebug() << pos;
-    qDebug() << gesture->position();
-    qDebug() << gesture->hotSpot();
 
     if (isOnBackground(pos))
         emit backgroundTap(pos);
@@ -149,9 +146,7 @@ void DisplayGroupGraphicsView::tapAndHold( QTapAndHoldGesture* gesture )
         return;
 
     const QPointF pos = getNormalizedPosition(gesture);
-    qDebug() << pos;
-    qDebug() << gesture->position();
-    qDebug() << gesture->hotSpot();
+
     if (isOnBackground(pos))
         emit backgroundTapAndHold(pos);
 }
@@ -207,10 +202,7 @@ QPointF DisplayGroupGraphicsView::getNormalizedPosition( const QGesture* gesture
 
 bool DisplayGroupGraphicsView::isOnBackground( const QPointF& position ) const
 {
-    QGraphicsItem* item = scene()->itemAt( position );
-    if( dynamic_cast< ContentWindowGraphicsItem* >( item ))
-        return false;
-    else
-        return true;
+    const QGraphicsItem* item = scene()->itemAt( position );
+    return dynamic_cast< const ContentWindowGraphicsItem* >( item ) == 0;
 }
 

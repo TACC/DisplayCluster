@@ -43,7 +43,7 @@
 #include "ContentWindowManager.h"
 #include "ContentWindowGraphicsItem.h"
 
-DisplayGroupGraphicsViewProxy::DisplayGroupGraphicsViewProxy(boost::shared_ptr<DisplayGroupManager> displayGroupManager)
+DisplayGroupGraphicsViewProxy::DisplayGroupGraphicsViewProxy(DisplayGroupManagerPtr displayGroupManager)
     : DisplayGroupInterface(displayGroupManager)
     , graphicsView_( new DisplayGroupGraphicsView() )
 {

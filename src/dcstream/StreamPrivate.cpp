@@ -110,10 +110,10 @@ bool StreamPrivate::sendPixelStreamSegment(const PixelStreamSegment &segment)
     return dcSocket_->send(mh, message);
 }
 
-bool StreamPrivate::sendOpenContent(const std::string& uri)
+bool StreamPrivate::sendOpenContent(const QString& uri)
 {
     QByteArray message;
-    message.append(uri.c_str());
+    message.append(uri);
 
     MessageHeader mh(MESSAGE_TYPE_URI, message.size(), name_);
 

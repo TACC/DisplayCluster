@@ -37,26 +37,25 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "LocalPixelStreamerType.h"
+#include "PixelStreamerFactory.h"
 
-#include <boost/bimap.hpp>
-#include <boost/assign/list_of.hpp>
+#include "WebkitPixelStreamer.h"
+#include "DockPixelStreamer.h"
 
-typedef boost::bimap< PixelStreamerType, QString > TypeMap;
-static TypeMap typemap = boost::assign::list_of< TypeMap::relation >
-        (PS_UNKNOWN, QString("unknown"))
-        (PS_WEBKIT, QString("webkit"))
-        (PS_DOCK, QString("dock"));
+#include "PixelStreamerType.h"
+#include "CommandLineOptions.h"
 
-QString getStreamerTypeString(const PixelStreamerType type)
+PixelStreamer* PixelStreamerFactory::create(const CommandLineOptions& options)
 {
-    return typemap.left.find( type )->second;
-}
-
-PixelStreamerType getStreamerType(const QString &typeString)
-{
-    if (typemap.right.count( typeString ) )
-        return typemap.right.find( typeString )->second;
-
-    return PS_UNKNOWN;
+    QSize size(options.getWidth(), options.getHeight());
+    switch(options.getPixelStreamerType())
+    {
+    case PS_WEBKIT:
+        return new WebkitPixelStreamer(size, options.getUrl());
+    case PS_DOCK:
+        return new DockPixelStreamer(size, options.getRootDir());
+    case PS_UNKNOWN:
+    default:
+        return 0;
+    }
 }

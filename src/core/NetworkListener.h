@@ -57,6 +57,9 @@ public:
 protected:
     void incomingConnection(int socketDescriptor);
 
+private slots:
+    void handleUri(QString uri, QString contentUri);
+
 private:
     DisplayGroupManager& displayGroupManager_;
     PixelStreamDispatcher* pixelStreamDispatcher_;

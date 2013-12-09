@@ -100,7 +100,7 @@ class Content : public QObject {
 BOOST_SERIALIZATION_ASSUME_ABSTRACT(Content)
 
 // typedef needed for SIP
-typedef boost::shared_ptr<Content> pContent;
+typedef ContentPtr pContent;
 
 class pyContent {
 
@@ -108,16 +108,16 @@ class pyContent {
 
         pyContent(const char * str)
         {
-            boost::shared_ptr<Content> c(ContentFactory::getContent(QString::fromAscii(str)));
+            ContentPtr c(ContentFactory::getContent(QString::fromAscii(str)));
             ptr_ = c;
         }
 
-        pyContent(boost::shared_ptr<Content> c)
+        pyContent(ContentPtr c)
         {
             ptr_ = c;
         }
 
-        boost::shared_ptr<Content> get()
+        ContentPtr get()
         {
             return ptr_;
         }
@@ -129,7 +129,7 @@ class pyContent {
 
     protected:
 
-        boost::shared_ptr<Content> ptr_;
+        ContentPtr ptr_;
 };
 
 #endif

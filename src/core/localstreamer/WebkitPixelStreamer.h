@@ -40,7 +40,8 @@
 #ifndef WEBKITPIXELSTREAMER_H
 #define WEBKITPIXELSTREAMER_H
 
-#include "LocalPixelStreamer.h"
+#include "PixelStreamer.h"
+
 #include <QString>
 #include <QImage>
 #include <QMutex>
@@ -53,21 +54,41 @@ class QWebElement;
 
 class WebkitAuthenticationHelper;
 
-class WebkitPixelStreamer : public LocalPixelStreamer
+/**
+ * Stream webpages with user interaction support.
+ */
+class WebkitPixelStreamer : public PixelStreamer
 {
     Q_OBJECT
 
 public:
+    /**
+     * Constructor.
+     *
+     * @param size The desired size of the webpage viewport. The actual stream
+     *        dimensions will be: size * default zoom factor (2x).
+     * @param url The webpage to load.
+     */
     WebkitPixelStreamer(const QSize& size, const QString& url);
+
+    /** Destructor. */
     ~WebkitPixelStreamer();
 
+    /** Get the size of the webpage images. */
     virtual QSize size() const;
 
+    /**
+     * Open a webpage.
+     *
+     * @param url The address of the webpage to load.
+     */
     void setUrl(QString url);
 
+    /** Get the QWebView used internally by the streamer. */
     QWebView* getView() const;
 
 public slots:
+    /** Process an Event. */
     virtual void processEvent(dc::Event event);
 
 private slots:

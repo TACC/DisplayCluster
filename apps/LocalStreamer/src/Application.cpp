@@ -39,20 +39,22 @@
 
 #include "Application.h"
 
-#include "localstreamer/LocalPixelStreamer.h"
-#include "localstreamer/LocalPixelStreamerFactory.h"
+#include "localstreamer/PixelStreamer.h"
+#include "localstreamer/PixelStreamerFactory.h"
 
 #include "localstreamer/CommandLineOptions.h"
 #include "dcstream/StreamPrivate.h"
+#include "dcstream/Socket.h"
 
 #include <QTimer>
+#include <iostream>
 
 #define DC_STREAM_HOST_ADDRESS "localhost"
 //#define COMPRESS_IMAGES
 
 Application::Application(int &argc, char **argv)
     : QApplication(argc, argv)
-    , streamer_(0)
+    , pixelStreamer_(0)
     , dcStream_(0)
 {
 }
@@ -60,17 +62,17 @@ Application::Application(int &argc, char **argv)
 Application::~Application()
 {
     delete dcStream_;
-    delete streamer_;
+    delete pixelStreamer_;
 }
 
-bool Application::initalize(const CommandLineOptions& options)
+bool Application::initialize(const CommandLineOptions& options)
 {
     // Create the streamer
-    streamer_ = LocalPixelStreamerFactory::create(options);
-    if (!streamer_)
+    pixelStreamer_ = PixelStreamerFactory::create(options);
+    if (!pixelStreamer_)
         return false;
-    connect(streamer_, SIGNAL(imageUpdated(QImage)), this, SLOT(sendImage(QImage)));
-    connect(streamer_, SIGNAL(openContent(QString)), this, SLOT(sendOpenContent(QString)));
+    connect(pixelStreamer_, SIGNAL(imageUpdated(QImage)), this, SLOT(sendImage(QImage)));
+    connect(pixelStreamer_, SIGNAL(openContent(QString)), this, SLOT(sendOpenContent(QString)));
 
     // Connect to DisplayCluster
     dcStream_ = new dc::Stream(options.getName().toStdString(), DC_STREAM_HOST_ADDRESS);
@@ -81,6 +83,8 @@ bool Application::initalize(const CommandLineOptions& options)
         dcStream_ = 0;
         return false;
     }
+    // Make sure to quit the application if the connection is closed.
+    connect(dcStream_->impl_->dcSocket_, SIGNAL(disconnected()), QApplication::instance(), SLOT(quit()));
 
     // Use a timer to process Event received from the dc::Stream
     QTimer* timer = new QTimer(this);
@@ -113,8 +117,6 @@ void Application::sendImage(QImage image)
 
 void Application::processPendingEvents()
 {
-    checkConnection();
-
     if (!dcStream_->isRegisteredForEvents())
     {
         dcStream_->registerForEvents();
@@ -123,22 +125,12 @@ void Application::processPendingEvents()
     {
         while(dcStream_->hasEvent())
         {
-            streamer_->processEvent(dcStream_->getEvent());
+            pixelStreamer_->processEvent(dcStream_->getEvent());
         }
     }
 }
 
 void Application::sendOpenContent(QString uri)
 {
-    dcStream_->getPrivateImpl()->sendOpenContent(uri.toStdString());
+    dcStream_->impl_->sendOpenContent(uri);
 }
-
-void Application::checkConnection()
-{
-    if( !dcStream_->isConnected() )
-    {
-        QApplication::quit();
-        return;
-    }
-}
-

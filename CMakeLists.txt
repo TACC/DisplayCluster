@@ -43,6 +43,11 @@ if(APPLE)
   endif()
 endif()
 
+# Used by cmake/modules/DoxygenRule.cmake to install documentation
+if(NOT DOC_DIR)
+  set(DOC_DIR share/${CMAKE_PROJECT_NAME}/doc)
+endif()
+
 # path for additional modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 

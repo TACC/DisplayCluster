@@ -45,6 +45,8 @@
 #include "Event.h"
 #include "ImageWrapper.h"
 
+class Application;
+
 namespace dc
 {
 
@@ -176,9 +178,6 @@ public:
      */
     Event getEvent();
 
-    /** Get the private implementation. @internal */
-    StreamPrivate* getPrivateImpl() const;
-
 private:
     /** Disable copy constructor. */
     Stream( const Stream& );
@@ -187,6 +186,8 @@ private:
     const Stream& operator = ( const Stream& );
 
     StreamPrivate* impl_;
+
+    friend class ::Application;
 };
 
 }

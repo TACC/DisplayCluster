@@ -39,7 +39,7 @@
 
 #include "MovieThumbnailGenerator.h"
 
-#include "../Movie.h"
+#include "Movie.h"
 
 MovieThumbnailGenerator::MovieThumbnailGenerator(const QSize &size)
     : ThumbnailGenerator(size)

@@ -43,16 +43,17 @@
 #include <QString>
 #include <boost/program_options/options_description.hpp>
 
-#include "LocalPixelStreamerType.h"
+#include "PixelStreamerType.h"
 
 /**
- * Command line options to pass startup parameters to a LocalPixelStreamer application.
+ * Command line options to pass startup parameters to a localstreamer application.
  */
 class CommandLineOptions
 {
 public:
     /** Construct an empty instance */
     CommandLineOptions();
+
     /** Construct from command line parameters */
     CommandLineOptions(int &argc, char **argv);
 
@@ -79,7 +80,7 @@ public:
     /** @name Setters */
     /*@{*/
     void setHelp(const bool set);
-    void setPixelStreamerType(PixelStreamerType type);
+    void setPixelStreamerType(const PixelStreamerType type);
     void setUrl(const QString& url);
     void setRootDir(const QString& dir);
     void setName(const QString& name);

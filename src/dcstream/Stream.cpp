@@ -173,9 +173,4 @@ Event Stream::getEvent()
     return event;
 }
 
-StreamPrivate* Stream::getPrivateImpl() const
-{
-    return impl_;
-}
-
 }

@@ -59,11 +59,8 @@ public:
     /** Destruct a renderer. */
     ~PixelStreamSegmentRenderer();
 
-    /** Get the dimensions of the texture. */
-    void getDimensions(int &width, int &height) const;
-
     /** Get the position and dimensions of this segment */
-    QRectF getRect() const;
+    QRect getRect() const;
 
     /**
      * Update the texture.
@@ -83,10 +80,11 @@ public:
      * Set the paramters for this segment.
      * @param x Position of the segement in pixels. (0,0) == top-left of the stream.
      * @param y Position of the segement in pixels. (0,0) == top-left of the stream.
-     * @param streamWidth Dimensions of the stream in pixels
-     * @param streamHeight Dimensions of the stream in pixels
+     * @param width Width of the segment in pixels.
+     * @param height Height of the segment in pixels.
      */
-    void setParameters(unsigned int x, unsigned int y);
+    void setParameters(const unsigned int x, const unsigned int y,
+                       const unsigned int width, const unsigned int height);
 
     /**
      * Render the current texture.
@@ -107,8 +105,10 @@ private:
     int textureWidth_;
     int textureHeight_;
 
-    // Image position
+    // Segment position
     unsigned int x_, y_;
+    // Segment dimensions
+    unsigned int width_, height_;
 
     // Statistics
     FpsCounter* segmentStatistics;

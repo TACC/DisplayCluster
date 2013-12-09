@@ -50,7 +50,7 @@ class DisplayGroupGraphicsViewProxy : public DisplayGroupInterface
 
     public:
 
-        DisplayGroupGraphicsViewProxy(boost::shared_ptr<DisplayGroupManager> displayGroupManager);
+        DisplayGroupGraphicsViewProxy(DisplayGroupManagerPtr displayGroupManager);
         ~DisplayGroupGraphicsViewProxy();
 
         DisplayGroupGraphicsView * getGraphicsView();

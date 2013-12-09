@@ -47,13 +47,15 @@ class QAuthenticator;
 class QWebView;
 
 /**
- * @brief The WebkitAuthenticationHelper class intercepts and handles
- * HTTP authentication requests by displaying a simple html login page.
+ * Handle HTTP authentication requests for a QWebView.
  *
- * Its intended use is to offer a replacement to the system dialog box
- * when a QWebView is run without a window.
+ * The WebkitAuthenticationHelper class intercepts HTTP authentication requests
+ * an displays a simple html login page.
  *
- * @usage Just create one WebkitAuthenticationHelper instance for each
+ * It offers a replacement to the system dialog box when QWebView is used
+ * without a window.
+ *
+ * @usage Create one WebkitAuthenticationHelper instance for each
  * QWebView that needs to support HTTP authentication.
  */
 class WebkitAuthenticationHelper : public QObject
@@ -62,8 +64,9 @@ class WebkitAuthenticationHelper : public QObject
 
 public:
     /**
-     * @brief WebkitAuthenticationHelper constructor
-     * @param webView a reference on the QWebView for which to add authentication handling
+     * Constructor.
+     *
+     * @param webView The QWebView for which to add authentication handling.
      */
     WebkitAuthenticationHelper(QWebView& webView);
 

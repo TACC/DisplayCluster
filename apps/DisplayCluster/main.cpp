@@ -46,7 +46,9 @@
 #include "MainWindow.h"
 #include "NetworkListener.h"
 #include "log.h"
-#include "localstreamer/LocalPixelStreamerManager.h"
+#include "localstreamer/PixelStreamerLauncher.h"
+#include "StateSerializationHelper.h"
+
 #include <mpi.h>
 #include <unistd.h>
 
@@ -95,7 +97,11 @@ int main(int argc, char * argv[])
     MPI_Comm_size(MPI_COMM_WORLD, &g_mpiSize);
     MPI_Comm_split(MPI_COMM_WORLD, g_mpiRank != 0, g_mpiRank, &g_mpiRenderComm);
 
+<<<<<<< HEAD
     g_displayGroupManager.reset( new DisplayGroupManager );
+=======
+    g_displayGroupManager = DisplayGroupManagerPtr(new DisplayGroupManager);
+>>>>>>> Code review and improved documentation
 
     // Load configuration
     if(g_mpiRank == 0)
@@ -148,15 +154,19 @@ int main(int argc, char * argv[])
     g_mainWindow = new MainWindow();
 
     NetworkListener* networkListener = 0;
-    LocalPixelStreamerManager* localPixelStreamerManager = 0;
+    PixelStreamerLauncher* pixelStreamerLauncher = 0;
     if(g_mpiRank == 0)
     {
         networkListener = new NetworkListener(*g_displayGroupManager);
 
-        localPixelStreamerManager = new LocalPixelStreamerManager(g_displayGroupManager.get());
-        localPixelStreamerManager->connect(g_mainWindow, SIGNAL(backgroundTapAndHold(QPointF)), SLOT(openDockAt(QPointF)));
-        localPixelStreamerManager->connect(g_mainWindow, SIGNAL(backgroundTap(QPointF)), SLOT(hideDock()));
-        localPixelStreamerManager->connect(g_mainWindow, SIGNAL(createWebBrowser(QString,QSize)), SLOT(createWebBrowser(QString,QSize)));
+        pixelStreamerLauncher = new PixelStreamerLauncher(g_displayGroupManager.get());
+
+        pixelStreamerLauncher->connect(g_mainWindow, SIGNAL(openWebBrowser(QPointF,QSize,QString)),
+                                           SLOT(openWebBrowser(QPointF,QSize,QString)));
+        pixelStreamerLauncher->connect(g_mainWindow, SIGNAL(openDock(QPointF,QSize,QString)),
+                                           SLOT(openDock(QPointF,QSize,QString)));
+        pixelStreamerLauncher->connect(g_mainWindow, SIGNAL(hideDock()),
+                                           SLOT(hideDock()));
     }
 
     // wait for render comms to be ready for receiving and rendering background
@@ -164,9 +174,12 @@ int main(int argc, char * argv[])
 
     if(g_mpiRank == 0)
     {
-        g_displayGroupManager->initBackground(); // Must be done after everything else is setup (or in the MainWindow constructor)
+        // Must be done after everything else is setup (or in the MainWindow constructor)
+        g_displayGroupManager->setBackgroundColor( g_configuration->getBackgroundColor( ));
+        g_displayGroupManager->setBackgroundContentFromUri( g_configuration->getBackgroundUri( ));
+
         if( argc == 2 )
-            g_displayGroupManager->loadStateXMLFile( argv[1] );
+            StateSerializationHelper(g_displayGroupManager).load( argv[1] );
     }
 
     // enter Qt event loop
@@ -190,8 +203,8 @@ int main(int argc, char * argv[])
     if(g_mpiRank == 0)
     {
         g_displayGroupManager->sendQuit();
-        delete localPixelStreamerManager;
-        localPixelStreamerManager = 0;
+        delete pixelStreamerLauncher;
+        pixelStreamerLauncher = 0;
         delete networkListener;
         networkListener = 0;
     }

@@ -46,6 +46,8 @@
 #include "MessageHeader.h"
 #include "ImageSegmenter.h"
 
+class QString;
+
 namespace dc
 {
 
@@ -103,7 +105,7 @@ public:
      * @param uri The uri of the content. Must be accessible by all wall processes.
      * @return true if the request could be sent, false otherwise.
      */
-    bool sendOpenContent(const std::string& uri);
+    bool sendOpenContent(const QString& uri);
 };
 
 }

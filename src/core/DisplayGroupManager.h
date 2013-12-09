@@ -44,7 +44,7 @@
 #include "Marker.h"
 #include "config.h"
 #include "Factory.hpp"
-#include "State.h"
+
 #include <QtGui>
 #include <vector>
 #ifndef Q_MOC_RUN
@@ -66,7 +66,8 @@ class ContentWindowManager;
 struct MessageHeader;
 class EventReceiver;
 
-class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_shared_from_this<DisplayGroupManager> {
+class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_shared_from_this<DisplayGroupManager>
+{
     Q_OBJECT
 
     public:
@@ -97,24 +98,17 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         // find the offset between the rank 0 clock and the rank 1 clock. recall the rank 1 clock is used across rank 1 - n.
         void calibrateTimestampOffset();
 
-        // background content
-        void setBackgroundContentWindowManager(ContentWindowManagerPtr contentWindowManager);
-        ContentWindowManagerPtr getBackgroundContentWindowManager() const;
-
-        // background
-        void initBackground();
         QColor getBackgroundColor() const;
         void setBackgroundColor(QColor color);
 
-        bool openFile(const QString& filename);
+        bool setBackgroundContentFromUri(const QString filename);
+        void setBackgroundContentWindowManager(ContentWindowManagerPtr contentWindowManager);
+        ContentWindowManagerPtr getBackgroundContentWindowManager() const;
 
 public slots:
 
         // this can be invoked from other threads to construct a DisplayGroupInterface and move it to that thread
         boost::shared_ptr<DisplayGroupInterface> getDisplayGroupInterface(QThread * thread);
-
-        bool saveStateXMLFile( const QString& filename );
-        bool loadStateXMLFile( const QString& filename );
 
         /**
          * Position a ContentWindowManager.
@@ -129,18 +123,9 @@ public slots:
         /**
          * Hide a ContentWindowManager.
          *
-         * Effectively, this positions the ContentWindowManager ouside of the Viewport,
-         * but it remains open and continues to consume resources.
          * @param uri Window identifier
          */
         void hideWindow( const QString uri );
-
-        /**
-         * Handle a content uri depending on the sender identifier.
-         * @param uri The uri of the sender (window identifier)
-         * @param contentUri The uri of the content
-         */
-        void handleUri( QString uri, QString contentUri );
 
         void receiveMessages();
 
@@ -205,8 +190,6 @@ public slots:
 
         // rank 1 - rank 0 timestamp offset
         boost::posix_time::time_duration timestampOffset_;
-
-        State state_;
 
         typedef std::map<QString, QPointF> WindowPositions;
         WindowPositions windowPositions_;

@@ -44,18 +44,46 @@
 #include <QtCore/QCache>
 #include <QtGui/QImage>
 
+/**
+ * Load image thumbnails for supported content types.
+ *
+ * The AsyncImageLoader is designed to be moved to a worker thread.
+ * It maintain a cache with the 100 latest images for performance.
+ */
 class AsyncImageLoader : public QObject
 {
     Q_OBJECT
 
 public:
+    /**
+     * Constructor.
+     *
+     * @param defaultSize The desired size for the thumbnails.
+     */
     AsyncImageLoader(const QSize &defaultSize);
 
 public slots:
+    /**
+     * Load an image thumbnail.
+     *
+     * This method is blocking; it designed to be call via a QSignal after the
+     * AsyncImageLoader has been moved to a worker thread.
+     * @param filename The path to the content file.
+     * @param index A user-defined index that will be passed back with imageLoaded().
+     *        Used by DockPixelStreamer.
+     */
     void loadImage( const QString& filename, const int index );
 
 signals:
+    /**
+     * Emitted when an image could be successfully loaded by loadImage().
+     *
+     * @param index The user-defined index passed in loadImage().
+     * @param image The thumbnail image.
+     */
     void imageLoaded(int index, QImage image);
+
+    /** Emitted whenever loadImage() has finished (successful or not). */
     void imageLoadingFinished();
 
 private:

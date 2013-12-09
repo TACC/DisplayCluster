@@ -60,6 +60,8 @@ Socket::Socket(const std::string &hostname, const unsigned short port)
     {
         put_flog(LOG_ERROR, "could not connect to host %s:%i", hostname.c_str(), port);
     }
+    // Forward disconnection events
+    QObject::connect(socket_, SIGNAL(disconnected()), this, SIGNAL(disconnected()));
 }
 
 Socket::~Socket()

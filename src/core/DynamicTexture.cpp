@@ -417,10 +417,10 @@ void DynamicTexture::render(float tX, float tY, float tW, float tH, bool compute
     }
 }
 
-void DynamicTexture::clearOldChildren(long minFrameCount)
+void DynamicTexture::clearOldChildren(uint64_t minFrameCount)
 {
     // clear children if renderChildrenFrameCount_ < minFrameCount
-    if(children_.size() > 0 && renderChildrenFrameCount_ < minFrameCount && getThreadsDoneDescending() == true)
+    if(children_.size() > 0 && renderChildrenFrameCount_ < minFrameCount && getThreadsDoneDescending())
     {
         children_.clear();
     }

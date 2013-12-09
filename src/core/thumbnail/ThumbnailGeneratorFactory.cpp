@@ -52,9 +52,9 @@
 #include "PyramidThumbnailGenerator.h"
 #include "StateThumbnailGenerator.h"
 
-#include "../MovieContent.h"
-#include "../TextureContent.h"
-#include "../DynamicTextureContent.h"
+#include "MovieContent.h"
+#include "TextureContent.h"
+#include "DynamicTextureContent.h"
 
 #include <QImageReader>
 

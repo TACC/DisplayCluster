@@ -42,9 +42,9 @@
 #include "Pictureflow.h"
 #include "AsyncImageLoader.h"
 
-#include "../ContentFactory.h"
-#include "../thumbnail/ThumbnailGeneratorFactory.h"
-#include "../thumbnail/FolderThumbnailGenerator.h"
+#include "ContentFactory.h"
+#include "thumbnail/ThumbnailGeneratorFactory.h"
+#include "thumbnail/FolderThumbnailGenerator.h"
 
 #define DOCK_ASPECT_RATIO        0.45
 #define SLIDE_REL_HEIGHT_FACTOR  0.6
@@ -65,11 +65,11 @@ float DockPixelStreamer::getDefaultAspectRatio()
 }
 
 DockPixelStreamer::DockPixelStreamer(const QSize& size, const QString& rootDir)
-    : LocalPixelStreamer()
+    : PixelStreamer()
     , flow_(new PictureFlow())
     , loader_(0)
 {
-    QSize dockSize = getBoundedSize(size);
+    const QSize& dockSize = constrainSize(size);
 
     const unsigned int slideSize = dockSize.height() * SLIDE_REL_HEIGHT_FACTOR;
     flow_->resize(dockSize);
@@ -284,12 +284,12 @@ QSize DockPixelStreamer::getMinSize() const
 
 QSize DockPixelStreamer::getMaxSize() const
 {
-    const float dockHeight = SLIDE_MIN_SIZE / SLIDE_REL_HEIGHT_FACTOR;
+    const float dockHeight = SLIDE_MAX_SIZE / SLIDE_REL_HEIGHT_FACTOR;
     const float dockWidth = dockHeight / getDefaultAspectRatio();
     return QSize( dockWidth, dockHeight );
 }
 
-QSize DockPixelStreamer::getBoundedSize(const QSize& size) const
+QSize DockPixelStreamer::constrainSize(const QSize& size) const
 {
     QSize minSize = getMinSize();
     QSize maxSize = getMaxSize();

@@ -55,7 +55,6 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
     public:
-
         MainWindow();
         ~MainWindow();
 
@@ -64,54 +63,52 @@ class MainWindow : public QMainWindow
 
         bool isRegionVisible(double x, double y, double w, double h) const;
 
-public slots:
-
-        void openContent();
-        void openContentsDirectory();
-        void clearContents();
-        void saveState();
-        void loadState();
-        void computeImagePyramid();
-        void constrainAspectRatio(bool set);
-
-#if ENABLE_SKELETON_SUPPORT
-        void setEnableSkeletonTracking(bool enable);
-#endif
-
-        void updateGLWindows();
-
         void finalize();
 
-        void showBackgroundWidget();
-        void openWebBrowser();
-
     signals:
-
-        void updateGLWindowsFinished();
-
-        void backgroundTap(QPointF pos);
-        void backgroundTapAndHold(QPointF pos);
-
-        void createWebBrowser(const QString& url, const QSize& size);
+        void openDock(QPointF pos, QSize size, QString rootDir);
+        void hideDock();
+        void openWebBrowser(QPointF pos, QSize size, QString url);
 
 #if ENABLE_SKELETON_SUPPORT
         void enableSkeletonTracking();
         void disableSkeletonTracking();
 #endif
+        void updateGLWindowsFinished();
 
     protected:
         void dragEnterEvent(QDragEnterEvent *event);
         void dropEvent(QDropEvent *event);
 
+    private slots:
+        void openContent();
+        void openContentsDirectory();
+        void clearContents();
+
+        void saveState();
+        void loadState();
+
+        void computeImagePyramid();
+        void constrainAspectRatio(bool set);
+        void showBackgroundWidget();
+
+        void openWebBrowser();
+        void openDock(const QPointF pos);
+
+    #if ENABLE_SKELETON_SUPPORT
+        void setEnableSkeletonTracking(bool enable);
+    #endif
+
+        void updateGLWindows();
+
     private:
         void setupMasterWindowUI();
         void setupWallOpenGLWindows();
 
-        void addContent(const QString &filename);
-        void addContentDirectory(const QString &directoryName, int gridX=0, int gridY=0);
+        void addContentDirectory(const QString &directoryName, unsigned int gridX=0, unsigned int gridY=0);
         void loadState(const QString &filename);
 
-        void estimateGridSize(unsigned int numElem, int &gridX, int &gridY);
+        void estimateGridSize(unsigned int numElem, unsigned int& gridX, unsigned int& gridY);
 
         QStringList extractValidContentUrls(const QMimeData* data);
         QStringList extractFolderUrls(const QMimeData *data);

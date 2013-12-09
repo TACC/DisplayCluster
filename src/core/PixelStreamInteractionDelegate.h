@@ -51,7 +51,7 @@ using dc::Event;
 class PixelStreamInteractionDelegate : public ContentInteractionDelegate
 {
 public:
-    PixelStreamInteractionDelegate(ContentWindowManager& cwm);
+    PixelStreamInteractionDelegate(ContentWindowManager& contentWindow);
 
     virtual void swipe( QSwipeGesture *gesture );
     virtual void pan( PanGesture* gesture) ;

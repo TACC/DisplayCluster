@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,57 +37,41 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DISPLAY_GROUP_INTERFACE_H
-#define DISPLAY_GROUP_INTERFACE_H
+#ifndef STATESERIALIZATIONHELPER_H
+#define STATESERIALIZATIONHELPER_H
 
-#include "Content.h"
-#include <QtGui>
-#include <boost/shared_ptr.hpp>
-#include <boost/weak_ptr.hpp>
+#include <QString>
 
-class DisplayGroupManager;
-class ContentWindowManager;
+#include "types.h"
 
-class DisplayGroupInterface : public QObject {
-    Q_OBJECT
+/**
+ * Helper class to store the current session to a state file and restore it later.
+ */
+class StateSerializationHelper
+{
+public:
+    /**
+     * Constructor
+     *
+     * @param displayGroupManager The DisplayGroupManager to be saved or restored.
+     */
+    StateSerializationHelper(DisplayGroupManagerPtr displayGroupManager);
 
-    public:
+    /**
+     * Save the state of the application.
+     *
+     * @param filename The .dcx file to save the state.
+     * @param generatePreview Also generate a .dcxpreview thumbnail image for the state.
+     */
+    bool save(const QString& filename, const bool generatePreview = true);
 
-        DisplayGroupInterface() { }
-        DisplayGroupInterface(DisplayGroupManagerPtr displayGroupManager);
+    /**
+     * Load the state from a given xml file.
+     */
+    bool load(const QString& filename);
 
-        DisplayGroupManagerPtr getDisplayGroupManager();
-
-        ContentWindowManagerPtrs getContentWindowManagers();
-        ContentWindowManagerPtr getContentWindowManager(const QString& uri, CONTENT_TYPE contentType=CONTENT_TYPE_ANY);
-
-        // remove all current ContentWindowManagers and add the vector of provided ContentWindowManagers
-        void setContentWindowManagers(ContentWindowManagerPtrs contentWindowManagers);
-
-    public slots:
-
-        // these methods set the local copies of the state variables if source != this
-        // they will emit signals if source == NULL or if this is a DisplayGroup object
-        // the source argument should not be provided by users -- only by these functions
-        virtual void addContentWindowManager(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source=NULL);
-        virtual void removeContentWindowManager(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source=NULL);
-        virtual void moveContentWindowManagerToFront(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source=NULL);
-
-    signals:
-
-        // emitting these signals will trigger updates on the corresponding DisplayGroup
-        // as well as all other DisplayGroupInterfaces to that DisplayGroup
-        void contentWindowManagerAdded(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source=NULL);
-        void contentWindowManagerRemoved(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source=NULL);
-        void contentWindowManagerMovedToFront(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source=NULL);
-
-    protected:
-
-        // optional: reference to DisplayGroupManager for non-DisplayGroupManager objects
-        boost::weak_ptr<DisplayGroupManager> displayGroupManager_;
-
-        // vector of all of its content window managers
-        ContentWindowManagerPtrs contentWindowManagers_;
+private:
+    DisplayGroupManagerPtr displayGroupManager_;
 };
 
-#endif
+#endif // STATESERIALIZATIONHELPER_H

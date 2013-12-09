@@ -45,11 +45,11 @@
 
 #include "Stream.h"
 
-class LocalPixelStreamer;
+class PixelStreamer;
 class CommandLineOptions;
 
 /**
- * Generic application for LocalPixelStreamers.
+ * Generic application for using PixelStreamers with the dc::Stream library.
  */
 class Application : public QApplication
 {
@@ -73,16 +73,15 @@ public:
      * @param options The parsed Command line options.
      * @return true on success, false on failure.
      */
-    bool initalize(const CommandLineOptions &options);
+    bool initialize(const CommandLineOptions &options);
 
 private slots:
     void sendImage(QImage image);
     void processPendingEvents();
     void sendOpenContent(QString uri);
-    void checkConnection();
 
 private:
-    LocalPixelStreamer* streamer_;
+    PixelStreamer* pixelStreamer_;
     dc::Stream* dcStream_;
 };
 

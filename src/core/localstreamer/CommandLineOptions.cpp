@@ -121,7 +121,7 @@ void CommandLineOptions::setHelp(const bool set)
     getHelp_ = set;
 }
 
-void CommandLineOptions::setPixelStreamerType(PixelStreamerType type)
+void CommandLineOptions::setPixelStreamerType(const PixelStreamerType type)
 {
     streamerType_ = type;
 }
@@ -159,15 +159,27 @@ QString CommandLineOptions::getCommandLine() const
 QStringList CommandLineOptions::getCommandLineArguments() const
 {
     QStringList arguments;
+
+    if (streamerType_ != PS_UNKNOWN)
+        arguments << "--type" << getStreamerTypeString(streamerType_);
+
+    if (width_ > 0)
+        arguments << "--width" << QString::number(width_);
+
+    if (height_ > 0)
+        arguments << "--height" << QString::number(height_);
+
     if (getHelp_)
         arguments << "--help";
 
-    arguments << "--type" << getStreamerTypeString(streamerType_)
-              << "--name" << name_
-              << "--url" << url_
-              << "--width" << QString::number(width_)
-              << "--height" << QString::number(height_)
-              << "--rootdir" << rootDir_;
+    if (!name_.isEmpty())
+        arguments << "--name" << name_;
+
+    if (!url_.isEmpty())
+        arguments << "--url" << url_;
+
+    if (!rootDir_.isEmpty())
+        arguments << "--rootdir" << rootDir_;
 
     return arguments;
 }
