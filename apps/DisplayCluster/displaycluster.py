@@ -42,6 +42,7 @@ if myRank == 0:
     params = ' '
     if len(sys.argv) == 2 :
         params += sys.argv[1]
+    #startCommand = 'valgrind --tool=memcheck --track-origins=yes --leak-check=full --show-reachable=yes --partial-loads-ok=yes --log-file=/tmp/valgrind_rank0.out ' +dcPath + '/bin/displaycluster' + params
     startCommand = dcPath + '/bin/displaycluster' + params
     subprocess.call(shlex.split(startCommand))
 else:
@@ -69,6 +70,8 @@ else:
         print 'Error processing configuration.xml. Make sure you have created a configuration.xml and put it in ' + dcPath + '/. An example is provided in the examples/ directory.'
         exit(-6)
 
+
+    #startCommand = 'valgrind --tool=memcheck --track-origins=yes --leak-check=full --show-reachable=yes --partial-loads-ok=yes --log-file=/tmp/valgrind.out ' + dcPath + '/bin/displaycluster'
     startCommand = dcPath + '/bin/displaycluster'
 
     subprocess.call(shlex.split(startCommand))

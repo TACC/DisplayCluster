@@ -15,7 +15,7 @@ if(COMMAND cmake_policy)
 endif(COMMAND cmake_policy)
 
 # show all warnings
-set(CMAKE_CXX_FLAGS "-Wall")
+set(CMAKE_CXX_FLAGS "-Wall -ftemplate-depth-1024")
 
 # build options
 option(BUILD_DISPLAYCLUSTER_LIBRARY "Build DisplayCluster library" OFF)
@@ -104,7 +104,7 @@ if(BUILD_CORE_LIBRARY)
 endif()
 
 # install doc files
-install(DIRECTORY doc DESTINATION .)
+install(DIRECTORY doc DESTINATION . COMPONENT doc)
 
 # install example files
-install(DIRECTORY examples DESTINATION .)
+install(DIRECTORY examples DESTINATION . COMPONENT examples)

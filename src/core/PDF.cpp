@@ -152,6 +152,8 @@ void PDF::getDimensions(int &width, int &height) const
 
 void PDF::render(float tX, float tY, float tW, float tH)
 {
+    updateRenderedFrameCount();
+
     // get on-screen and full rectangle corresponding to the window
     QRectF screenRect = g_mainWindow->getGLWindow()->getProjectedPixelRect(true);
     QRectF fullRect = g_mainWindow->getGLWindow()->getProjectedPixelRect(false);

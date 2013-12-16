@@ -77,7 +77,7 @@ class ContentWindowInterface : public QObject {
             SELECTED     // the window is selected and interaction may be forwarded to the ContentInteractionDelegate
         };
 
-        ContentWindowInterface() : boundInteractions_( 0 ) { }
+        ContentWindowInterface();
         ContentWindowInterface(boost::shared_ptr<ContentWindowManager> contentWindowManager);
 
         boost::shared_ptr<ContentWindowManager> getContentWindowManager();

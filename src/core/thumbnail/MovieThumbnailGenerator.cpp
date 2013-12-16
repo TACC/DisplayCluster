@@ -55,7 +55,10 @@ QImage MovieThumbnailGenerator::generate(const QString &filename) const
         return createErrorImage("movie");
 
     if( avformat_find_stream_info( avFormatContext, 0 ) < 0 )
+    {
+        avformat_close_input(&avFormatContext);
         return createErrorImage("movie");
+    }
 
     // find the first video stream
     int streamIdx = -1;
@@ -69,27 +72,33 @@ QImage MovieThumbnailGenerator::generate(const QString &filename) const
     }
 
     if( streamIdx == -1 )
+    {
+        avformat_close_input(&avFormatContext);
         return createErrorImage("movie");
+    }
 
     AVStream* videostream = avFormatContext->streams[streamIdx];
     AVCodecContext* avCodecContext = videostream->codec;
     AVCodec* codec = avcodec_find_decoder( avCodecContext->codec_id );
     if( !codec )
+    {
+        avformat_close_input(&avFormatContext);
         return createErrorImage("movie");
+    }
 
     if( avcodec_open2( avCodecContext, codec, 0 ) < 0 )
+    {
+        avformat_close_input(&avFormatContext);
         return createErrorImage("movie");
+    }
 
     AVFrame* avFrame = avcodec_alloc_frame();
     AVFrame* avFrameRGB = avcodec_alloc_frame();
 
     QImage image( avCodecContext->width, avCodecContext->height,
                   QImage::Format_RGB32 );
-    int numBytes = avpicture_get_size( PIX_FMT_RGB24, image.width(),
-                                       image.height( ));
-    uint8_t* buffer = (uint8_t*)av_malloc( numBytes * sizeof(uint8_t));
-    avpicture_fill( (AVPicture*)avFrameRGB, buffer, PIX_FMT_RGB24,
-                    image.width(), image.height( ));
+    avpicture_alloc( (AVPicture*)avFrameRGB,  PIX_FMT_RGB24,
+                     image.width(), image.height( ));
 
     SwsContext* swsContext = sws_getContext( avCodecContext->width,
                                              avCodecContext->height,
@@ -107,21 +116,30 @@ QImage MovieThumbnailGenerator::generate(const QString &filename) const
     if( avformat_seek_file( avFormatContext, streamIdx, 0, desiredTimestamp,
                             desiredTimestamp, 0 ) != 0 )
     {
+        avcodec_close( avCodecContext );
+        avformat_close_input(&avFormatContext);
         return createErrorImage("movie");
     }
 
     AVPacket packet;
+    av_init_packet(&packet);
     while( av_read_frame( avFormatContext, &packet ) >= 0 )
     {
         if( packet.stream_index != streamIdx )
+        {
+            av_free_packet( &packet );
             continue;
+        }
 
         int frameFinished;
         avcodec_decode_video2( avCodecContext, avFrame, &frameFinished,
                                &packet );
 
         if( !frameFinished )
+        {
+            av_free_packet( &packet );
             continue;
+        }
 
         sws_scale( swsContext, avFrame->data, avFrame->linesize, 0,
                    avCodecContext->height, avFrameRGB->data,
@@ -137,12 +155,13 @@ QImage MovieThumbnailGenerator::generate(const QString &filename) const
         }
 
         av_free_packet( &packet );
-
         break;
     }
 
+    avcodec_close( avCodecContext );
     avformat_close_input( &avFormatContext );
     sws_freeContext( swsContext );
+    avpicture_free( (AVPicture *)avFrameRGB );
     av_free( avFrame );
     av_free( avFrameRGB );
 

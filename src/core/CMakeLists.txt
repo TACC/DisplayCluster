@@ -8,12 +8,7 @@ if(ENABLE_TUIO_TOUCH_LISTENER)
   include_directories(${TUIO_INCLUDE_DIRS})
   list(APPEND LIBS ${TUIO_LIBRARIES})
 
-  list(APPEND SRCS gestures/DoubleTapGestureRecognizer.cpp
-                   gestures/PanGesture.cpp
-                   gestures/PanGestureRecognizer.cpp
-                   gestures/PinchGesture.cpp
-                   gestures/PinchGestureRecognizer.cpp
-                   MultiTouchListener.cpp
+  list(APPEND SRCS MultiTouchListener.cpp
                    TouchListener.cpp)
 
   find_package(X11 REQUIRED)
@@ -106,6 +101,11 @@ list(APPEND SRCS
     FactoryObject.cpp
     GLWindow.cpp
     globals.cpp
+    gestures/DoubleTapGestureRecognizer.cpp
+    gestures/PanGesture.cpp
+    gestures/PanGestureRecognizer.cpp
+    gestures/PinchGesture.cpp
+    gestures/PinchGestureRecognizer.cpp
     ../log.cpp
     LocalPixelStreamer.cpp
     LocalPixelStreamerManager.cpp
@@ -198,5 +198,5 @@ endif()
 
 # install Python module
 if(ENABLE_PYTHON_SUPPORT)
-  install(FILES ${CMAKE_BINARY_DIR}/pydc.so DESTINATION python)
+  install(FILES ${CMAKE_BINARY_DIR}/pydc.so DESTINATION python COMPONENT lib)
 endif()

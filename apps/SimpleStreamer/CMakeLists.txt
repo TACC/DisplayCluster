@@ -20,6 +20,6 @@ target_link_libraries(simplestreamer ${SIMPLESTREAMER_LIBS})
 
 # install executable
 INSTALL(TARGETS simplestreamer
-    RUNTIME DESTINATION bin
+    RUNTIME DESTINATION bin COMPONENT simplestreamer
 )
 

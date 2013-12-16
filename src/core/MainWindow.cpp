@@ -786,6 +786,7 @@ void MainWindow::updateGLWindows()
         glWindows_[0]->getSVGFactory().clearStaleObjects();
         glWindows_[0]->getMovieFactory().clearStaleObjects();
         glWindows_[0]->getPixelStreamFactory().clearStaleObjects();
+        glWindows_[0]->getPDFFactory().clearStaleObjects();
 
         glWindows_[0]->purgeTextures();
     }

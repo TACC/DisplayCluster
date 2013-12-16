@@ -129,6 +129,18 @@ Movie::Movie(QString uri)
         return;
     }
 
+    // allocate video frame for video decoding
+    avFrame_ = avcodec_alloc_frame();
+
+    // allocate video frame for RGB conversion
+    avFrameRGB_ = avcodec_alloc_frame();
+
+    if( !avFrame_ || !avFrameRGB_ )
+    {
+        put_flog(LOG_ERROR, "error allocating frames");
+        return;
+    }
+
     den2_ = videostream_->time_base.den * videostream_->r_frame_rate.den;
     num2_ = videostream_->time_base.num * videostream_->r_frame_rate.num;
 
@@ -147,25 +159,8 @@ Movie::Movie(QString uri)
     textureId_ = g_mainWindow->getGLWindow()->bindTexture(image, GL_TEXTURE_2D, GL_RGBA, QGLContext::LinearFilteringBindOption);
     textureBound_ = true;
 
-    // allocate video frame for video decoding
-    avFrame_ = avcodec_alloc_frame();
-
-    // allocate video frame for RGB conversion
-    avFrameRGB_ = avcodec_alloc_frame();
-
-    if(avFrame_ == NULL || avFrameRGB_ == NULL)
-    {
-        put_flog(LOG_ERROR, "error allocating frames");
-        return;
-    }
-
-    // get required buffer size and allocate buffer for pFrameRGB
-    // this memory will be overwritten during frame conversion, but needs to be allocated ahead of time
-    int numBytes = avpicture_get_size(PIX_FMT_RGBA, avCodecContext_->width, avCodecContext_->height);
-    uint8_t * buffer = (uint8_t *)av_malloc(numBytes*sizeof(uint8_t));
-
     // assign buffer to pFrameRGB
-    avpicture_fill((AVPicture *)avFrameRGB_, buffer, PIX_FMT_RGBA, avCodecContext_->width, avCodecContext_->height);
+    avpicture_alloc( (AVPicture *)avFrameRGB_, PIX_FMT_RGBA, avCodecContext_->width, avCodecContext_->height);
 
     // create sws scaler context
     swsContext_ = sws_getContext(avCodecContext_->width, avCodecContext_->height, avCodecContext_->pix_fmt, avCodecContext_->width, avCodecContext_->height, PIX_FMT_RGBA, SWS_FAST_BILINEAR, NULL, NULL, NULL);
@@ -182,6 +177,8 @@ Movie::~Movie()
         g_mainWindow->getGLWindow()->deleteTexture(textureId_);
     }
 
+    avcodec_close( avCodecContext_ );
+
     // close the format context
     avformat_close_input(&avFormatContext_);
 
@@ -189,6 +186,7 @@ Movie::~Movie()
     sws_freeContext(swsContext_);
 
     // free frames
+    avpicture_free( (AVPicture *)avFrameRGB_ );
     av_free(avFrame_);
     av_free(avFrameRGB_);
 }
@@ -306,6 +304,7 @@ void Movie::nextFrame(bool skip)
     int avReadStatus = 0;
 
     AVPacket packet;
+    av_init_packet(&packet);
     int frameFinished;
 
     while((avReadStatus = av_read_frame(avFormatContext_, &packet)) >= 0)

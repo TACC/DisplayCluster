@@ -65,7 +65,7 @@
 
 
 class ContentWindowManager;
-class MessageHeader;
+struct MessageHeader;
 
 class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_shared_from_this<DisplayGroupManager> {
     Q_OBJECT
@@ -73,11 +73,13 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
     public:
 
         DisplayGroupManager();
+        ~DisplayGroupManager();
 
         OptionsPtr getOptions() const;
 
         boost::shared_ptr<Marker> getNewMarker();
         const std::vector<boost::shared_ptr<Marker> >& getMarkers() const;
+        void deleteMarkers();
 
         boost::posix_time::ptime getTimestamp() const;
 
