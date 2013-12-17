@@ -77,11 +77,11 @@ private:
     unsigned int width_;
     unsigned int height_;
 
-    // Has a decoding sequence been started
-    bool decodingStarted_;
-
-    // Keep a queue of incoming frames
-    std::queue<PixelStreamSegments> frameBuffer_;
+    // The front buffer is decoded by the frameDecoders and then used to upload the frameRenderers
+    PixelStreamSegments frontBuffer_;
+    // The back buffer contains the next frame to process (last frame received)
+    PixelStreamSegments backBuffer_;
+    bool buffersSwapped_;
 
     // The list of decoded images for the next frame
     std::vector<PixelStreamSegmentDecoderPtr> frameDecoders_;
@@ -89,8 +89,9 @@ private:
     // For each segment, object for image decoding, rendering and storing parameters
     std::vector<PixelStreamSegmentRendererPtr> segmentRenderers_;
 
+    void updateRenderers(const PixelStreamSegments& segments);
     void updateVisibleTextures();
-    void nextFrame();
+    void swapBuffers();
     void recomputeDimensions(const PixelStreamSegments& segments);
     void decodeVisibleTextures();
 

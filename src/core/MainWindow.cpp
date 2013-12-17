@@ -58,10 +58,6 @@
     #include "PythonConsole.h"
 #endif
 
-#if ENABLE_SKELETON_SUPPORT
-    #include "SkeletonThread.h"
-#endif
-
 #if ENABLE_TUIO_TOUCH_LISTENER
     #include "MultiTouchListener.h"
 #endif
@@ -269,9 +265,6 @@ void MainWindow::setupMasterWindowUI()
     enableSkeletonTrackingAction->setCheckable(true);
     enableSkeletonTrackingAction->setChecked(true); // timer is started by default
     connect(enableSkeletonTrackingAction, SIGNAL(toggled(bool)), this, SLOT(setEnableSkeletonTracking(bool)));
-
-    connect(this, SIGNAL(enableSkeletonTracking()), g_skeletonThread, SLOT(startTimer()));
-    connect(this, SIGNAL(disableSkeletonTracking()), g_skeletonThread, SLOT(stopTimer()));
 
     // show skeletons action
     QAction * showSkeletonsAction = new QAction("Show Skeletons", this);
@@ -785,6 +778,7 @@ void MainWindow::updateGLWindows()
     {
         glWindows_[0]->getTextureFactory().clearStaleObjects();
         glWindows_[0]->getDynamicTextureFactory().clearStaleObjects();
+        glWindows_[0]->getPDFFactory().clearStaleObjects();
         glWindows_[0]->getSVGFactory().clearStaleObjects();
         glWindows_[0]->getMovieFactory().clearStaleObjects();
         glWindows_[0]->getPixelStreamFactory().clearStaleObjects();

@@ -158,14 +158,7 @@ void GLWindow::paintGL()
         drawFps();
     }
 
-<<<<<<< HEAD
-    // render the markers
-    // these should be rendered last since they're blended
-    const std::vector<boost::shared_ptr<Marker> >& markers = g_displayGroupManager->getMarkers();
-=======
-    renderMarkers(); // Mrkers should be rendered last since they're blended
->>>>>>> DcStream API: Major rewrite and subsequent adaption of the segments rendering.
-
+    renderMarkers(); // Markers should be rendered last since they're blended
 
 #if ENABLE_SKELETON_SUPPORT
     if(g_displayGroupManager->getOptions()->getShowSkeletons() == true)
@@ -238,7 +231,12 @@ void GLWindow::renderContentWindows()
     unsigned int i = 0;
     for(ContentWindowManagerPtrs::iterator it = contentWindowManagers.begin(); it != contentWindowManagers.end(); it++)
     {
-        if ( isRegionVisible( (*it)->getCoordinates( )))
+        // It is currently not possible to cull windows that are invisible as this conflics
+        // with the "garbage collection" mechanism for Contents. In fact, "stale" objects are objects
+        // which have not been rendered for more than one frame (implicitly: objects without a window)
+        // and those are destroyed by Factory::clearStaleObjects(). It is currently the only way to
+        // remove a Content.
+        //if ( isRegionVisible( (*it)->getCoordinates( )))
         {
             // the visible depths are in the range (-1,1); make the content window depths be in the range (-1,0)
             const float depth = -(float)(windowCount - i) / (float)(windowCount + 1);

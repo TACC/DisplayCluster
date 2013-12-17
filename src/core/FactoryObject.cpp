@@ -39,13 +39,12 @@
 #include "FactoryObject.h"
 #include "globals.h"
 
-uint64_t FactoryObject::getRenderedFrameCount() const
+uint64_t FactoryObject::getRenderedFrameIndex() const
 {
-    return renderedFrameCount_;
+    return renderedFrameIndex_;
 }
 
-
-void FactoryObject::updateRenderedFrameCount()
+void FactoryObject::updateRenderedFrameIndex()
 {
-    renderedFrameCount_ = g_frameCount;
+    renderedFrameIndex_ = g_frameCount;
 }

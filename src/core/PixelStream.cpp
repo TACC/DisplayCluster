@@ -49,13 +49,11 @@
 
 #include "PixelStreamSegmentParameters.h"
 
-#define MAX_FRAME_QUEUE_SIZE 5
-
 PixelStream::PixelStream(const QString &uri)
     : uri_(uri)
     , width_(0)
     , height_ (0)
-    , decodingStarted_(false)
+    , buffersSwapped_(false)
 {
 }
 
@@ -67,66 +65,69 @@ void PixelStream::getDimensions(int &width, int &height) const
 
 void PixelStream::preRenderUpdate()
 {
-    if(!isDecodingInProgress())
-    {
-        // Update the texture which need an update and which are available
-        updateVisibleTextures();
-
-        // Always keep at least one frame in the queue in case the sender stops sending
-        // and we need to decode previously hidden segments
-        if (frameBuffer_.size() > 1)
-        {
-            nextFrame();
-        }
-        // Start decoding the textures which are not decoded but needed
-        decodeVisibleTextures();
-    }
-}
-
-void PixelStream::updateVisibleTextures()
-{
-    if (frameBuffer_.empty())
+    if( isDecodingInProgress( ))
         return;
 
-    PixelStreamSegments &segments = frameBuffer_.front();
+    // After swapping the buffers, wait until decoding has finished to update the renderers.
+    if ( buffersSwapped_ )
+    {
+        adjustSegmentRendererCount(frontBuffer_.size());
+        updateRenderers(frontBuffer_);
+        recomputeDimensions(frontBuffer_);
+        buffersSwapped_ = false;
+    }
 
-    adjustSegmentRendererCount(segments.size());
-    assert(segments.size() == segmentRenderers_.size() && "PixelStream::updateVisibleTextures FIXME");
+    // The window may have moved, so always check if some segments have become visible to upload them.
+    updateVisibleTextures();
+
+    if ( !backBuffer_.empty( ))
+    {
+        swapBuffers();
+        adjustFrameDecodersCount(frontBuffer_.size());
+    }
+
+    // The window may have moved, so always check if some segments have become visible to decode them.
+    decodeVisibleTextures();
+}
+
+void PixelStream::updateRenderers(const PixelStreamSegments& segments)
+{
+    assert(segmentRenderers_.size() == segments.size());
 
     for(size_t i=0; i<segments.size(); i++)
     {
         // The parameters always need to be up to date to determine visibility when rendering.
         segmentRenderers_[i]->setParameters(segments[i].parameters.x, segments[i].parameters.y,
                                             segments[i].parameters.width, segments[i].parameters.height);
+        segmentRenderers_[i]->setTextureNeedsUpdate();
+    }
+}
 
-        if (segmentRenderers_[i]->textureNeedsUpdate() && isVisible(segments[i]))
+void PixelStream::updateVisibleTextures()
+{
+    for(size_t i=0; i<frontBuffer_.size(); i++)
+    {
+        if (segmentRenderers_[i]->textureNeedsUpdate() && !frontBuffer_[i].parameters.compressed &&
+                isVisible(frontBuffer_[i]))
         {
-            if (!segments[i].parameters.compressed)
-            {
-                const QImage textureWrapper((const uchar*)segments[i].imageData.constData(),
-                                            segments[i].parameters.width,
-                                            segments[i].parameters.height,
-                                            QImage::Format_RGB32);
+            const QImage textureWrapper((const uchar*)frontBuffer_[i].imageData.constData(),
+                                        frontBuffer_[i].parameters.width,
+                                        frontBuffer_[i].parameters.height,
+                                        QImage::Format_RGB32);
 
-                segmentRenderers_[i]->updateTexture(textureWrapper);
-            }
+            segmentRenderers_[i]->updateTexture(textureWrapper);
         }
     }
 }
 
-void PixelStream::nextFrame()
+void PixelStream::swapBuffers()
 {
-    assert(!frameBuffer_.empty());
+    assert(!backBuffer_.empty());
 
-    recomputeDimensions(frameBuffer_.front());
+    frontBuffer_ = backBuffer_;
+    backBuffer_.clear();
 
-    frameBuffer_.pop();
-
-    // Mark all textures as out of date
-    for(size_t i=0; i<segmentRenderers_.size(); i++)
-    {
-        segmentRenderers_[i]->setTextureNeedsUpdate();
-    }
+    buffersSwapped_ = true;
 }
 
 void PixelStream::recomputeDimensions(const PixelStreamSegments &segments)
@@ -144,17 +145,11 @@ void PixelStream::recomputeDimensions(const PixelStreamSegments &segments)
 
 void PixelStream::decodeVisibleTextures()
 {
-    if (frameBuffer_.empty())
-        return;
-
-    PixelStreamSegments &segments = frameBuffer_.front();
-    adjustFrameDecodersCount(segments.size());
-
-    assert(frameDecoders_.size() == segments.size() && "PixelStream::startDecodingNextFrame FIXME");
+    assert(frameDecoders_.size() == frontBuffer_.size());
 
     std::vector<PixelStreamSegmentDecoderPtr>::iterator frameDecoder_it = frameDecoders_.begin();
-    PixelStreamSegments::iterator segment_it = segments.begin();
-    for ( ; segment_it != segments.end(); ++segment_it, ++frameDecoder_it )
+    PixelStreamSegments::iterator segment_it = frontBuffer_.begin();
+    for ( ; segment_it != frontBuffer_.end(); ++segment_it, ++frameDecoder_it )
     {
         if ( segment_it->parameters.compressed && isVisible(*segment_it) )
         {
@@ -165,7 +160,7 @@ void PixelStream::decodeVisibleTextures()
 
 void PixelStream::render(const float tX, const float tY, const float tW, const float tH)
 {
-    updateRenderedFrameCount();
+    updateRenderedFrameIndex();
 
     const bool showSegmentBorders = g_displayGroupManager->getOptions()->getShowStreamingSegments();
     const bool showSegmentStatistics = g_displayGroupManager->getOptions()->getShowStreamingStatistics();
@@ -206,8 +201,7 @@ void PixelStream::adjustSegmentRendererCount(const size_t count)
 
 void PixelStream::insertNewFrame(const PixelStreamSegments &segments)
 {
-    if (frameBuffer_.size() <= MAX_FRAME_QUEUE_SIZE)
-        frameBuffer_.push(segments);
+    backBuffer_ = segments;
 }
 
 

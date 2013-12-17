@@ -79,10 +79,7 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
 
         MarkerPtr getNewMarker();
         const MarkerPtrs& getMarkers() const;
-<<<<<<< HEAD
         void deleteMarkers();
-=======
->>>>>>> Code review by Daniel
 
         boost::posix_time::ptime getTimestamp() const;
 

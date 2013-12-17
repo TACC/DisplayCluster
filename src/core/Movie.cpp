@@ -201,7 +201,7 @@ void Movie::getDimensions(int &width, int &height)
 
 void Movie::render(float tX, float tY, float tW, float tH)
 {
-    updateRenderedFrameCount();
+    updateRenderedFrameIndex();
 
     if(!textureId_)
         return;

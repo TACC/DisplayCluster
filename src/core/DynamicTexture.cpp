@@ -304,7 +304,7 @@ void DynamicTexture::render(float tX, float tY, float tW, float tH, bool compute
 {
     if(depth_ == 0)
     {
-        updateRenderedFrameCount();
+        updateRenderedFrameIndex();
     }
 
     if(considerChildren == true && getProjectedPixelArea(true) > 0. && getProjectedPixelArea(false) > TEXTURE_SIZE*TEXTURE_SIZE && (getRoot()->imageWidth_ / pow(2,depth_) > TEXTURE_SIZE || getRoot()->imageHeight_ / pow(2,depth_) > TEXTURE_SIZE))

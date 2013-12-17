@@ -62,8 +62,6 @@
 
 #if ENABLE_SKELETON_SUPPORT
     #include "SkeletonThread.h"
-
-    SkeletonThread * g_skeletonThread = NULL;
 #endif
 
 #define CONFIGURATION_FILENAME "configuration.xml"
@@ -97,11 +95,7 @@ int main(int argc, char * argv[])
     MPI_Comm_size(MPI_COMM_WORLD, &g_mpiSize);
     MPI_Comm_split(MPI_COMM_WORLD, g_mpiRank != 0, g_mpiRank, &g_mpiRenderComm);
 
-<<<<<<< HEAD
     g_displayGroupManager.reset( new DisplayGroupManager );
-=======
-    g_displayGroupManager = DisplayGroupManagerPtr(new DisplayGroupManager);
->>>>>>> Code review and improved documentation
 
     // Load configuration
     if(g_mpiRank == 0)
@@ -113,6 +107,8 @@ int main(int argc, char * argv[])
 
     // calibrate timestamp offset between rank 0 and rank 1 clocks
     g_displayGroupManager->calibrateTimestampOffset();
+
+    g_mainWindow = new MainWindow();
 
 #if ENABLE_JOYSTICK_SUPPORT
     if(g_mpiRank == 0)
@@ -138,20 +134,27 @@ int main(int argc, char * argv[])
 #endif
 
 #if ENABLE_SKELETON_SUPPORT
+    SkeletonThread* skeletonThread = 0;
+
     if(g_mpiRank == 0)
     {
-        g_skeletonThread = new SkeletonThread();
-        g_skeletonThread->start();
+        skeletonThread = new SkeletonThread();
+        skeletonThread->start();
 
         // wait for thread to start
-        while(g_skeletonThread->isRunning() == false || g_skeletonThread->isFinished() == true)
+        while( !skeletonThread->isRunning() || skeletonThread->isFinished() )
         {
             usleep(1000);
         }
     }
-#endif
 
-    g_mainWindow = new MainWindow();
+    connect(g_mainWindow, SIGNAL(enableSkeletonTracking()), skeletonThread, SLOT(startTimer()));
+    connect(g_mainWindow, SIGNAL(disableSkeletonTracking()), skeletonThread, SLOT(stopTimer()));
+
+    connect(skeletonThread, SIGNAL(skeletonsUpdated(std::vector< boost::shared_ptr<SkeletonState> >)),
+            g_displayGroupManager.get(), SLOT(setSkeletons(std::vector<boost::shared_ptr<SkeletonState> >)),
+            Qt::QueuedConnection);
+#endif
 
     NetworkListener* networkListener = 0;
     PixelStreamerLauncher* pixelStreamerLauncher = 0;
@@ -192,6 +195,16 @@ int main(int argc, char * argv[])
 
     if(g_mpiRank != 0)
         g_displayGroupManager->deleteMarkers();
+
+#if ENABLE_SKELETON_SUPPORT
+    delete skeletonThread;
+    skeletonThread = 0;
+#endif
+
+#if ENABLE_JOYSTICK_SUPPORT
+    delete joystickThread;
+    joystickThread = 0;
+#endif
 
     // call finalize cleanup actions
     g_mainWindow->finalize();

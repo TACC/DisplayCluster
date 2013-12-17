@@ -55,10 +55,4 @@ extern DisplayGroupManagerPtr g_displayGroupManager;
 extern MainWindow * g_mainWindow;
 extern uint64_t g_frameCount;
 
-#if ENABLE_SKELETON_SUPPORT
-    class SkeletonThread;
-
-    extern SkeletonThread * g_skeletonThread;
-#endif
-
 #endif

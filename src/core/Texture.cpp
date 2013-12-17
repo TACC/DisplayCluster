@@ -77,7 +77,7 @@ void Texture::getDimensions(int &width, int &height)
 
 void Texture::render(float tX, float tY, float tW, float tH)
 {
-    updateRenderedFrameCount();
+    updateRenderedFrameIndex();
 
     if(!textureId_)
         return;

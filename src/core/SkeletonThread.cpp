@@ -39,8 +39,6 @@
 #include "SkeletonThread.h"
 #include "SkeletonSensor.h"
 #include "DisplayGroupJoystick.h"
-#include "ContentWindowInterface.h"
-#include "main.h"
 #include "log.h"
 
 // an identifier for a UID that is not applicable
@@ -49,8 +47,6 @@ const unsigned int NA_UID = 9999;
 SkeletonThread::SkeletonThread()
 {
     moveToThread(this);
-
-    connect(this, SIGNAL(skeletonsUpdated(std::vector< boost::shared_ptr<SkeletonState> >)), g_displayGroupManager.get(), SLOT(setSkeletons(std::vector<boost::shared_ptr<SkeletonState> >)), Qt::QueuedConnection);
 }
 
 std::vector< boost::shared_ptr<SkeletonState> > SkeletonThread::getSkeletons()
@@ -60,7 +56,7 @@ std::vector< boost::shared_ptr<SkeletonState> > SkeletonThread::getSkeletons()
     std::map<unsigned int, boost::shared_ptr<SkeletonState> >::iterator it;
 
     for(it=states_.begin(); it != states_.end(); it++)
-    {   
+    {
         skeletons.push_back((*it).second);
     }
 

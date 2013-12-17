@@ -41,18 +41,26 @@
 
 #include <stdint.h>
 
-class FactoryObject {
-
+class FactoryObject
+{
     public:
-
-        uint64_t getRenderedFrameCount() const;
+        /**
+         * Get the current frame count for this Object.
+         * Used by the Factory to check if the object is still being used/referenced
+         * by a ContentWindow.
+         */
+        uint64_t getRenderedFrameIndex() const;
 
     protected:
+        /**
+         * Must be called everytime a derived object is rendered.
+         * Failing that, it will be garbage collected by the factory.
+         */
+        void updateRenderedFrameIndex();
 
-        void updateRenderedFrameCount();
-
-        // frame count object was last rendered
-        uint64_t renderedFrameCount_;
+    private:
+        /** Frame index when object was last rendered. */
+        uint64_t renderedFrameIndex_;
 };
 
 #endif
