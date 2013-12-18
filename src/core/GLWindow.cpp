@@ -84,6 +84,11 @@ GLWindow::~GLWindow()
 {
 }
 
+int GLWindow::getTileIndex() const
+{
+    return tileIndex_;
+}
+
 Factory<Texture> & GLWindow::getTextureFactory()
 {
     return textureFactory_;
@@ -510,10 +515,10 @@ void GLWindow::drawFps()
 }
 
 
-QRectF GLWindow::getProjectedPixelRect(bool onScreenOnly)
+QRectF GLWindow::getProjectedPixelRect(const bool clampToWindowArea)
 {
     // get four corners in object space (recall we're in normalized 0->1 dimensions)
-    double x[4][3] =
+    const double x[4][3] =
     {
         {0.,0.,0.},
         {1.,0.,0.},
@@ -533,11 +538,11 @@ QRectF GLWindow::getProjectedPixelRect(bool onScreenOnly)
 
     GLdouble xWin[4][3];
 
-    for(int i=0; i<4; i++)
+    for(size_t i=0; i<4; i++)
     {
         gluProject(x[i][0], x[i][1], x[i][2], modelview, projection, viewport, &xWin[i][0], &xWin[i][1], &xWin[i][2]);
 
-        if(onScreenOnly == true)
+        if( clampToWindowArea )
         {
             // clamp to on-screen portion
             if(xWin[i][0] < 0.)
@@ -553,6 +558,8 @@ QRectF GLWindow::getProjectedPixelRect(bool onScreenOnly)
                 xWin[i][1] = (double)height();
         }
     }
+    const QPointF topleft( xWin[0][0], (double)height() - xWin[0][1] );
+    const QPointF bottomright( xWin[2][0], (double)height() - xWin[2][1] );
 
-    return QRectF(QPointF(xWin[0][0], (double)height() - xWin[0][1]), QPointF(xWin[2][0], (double)height() - xWin[2][1]));
+    return QRectF( topleft, bottomright );
 }

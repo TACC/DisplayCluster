@@ -387,14 +387,6 @@ void DynamicTexture::render(float tX, float tY, float tW, float tH, bool compute
             glEnable(GL_TEXTURE_2D);
             glBindTexture(GL_TEXTURE_2D, textureId_);
 
-            // linear min / max filtering
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-            // on zoom-out, clamp to edge (instead of showing the texture tiled / repeated)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
             glBegin(GL_QUADS);
 
             // note we need to flip the y coordinate since the textures are loaded upside down
@@ -659,6 +651,13 @@ void DynamicTexture::uploadTexture()
     glGenTextures(1, &textureId_);
     glBindTexture(GL_TEXTURE_2D, textureId_);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, scaledImage_.width(), scaledImage_.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, scaledImage_.bits());
+
+    // linear min / max filtering
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     textureBound_ = true;
 

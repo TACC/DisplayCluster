@@ -45,7 +45,7 @@ class FactoryObject
 {
     public:
         /**
-         * Get the current frame count for this Object.
+         * Get the current frame index for this Object.
          * Used by the Factory to check if the object is still being used/referenced
          * by a ContentWindow.
          */

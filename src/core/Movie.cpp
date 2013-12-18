@@ -156,6 +156,9 @@ Movie::Movie(QString uri)
 
     textureId_ = g_mainWindow->getGLWindow()->bindTexture(image, GL_TEXTURE_2D, GL_RGBA, QGLContext::LinearFilteringBindOption);
 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
     // assign buffer to pFrameRGB
     avpicture_alloc( (AVPicture *)avFrameRGB_, PIX_FMT_RGBA, avCodecContext_->width, avCodecContext_->height);
 
@@ -211,10 +214,6 @@ void Movie::render(float tX, float tY, float tW, float tH)
 
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, textureId_);
-
-    // on zoom-out, clamp to edge (instead of showing the texture tiled / repeated)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     glBegin(GL_QUADS);
 

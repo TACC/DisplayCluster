@@ -58,6 +58,9 @@ public:
     GLWindow(int tileIndex, QRect windowRect, QGLWidget * shareWidget = 0);
     ~GLWindow();
 
+    /** Get the unique tile index identifier. */
+    int getTileIndex() const;
+
     Factory<Texture> & getTextureFactory();
     Factory<DynamicTexture> & getDynamicTextureFactory();
     Factory<PDF> &getPDFFactory();
@@ -80,7 +83,7 @@ public:
     bool isRegionVisible(const QRectF& rect) const;
 
     /** Used by PDF and SVG renderers */
-    QRectF getProjectedPixelRect(bool onScreenOnly);
+    QRectF getProjectedPixelRect(const bool clampToWindowArea);
 
     /** Draw an un-textured rectangle.
      * @param x,y postion

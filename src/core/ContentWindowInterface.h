@@ -86,34 +86,64 @@ class ContentWindowInterface : public QObject
         ContentWindowInterface();
         ContentWindowInterface(ContentWindowManagerPtr contentWindowManager);
 
+        /** Get the ContentWindowManger associated to this object if it has one, otherwise returns 0. */
         ContentWindowManagerPtr getContentWindowManager();
 
+        /** Get content dimensions in pixels. */
         void getContentDimensions(int &contentWidth, int &contentHeight);
+
+        /** Get the normalized window coordiates. */
         void getCoordinates(double &x, double &y, double &w, double &h);
+
+        /** Get the normalized window coordiates. */
         QRectF getCoordinates() const;
+
+        /** Get the normalized position. */
         void getPosition(double &x, double &y);
+
+        /** Get the normalized size. */
         void getSize(double &w, double &h);
+
+        /** Get the normalized center position. */
         void getCenter(double &centerX, double &centerY);
+
+        /** Get the zoom factor [1;inf]. */
         double getZoom();
+
+        /** Is the window highlighted. */
         bool getHighlighted();
+
+        /** Get the current size state. */
         SizeState getSizeState() const;
 
+        /** Set the control state. */
         void setControlState( const ControlState state ) { controlState_ = state; }
+
+        /** Get the control state. */
         ControlState getControlState() const { return controlState_; }
+
+        /** Get the last event for this window. */
         Event getEvent();
 
+        /** Toggle the window state. */
         void toggleWindowState();
+
+        /** Get the window state. */
         ContentWindowInterface::WindowState getWindowState();
 
-        // button dimensions
+        /** Get the dimensions for the window buttons in the ContentWindowGraphicsItem. */
         void getButtonDimensions(float &width, float &height);
 
-        // aspect ratio correction
+        /** Set the aspect ratio policy based on the gloabl Options. */
         void fixAspectRatio(ContentWindowInterface * source=NULL);
 
+        /** Is the window selected. */
         bool selected() const { return windowState_ == SELECTED; }
 
+        /** Register an object to receive this window's Events. */
         bool registerEventReceiver( EventReceiver* receiver );
+
+        /** Does this window already have registered Event receiver(s) */
         bool hasEventReceivers() const { return eventReceiversCount_ > 0; }
 
     public slots:
@@ -158,11 +188,11 @@ class ContentWindowInterface : public QObject
         // optional: reference to ContentWindowManager for non-ContentWindowManager objects
         boost::weak_ptr<ContentWindowManager> contentWindowManager_;
 
-        // content dimensions
+        // content dimensions in pixels
         int contentWidth_;
         int contentHeight_;
 
-        // window coordinates
+        // normalized window coordinates
         double x_;
         double y_;
         double w_;

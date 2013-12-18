@@ -54,6 +54,7 @@
 #  include "DisplayGroupManager.h"
 #endif
 #include "PixelStreamContent.h"
+#include "configuration/Configuration.h"
 
 #define ERROR_IMAGE_FILENAME ":/img/error.png"
 
@@ -110,7 +111,7 @@ ContentPtr ContentFactory::getContent(const QString& uri)
         // small images will use Texture; larger images will use DynamicTexture
         ContentPtr content;
 
-        if(size.width() <= 4096 && size.height() <= 4096)
+        if(size.width() <= g_configuration->getTotalWidth() && size.height() <= g_configuration->getTotalHeight())
         {
             ContentPtr temp(new TextureContent(uri));
             content = temp;

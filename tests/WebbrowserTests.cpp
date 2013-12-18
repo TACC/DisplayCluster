@@ -245,10 +245,9 @@ BOOST_AUTO_TEST_CASE( test_localstorage )
         return;
 
     // load the webgl website, exec() returns when loading is finished
-    WebkitPixelStreamer* streamer = new WebkitPixelStreamer( "testBrowser" );
+    WebkitPixelStreamer* streamer = new WebkitPixelStreamer( QSize(640, 480), TEST_PAGE_URL );
     QObject::connect( streamer->getView(), SIGNAL(loadFinished(bool)),
                       QApplication::instance(), SLOT(quit()));
-    streamer->setUrl( TEST_PAGE_URL );
     QApplication::instance()->exec();
 
     QWebPage* page = streamer->getView()->page();
