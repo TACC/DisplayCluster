@@ -126,11 +126,8 @@ void GLWindow::purgeTextures()
 {
     QMutexLocker locker(&purgeTexturesMutex_);
 
-    for(unsigned int i=0; i<purgeTextureIds_.size(); i++)
-    {
-        glDeleteTextures(1, &purgeTextureIds_[i]); // it appears deleteTexture() below is not actually deleting the texture from the GPU...
+    for(size_t i=0; i<purgeTextureIds_.size(); ++i)
         deleteTexture(purgeTextureIds_[i]);
-    }
 
     purgeTextureIds_.clear();
 }
@@ -282,6 +279,7 @@ void GLWindow::setOrthographicView()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
+#if ENABLE_SKELETON_SUPPORT
 bool GLWindow::setPerspectiveView(double x, double y, double w, double h)
 {
     // we want a perspective view for an area over the entire display bounded by (x,y,w,h)
@@ -369,25 +367,19 @@ bool GLWindow::setPerspectiveView(double x, double y, double w, double h)
 
     return true;
 }
+#endif
 
 bool GLWindow::isScreenRectangleVisible(double x, double y, double w, double h)
 {
     // works in "screen space" where the rectangle for the entire tiled display is (0,0,1,1)
 
     // screen rectangle
-    QRectF screenRect(left_, bottom_, right_-left_, top_-bottom_);
+    const QRectF screenRect(left_, bottom_, right_-left_, top_-bottom_);
 
     // the given rectangle
-    QRectF rect(x, y, w, h);
+    const QRectF rect(x, y, w, h);
 
-    if(screenRect.intersects(rect) == true)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return screenRect.intersects(rect);
 }
 
 bool GLWindow::isRectangleVisible(double x, double y, double w, double h)

@@ -190,7 +190,6 @@ void PixelStreamSegmentRenderer::updateTexture(QImage & image)
         if(image.width() != textureWidth_ || image.height() != textureHeight_)
         {
             // delete bound texture
-            glDeleteTextures(1, &textureId_); // it appears deleteTexture() below is not actually deleting the texture from the GPU...
             g_mainWindow->getGLWindow()->deleteTexture(textureId_);
 
             textureId_ = g_mainWindow->getGLWindow()->bindTexture(image, GL_TEXTURE_2D, GL_RGBA, QGLContext::LinearFilteringBindOption);
