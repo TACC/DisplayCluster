@@ -72,8 +72,6 @@ class GLWindow : public QGLWidget
         void initializeGL();
         void paintGL();
         void resizeGL(int width, int height);
-        void setOrthographicView();
-        bool setPerspectiveView(double x=0., double y=0., double w=1., double h=1.);
 
         bool isScreenRectangleVisible(double x, double y, double w, double h);
 
@@ -108,6 +106,10 @@ private:
         std::vector<GLuint> purgeTextureIds_;
 
         void renderTestPattern();
+        void setOrthographicView();
+#if ENABLE_SKELETON_SUPPORT
+        bool setPerspectiveView(double x=0., double y=0., double w=1., double h=1.);
+#endif
 };
 
 #endif
