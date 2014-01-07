@@ -128,7 +128,7 @@ PixelStreamSegments ImageSegmenter::generateJpegSegments(const ImageWrapper &ima
 
 PixelStreamSegments ImageSegmenter::generateRawSegments(const ImageWrapper &image) const
 {
-    SegmentParameters segmentParams = generateSegmentParameters(image);
+    const SegmentParameters segmentParams = generateSegmentParameters(image);
 
     // The resulting Raw segments
     PixelStreamSegments segments;
@@ -147,7 +147,7 @@ PixelStreamSegments ImageSegmenter::generateRawSegments(const ImageWrapper &imag
         else
         {
             // Copy the image subregion
-            int imagePitch = image.width * image.getBytesPerPixel(); // assume imageBuffer isn't padded
+            const size_t imagePitch = image.width * image.getBytesPerPixel(); // assume imageBuffer isn't padded
             const char* lineData = (const char*)image.data + segment.parameters.y*imagePitch + segment.parameters.x*image.getBytesPerPixel();
             for (unsigned int i=0; i < segment.parameters.height; ++i)
             {

@@ -50,7 +50,7 @@ namespace ut = boost::unit_test;
 
 #include "GlobalQtApp.h"
 
-BOOST_GLOBAL_FIXTURE( MinimalGlobalQtApp );
+BOOST_GLOBAL_FIXTURE( GlobalQtApp );
 
 BOOST_AUTO_TEST_CASE( test_local_pixel_streamer_type )
 {

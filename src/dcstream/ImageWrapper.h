@@ -73,7 +73,7 @@ struct ImageWrapper
      * @param data The source image buffer, containing getBufferSize() bytes
      *        The first pixel is the top-left corner of the image, going to the bottom-right corner.
      *        Data arrays which follow the GL convention (as obtained by glReadPixels()) should be
-     *        reordered using reoprderGLImageData() prior to constructing the image wrapper.
+     *        reordered using reorderGLImageData() prior to constructing the image wrapper.
      * @param width The width of the image
      * @param height The height of the image
      * @param format The format of the imageBuffer

@@ -44,6 +44,7 @@ namespace ut = boost::unit_test;
 #include "dcstream/ImageWrapper.h"
 #include "dcstream/ImageSegmenter.h"
 #include "PixelStreamSegment.h"
+#include "PixelStreamSegmentDecoder.h"
 
 BOOST_AUTO_TEST_CASE( testImageSegmenterSegmentParameters )
 {
@@ -289,14 +290,6 @@ BOOST_AUTO_TEST_CASE( testImageSegmenterNonUniformSegmentationData )
     }
 }
 
-
-#include "MinimalGlobalQtApp.h"
-#include "PixelStreamSegmentDecoder.h"
-
-BOOST_GLOBAL_FIXTURE( MinimalGlobalQtApp );
-
-typedef boost::shared_ptr<PixelStreamSegmentDecoder> PixelStreamSegmentDecoderPtr;
-
 BOOST_AUTO_TEST_CASE( testImageSegmenterWithImageCompression )
 {
     // Vector of rgba data
@@ -326,11 +319,11 @@ BOOST_AUTO_TEST_CASE( testImageSegmenterWithImageCompression )
     BOOST_REQUIRE( segment.imageData.size() != (int)data.size() );
 
     // Decompress image
-    PixelStreamSegmentDecoderPtr decoder(new PixelStreamSegmentDecoder);
-    decoder->startDecoding(segment);
+    PixelStreamSegmentDecoder decoder;
+    decoder.startDecoding(segment);
 
     size_t timeout = 0;
-    while(decoder->isRunning())
+    while(decoder.isRunning())
     {
         usleep(10);
         if (++timeout >= 10)
@@ -345,6 +338,5 @@ BOOST_AUTO_TEST_CASE( testImageSegmenterWithImageCompression )
     const char* dataOut = segment.imageData.constData();
     BOOST_CHECK_EQUAL_COLLECTIONS( data.data(), data.data()+segment.imageData.size(),
                                    dataOut, dataOut+segment.imageData.size() );
-
 }
 

@@ -85,7 +85,7 @@ bool Stream::send(const ImageWrapper& image)
         return false;
     }
 
-    PixelStreamSegments segments = impl_->imageSegmenter_.generateSegments(image);
+    const PixelStreamSegments segments = impl_->imageSegmenter_.generateSegments(image);
 
     bool allSuccess = true;
     for(PixelStreamSegments::const_iterator it = segments.begin(); it!=segments.end(); it++)

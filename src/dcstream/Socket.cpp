@@ -91,9 +91,12 @@ bool Socket::send(const MessageHeader& messageHeader, const QByteArray &message)
     if ( !send(messageHeader) )
         return false;
 
+    if (message.isEmpty())
+        return true;
+
     // Send message data
     const char* data = message.constData();
-    int size = message.size();
+    const int size = message.size();
 
     int sent = socket_->write(data, size);
 

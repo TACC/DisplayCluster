@@ -47,13 +47,15 @@ MessageHeader::MessageHeader()
     : type(MESSAGE_TYPE_NONE)
     , size(0)
 {
-    uri[0] = '\0';
+    memset(uri, '\0', MESSAGE_HEADER_URI_LENGTH);
 }
 
 MessageHeader::MessageHeader(MessageType type, uint32_t size, const std::string& streamUri)
     : type(type)
     , size(size)
 {
+    memset(uri, '\0', MESSAGE_HEADER_URI_LENGTH);
+
     // add the truncated URI to the header
     const size_t len = streamUri.copy(uri, MESSAGE_HEADER_URI_LENGTH - 1);
     uri[len] = '\0';

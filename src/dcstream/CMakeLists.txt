@@ -14,14 +14,14 @@ set(DISPLAYCLUSTER_LIBRARY_SRCS
     ImageJpegCompressor.cpp
 )
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/dcVersion.in.h
-               ${CMAKE_BINARY_DIR}/dcVersion.h)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Version.in.h
+               ${CMAKE_BINARY_DIR}/Version.h)
 
 set(DISPLAYCLUSTER_LIBRARY_PUBLIC_HEADERS
     Stream.h
     ImageWrapper.h
     ../Event.h
-    ${CMAKE_BINARY_DIR}/dcVersion.h
+    ${CMAKE_BINARY_DIR}/Version.h
 )
 
 set(MOC_HEADERS Socket.h)

@@ -49,9 +49,9 @@
 // We need a global fixture because a bug in QApplication prevents
 // deleting then recreating a QApplication in the same process.
 // https://bugreports.qt-project.org/browse/QTBUG-7104
-struct MinimalGlobalQtApp
+struct GlobalQtApp
 {
-    MinimalGlobalQtApp()
+    GlobalQtApp()
         : app( 0 )
     {
         if( !hasGLXDisplay( ))
@@ -61,7 +61,7 @@ struct MinimalGlobalQtApp
         ut::master_test_suite_t& testSuite = ut::framework::master_test_suite();
         app = new QApplication( testSuite.argc, testSuite.argv );
     }
-    ~MinimalGlobalQtApp()
+    ~GlobalQtApp()
     {
         delete app;
     }

@@ -41,7 +41,7 @@
 #include <boost/test/unit_test.hpp>
 namespace ut = boost::unit_test;
 
-#include <QCoreApplication>
+#include "MinimalGlobalQtApp.h"
 
 #include "configuration/MasterConfiguration.h"
 #include "Options.h"
@@ -49,32 +49,18 @@ namespace ut = boost::unit_test;
 
 #define CONFIG_TEST_FILENAME "./configuration.xml"
 
-
-// We need a global fixture because a bug in QApplication prevents
-// deleting then recreating a QApplication in the same process.
-// https://bugreports.qt-project.org/browse/QTBUG-7104
-struct MinimalGlobalQtApp
-{
-    MinimalGlobalQtApp()
-    {
-        // need QApplication to instantiate WebkitPixelStreamer
-        ut::master_test_suite_t& testSuite = ut::framework::master_test_suite();
-        app = new QCoreApplication( testSuite.argc, testSuite.argv );
-    }
-    ~MinimalGlobalQtApp()
-    {
-        delete app;
-    }
-
-    QCoreApplication* app;
-};
+#define CONFIG_EXPECTED_BACKGROUND "/nfs4/bbp.epfl.ch/visualization/DisplayWall/media/background.png"
+#define CONFIG_EXPECTED_BACKGROUND_COLOR "#242424"
+#define CONFIG_EXPECTED_DOCK_DIR "/nfs4/bbp.epfl.ch/visualization/DisplayWall/media"
+#define CONFIG_EXPECTED_DISPLAY ":0.2"
+#define CONFIG_EXPECTED_HOST_NAME "bbplxviz03i"
 
 BOOST_GLOBAL_FIXTURE( MinimalGlobalQtApp );
 
 void testBaseParameters(const Configuration& config, OptionsPtr options)
 {
-    BOOST_CHECK( config.getBackgroundColor() == QColor("#242424") );
-    BOOST_CHECK_EQUAL( config.getBackgroundUri().toStdString(), QString("/nfs4/bbp.epfl.ch/visualization/DisplayWall/media/background.png").toStdString() );
+    BOOST_CHECK( config.getBackgroundColor() == QColor(CONFIG_EXPECTED_BACKGROUND_COLOR) );
+    BOOST_CHECK_EQUAL( config.getBackgroundUri().toStdString(), CONFIG_EXPECTED_BACKGROUND );
 
     BOOST_CHECK_EQUAL( config.getFullscreen(), true );
 
@@ -108,20 +94,18 @@ BOOST_AUTO_TEST_CASE( test_configuration )
     testBaseParameters(config, options);
 }
 
-
 BOOST_AUTO_TEST_CASE( test_wall_configuration )
 {
     OptionsPtr options(new Options());
 
     WallConfiguration config(CONFIG_TEST_FILENAME, options, 1);
 
-    BOOST_CHECK_EQUAL( config.getDisplay().toStdString(), QString(":0.2").toStdString() );
+    BOOST_CHECK_EQUAL( config.getDisplay().toStdString(), CONFIG_EXPECTED_DISPLAY );
     BOOST_CHECK( config.getGlobalScreenIndex(0) == QPoint(0,0) );
-    BOOST_CHECK_EQUAL( config.getHost().toStdString(), QString("bbplxviz03i").toStdString() );
+    BOOST_CHECK_EQUAL( config.getHost().toStdString(), CONFIG_EXPECTED_HOST_NAME );
 
     BOOST_CHECK_EQUAL( config.getScreenCount(), 1 );
 }
-
 
 BOOST_AUTO_TEST_CASE( test_master_configuration )
 {
@@ -129,7 +113,7 @@ BOOST_AUTO_TEST_CASE( test_master_configuration )
 
     MasterConfiguration config(CONFIG_TEST_FILENAME, options);
 
-    BOOST_CHECK_EQUAL( config.getDockStartDir().toStdString(), QString("/nfs4/bbp.epfl.ch/visualization/DisplayWall/media").toStdString() );
+    BOOST_CHECK_EQUAL( config.getDockStartDir().toStdString(), CONFIG_EXPECTED_DOCK_DIR );
 }
 
 BOOST_AUTO_TEST_CASE( test_save_configuration )

@@ -40,7 +40,7 @@
 #ifndef MINIMALGLOBALQTAPP_H
 #define MINIMALGLOBALQTAPP_H
 
-#include <QApplication>
+#include <QCoreApplication>
 
 // We need a global fixture because a bug in QApplication prevents
 // deleting then recreating a QApplication in the same process.
@@ -52,14 +52,14 @@ struct MinimalGlobalQtApp
     {
         // need QApplication to instantiate WebkitPixelStreamer
         ut::master_test_suite_t& testSuite = ut::framework::master_test_suite();
-        app = new QApplication( testSuite.argc, testSuite.argv );
+        app = new QCoreApplication( testSuite.argc, testSuite.argv );
     }
     ~MinimalGlobalQtApp()
     {
         delete app;
     }
 
-    QApplication* app;
+    QCoreApplication* app;
 };
 
 #endif // MINIMALGLOBALQTAPP_H
