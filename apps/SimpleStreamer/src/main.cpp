@@ -178,7 +178,7 @@ void display()
     dc::ImageWrapper dcImage((const void*)imageData, windowWidth, windowHeight, dc::RGBA);
     dcImage.compressionPolicy = dcCompressImage ? dc::COMPRESSION_ON : dc::COMPRESSION_OFF;
     dcImage.compressionQuality = dcCompressionQuality;
-    dc::ImageWrapper::reorderGLImageData((void*)imageData, windowWidth, windowHeight, 4);
+    dc::ImageWrapper::swapYAxis((void*)imageData, windowWidth, windowHeight, 4);
     bool success = dcStream->send(dcImage);
     dcStream->finishFrame();
 

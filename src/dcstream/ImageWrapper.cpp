@@ -70,7 +70,7 @@ size_t ImageWrapper::getBufferSize() const
     return width * height * getBytesPerPixel();
 }
 
-void ImageWrapper::reorderGLImageData(void *data, const unsigned int width, const unsigned int height, const unsigned int bpp)
+void ImageWrapper::swapYAxis(void *data, const unsigned int width, const unsigned int height, const unsigned int bpp)
 {
     unsigned char* src = (unsigned char*)data;
 
