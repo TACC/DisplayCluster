@@ -40,15 +40,10 @@
 #include "ContentWindowManager.h"
 #include "ContentFactory.h"
 #include "Content.h"
-#include "configuration/Configuration.h"
 #include "globals.h"
 #include "log.h"
 #include "MainWindow.h"
 #include "GLWindow.h"
-#include "PixelStreamContent.h"
-#include "SVGStreamSource.h"
-#include "SVGContent.h"
-#include "StatePreview.h"
 #include "MessageHeader.h"
 #include "PixelStream.h"
 
@@ -69,18 +64,14 @@ DisplayGroupManager::DisplayGroupManager()
     // make Options trigger sendDisplayGroup() when it is updated
     connect(options_.get(), SIGNAL(updated()), this, SLOT(sendDisplayGroup()), Qt::QueuedConnection);
 
-    // register Interactionstate in Qt
-    qRegisterMetaType<InteractionState>("InteractionState");
-
     // register types for use in signals/slots
-    qRegisterMetaType<boost::shared_ptr<ContentWindowManager> >("boost::shared_ptr<ContentWindowManager>");
+    qRegisterMetaType<Event>("Event");
+    qRegisterMetaType<ContentWindowManagerPtr>("ContentWindowManagerPtr");
+    qRegisterMetaType<PixelStreamSegment>("PixelStreamSegment");
 
-    // serialization support for the vector of skeleton states
 #if ENABLE_SKELETON_SUPPORT
     qRegisterMetaType<std::vector< boost::shared_ptr<SkeletonState> > >("std::vector< boost::shared_ptr<SkeletonState> >");
 #endif
-    // For using PixelStreamSegment in QSignals
-    qRegisterMetaType<PixelStreamSegment>("PixelStreamSegment");
 }
 
 DisplayGroupManager::~DisplayGroupManager()
@@ -92,11 +83,11 @@ OptionsPtr DisplayGroupManager::getOptions() const
     return options_;
 }
 
-boost::shared_ptr<Marker> DisplayGroupManager::getNewMarker()
+MarkerPtr DisplayGroupManager::getNewMarker()
 {
     QMutexLocker locker(&markersMutex_);
 
-    boost::shared_ptr<Marker> marker(new Marker());
+    MarkerPtr marker(new Marker());
     markers_.push_back(marker);
 
     // the marker needs to be owned by the main thread for queued connections to work properly
@@ -108,6 +99,11 @@ boost::shared_ptr<Marker> DisplayGroupManager::getNewMarker()
     return marker;
 }
 
+const MarkerPtrs& DisplayGroupManager::getMarkers() const
+{
+    return markers_;
+}
+
 void DisplayGroupManager::deleteMarkers()
 {
     QMutexLocker locker(&markersMutex_);
@@ -117,11 +113,6 @@ void DisplayGroupManager::deleteMarkers()
 
     markers_[0]->releaseTexture();
     markers_.clear();
-}
-
-const std::vector<boost::shared_ptr<Marker> >& DisplayGroupManager::getMarkers() const
-{
-    return markers_;
 }
 
 boost::posix_time::ptime DisplayGroupManager::getTimestamp() const
@@ -144,7 +135,7 @@ std::vector<boost::shared_ptr<SkeletonState> > DisplayGroupManager::getSkeletons
 }
 #endif
 
-void DisplayGroupManager::addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
+void DisplayGroupManager::addContentWindowManager(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source)
 {
     DisplayGroupInterface::addContentWindowManager(contentWindowManager, source);
 
@@ -164,7 +155,7 @@ void DisplayGroupManager::addContentWindowManager(boost::shared_ptr<ContentWindo
     }
 }
 
-void DisplayGroupManager::removeContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
+void DisplayGroupManager::removeContentWindowManager(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source)
 {
     DisplayGroupInterface::removeContentWindowManager(contentWindowManager, source);
 
@@ -173,19 +164,19 @@ void DisplayGroupManager::removeContentWindowManager(boost::shared_ptr<ContentWi
         // Notify the (local) pixel stream source of the deletion of the window so the source can be removed too
         if (contentWindowManager->getContent()->getType() == CONTENT_TYPE_PIXEL_STREAM)
         {
-            QString uri = contentWindowManager->getContent()->getURI();
-            deletePixelStream(uri);
+            const QString& uri = contentWindowManager->getContent()->getURI();
+            closePixelStream(uri);
             emit(pixelStreamViewClosed(uri));
         }
 
         // set null display group in content window manager object
-        contentWindowManager->setDisplayGroupManager(boost::shared_ptr<DisplayGroupManager>());
+        contentWindowManager->setDisplayGroupManager(DisplayGroupManagerPtr());
 
         sendDisplayGroup();
     }
 }
 
-void DisplayGroupManager::moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
+void DisplayGroupManager::moveContentWindowManagerToFront(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source)
 {
     DisplayGroupInterface::moveContentWindowManagerToFront(contentWindowManager, source);
 
@@ -272,7 +263,7 @@ void DisplayGroupManager::calibrateTimestampOffset()
     }
 }
 
-void DisplayGroupManager::setBackgroundContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager)
+void DisplayGroupManager::setBackgroundContentWindowManager(ContentWindowManagerPtr contentWindowManager)
 {
     // This method can be used to remove the background by sending a NULL ptr
     if (contentWindowManager != NULL)
@@ -287,29 +278,25 @@ void DisplayGroupManager::setBackgroundContentWindowManager(boost::shared_ptr<Co
     sendDisplayGroup();
 }
 
-boost::shared_ptr<ContentWindowManager> DisplayGroupManager::getBackgroundContentWindowManager() const
+ContentWindowManagerPtr DisplayGroupManager::getBackgroundContentWindowManager() const
 {
     return backgroundContent_;
 }
 
-void DisplayGroupManager::initBackground()
+bool DisplayGroupManager::setBackgroundContentFromUri(const QString filename)
 {
-    assert(g_configuration != NULL && "initBackground() needs a valid configuration file loaded");
-
-    backgroundColor_ = g_configuration->getBackgroundColor();
-
-    if(!g_configuration->getBackgroundUri().isEmpty())
+    if(!filename.isEmpty())
     {
-        boost::shared_ptr<Content> c = ContentFactory::getContent(g_configuration->getBackgroundUri());
+        ContentPtr content = ContentFactory::getContent(filename);
 
-        if(c != NULL)
+        if( content )
         {
-            boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
-            g_displayGroupManager->setBackgroundContentWindowManager(cwm);
+            ContentWindowManagerPtr contentWindow(new ContentWindowManager(content));
+            setBackgroundContentWindowManager(contentWindow);
+            return true;
         }
     }
-    else
-        sendDisplayGroup();
+    return false;
 }
 
 QColor DisplayGroupManager::getBackgroundColor() const
@@ -335,27 +322,29 @@ boost::shared_ptr<DisplayGroupInterface> DisplayGroupManager::getDisplayGroupInt
     return dgi;
 }
 
-bool DisplayGroupManager::saveStateXMLFile( const QString& filename )
+void DisplayGroupManager::positionWindow(const QString uri, const QPointF position)
 {
-    ContentWindowManagerPtrs contentWindowManagers = getContentWindowManagers();
-
-    const QSize wallDimensions(g_configuration->getTotalWidth(), g_configuration->getTotalHeight());
-    StatePreview filePreview(filename);
-    filePreview.generateImage(wallDimensions, contentWindowManagers);
-    filePreview.saveToFile();
-
-    return state_.saveXML( filename, contentWindowManagers);
+    ContentWindowManagerPtr contentWindow = getContentWindowManager(uri, CONTENT_TYPE_ANY);
+    if (contentWindow)
+    {
+        contentWindow->centerPositionAround(position, true);
+    }
+    else
+    {
+        // Store position for use when window actually opens
+        windowPositions_[uri] = position;
+    }
 }
 
-bool DisplayGroupManager::loadStateXMLFile( const QString& filename )
+void DisplayGroupManager::hideWindow(const QString uri)
 {
-    ContentWindowManagerPtrs contentWindowManagers;
-    if( !state_.loadXML( filename, contentWindowManagers ))
-        return false;
-
-    // assign new contents vector to display group
-    setContentWindowManagers(contentWindowManagers);
-    return true;
+    ContentWindowManagerPtr contentWindow = getContentWindowManager(uri, CONTENT_TYPE_ANY);
+    if (contentWindow)
+    {
+        double x, y;
+        contentWindow->getSize(x, y);
+        contentWindow->setPosition(0,-2*y);
+    }
 }
 
 void DisplayGroupManager::receiveMessages()
@@ -400,10 +389,6 @@ void DisplayGroupManager::receiveMessages()
             {
                 receivePixelStreams(mh);
             }
-            else if(mh.type == MESSAGE_TYPE_SVG_STREAM)
-            {
-                receiveSVGStreams(mh);
-            }
             else if(mh.type == MESSAGE_TYPE_QUIT)
             {
                 QApplication::instance()->quit();
@@ -428,7 +413,7 @@ void DisplayGroupManager::sendDisplayGroup()
     {
         QMutexLocker locker(&markersMutex_);
 
-        boost::shared_ptr<DisplayGroupManager> dgm = shared_from_this();
+        DisplayGroupManagerPtr dgm = shared_from_this();
 
         boost::archive::binary_oarchive oa(oss);
         oa << dgm;
@@ -506,49 +491,13 @@ void DisplayGroupManager::sendContentsDimensionsRequest()
     delete [] buf;
 }
 
-void DisplayGroupManager::sendPixelStreams()
-{
-    // iterate through all pixel streams and send updates if needed
-    std::map<QString, boost::shared_ptr<PixelStream> > map = pixelStreamSourceFactory_.getMap();
-
-    for(std::map<QString, boost::shared_ptr<PixelStream> >::iterator it = map.begin(); it != map.end(); it++)
-    {
-        const QString& uri = (*it).first;
-        boost::shared_ptr<PixelStream> pixelStreamSource = (*it).second;
-
-        // get updated segments
-        // if streaming synchronization is enabled, we need to send all segments; otherwise just the latest segments
-        std::vector<PixelStreamSegment> segments;
-
-        if(options_->getEnableStreamingSynchronization())
-        {
-            segments = pixelStreamSource->getAndPopAllSegments();
-        }
-        else
-        {
-            segments = pixelStreamSource->getAndPopLatestSegments();
-        }
-
-        if(segments.empty())
-            continue;
-
-        int width, height;
-        pixelStreamSource->getDimensions(width, height);
-        bool changeViewSize = pixelStreamSource->changeViewDimensionsRequested();
-
-        adjustPixelStreamContentDimensions(uri, width, height, changeViewSize);
-
-        sendPixelStreamSegments(segments, uri);
-    }
-}
-
 void DisplayGroupManager::adjustPixelStreamContentDimensions(QString uri, int width, int height, bool changeViewSize)
 {
-    boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
-    if(cwm)
+    ContentWindowManagerPtr contentWindow = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
+    if(contentWindow)
     {
         // check for updated dimensions
-        boost::shared_ptr<Content> c = cwm->getContent();
+        ContentPtr c = contentWindow->getContent();
 
         int oldWidth, oldHeight;
         c->getDimensions(oldWidth, oldHeight);
@@ -558,125 +507,38 @@ void DisplayGroupManager::adjustPixelStreamContentDimensions(QString uri, int wi
             c->setDimensions(width, height);
             if (changeViewSize)
             {
-                cwm->adjustSize( SIZE_1TO1 );
+                contentWindow->adjustSize( SIZE_1TO1 );
             }
         }
     }
 }
 
-void DisplayGroupManager::sendPixelStreamSegments(const std::vector<PixelStreamSegment> & segments, const QString& uri)
+void DisplayGroupManager::registerEventReceiver(QString uri, bool exclusive, EventReceiver* receiver)
 {
-    assert(!segments.empty() && "sendPixelStreamSegments() received an empty vector");
+    bool success = false;
 
-    // serialize the vector
-    std::ostringstream oss(std::ostringstream::binary);
+    // Try to register with the ContentWindowManager corresponding to this stream
+    ContentWindowManagerPtr contentWindow = getContentWindowManager(uri);
 
-    // brace this so destructor is called on archive before we use the stream
+    if(contentWindow)
     {
-        boost::archive::binary_oarchive oa(oss);
-        oa << segments;
-    }
+        put_flog(LOG_DEBUG, "found window: '%s'", uri.toStdString().c_str());
 
-    // serialized data to string
-    std::string serializedString = oss.str();
-    int size = serializedString.size();
-
-    // send the header and the message
-    MessageHeader mh;
-    mh.size = size;
-    mh.type = MESSAGE_TYPE_PIXELSTREAM;
-
-    // add the truncated URI to the header
-    strncpy(mh.uri, uri.toLocal8Bit().constData(), MESSAGE_HEADER_URI_LENGTH-1);
-
-    // the header is sent via a send, so that we can probe it on the render processes
-    for(int i=1; i<g_mpiSize; i++)
-    {
-        MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, i, 0, MPI_COMM_WORLD);
-    }
-
-    // broadcast the message
-    MPI_Bcast((void *)serializedString.data(), size, MPI_BYTE, 0, MPI_COMM_WORLD);
-}
-
-void DisplayGroupManager::sendSVGStreams()
-{
-    // iterate through all SVG streams and send updates if needed
-    std::map<QString, boost::shared_ptr<SVGStreamSource> > map = g_SVGStreamSourceFactory.getMap();
-
-    for(std::map<QString, boost::shared_ptr<SVGStreamSource> >::iterator it = map.begin(); it != map.end(); it++)
-    {
-        const QString& uri = (*it).first;
-        boost::shared_ptr<SVGStreamSource> svgStreamSource = (*it).second;
-
-        // get buffer
-        bool updated;
-        QByteArray imageData = svgStreamSource->getImageData(updated);
-
-        if(updated == true)
+        // If a receiver is already registered, don't register this one if exclusive was requested
+        if( !exclusive || !contentWindow->hasEventReceivers() )
         {
-            // make sure Content/ContentWindowManager exists for the URI
+            success = contentWindow->registerEventReceiver( receiver );
 
-            // todo: this means as long as the SVG stream is updating, we'll have a window for it
-            // closing a window therefore will not terminate the SVG stream
-            if(getContentWindowManager(uri, CONTENT_TYPE_SVG) == NULL)
-            {
-                put_flog(LOG_DEBUG, "adding SVG stream: %s", uri.toLocal8Bit().constData());
-
-                boost::shared_ptr<Content> c(new SVGContent(uri));
-                boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
-
-                addContentWindowManager(cwm);
-            }
-
-            // check for updated dimensions
-            QSvgRenderer svgRenderer;
-
-            if(svgRenderer.load(imageData) != true || svgRenderer.isValid() == false)
-            {
-                put_flog(LOG_ERROR, "error loading %s", uri.toLocal8Bit().constData());
-                continue;
-            }
-
-            int newWidth = svgRenderer.defaultSize().width();
-            int newHeight = svgRenderer.defaultSize().height();
-
-            boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager(uri, CONTENT_TYPE_SVG);
-
-            if(cwm != NULL)
-            {
-                boost::shared_ptr<Content> c = cwm->getContent();
-
-                int oldWidth, oldHeight;
-                c->getDimensions(oldWidth, oldHeight);
-
-                if(newWidth != oldWidth || newHeight != oldHeight)
-                {
-                    c->setDimensions(newWidth, newHeight);
-                    cwm->adjustSize( SIZE_1TO1 );
-                }
-            }
-
-            int size = imageData.size();
-
-            // send the header and the message
-            MessageHeader mh;
-            mh.size = size;
-            mh.type = MESSAGE_TYPE_SVG_STREAM;
-
-            // add the truncated URI to the header
-            strncpy(mh.uri, uri.toLocal8Bit().constData(), MESSAGE_HEADER_URI_LENGTH-1);
-
-            // the header is sent via a send, so that we can probe it on the render processes
-            for(int i=1; i<g_mpiSize; i++)
-            {
-                MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, i, 0, MPI_COMM_WORLD);
-            }
-
-            // broadcast the message
-            MPI_Bcast((void *)imageData.data(), size, MPI_BYTE, 0, MPI_COMM_WORLD);
+            if (success)
+                contentWindow->setWindowState(ContentWindowInterface::SELECTED);
         }
     }
+    else
+    {
+        put_flog(LOG_DEBUG, "could not find window: '%s'", uri.toStdString().c_str());
+    }
+
+    emit eventRegistrationReply(uri, success);
 }
 
 void DisplayGroupManager::sendFrameClockUpdate()
@@ -768,8 +630,8 @@ void DisplayGroupManager::sendQuit()
     MessageHeader mh;
     mh.type = MESSAGE_TYPE_QUIT;
 
-    // will send EVT_CLOSE through InteractionState
-    std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers;
+    // will send EVT_CLOSE through Event
+    ContentWindowManagerPtrs contentWindowManagers;
     setContentWindowManagers( contentWindowManagers );
 
     // the header is sent via a send, so that we can probe it on the render processes
@@ -793,42 +655,39 @@ void DisplayGroupManager::advanceContents()
     }
 }
 
-void DisplayGroupManager::processPixelStreamSegment(QString uri, PixelStreamSegment segment)
-{
-    // Only accept segments if we already have a pixelstream
-    if (pixelStreamSourceFactory_.contains(uri))
-        pixelStreamSourceFactory_.getObject(uri)->insertSegment(segment);
-}
-
 void DisplayGroupManager::openPixelStream(QString uri, int width, int height)
 {
-    // Create a pixel stream receiver
-    // TODO returned object not needed? looks fishy...
-    pixelStreamSourceFactory_.getObject(uri);
-
     // add a Content/ContentWindowManager for this URI
-    boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
+    ContentWindowManagerPtr contentWindow = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
 
-    if(!cwm)
+    if(!contentWindow)
     {
         put_flog(LOG_DEBUG, "adding pixel stream: %s", uri.toLocal8Bit().constData());
 
-        boost::shared_ptr<Content> c(new PixelStreamContent(uri));
-        c->setDimensions(width, height);
-        cwm = boost::shared_ptr<ContentWindowManager>(new ContentWindowManager(c));
-        addContentWindowManager(cwm);
+        ContentPtr content = ContentFactory::getPixelStreamContent(uri);
+        content->setDimensions(width, height);
+        contentWindow = ContentWindowManagerPtr(new ContentWindowManager(content));
+
+        // Position window if needed
+        WindowPositions::iterator it = windowPositions_.find(uri);
+        if (it != windowPositions_.end())
+        {
+            contentWindow->centerPositionAround(it->second, true);
+            windowPositions_.erase(it);
+        }
+        addContentWindowManager(contentWindow);
+
+        emit(pixelStreamViewAdded(uri));
     }
 }
 
-void DisplayGroupManager::deletePixelStream(const QString& uri)
+void DisplayGroupManager::closePixelStream(const QString& uri)
 {
-    pixelStreamSourceFactory_.removeObject(uri);
-
     put_flog(LOG_DEBUG, "deleting pixel stream: %s", uri.toLocal8Bit().constData());
 
-    boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
-    if( cwm )
-        removeContentWindowManager( cwm );
+    ContentWindowManagerPtr contentWindow = getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM);
+    if( contentWindow )
+        removeContentWindowManager( contentWindow );
 }
 
 #if ENABLE_SKELETON_SUPPORT
@@ -930,32 +789,7 @@ void DisplayGroupManager::receivePixelStreams(const MessageHeader& messageHeader
     boost::archive::binary_iarchive ia(iss);
     ia >> segments;
 
-    // now, insert all segments
-    for(unsigned int i=0; i<segments.size(); i++)
-    {
-        g_mainWindow->getGLWindow()->getPixelStreamFactory().getObject(uri)->insertSegment(segments[i]);
-    }
-
-    // update pixel streams corresponding to new segments
-    g_mainWindow->getGLWindow()->getPixelStreamFactory().getObject(uri)->updateSegmentRenderers();
-
-    // free mpi buffer
-    delete [] buf;
-}
-
-void DisplayGroupManager::receiveSVGStreams(const MessageHeader& messageHeader)
-{
-    // receive serialized data
-    char * buf = new char[messageHeader.size];
-
-    // read message into the buffer
-    MPI_Bcast((void *)buf, messageHeader.size, MPI_BYTE, 0, MPI_COMM_WORLD);
-
-    // URI
-    const QString uri(messageHeader.uri);
-
-    // de-serialize...
-    g_mainWindow->getGLWindow()->getSVGFactory().getObject(uri)->setImageData(QByteArray(buf, messageHeader.size));
+    g_mainWindow->getGLWindow()->getPixelStreamFactory().getObject(uri)->insertNewFrame(segments);
 
     // free mpi buffer
     delete [] buf;

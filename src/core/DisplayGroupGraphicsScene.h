@@ -39,6 +39,8 @@
 #ifndef DISPLAY_GROUP_GRAPHICS_SCENE_H
 #define DISPLAY_GROUP_GRAPHICS_SCENE_H
 
+#include "types.h"
+
 #include <QtGui>
 #include <boost/shared_ptr.hpp>
 #include <vector>
@@ -62,7 +64,7 @@ class DisplayGroupGraphicsScene : public QGraphicsScene {
 
     private:
 
-        std::vector< boost::shared_ptr<Marker> > markers_;
+        MarkerPtrs markers_;
 
         std::vector<QGraphicsRectItem *> tileRects_;
 };

@@ -42,12 +42,16 @@
 
 #include "ContentInteractionDelegate.h"
 
-struct InteractionState;
+namespace dc
+{
+    struct Event;
+}
+using dc::Event;
 
 class PixelStreamInteractionDelegate : public ContentInteractionDelegate
 {
 public:
-    PixelStreamInteractionDelegate(ContentWindowManager& cwm);
+    PixelStreamInteractionDelegate(ContentWindowManager& contentWindow);
 
     virtual void swipe( QSwipeGesture *gesture );
     virtual void pan( PanGesture* gesture) ;
@@ -56,26 +60,26 @@ public:
     virtual void tap( QTapGesture* gesture );
 
     // Keyboard + Mouse input
-    virtual void mouseMoveEvent(QGraphicsSceneMouseEvent * event);
-    virtual void mousePressEvent(QGraphicsSceneMouseEvent * event);
-    virtual void mouseDoubleClickEvent(QGraphicsSceneMouseEvent * event);
-    virtual void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
-    virtual void wheelEvent(QGraphicsSceneWheelEvent * event);
-    virtual void keyPressEvent(QKeyEvent *event);
-    virtual void keyReleaseEvent(QKeyEvent *event);
+    virtual void mouseMoveEvent(QGraphicsSceneMouseEvent * mouseEvent);
+    virtual void mousePressEvent(QGraphicsSceneMouseEvent * mouseEvent);
+    virtual void mouseDoubleClickEvent(QGraphicsSceneMouseEvent * mouseEvent);
+    virtual void mouseReleaseEvent(QGraphicsSceneMouseEvent * mouseEvent);
+    virtual void wheelEvent(QGraphicsSceneWheelEvent * wheelEvent);
+    virtual void keyPressEvent(QKeyEvent* keyEvent);
+    virtual void keyReleaseEvent(QKeyEvent* keyEvent);
 
 private:
     QPointF mousePressPos_;
 
     template <typename T>
-    InteractionState getMouseInteractionState(const T *mouseEvent);
-    void setMouseMoveNormalizedDelta(const QGraphicsSceneMouseEvent *event, InteractionState &interactionState);
+    Event getMouseEvent(const T* qtEvent);
+    void setMouseMoveNormalizedDelta(const QGraphicsSceneMouseEvent* mouseEvent, Event& event);
 
     template<typename T>
-    InteractionState getGestureInteractionState(const T *gesture);
-    InteractionState getGestureInteractionState(const QTapGesture *gesture);
-    InteractionState getGestureInteractionState(const PinchGesture *gesture);
-    void setPanGestureNormalizedDelta(const PanGesture *gesture, InteractionState &interactionState);
+    Event getGestureEvent(const T *gesture);
+    Event getGestureEvent(const QTapGesture *gesture);
+    Event getGestureEvent(const PinchGesture *gesture);
+    void setPanGestureNormalizedDelta(const PanGesture *gesture, Event &event);
 };
 
 #endif // PIXELSTREAMINTERACTIONDELEGATE_H

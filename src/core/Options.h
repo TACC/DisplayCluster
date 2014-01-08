@@ -40,10 +40,11 @@
 #define OPTIONS_H
 
 #include "config.h"
-#include <QtGui>
+#include <QObject>
 #include <boost/serialization/access.hpp>
 
-class Options : public QObject {
+class Options : public QObject
+{
     Q_OBJECT
 
     public:

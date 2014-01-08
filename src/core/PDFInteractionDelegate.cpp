@@ -43,8 +43,8 @@
 #include "PDFContent.h"
 #include "globals.h"
 
-PDFInteractionDelegate::PDFInteractionDelegate(ContentWindowManager& cwm)
-    : ZoomInteractionDelegate(cwm)
+PDFInteractionDelegate::PDFInteractionDelegate(ContentWindowManager& contentWindow)
+    : ZoomInteractionDelegate(contentWindow)
 {
     assert(contentWindowManager_.getContent()->getType() == CONTENT_TYPE_PDF);
 }

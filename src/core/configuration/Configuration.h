@@ -42,7 +42,7 @@
 #include <QString>
 #include <QColor>
 
-#include "../types.h"
+#include "types.h"
 
 /**
  * @brief The Configuration class manages all the settings needed by a

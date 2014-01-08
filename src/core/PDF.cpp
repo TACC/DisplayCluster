@@ -152,7 +152,7 @@ void PDF::getDimensions(int &width, int &height) const
 
 void PDF::render(float tX, float tY, float tW, float tH)
 {
-    updateRenderedFrameCount();
+    updateRenderedFrameIndex();
 
     // get on-screen and full rectangle corresponding to the window
     QRectF screenRect = g_mainWindow->getGLWindow()->getProjectedPixelRect(true);
@@ -189,10 +189,6 @@ void PDF::render(float tX, float tY, float tW, float tH)
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, textureId_);
 
-    // on zoom-out, clamp to edge (instead of showing the texture tiled / repeated)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
     glBegin(GL_QUADS);
 
     glTexCoord2f(tX,tY);
@@ -227,7 +223,6 @@ void PDF::generateTexture(QRectF screenRect, QRectF fullRect, float tX, float tY
     if(textureRect == textureRect_)
     {
         // no need to regenerate texture
-        //put_flog(LOG_DEBUG, "nothing to do");
         return;
     }
 
@@ -253,7 +248,9 @@ void PDF::generateTexture(QRectF screenRect, QRectF fullRect, float tX, float tY
         // Lets recreate a texture of the appropriate size
         deleteTexture();
         textureId_ = g_mainWindow->getGLWindow()->bindTexture(image, GL_TEXTURE_2D, GL_RGBA, QGLContext::NoBindOption);
-        //put_flog(LOG_DEBUG, "texture recreated");
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     }
     else
     {
@@ -261,7 +258,6 @@ void PDF::generateTexture(QRectF screenRect, QRectF fullRect, float tX, float tY
         // glTexSubImage2D uses the existing texture and is more efficient than other means
         glBindTexture(GL_TEXTURE_2D, textureId_);
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0,0, image.width(), image.height(), GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
-        //put_flog(LOG_DEBUG, "texture updated");
     }
 
     // keep rendered texture information so we know when to rerender

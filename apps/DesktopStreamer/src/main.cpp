@@ -36,23 +36,17 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "main.h"
-#include "log.h"
-
-MainWindow * g_mainWindow = NULL;
-DesktopSelectionWindow * g_desktopSelectionWindow = NULL;
+#include "MainWindow.h"
 
 int main(int argc, char * argv[])
 {
-    put_flog(LOG_INFO, "");
-
-    QApplication * app = new QApplication(argc, argv);
+    QApplication app(argc, argv);
 
     Q_INIT_RESOURCE( resources );
 
-    g_mainWindow = new MainWindow();
-    g_desktopSelectionWindow = new DesktopSelectionWindow();
+    MainWindow mainWindow;
+    mainWindow.show();
 
     // enter Qt event loop
-    return app->exec();
+    return app.exec();
 }

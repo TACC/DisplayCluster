@@ -39,24 +39,27 @@
 #ifndef DESKTOP_SELECTION_WINDOW_H
 #define DESKTOP_SELECTION_WINDOW_H
 
-#include "DesktopSelectionView.h"
 #include <QtGui>
 
-class DesktopSelectionWindow : public QMainWindow {
+class DesktopSelectionView;
 
-    public:
+class DesktopSelectionWindow : public QMainWindow
+{
+    Q_OBJECT
 
-        DesktopSelectionWindow();
+public:
+    DesktopSelectionWindow();
 
-        DesktopSelectionView * getDesktopSelectionView();
+    DesktopSelectionView* getDesktopSelectionView();
 
-    protected:
+signals:
+    void windowVisible(bool);
 
-        void hideEvent(QHideEvent * event);
+protected:
+    virtual void hideEvent(QHideEvent * event);
 
-    private:
-
-        DesktopSelectionView desktopSelectionView_;
+private:
+    DesktopSelectionView* desktopSelectionView_;
 };
 
 #endif

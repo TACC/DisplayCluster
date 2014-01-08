@@ -45,28 +45,58 @@
     #include <stdint.h>
 #endif
 
-enum MESSAGE_TYPE
+#include <string>
+
+class QDataStream;
+
+/** The message types. */
+enum MessageType
 {
+    MESSAGE_TYPE_NONE,
     MESSAGE_TYPE_CONTENTS,
     MESSAGE_TYPE_CONTENTS_DIMENSIONS,
+    MESSAGE_TYPE_PIXELSTREAM_OPEN,
+    MESSAGE_TYPE_PIXELSTREAM_FINISH_FRAME,
     MESSAGE_TYPE_PIXELSTREAM,
-    MESSAGE_TYPE_SVG_STREAM,
-    MESSAGE_TYPE_BIND_INTERACTION,
-    MESSAGE_TYPE_BIND_INTERACTION_EX,
-    MESSAGE_TYPE_BIND_INTERACTION_REPLY,
-    MESSAGE_TYPE_INTERACTION,
+    MESSAGE_TYPE_BIND_EVENTS,
+    MESSAGE_TYPE_BIND_EVENTS_EX,
+    MESSAGE_TYPE_BIND_EVENTS_REPLY,
+    MESSAGE_TYPE_EVENT,
     MESSAGE_TYPE_FRAME_CLOCK,
+    MESSAGE_TYPE_URI,
     MESSAGE_TYPE_QUIT,
-    MESSAGE_TYPE_ACK,
-    MESSAGE_TYPE_NONE
+    MESSAGE_TYPE_ACK
 };
 
 #define MESSAGE_HEADER_URI_LENGTH 64
 
-struct MessageHeader {
-    int32_t size;
-    MESSAGE_TYPE type;
-    char uri[MESSAGE_HEADER_URI_LENGTH]; // optional URI related to message. needs to be a fixed size so sizeof(MessageHeader) is constant
+/** Fixed-size message header. */
+struct MessageHeader
+{
+    /** Message type. */
+    MessageType type;
+
+    /** Size of the message payload. */
+    uint32_t size;
+
+    /**
+     * Optional URI related to message.
+     * @note Needs to be of fixed size so that sizeof(MessageHeader) is constant.
+     */
+    char uri[MESSAGE_HEADER_URI_LENGTH];
+
+    /** Construct a default message header */
+    MessageHeader();
+
+    /** Construct a message header with a uri */
+    MessageHeader(MessageType type, uint32_t size, const std::string& streamUri = "");
+
+    /** The size of the QDataStream serialized output. */
+    static const size_t serializedSize;
 };
+
+/** Serialization for network, where sizeof(MessageHeader) can differ between compilers. */
+QDataStream& operator<<(QDataStream& out, const MessageHeader &header);
+QDataStream& operator>>(QDataStream& in, MessageHeader &header);
 
 #endif

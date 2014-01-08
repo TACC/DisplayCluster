@@ -129,7 +129,7 @@ void BackgroundWidget::reject()
     g_configuration->setBackgroundUri(previousBackgroundURI_);
 
     g_displayGroupManager->setBackgroundColor(previousColor_);
-    setBackgroundContentFromUri(previousBackgroundURI_);
+    g_displayGroupManager->setBackgroundContentFromUri(previousBackgroundURI_);
 
     QDialog::reject();
 }
@@ -154,41 +154,25 @@ void BackgroundWidget::openBackgroundContent()
 {
     QString filename = QFileDialog::getOpenFileName(this, tr("Choose content"), QString(), ContentFactory::getSupportedFilesFilterAsString());
 
-    if(setBackgroundContentFromUri(filename))
+    if(filename.isEmpty())
+        return;
+
+    if(g_displayGroupManager->setBackgroundContentFromUri(filename))
     {
         backgroundLabel_->setText(filename);
         g_configuration->setBackgroundUri(filename);
     }
-}
-
-
-bool BackgroundWidget::setBackgroundContentFromUri(const QString& filename)
-{
-    if(!filename.isEmpty())
+    else
     {
-        boost::shared_ptr<Content> c = ContentFactory::getContent(filename);
-
-        if(c != NULL)
-        {
-            boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
-
-            g_displayGroupManager->setBackgroundContentWindowManager(cwm);
-
-            return true;
-        }
-        else
-        {
-            QMessageBox messageBox;
-            messageBox.setText(tr("Error: Unsupported file format"));
-            messageBox.exec();
-        }
+        QMessageBox messageBox;
+        messageBox.setText(tr("Error: Unsupported file format"));
+        messageBox.exec();
     }
-    return false;
 }
 
 void BackgroundWidget::removeBackground()
 {
-    g_displayGroupManager->setBackgroundContentWindowManager(boost::shared_ptr<ContentWindowManager>());
+    g_displayGroupManager->setBackgroundContentWindowManager(ContentWindowManagerPtr());
 
     backgroundLabel_->setText("");
     g_configuration->setBackgroundUri("");

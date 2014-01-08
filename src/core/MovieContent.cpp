@@ -69,28 +69,17 @@ void MovieContent::getFactoryObjectDimensions(int &width, int &height)
     g_mainWindow->getGLWindow()->getMovieFactory().getObject(getURI())->getDimensions(width, height);
 }
 
-void MovieContent::advance(boost::shared_ptr<ContentWindowManager> window)
+void MovieContent::advance(ContentWindowManagerPtr window)
 {
     if( blockAdvance_ )
         return;
-
-    // skip a frame if the Content rectangle is not visible in ANY windows; otherwise decode normally
-    bool skip = true;
 
     // window parameters
     double x, y, w, h;
     window->getCoordinates(x, y, w, h);
 
-    std::vector<boost::shared_ptr<GLWindow> > glWindows = g_mainWindow->getGLWindows();
-
-    for(unsigned int i=0; i<glWindows.size(); i++)
-    {
-        if(glWindows[i]->isScreenRectangleVisible(x, y, w, h) == true)
-        {
-            skip = false;
-            break;
-        }
-    }
+    // skip a frame if the Content rectangle is not visible in ANY windows; otherwise decode normally
+    const bool skip = !g_mainWindow->isRegionVisible(x, y, w, h);
 
     boost::shared_ptr< Movie > movie = g_mainWindow->getGLWindow()->getMovieFactory().getObject(getURI());
     movie->setPause( window->getControlState() & STATE_PAUSED );

@@ -40,6 +40,8 @@
 #define MAIN_WINDOW_H
 
 #include "config.h"
+#include "types.h"
+
 #include <QtGui>
 #include <QGLWidget>
 #include <boost/shared_ptr.hpp>
@@ -53,72 +55,73 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
     public:
-
         MainWindow();
         ~MainWindow();
 
-        boost::shared_ptr<GLWindow> getGLWindow(int index=0);
-        boost::shared_ptr<GLWindow> getActiveGLWindow();
-        std::vector<boost::shared_ptr<GLWindow> > getGLWindows();
+        GLWindowPtr getGLWindow(int index=0);
+        GLWindowPtr getActiveGLWindow();
 
-    public slots:
-
-        void openContent();
-        void openContentsDirectory();
-        void clearContents();
-        void saveState();
-        void loadState();
-        void computeImagePyramid();
-        void constrainAspectRatio(bool set);
-
-#if ENABLE_SKELETON_SUPPORT
-        void setEnableSkeletonTracking(bool enable);
-#endif
-
-        void updateGLWindows();
+        bool isRegionVisible(double x, double y, double w, double h) const;
 
         void finalize();
 
-        void showBackgroundWidget();
-        void openWebBrowser();
-
     signals:
-
-        void updateGLWindowsFinished();
+        void openDock(QPointF pos, QSize size, QString rootDir);
+        void hideDock();
+        void openWebBrowser(QPointF pos, QSize size, QString url);
 
 #if ENABLE_SKELETON_SUPPORT
         void enableSkeletonTracking();
         void disableSkeletonTracking();
 #endif
+        void updateGLWindowsFinished();
 
     protected:
         void dragEnterEvent(QDragEnterEvent *event);
         void dropEvent(QDropEvent *event);
 
+    private slots:
+        void openContent();
+        void openContentsDirectory();
+        void clearContents();
+
+        void saveState();
+        void loadState();
+
+        void computeImagePyramid();
+        void constrainAspectRatio(bool set);
+        void showBackgroundWidget();
+
+        void openWebBrowser();
+        void openDock(const QPointF pos);
+
+    #if ENABLE_SKELETON_SUPPORT
+        void setEnableSkeletonTracking(bool enable);
+    #endif
+
+        void updateGLWindows();
+
     private:
         void setupMasterWindowUI();
         void setupWallOpenGLWindows();
 
-        void addContent(const QString &filename);
-        void addContentDirectory(const QString &directoryName, int gridX=0, int gridY=0);
+        void addContentDirectory(const QString &directoryName, unsigned int gridX=0, unsigned int gridY=0);
         void loadState(const QString &filename);
 
-        void estimateGridSize(unsigned int numElem, int &gridX, int &gridY);
+        void estimateGridSize(unsigned int numElem, unsigned int& gridX, unsigned int& gridY);
 
         QStringList extractValidContentUrls(const QMimeData* data);
         QStringList extractFolderUrls(const QMimeData *data);
         QString extractStateFile(const QMimeData *data);
 
-        std::vector<boost::shared_ptr<GLWindow> > glWindows_;
-        boost::shared_ptr<GLWindow> activeGLWindow_;
+        GLWindowPtrs glWindows_;
+        GLWindowPtr activeGLWindow_;
 
-        // polling timer for updating pixel streams
-        QTimer pixelStreamTimer_;
+        BackgroundWidget* backgroundWidget_;
 
 #if ENABLE_TUIO_TOUCH_LISTENER
         MultiTouchListener* touchListener_;
 #endif
-        BackgroundWidget* backgroundWidget_;
 };
 
 #endif

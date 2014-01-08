@@ -40,28 +40,19 @@
 #define GLOBALS_H
 
 #include <mpi.h>
+#include <stdint.h>
 #include "types.h"
 
-class QString;
 class Configuration;
-class LocalPixelStreamerManager;
 class MainWindow;
-class NetworkListener;
 
 extern int g_mpiRank;
 extern int g_mpiSize;
 extern MPI_Comm g_mpiRenderComm;
+
 extern Configuration* g_configuration;
 extern DisplayGroupManagerPtr g_displayGroupManager;
 extern MainWindow * g_mainWindow;
-extern long g_frameCount;
-// Rank0
-extern LocalPixelStreamerManager* g_localPixelStreamers;
-
-#if ENABLE_SKELETON_SUPPORT
-    class SkeletonThread;
-
-    extern SkeletonThread * g_skeletonThread;
-#endif
+extern uint64_t g_frameCount;
 
 #endif

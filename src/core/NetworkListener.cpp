@@ -37,19 +37,36 @@
 /*********************************************************************/
 
 #include "NetworkListener.h"
+
 #include "NetworkListenerThread.h"
+#include "PixelStreamDispatcher.h"
+#include "DisplayGroupManager.h"
 #include "log.h"
 
-NetworkListener::NetworkListener(int port)
-{
-    // assign values
-    port_ = port;
+#include "StateSerializationHelper.h"
+#include "ContentLoader.h"
+#include "localstreamer/DockPixelStreamer.h"
 
-    if(listen(QHostAddress::Any, port_) != true)
+const int NetworkListener::defaultPortNumber_ = 1701;
+
+NetworkListener::NetworkListener(DisplayGroupManager& displayGroupManager, int port)
+    : displayGroupManager_(displayGroupManager)
+    , pixelStreamDispatcher_(0)
+{
+    qRegisterMetaType<size_t>("size_t");
+
+    if( !listen(QHostAddress::Any, port) )
     {
-        put_flog(LOG_FATAL, "could not listen on port %i", port_);
+        put_flog(LOG_FATAL, "could not listen on port %i", port);
         exit(-1);
     }
+
+    pixelStreamDispatcher_ = new PixelStreamDispatcher();
+}
+
+NetworkListener::~NetworkListener()
+{
+    delete pixelStreamDispatcher_;
 }
 
 void NetworkListener::incomingConnection(int socketDescriptor)
@@ -63,8 +80,52 @@ void NetworkListener::incomingConnection(int socketDescriptor)
 
     connect(thread, SIGNAL(started()), worker, SLOT(initialize()));
     connect(worker, SIGNAL(finished()), thread, SLOT(quit()));
+    // Make sure the thread will be deleted
     connect(thread, SIGNAL(finished()), worker, SLOT(deleteLater()));
     connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
 
+    // Uri commands
+    connect(worker, SIGNAL(receivedUri(QString,QString)), this, SLOT(handleUri(QString,QString)));
+
+    // DisplayGroupManager
+    connect(&displayGroupManager_, SIGNAL(pixelStreamViewClosed(QString)),
+            worker, SLOT(pixelStreamerClosed(QString)));
+    connect(&displayGroupManager_, SIGNAL(eventRegistrationReply(QString,bool)),
+            worker, SLOT(eventRegistrationRepy(QString,bool)));
+    connect(worker, SIGNAL(registerToEvents(QString,bool,EventReceiver*)),
+            &displayGroupManager_, SLOT(registerEventReceiver(QString,bool,EventReceiver*)));
+
+    // PixelStreamDispatcher
+    connect(worker, SIGNAL(receivedAddPixelStreamSource(QString,size_t)),
+            pixelStreamDispatcher_, SLOT(addSource(QString,size_t)));
+    connect(worker, SIGNAL(receivedPixelStreamSegement(QString,size_t,PixelStreamSegment)),
+            pixelStreamDispatcher_, SLOT(processSegment(QString,size_t,PixelStreamSegment)));
+    connect(worker, SIGNAL(receivedPixelStreamFinishFrame(QString,size_t)),
+            pixelStreamDispatcher_, SLOT(processFrameFinished(QString,size_t)));
+    connect(worker, SIGNAL(receivedRemovePixelStreamSource(QString,size_t)),
+            pixelStreamDispatcher_, SLOT(removeSource(QString,size_t)));
+
     thread->start();
+}
+
+void NetworkListener::handleUri(QString senderUri, QString contentUri)
+{
+    if ( senderUri == DockPixelStreamer::getUniqueURI( ))
+    {
+        const QString& extension = QFileInfo(contentUri).suffix().toLower();
+
+        if( extension == "dcx" )
+        {
+            StateSerializationHelper(displayGroupManager_.shared_from_this()).load(contentUri);
+        }
+        else if ( ContentFactory::getSupportedExtensions().contains( extension ))
+        {
+            ContentLoader loader(displayGroupManager_.shared_from_this());
+            loader.load(contentUri, DockPixelStreamer::getUniqueURI());
+        }
+        else
+        {
+            put_flog(LOG_WARN, "Received uri with unsupported extension %s:", contentUri.toStdString().c_str());
+        }
+    }
 }

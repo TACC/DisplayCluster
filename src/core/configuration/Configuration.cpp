@@ -39,8 +39,8 @@
 #include "Configuration.h"
 
 #include "log.h"
-#include "../globals.h"
-#include "../Options.h"
+#include "globals.h"
+#include "Options.h"
 
 #include <QDomElement>
 #include <QtXmlPatterns>

@@ -43,6 +43,11 @@ if(APPLE)
   endif()
 endif()
 
+# Used by cmake/modules/DoxygenRule.cmake to install documentation
+if(NOT DOC_DIR)
+  set(DOC_DIR share/${CMAKE_PROJECT_NAME}/doc)
+endif()
+
 # path for additional modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
@@ -72,7 +77,7 @@ find_package(LibJpegTurbo REQUIRED)
 include_directories(${LibJpegTurbo_INCLUDE_DIRS})
 list(APPEND LIBS ${LibJpegTurbo_LIBRARIES})
 
-find_package(Boost REQUIRED COMPONENTS serialization date_time unit_test_framework)
+find_package(Boost REQUIRED COMPONENTS serialization date_time unit_test_framework program_options)
 include_directories(${Boost_INCLUDE_DIRS})
 list(APPEND LIBS ${Boost_LIBRARIES})
 
@@ -104,7 +109,8 @@ if(BUILD_CORE_LIBRARY)
 endif()
 
 # install doc files
-install(DIRECTORY doc DESTINATION . COMPONENT doc)
+include(DoxygenRule)
+add_subdirectory(doc)
 
 # install example files
 install(DIRECTORY examples DESTINATION . COMPONENT examples)

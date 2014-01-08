@@ -75,6 +75,8 @@ class SkeletonThread : public QThread {
         void startTimer();
         void stopTimer();
 
+    private slots:
+
         void updateSkeletons();
 
     private:

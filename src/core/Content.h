@@ -41,6 +41,7 @@
 
 #include "ContentFactory.h"
 #include "ContentType.h"
+#include "types.h"
 
 #include <QtGui>
 #include <boost/shared_ptr.hpp>
@@ -65,12 +66,12 @@ class Content : public QObject {
         void getDimensions(int &width, int &height);
         void setDimensions(int width, int height);
         virtual void getFactoryObjectDimensions(int &width, int &height) = 0;
-        void render(boost::shared_ptr<ContentWindowManager> window);
+        void render(ContentWindowManagerPtr window);
         void blockAdvance( bool block ) { blockAdvance_ = block; }
 
         // virtual method for implementing actions on advancing to a new frame
         // useful when a process has multiple GLWindows
-        virtual void advance(boost::shared_ptr<ContentWindowManager>) { }
+        virtual void advance(ContentWindowManagerPtr) { }
 
     signals:
 
@@ -99,7 +100,7 @@ class Content : public QObject {
 BOOST_SERIALIZATION_ASSUME_ABSTRACT(Content)
 
 // typedef needed for SIP
-typedef boost::shared_ptr<Content> pContent;
+typedef ContentPtr pContent;
 
 class pyContent {
 
@@ -107,16 +108,16 @@ class pyContent {
 
         pyContent(const char * str)
         {
-            boost::shared_ptr<Content> c(ContentFactory::getContent(QString::fromAscii(str)));
+            ContentPtr c(ContentFactory::getContent(QString::fromAscii(str)));
             ptr_ = c;
         }
 
-        pyContent(boost::shared_ptr<Content> c)
+        pyContent(ContentPtr c)
         {
             ptr_ = c;
         }
 
-        boost::shared_ptr<Content> get()
+        ContentPtr get()
         {
             return ptr_;
         }
@@ -128,7 +129,7 @@ class pyContent {
 
     protected:
 
-        boost::shared_ptr<Content> ptr_;
+        ContentPtr ptr_;
 };
 
 #endif

@@ -57,7 +57,7 @@ class ContentInteractionDelegate
 {
 public:
 
-    ContentInteractionDelegate(ContentWindowManager& cwm);
+    ContentInteractionDelegate(ContentWindowManager& contentWindow);
     virtual ~ContentInteractionDelegate();
 
     // Main entry point for gesture events

@@ -49,7 +49,7 @@ class ContentWindowListWidgetItem : public QListWidgetItem, public ContentWindow
 
     public:
 
-        ContentWindowListWidgetItem(boost::shared_ptr<ContentWindowManager> contentWindowManager);
+        ContentWindowListWidgetItem(ContentWindowManagerPtr contentWindowManager);
 };
 
 #endif

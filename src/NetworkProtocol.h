@@ -40,6 +40,6 @@
 #define NETWORK_PROTOCOL_H
 
 // increment this every time the network protocol changes in a major way
-#define NETWORK_PROTOCOL_VERSION 7
+#define NETWORK_PROTOCOL_VERSION 8
 
 #endif

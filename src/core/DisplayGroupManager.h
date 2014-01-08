@@ -44,7 +44,7 @@
 #include "Marker.h"
 #include "config.h"
 #include "Factory.hpp"
-#include "State.h"
+
 #include <QtGui>
 #include <vector>
 #ifndef Q_MOC_RUN
@@ -59,15 +59,15 @@
     #include "SkeletonState.h"
 #endif
 
-#include "PixelStream.h"
 #include "serializationHelpers.h"
 #include "types.h"
 
-
 class ContentWindowManager;
 struct MessageHeader;
+class EventReceiver;
 
-class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_shared_from_this<DisplayGroupManager> {
+class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_shared_from_this<DisplayGroupManager>
+{
     Q_OBJECT
 
     public:
@@ -77,8 +77,8 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
 
         OptionsPtr getOptions() const;
 
-        boost::shared_ptr<Marker> getNewMarker();
-        const std::vector<boost::shared_ptr<Marker> >& getMarkers() const;
+        MarkerPtr getNewMarker();
+        const MarkerPtrs& getMarkers() const;
         void deleteMarkers();
 
         boost::posix_time::ptime getTimestamp() const;
@@ -88,37 +88,46 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
 #endif
 
         // re-implemented DisplayGroupInterface slots
-        void addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
-        void removeContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
-        void moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
+        void addContentWindowManager(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source=NULL);
+        void removeContentWindowManager(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source=NULL);
+        void moveContentWindowManagerToFront(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source=NULL);
 
         // find the offset between the rank 0 clock and the rank 1 clock. recall the rank 1 clock is used across rank 1 - n.
         void calibrateTimestampOffset();
 
-        // background content
-        void setBackgroundContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager);
-        boost::shared_ptr<ContentWindowManager> getBackgroundContentWindowManager() const;
-
-        // background
-        void initBackground();
         QColor getBackgroundColor() const;
         void setBackgroundColor(QColor color);
 
-    public slots:
+        bool setBackgroundContentFromUri(const QString filename);
+        void setBackgroundContentWindowManager(ContentWindowManagerPtr contentWindowManager);
+        ContentWindowManagerPtr getBackgroundContentWindowManager() const;
+
+public slots:
 
         // this can be invoked from other threads to construct a DisplayGroupInterface and move it to that thread
         boost::shared_ptr<DisplayGroupInterface> getDisplayGroupInterface(QThread * thread);
 
-        bool saveStateXMLFile( const QString& filename );
-        bool loadStateXMLFile( const QString& filename );
+        /**
+         * Position a ContentWindowManager.
+         *
+         * Immediately position the window if it is already open, or postion it
+         * at the time the window first opens (useful for PixelStreamers).
+         * @param uri Window identifier
+         * @param position The position of the center of the window
+         */
+        void positionWindow( const QString uri, const QPointF position );
+
+        /**
+         * Hide a ContentWindowManager.
+         *
+         * @param uri Window identifier
+         */
+        void hideWindow( const QString uri );
 
         void receiveMessages();
 
         void sendDisplayGroup();
         void sendContentsDimensionsRequest();
-        void sendPixelStreams();
-        void sendPixelStreamSegments(const std::vector<PixelStreamSegment> &segments, const QString& uri);
-        void sendSVGStreams();
         void sendFrameClockUpdate();
         void receiveFrameClockUpdate();
         void sendQuit();
@@ -129,10 +138,17 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         void setSkeletons(std::vector<boost::shared_ptr<SkeletonState> > skeletons);
 #endif
         // Rank0 manages pixel stream events
-        void processPixelStreamSegment(QString uri, PixelStreamSegment segment);
         void openPixelStream(QString uri, int width, int height);
+        void closePixelStream(const QString& uri);
         void adjustPixelStreamContentDimensions(QString uri, int width, int height, bool changeViewSize);
-        void deletePixelStream(const QString& uri);
+
+        void registerEventReceiver(QString uri, bool exclusive, EventReceiver* receiver);
+
+    signals:
+        // Rank0 signals pixel streams events
+        void pixelStreamViewAdded(QString uri);
+        void pixelStreamViewClosed(QString uri);
+        void eventRegistrationReply(QString uri, bool success);
 
     private:
         friend class boost::serialization::access;
@@ -152,7 +168,7 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         }
 
         // background
-        boost::shared_ptr<ContentWindowManager> backgroundContent_;
+        ContentWindowManagerPtr backgroundContent_;
         QColor backgroundColor_;
 
         // options
@@ -160,7 +176,7 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
 
         // marker and mutex
         QMutex markersMutex_;
-        std::vector<boost::shared_ptr<Marker> > markers_;
+        MarkerPtrs markers_;
 
         // frame timing
         boost::posix_time::ptime timestamp_;
@@ -172,19 +188,13 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         // rank 1 - rank 0 timestamp offset
         boost::posix_time::time_duration timestampOffset_;
 
-        // Rank0: Input buffer for PixelStreams
-        Factory<PixelStream> pixelStreamSourceFactory_;
+        typedef std::map<QString, QPointF> WindowPositions;
+        WindowPositions windowPositions_;
 
-        State state_;
-
+        // ranks 1-n recieve data through MPI
         void receiveDisplayGroup(const MessageHeader& messageHeader);
         void receiveContentsDimensionsRequest(const MessageHeader& messageHeader);
         void receivePixelStreams(const MessageHeader& messageHeader);
-        void receiveSVGStreams(const MessageHeader& messageHeader);
-
-    signals:
-        // Rank0 signals pixel streams events
-        void pixelStreamViewClosed(QString uri);
 };
 
 #endif

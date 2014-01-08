@@ -39,68 +39,76 @@
 #ifndef NETWORK_LISTENER_THREAD_H
 #define NETWORK_LISTENER_THREAD_H
 
-// increment this every time the network protocol changes in a major way
-#include "NetworkProtocol.h"
+#include "MessageHeader.h"
+#include "Event.h"
+#include "PixelStreamSegment.h"
+#include "EventReceiver.h"
 
-#include "DisplayGroupManager.h"
-#include "InteractionState.h"
-#include <QtCore>
 #include <QtNetwork/QTcpSocket>
+#include <QQueue>
 
-class NetworkListenerThread : public QObject {
+using dc::Event;
+using dc::PixelStreamSegment;
+
+class NetworkListenerThread : public EventReceiver
+{
     Q_OBJECT
 
-    public:
+public:
 
-        NetworkListenerThread(int socketDescriptor);
-        ~NetworkListenerThread();
+    NetworkListenerThread(int socketDescriptor);
+    ~NetworkListenerThread();
 
-    public slots:
+public slots:
 
-        void initialize();
+    void processEvent(Event event);
+    void pixelStreamerClosed(QString uri);
 
-        void process();
+    void eventRegistrationRepy(QString uri, bool success);
 
-        void socketReceiveMessage();
+signals:
 
-        void setInteractionState(InteractionState interactionState);
+    void finished();
 
-        void removePixelStreamer(QString uri);
+    void receivedAddPixelStreamSource(QString uri, size_t sourceIndex);
+    void receivedPixelStreamSegement(QString uri, size_t SourceIndex, PixelStreamSegment segment);
+    void receivedPixelStreamFinishFrame(QString uri, size_t SourceIndex);
+    void receivedRemovePixelStreamSource(QString uri, size_t sourceIndex);
 
-    signals:
+    void registerToEvents(QString uri, bool exclusive, EventReceiver* receiver);
 
-        void finished();
+    void receivedUri(QString uri, QString contentUri);
 
-        void updatedSVGStreamSource();
+    /** @internal */
+    void dataAvailable();
 
-        void receivedOpenPixelStream(QString uri, int width, int height);
-        void receivedDeletePixelStream(QString uri);
+private slots:
 
-        void receivedPixelStreamSegement(QString uri, PixelStreamSegment segment);
+    void initialize();
+    void process();
+    void socketReceiveMessage();
 
-    private:
+private:
 
-        int socketDescriptor_;
-        QTcpSocket * tcpSocket_;
+    int socketDescriptor_;
+    QTcpSocket* tcpSocket_;
 
-        boost::shared_ptr<DisplayGroupInterface> displayGroupInterface_;
+    QString pixelStreamUri_;
 
-        QString pixelStreamUri_;
+    bool registeredToEvents_;
+    QQueue<Event> events_;
 
-        QString interactionName_;
-        bool interactionBound_;
-        bool interactionExclusive_;
+    MessageHeader receiveMessageHeader();
+    QByteArray receiveMessageBody(const int size);
 
-        // interaction state information
-        // right now we only keep track of the latest state, but we could queue these up later if needed...
-        bool updatedInteractionState_;
-        InteractionState interactionState_;
+    void handleMessage(const MessageHeader& messageHeader, const QByteArray& byteArray);
+    void handlePixelStreamMessage(const QString& uri, const QByteArray& byteArray);
 
-        void handleMessage(MessageHeader messageHeader, QByteArray byteArray);
-
-        bool bindInteraction();
-        void sendBindReply( bool successful );
-        void sendInteractionState();
+    void sendProtocolVersion();
+    void sendBindReply(const bool successful);
+    void send(const Event &event);
+    void sendQuit();
+    bool send(const MessageHeader& messageHeader);
 };
 
 #endif

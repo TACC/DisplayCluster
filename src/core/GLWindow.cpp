@@ -82,7 +82,11 @@ GLWindow::GLWindow(int tileIndex, QRect windowRect, QGLWidget * shareWidget)
 
 GLWindow::~GLWindow()
 {
+}
 
+int GLWindow::getTileIndex() const
+{
+    return tileIndex_;
 }
 
 Factory<Texture> & GLWindow::getTextureFactory()
@@ -150,41 +154,16 @@ void GLWindow::paintGL()
         return;
     }
 
-    // Render background content window
-    boost::shared_ptr<ContentWindowManager> backgroundContentWindowManager = g_displayGroupManager->getBackgroundContentWindowManager();
-    if (backgroundContentWindowManager != NULL)
+    renderBackgroundContent();
+    renderContentWindows();
+
+    // Show the FPS for each window
+    if (g_displayGroupManager->getOptions()->getShowStreamingStatistics())
     {
-        glPushMatrix();
-        glTranslatef(0.,0.,-0.999);
-
-        backgroundContentWindowManager->render();
-
-        glPopMatrix();
+        drawFps();
     }
 
-    // render content windows
-    std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers = g_displayGroupManager->getContentWindowManagers();
-
-    for(unsigned int i=0; i<contentWindowManagers.size(); i++)
-    {
-        // manage depth order
-        // the visible depths seem to be in the range (-1,1); make the content window depths be in the range (-1,0)
-        glPushMatrix();
-        glTranslatef(0.,0.,-((float)contentWindowManagers.size() - (float)i) / ((float)contentWindowManagers.size() + 1.));
-
-        contentWindowManagers[i]->render();
-
-        glPopMatrix();
-    }
-
-    // render the markers
-    // these should be rendered last since they're blended
-    const std::vector<boost::shared_ptr<Marker> >& markers = g_displayGroupManager->getMarkers();
-
-    for(unsigned int i=0; i<markers.size(); i++)
-    {
-        markers[i]->render();
-    }
+    renderMarkers(); // Markers should be rendered last since they're blended
 
 #if ENABLE_SKELETON_SUPPORT
     if(g_displayGroupManager->getOptions()->getShowSkeletons() == true)
@@ -231,6 +210,60 @@ void GLWindow::resizeGL(int width, int height)
     glLoadIdentity();
 
     update();
+}
+
+void GLWindow::renderBackgroundContent()
+{
+    // Render background content window
+    ContentWindowManagerPtr backgroundContentWindowManager = g_displayGroupManager->getBackgroundContentWindowManager();
+    if (backgroundContentWindowManager != NULL)
+    {
+        glPushMatrix();
+        glTranslatef(0., 0., -1.f + std::numeric_limits<float>::epsilon());
+
+        backgroundContentWindowManager->render();
+
+        glPopMatrix();
+    }
+}
+
+void GLWindow::renderContentWindows()
+{
+    // render content windows
+    ContentWindowManagerPtrs contentWindowManagers = g_displayGroupManager->getContentWindowManagers();
+
+    const unsigned int windowCount = contentWindowManagers.size();
+    unsigned int i = 0;
+    for(ContentWindowManagerPtrs::iterator it = contentWindowManagers.begin(); it != contentWindowManagers.end(); it++)
+    {
+        // It is currently not possible to cull windows that are invisible as this conflics
+        // with the "garbage collection" mechanism for Contents. In fact, "stale" objects are objects
+        // which have not been rendered for more than one frame (implicitly: objects without a window)
+        // and those are destroyed by Factory::clearStaleObjects(). It is currently the only way to
+        // remove a Content.
+        //if ( isRegionVisible( (*it)->getCoordinates( )))
+        {
+            // the visible depths are in the range (-1,1); make the content window depths be in the range (-1,0)
+            const float depth = -(float)(windowCount - i) / (float)(windowCount + 1);
+
+            glPushMatrix();
+            glTranslatef(0.f, 0.f, depth);
+
+            (*it)->render();
+            glPopMatrix();
+        }
+
+        ++i;
+    }
+}
+
+void GLWindow::renderMarkers()
+{
+    MarkerPtrs markers = g_displayGroupManager->getMarkers();
+    for(MarkerPtrs::iterator it = markers.begin(); it != markers.end(); it++)
+    {
+        (*it)->render();
+    }
 }
 
 void GLWindow::setOrthographicView()
@@ -369,71 +402,12 @@ bool GLWindow::setPerspectiveView(double x, double y, double w, double h)
 }
 #endif
 
-bool GLWindow::isScreenRectangleVisible(double x, double y, double w, double h)
+bool GLWindow::isRegionVisible(const QRectF& rect) const
 {
-    // works in "screen space" where the rectangle for the entire tiled display is (0,0,1,1)
-
     // screen rectangle
     const QRectF screenRect(left_, bottom_, right_-left_, top_-bottom_);
 
-    // the given rectangle
-    const QRectF rect(x, y, w, h);
-
     return screenRect.intersects(rect);
-}
-
-bool GLWindow::isRectangleVisible(double x, double y, double w, double h)
-{
-    // get four corners in object space
-    double xObj[4][3];
-
-    xObj[0][0] = x;
-    xObj[0][1] = y;
-    xObj[0][2] = 0.;
-
-    xObj[1][0] = x+w;
-    xObj[1][1] = y;
-    xObj[1][2] = 0.;
-
-    xObj[2][0] = x+w;
-    xObj[2][1] = y+h;
-    xObj[2][2] = 0.;
-
-    xObj[3][0] = x;
-    xObj[3][1] = y+h;
-    xObj[3][2] = 0.;
-
-    // get four corners in screen space
-    GLdouble modelview[16];
-    glGetDoublev(GL_MODELVIEW_MATRIX, modelview);
-
-    GLdouble projection[16];
-    glGetDoublev(GL_PROJECTION_MATRIX, projection);
-
-    GLint viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
-
-    GLdouble xWin[4][3];
-
-    for(int i=0; i<4; i++)
-    {
-        gluProject(xObj[i][0], xObj[i][1], xObj[i][2], modelview, projection, viewport, &xWin[i][0], &xWin[i][1], &xWin[i][2]);
-    }
-
-    // screen rectangle
-    QRectF screenRect(0.,0., (double)g_mainWindow->getGLWindow()->width(), (double)g_mainWindow->getGLWindow()->height());
-
-    // the given rectangle
-    QRectF rect(xWin[0][0], xWin[0][1], xWin[2][0]-xWin[0][0], xWin[2][1]-xWin[0][1]);
-
-    if(screenRect.intersects(rect) == true)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
 }
 
 void GLWindow::drawRectangle(double x, double y, double w, double h)
@@ -457,6 +431,7 @@ void GLWindow::finalize()
     movieFactory_.clear();
     pixelStreamFactory_.clear();
 
+    // The factories need to be cleared before we purge the textures
     purgeTextures();
 }
 
@@ -521,11 +496,29 @@ void GLWindow::renderTestPattern()
     glPopAttrib();
 }
 
+void GLWindow::drawFps()
+{
+    fpsCounter.tick();
 
-QRectF GLWindow::getProjectedPixelRect(bool onScreenOnly)
+    const int fontSize = 32;
+    QFont font;
+    font.setPixelSize(fontSize);
+
+    glPushAttrib(GL_DEPTH_BUFFER_BIT | GL_CURRENT_BIT);
+
+    glDisable(GL_DEPTH_TEST);
+    glColor4f(0.,0.,1.,1.);
+
+    renderText(10, fontSize, fpsCounter.toString(), font);
+
+    glPopAttrib();
+}
+
+
+QRectF GLWindow::getProjectedPixelRect(const bool clampToWindowArea)
 {
     // get four corners in object space (recall we're in normalized 0->1 dimensions)
-    double x[4][3] =
+    const double x[4][3] =
     {
         {0.,0.,0.},
         {1.,0.,0.},
@@ -545,11 +538,11 @@ QRectF GLWindow::getProjectedPixelRect(bool onScreenOnly)
 
     GLdouble xWin[4][3];
 
-    for(int i=0; i<4; i++)
+    for(size_t i=0; i<4; i++)
     {
         gluProject(x[i][0], x[i][1], x[i][2], modelview, projection, viewport, &xWin[i][0], &xWin[i][1], &xWin[i][2]);
 
-        if(onScreenOnly == true)
+        if( clampToWindowArea )
         {
             // clamp to on-screen portion
             if(xWin[i][0] < 0.)
@@ -565,6 +558,8 @@ QRectF GLWindow::getProjectedPixelRect(bool onScreenOnly)
                 xWin[i][1] = (double)height();
         }
     }
+    const QPointF topleft( xWin[0][0], (double)height() - xWin[0][1] );
+    const QPointF bottomright( xWin[2][0], (double)height() - xWin[2][1] );
 
-    return QRectF(QPointF(xWin[0][0], (double)height() - xWin[0][1]), QPointF(xWin[2][0], (double)height() - xWin[2][1]));
+    return QRectF( topleft, bottomright );
 }
