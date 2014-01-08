@@ -117,6 +117,8 @@ struct ImageWrapper
     /**
      * Reorder a GL-format image buffer for use in ImageWrapper.
      *
+     * The lines of the image are inverted to flip it horizontally, switching from OpenGL convention
+     * (origin in bottom-left corner) to standard image format (origin in top-left corner).
      * @param data The image buffer to be modified, containing width*height*bpp bytes
      * @param width The width of the image
      * @param height The height of the image
