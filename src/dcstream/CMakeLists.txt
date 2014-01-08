@@ -18,8 +18,9 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Version.in.h
                ${CMAKE_BINARY_DIR}/Version.h)
 
 set(DISPLAYCLUSTER_LIBRARY_PUBLIC_HEADERS
-    Stream.h
     ImageWrapper.h
+    Stream.h
+    types.h
     ../Event.h
     ${CMAKE_BINARY_DIR}/Version.h
 )

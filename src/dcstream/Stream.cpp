@@ -110,6 +110,9 @@ bool Stream::registerForEvents(const bool exclusive)
         return false;
     }
 
+    if (isRegisteredForEvents())
+        return true;
+
     MessageType type = exclusive ? MESSAGE_TYPE_BIND_EVENTS_EX :
                                     MESSAGE_TYPE_BIND_EVENTS;
     MessageHeader mh(type, 0, impl_->name_);

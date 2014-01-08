@@ -73,7 +73,7 @@ struct ImageWrapper
      * @param data The source image buffer, containing getBufferSize() bytes
      *        The first pixel is the top-left corner of the image, going to the bottom-right corner.
      *        Data arrays which follow the GL convention (as obtained by glReadPixels()) should be
-     *        reordered using reorderGLImageData() prior to constructing the image wrapper.
+     *        reordered using swapYAxis() prior to constructing the image wrapper.
      * @param width The width of the image
      * @param height The height of the image
      * @param format The format of the imageBuffer
@@ -115,16 +115,18 @@ struct ImageWrapper
     size_t getBufferSize() const;
 
     /**
-     * Reorder a GL-format image buffer for use in ImageWrapper.
+     * Swap an image along the Y axis.
      *
+     * Used to switch between OpenGL convention (origin in bottom-left corner) and "standard" image
+     * format (origin in top-left corner).
      * @param data The image buffer to be modified, containing width*height*bpp bytes
      * @param width The width of the image
      * @param height The height of the image
      * @param bpp The number of bytes per pixel (RGB=3, ARGB=4, etc.)
      * @version 1.0
      */
-    static void reorderGLImageData(void *data, const unsigned int width, const unsigned int height,
-                                   const unsigned int bpp);
+    static void swapYAxis(void *data, const unsigned int width, const unsigned int height,
+                          const unsigned int bpp);
 };
 
 }

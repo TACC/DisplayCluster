@@ -73,7 +73,8 @@ void PixelStreamDispatcher::addSource(const QString uri, const size_t sourceInde
 
 void PixelStreamDispatcher::removeSource(const QString uri, const size_t sourceIndex)
 {
-    assert(streamBuffers_.count(uri));
+    if(!streamBuffers_.count(uri))
+        return;
 
     streamBuffers_[uri].removeSource(sourceIndex);
 

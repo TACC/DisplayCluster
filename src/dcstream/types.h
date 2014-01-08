@@ -1,5 +1,5 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
 /*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
@@ -37,55 +37,14 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "ImageWrapper.h"
-#include <cstring>
-
-#define DEFAULT_COMPRESSION_QUALITY  75
+#ifndef TYPES_H
+#define TYPES_H
 
 namespace dc
 {
-
-ImageWrapper::ImageWrapper(const void *data, const unsigned int width, const unsigned int height,
-                           const PixelFormat format, const unsigned int x, const unsigned int y)
-    : data(data)
-    , width(width)
-    , height(height)
-    , pixelFormat(format)
-    , x(x)
-    , y(y)
-    , compressionPolicy(COMPRESSION_AUTO)
-    , compressionQuality(DEFAULT_COMPRESSION_QUALITY)
-{}
-
-unsigned int ImageWrapper::getBytesPerPixel() const
-{
-    // enum PixelFormat { RGB, RGBA, ARGB, BGR, BGRA, ABGR };
-    static const unsigned int dcBytesPerPixel[] = { 3, 4, 4, 3, 4, 4 };
-
-    return dcBytesPerPixel[pixelFormat];
+    struct Event;
+    struct ImageWrapper;
+    class Stream;
 }
 
-size_t ImageWrapper::getBufferSize() const
-{
-    return width * height * getBytesPerPixel();
-}
-
-void ImageWrapper::swapYAxis(void *data, const unsigned int width, const unsigned int height, const unsigned int bpp)
-{
-    unsigned char* src = (unsigned char*)data;
-
-    size_t bytesPerLine = width*bpp;
-    size_t bufferSize = bytesPerLine*height;
-
-    unsigned char* tmp = new unsigned char[bufferSize];
-
-    for (size_t y=0; y<height; y++)
-    {
-        memcpy( (void*)(&tmp[y*bytesPerLine]), (const void*)&src[(height-y-1)*bytesPerLine], bytesPerLine);
-    }
-    memcpy(data, (const void*)tmp, bufferSize);
-
-    delete[] tmp;
-}
-
-}
+#endif // TYPES_H

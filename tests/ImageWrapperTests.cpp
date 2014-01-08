@@ -106,7 +106,7 @@ BOOST_AUTO_TEST_CASE( testImageReorderGLImageData )
             1,1,1, 2,2,2, 3,3,3, 4,4,4
         };
 
-        dc::ImageWrapper::reorderGLImageData( dataIn, 4, 2, 3 );
+        dc::ImageWrapper::swapYAxis( dataIn, 4, 2, 3 );
 
         BOOST_CHECK_EQUAL_COLLECTIONS( dataIn, dataIn+24, dataOut, dataOut+24 );
     }
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE( testImageReorderGLImageData )
             1,1,1, 2,2,2
         };
 
-        dc::ImageWrapper::reorderGLImageData( dataIn, 2, 4, 3 );
+        dc::ImageWrapper::swapYAxis( dataIn, 2, 4, 3 );
 
         BOOST_CHECK_EQUAL_COLLECTIONS( dataIn, dataIn+24, dataOut, dataOut+24 );
     }
@@ -146,7 +146,7 @@ BOOST_AUTO_TEST_CASE( testImageReorderGLImageData )
             1,1,1,2, 2,2,3,3
         };
 
-        dc::ImageWrapper::reorderGLImageData( dataIn, 2, 3, 4 );
+        dc::ImageWrapper::swapYAxis( dataIn, 2, 3, 4 );
 
         BOOST_CHECK_EQUAL_COLLECTIONS( dataIn, dataIn+24, dataOut, dataOut+24 );
     }
@@ -165,8 +165,8 @@ BOOST_AUTO_TEST_CASE( testImageReorderGLImageData )
             6,6,7,7, 7,8,8,8
         };
 
-        dc::ImageWrapper::reorderGLImageData( dataIn, 2, 3, 4 );
-        dc::ImageWrapper::reorderGLImageData( dataIn, 2, 3, 4 );
+        dc::ImageWrapper::swapYAxis( dataIn, 2, 3, 4 );
+        dc::ImageWrapper::swapYAxis( dataIn, 2, 3, 4 );
 
         BOOST_CHECK_EQUAL_COLLECTIONS( dataIn, dataIn+24, dataOut, dataOut+24 );
     }

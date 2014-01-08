@@ -125,7 +125,7 @@ public:
      * DisplayWall before returning.
      *
      * @param exclusive Binds only one stream source for the same name
-     * @return true if the registration could be established, false otherwise.
+     * @return true if the registration could be or was already established, false otherwise.
      * @version 1.0
      */
     bool registerForEvents(const bool exclusive = false);

@@ -47,7 +47,7 @@
 
 NetworkListenerThread::NetworkListenerThread(int socketDescriptor)
     : socketDescriptor_(socketDescriptor)
-    , tcpSocket_(new QTcpSocket(this)) // Make sure that tcpSocket_ parent is *this* so it also gets move to thread!
+    , tcpSocket_(new QTcpSocket(this)) // Make sure that tcpSocket_ parent is *this* so it also gets moved to thread!
     , registeredToEvents_(false)
 {
     if( !tcpSocket_->setSocketDescriptor(socketDescriptor_) )
@@ -65,6 +65,12 @@ NetworkListenerThread::NetworkListenerThread(int socketDescriptor)
 NetworkListenerThread::~NetworkListenerThread()
 {
     put_flog(LOG_DEBUG, "");
+
+    // If the sender crashed, we may not recieve the quit message.
+    // We still want to remove this source so that the stream does not get stuck if other
+    // senders are still active / resp. the window gets closed if no more senders contribute to it.
+    if (!pixelStreamUri_.isEmpty())
+        emit receivedRemovePixelStreamSource(pixelStreamUri_, socketDescriptor_);
 
     if( tcpSocket_->state() == QAbstractSocket::ConnectedState )
         sendQuit();
