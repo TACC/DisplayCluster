@@ -18,7 +18,7 @@ endif(COMMAND cmake_policy)
 set(CMAKE_CXX_FLAGS "-Wall -ftemplate-depth-1024")
 
 # build options
-option(BUILD_DISPLAYCLUSTER_LIBRARY "Build DisplayCluster library" OFF)
+option(BUILD_DCSTREAM_LIBRARY "Build DisplayCluster dcstream library" OFF)
 option(BUILD_DESKTOPSTREAMER "Build DesktopStreamer application" OFF)
 option(ENABLE_TUIO_TOUCH_LISTENER "Enable TUIO touch listener for multi-touch events" OFF)
 option(ENABLE_JOYSTICK_SUPPORT "Enable joystick support" OFF)

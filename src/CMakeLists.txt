@@ -18,6 +18,6 @@ if(BUILD_CORE_LIBRARY)
   add_subdirectory(core)
 endif()
 
-if(BUILD_DISPLAYCLUSTER_LIBRARY)
+if(BUILD_DCSTREAM_LIBRARY)
   add_subdirectory(dcstream)
 endif()
