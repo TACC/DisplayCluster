@@ -280,7 +280,7 @@ void MainWindow::shareDesktopUpdate()
     painter.end(); // Make sure to release the QImage before using it to update the segements
 
     // QImage Format_RGB32 (0xffRRGGBB) corresponds in fact to GL_BGRA == dc::BGRA
-    dc::ImageWrapper dcImage((const void*)image.constBits(), image.width(), image.height(), dc::BGRA);
+    dc::ImageWrapper dcImage((const void*)image.bits(), image.width(), image.height(), dc::BGRA);
     dcImage.compressionPolicy = dc::COMPRESSION_ON;
 
     bool success = dcStream_->send(dcImage) && dcStream_->finishFrame();

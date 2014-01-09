@@ -98,12 +98,12 @@ void Application::sendImage(QImage image)
 {
 #ifdef COMPRESS_IMAGES
     // QImage Format_RGB32 (0xffRRGGBB) corresponds in fact to GL_BGRA == dc::BGRA
-    dc::ImageWrapper dcImage((const void*)image.constBits(), image.width(), image.height(), dc::BGRA);
+    dc::ImageWrapper dcImage((const void*)image.bits(), image.width(), image.height(), dc::BGRA);
     dcImage.compressionPolicy = dc::COMPRESSION_ON;
 #else
     // This conversion is suboptimal, but the only solution until we send the PixelFormat with the PixelStreamSegment
     image = image.rgbSwapped();
-    dc::ImageWrapper dcImage((const void*)image.constBits(), image.width(), image.height(), dc::RGBA);
+    dc::ImageWrapper dcImage((const void*)image.bits(), image.width(), image.height(), dc::RGBA);
     dcImage.compressionPolicy = dc::COMPRESSION_OFF;
 #endif
     bool success = dcStream_->send(dcImage) && dcStream_->finishFrame();

@@ -42,6 +42,7 @@
 #include "ImageWrapper.h"
 
 #include "log.h"
+#include <stdlib.h>
 
 namespace dc
 {
