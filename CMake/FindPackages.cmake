@@ -256,7 +256,7 @@ if(GLUT_name)
   endif()
 endif()
 
-set(DISPLAYCLUSTER_BUILD_DEBS autoconf;automake;cmake;freeglut3-dev;git;git-review;git-svn;libavcodec-dev;libavformat-dev;libavutil-dev;libboost-date-time-dev;libboost-program-options-dev;libboost-serialization-dev;libboost-test-dev;libjpeg-turbo8-dev;libopenmpi-dev;libswscale-dev;libturbojpeg;libxmu-dev;ninja-build;pkg-config;subversion)
+set(DISPLAYCLUSTER_BUILD_DEBS autoconf;automake;cmake;doxygen;freeglut3-dev;git;git-review;git-svn;lcov;libavcodec-dev;libavformat-dev;libavutil-dev;libboost-date-time-dev;libboost-program-options-dev;libboost-serialization-dev;libboost-test-dev;libjpeg-turbo8-dev;libopenmpi-dev;libswscale-dev;libturbojpeg;libxmu-dev;ninja-build;pkg-config;subversion)
 
 set(DISPLAYCLUSTER_DEPENDS MPI;Poppler;Boost;LibJpegTurbo;FFMPEG;OpenGL;Qt4;TUIO;GLUT)
 
