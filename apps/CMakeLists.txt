@@ -10,6 +10,6 @@ if(BUILD_DESKTOPSTREAMER)
 endif()
 
 # SimpleStreamer
-if(BUILD_DCSTREAM_LIBRARY)
+if(GLUT_FOUND)
   add_subdirectory(SimpleStreamer)
 endif()

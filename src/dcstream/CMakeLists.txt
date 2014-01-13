@@ -1,7 +1,9 @@
 
-set(DISPLAYCLUSTER_LIBRARY_LIBS ${QT_LIBRARIES} ${LibJpegTurbo_LIBRARIES})
+set(DCSTREAM_LIBRARY_LIBS ${QT_QTCORE_LIBRARY}
+                          ${QT_QTNETWORK_LIBRARY}
+                          ${LibJpegTurbo_LIBRARIES})
 
-set(DISPLAYCLUSTER_LIBRARY_SRCS
+set(DCSTREAM_LIBRARY_SRCS
     ../Event.cpp
     ../log.cpp
     ../MessageHeader.cpp
@@ -16,7 +18,7 @@ set(DISPLAYCLUSTER_LIBRARY_SRCS
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Version.in.h
                ${CMAKE_BINARY_DIR}/Version.h)
 
-set(DISPLAYCLUSTER_LIBRARY_PUBLIC_HEADERS
+set(DCSTREAM_LIBRARY_PUBLIC_HEADERS
     ImageWrapper.h
     Stream.h
     types.h
@@ -27,8 +29,8 @@ set(DISPLAYCLUSTER_LIBRARY_PUBLIC_HEADERS
 set(MOC_HEADERS Socket.h)
 qt4_wrap_cpp(MOC_OUTFILES ${MOC_HEADERS})
 
-add_library(dcstream SHARED ${DISPLAYCLUSTER_LIBRARY_SRCS} ${MOC_OUTFILES} ${DISPLAYCLUSTER_LIBRARY_SHARED_HEADERS})
-target_link_libraries(dcstream ${DISPLAYCLUSTER_LIBRARY_LIBS})
+add_library(dcstream SHARED ${DCSTREAM_LIBRARY_SRCS} ${MOC_OUTFILES} ${DISPLAYCLUSTER_LIBRARY_SHARED_HEADERS})
+target_link_libraries(dcstream ${DCSTREAM_LIBRARY_LIBS})
 set_target_properties(dcstream PROPERTIES
   VERSION ${VERSION} SOVERSION ${VERSION_ABI})
 
@@ -39,4 +41,4 @@ install(TARGETS dcstream
     LIBRARY DESTINATION lib COMPONENT lib)
 
 # install headers
-install(FILES ${DISPLAYCLUSTER_LIBRARY_PUBLIC_HEADERS} DESTINATION include/dc COMPONENT dev)
+install(FILES ${DCSTREAM_LIBRARY_PUBLIC_HEADERS} DESTINATION include/dc COMPONENT dev)

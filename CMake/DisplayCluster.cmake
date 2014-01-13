@@ -2,18 +2,15 @@
 set(DISPLAYCLUSTER_PACKAGE_VERSION 0.2.0)
 set(DISPLAYCLUSTER_REPO_URL https://github.com/BlueBrain/DisplayCluster.git)
 
-set(DISPLAYCLUSTER_DEPENDS MPI Poppler
-  REQUIRED Boost LibJpegTurbo FFMPEG OpenGL Qt4 TUIO GLUT)
+set(DISPLAYCLUSTER_DEPENDS REQUIRED Boost LibJpegTurbo Qt4 
+    OPTIONAL MPI Poppler GLUT OpenGL TUIO FFMPEG OpenMP)
 set(DISPLAYCLUSTER_BOOST_COMPONENTS "program_options date_time serialization unit_test_framework")
-set(DISPLAYCLUSTER_QT4_COMPONENTS "QtNetwork QtOpenGL QtXml QtXmlPatterns")
+set(DISPLAYCLUSTER_QT4_COMPONENTS "QtCore QtGui QtNetwork QtOpenGL QtXml QtXmlPatterns QtSvg QtWebKit")
 set(DISPLAYCLUSTER_DEB_DEPENDS libavutil-dev libavformat-dev libavcodec-dev
   libopenmpi-dev libjpeg-turbo8-dev libturbojpeg libswscale-dev freeglut3-dev
   libxmu-dev libboost-date-time-dev libboost-serialization-dev libboost-test-dev
   libboost-program-options-dev)
 set(DISPLAYCLUSTER_PORT_DEPENDS ffmpeg freeglut boost poppler)
-set(DISPLAYCLUSTER_CMAKE_ARGS -DBUILD_DCSTREAM_LIBRARY=ON
-  -DBUILD_DESKTOPSTREAMER=ON -DENABLE_TUIO_TOUCH_LISTENER=ON
-  -DENABLE_PDF_SUPPORT=ON)
 
 find_package(MPI)
 if(MPI_FOUND)

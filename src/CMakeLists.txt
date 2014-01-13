@@ -3,9 +3,6 @@
 configure_file(config.h.in ${CMAKE_BINARY_DIR}/config.h)
 include_directories(${CMAKE_BINARY_DIR})
 
-include_directories(SYSTEM ${MPI_INCLUDE_PATH})
-list(APPEND LIBS ${MPI_CXX_LIBRARIES})
-
 set(DISPLAYCLUSTER_LIBRARY_SHARED_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/Event.h
     ${CMAKE_CURRENT_SOURCE_DIR}/MessageHeader.h

@@ -1,14 +1,6 @@
 
 # SimpleStreamer example application
-find_package(OpenGL REQUIRED)
-include_directories(${OPENGL_INCLUDE_DIRS})
-set(SIMPLESTREAMER_LIBS ${OPENGL_LIBRARIES})
-
-find_package(GLUT REQUIRED)
-include_directories(${GLUT_INCLUDE_DIR})
-set(SIMPLESTREAMER_LIBS ${SIMPLESTREAMER_LIBS} ${GLUT_LIBRARIES})
-
-set(SIMPLESTREAMER_LIBS ${SIMPLESTREAMER_LIBS} dcstream)
+set(SIMPLESTREAMER_LIBS ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES} dcstream)
 
 set(SIMPLESTREAMER_SRCS
   src/main.cpp
