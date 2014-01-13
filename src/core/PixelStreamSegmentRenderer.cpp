@@ -37,68 +37,150 @@
 /*********************************************************************/
 
 #include "PixelStreamSegmentRenderer.h"
-#include "globals.h"
+
 #include "log.h"
+#include "FpsCounter.h"
+
+#include "globals.h"
 #include "MainWindow.h"
 #include "GLWindow.h"
 
-PixelStreamSegmentRenderer::PixelStreamSegmentRenderer()
+PixelStreamSegmentRenderer::PixelStreamSegmentRenderer(const QString &uri)
+    : uri_(uri)
+    , textureId_ (0)
+    , textureWidth_(0)
+    , textureHeight_(0)
+    , x_(0)
+    , y_(0)
+    , width_(0)
+    , height_(0)
+    , segmentStatistics(new FpsCounter())
+    , textureNeedsUpdate_(true)
 {
-    // defaults
-    textureId_ = 0;
-    textureWidth_ = 0;
-    textureHeight_ = 0;
-    textureBound_ = false;
-    imageReady_ = false;
-    autoUpdateTexture_ = true;
-
-    // initialize libjpeg-turbo handle
-    handle_ = tjInitDecompress();
 }
 
 PixelStreamSegmentRenderer::~PixelStreamSegmentRenderer()
 {
     // delete bound texture
-    if(textureBound_ == true)
+    if(textureId_)
     {
-        // let the OpenGL window delete the texture, so the destructor can occur in any thread...
-        g_mainWindow->getGLWindow()->insertPurgeTextureId(textureId_);
-
-        textureBound_ = false;
+        glDeleteTextures(1, &textureId_);
+        textureId_ = 0;
     }
 
-    // destroy libjpeg-turbo handle
-    tjDestroy(handle_);
+    delete segmentStatistics;
 }
 
-void PixelStreamSegmentRenderer::getDimensions(int &width, int &height)
+QRect PixelStreamSegmentRenderer::getRect() const
 {
-    width = textureWidth_;
-    height = textureHeight_;
+    return QRect(x_, y_, width_, height_);
 }
 
-bool PixelStreamSegmentRenderer::render(float tX, float tY, float tW, float tH)
+void PixelStreamSegmentRenderer::updateTexture(const QImage& image)
 {
-    // automatically upload a new texture if a new image is available
-    if(autoUpdateTexture_ == true)
+    segmentStatistics->tick();
+
+    // if the size has changed, create a new texture
+    if(textureId_ && (image.width() != textureWidth_ || image.height() != textureHeight_))
     {
-        updateTextureIfAvailable();
+        // delete bound texture
+        glDeleteTextures(1, &textureId_);
+        textureId_ = 0;
     }
 
-    if(textureBound_ != true)
+    if(!textureId_)
+    {
+        glGenTextures(1, &textureId_);
+        glBindTexture(GL_TEXTURE_2D, textureId_);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
+        textureWidth_ = image.width();
+        textureHeight_ = image.height();
+    }
+    else
+    {
+        glBindTexture(GL_TEXTURE_2D, textureId_);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image.width(), image.height(), GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
+    }
+
+    textureNeedsUpdate_ = false;
+}
+
+bool PixelStreamSegmentRenderer::textureNeedsUpdate() const
+{
+    return textureNeedsUpdate_;
+}
+
+void PixelStreamSegmentRenderer::setTextureNeedsUpdate()
+{
+    textureNeedsUpdate_ = true;
+}
+
+void PixelStreamSegmentRenderer::setParameters(const unsigned int x, const unsigned int y,
+                                               const unsigned int width, const unsigned int height)
+{
+    x_ = x;
+    y_ = y;
+    width_ = width;
+    height_ = height;
+}
+
+bool PixelStreamSegmentRenderer::render(bool showSegmentBorders, bool showSegmentStatistics)
+{
+    if(!textureId_)
     {
         return false;
     }
 
+    // OpenGL transformation
+    glPushMatrix();
+    glTranslatef(x_, y_, 0.);
+
+    // The following draw calls assume normalized coordinates, so we must pre-multiply by this segment's dimensions
+    glScalef(width_, height_, 0.);
+
+    // todo: compute actual texture bounds to render considering zoom, pan
+    drawUnitTexturedQuad(0, 0, 1.f, 1.f);
+
+    if(showSegmentBorders || showSegmentStatistics)
+    {
+        glPushAttrib(GL_CURRENT_BIT | GL_LINE_BIT | GL_DEPTH_BUFFER_BIT);
+        glLineWidth(2);
+
+        glPushMatrix();
+        glTranslatef(0.,0.,0.05);
+
+        // render segment borders
+        if(showSegmentBorders)
+        {
+            drawSegmentBorders();
+        }
+
+        // render segment statistics
+        if(showSegmentStatistics)
+        {
+            drawSegmentStatistics();
+        }
+
+        glPopMatrix();
+        glPopAttrib();
+    }
+
+    glPopMatrix();
+
+    return true;
+}
+
+void PixelStreamSegmentRenderer::drawUnitTexturedQuad(float tX, float tY, float tW, float tH)
+{
     // draw the texture
     glPushAttrib(GL_ENABLE_BIT | GL_TEXTURE_BIT);
 
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, textureId_);
-
-    // on zoom-out, clamp to edge (instead of showing the texture tiled / repeated)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     glBegin(GL_QUADS);
 
@@ -117,131 +199,28 @@ bool PixelStreamSegmentRenderer::render(float tX, float tY, float tW, float tH)
     glEnd();
 
     glPopAttrib();
-
-    return true;
 }
 
-bool PixelStreamSegmentRenderer::setImageData(QByteArray imageData, bool compressed, int w, int h)
+void PixelStreamSegmentRenderer::drawSegmentBorders()
 {
-    // drop frames if we're currently processing
-    if(loadImageDataThread_.isRunning() == true)
-    {
-        return false;
-    }
+    glColor4f(1.,1.,1.,1.);
 
-    loadImageDataThread_ = QtConcurrent::run(loadImageDataThread, shared_from_this(), imageData, compressed, w, h);
+    glBegin(GL_LINE_LOOP);
 
-    return true;
+    glVertex2f(0.,0.);
+    glVertex2f(1.,0.);
+    glVertex2f(1.,1.);
+    glVertex2f(0.,1.);
+
+    glEnd();
 }
 
-bool PixelStreamSegmentRenderer::getLoadImageDataThreadRunning()
+void PixelStreamSegmentRenderer::drawSegmentStatistics()
 {
-    return loadImageDataThread_.isRunning();
-}
+    QFont font;
+    font.setPixelSize(48);
 
-void PixelStreamSegmentRenderer::setAutoUpdateTexture(bool set)
-{
-    autoUpdateTexture_ = set;
-}
-
-void PixelStreamSegmentRenderer::updateTextureIfAvailable()
-{
-    // upload a new texture if a new image is available
-    QMutexLocker locker(&imageReadyMutex_);
-
-    if(imageReady_ == true)
-    {
-        updateTexture(image_);
-        imageReady_ = false;
-    }
-}
-
-tjhandle PixelStreamSegmentRenderer::getHandle()
-{
-    return handle_;
-}
-
-void PixelStreamSegmentRenderer::imageReady(QImage image)
-{
-    QMutexLocker locker(&imageReadyMutex_);
-    imageReady_ = true;
-    image_ = image;
-}
-
-void PixelStreamSegmentRenderer::updateTexture(QImage & image)
-{
-    // todo: consider if the image has changed dimensions
-
-    if(textureBound_ == false)
-    {
-        // want mipmaps disabled
-        textureId_ = g_mainWindow->getGLWindow()->bindTexture(image, GL_TEXTURE_2D, GL_RGBA, QGLContext::LinearFilteringBindOption);
-        textureWidth_ = image.width();
-        textureHeight_ = image.height();
-        textureBound_ = true;
-    }
-    else
-    {
-        // update the texture. note that generally we would need to convert the image to an OpenGL supported format
-        // however, we're lucky and can use GL_BGRA on the original image...
-        // example conversion to GL format: QImage glImage = QGLWidget::convertToGLFormat(image);
-
-        // if the size has changed, create a new texture
-        if(image.width() != textureWidth_ || image.height() != textureHeight_)
-        {
-            // delete bound texture
-            glDeleteTextures(1, &textureId_); // it appears deleteTexture() below is not actually deleting the texture from the GPU...
-            g_mainWindow->getGLWindow()->deleteTexture(textureId_);
-
-            textureId_ = g_mainWindow->getGLWindow()->bindTexture(image, GL_TEXTURE_2D, GL_RGBA, QGLContext::LinearFilteringBindOption);
-            textureWidth_ = image.width();
-            textureHeight_ = image.height();
-        }
-        else
-        {
-            glBindTexture(GL_TEXTURE_2D, textureId_);
-            glTexSubImage2D(GL_TEXTURE_2D, 0, 0,0, image.width(), image.height(), GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
-        }
-    }
-}
-
-void loadImageDataThread(boost::shared_ptr<PixelStreamSegmentRenderer> pixelStreamRenderer, const QByteArray imageData, bool compressed, int w, int h)
-{
-    if( !compressed )
-    {
-        QImage image((const uchar*)imageData.data(), w, h, QImage::Format_RGB32);
-        image.detach();
-        pixelStreamRenderer->imageReady(image);
-        return;
-    }
-
-    // use libjpeg-turbo for JPEG conversion
-    tjhandle handle = pixelStreamRenderer->getHandle();
-
-    // get information from header
-    int width, height, jpegSubsamp;
-    int success =  tjDecompressHeader2(handle, (unsigned char *)imageData.data(), (unsigned long)imageData.size(), &width, &height, &jpegSubsamp);
-
-    if(success != 0)
-    {
-        put_flog(LOG_ERROR, "libjpeg-turbo header decompression failure");
-        return;
-    }
-
-    // decompress image data
-    int pixelFormat = TJPF_BGRX;
-    int pitch = width * tjPixelSize[pixelFormat];
-    int flags = TJ_FASTUPSAMPLE;
-
-    QImage image = QImage(width, height, QImage::Format_RGB32);
-
-    success = tjDecompress2(handle, (unsigned char *)imageData.data(), (unsigned long)imageData.size(), (unsigned char *)image.scanLine(0), width, pitch, height, pixelFormat, flags);
-
-    if(success != 0)
-    {
-        put_flog(LOG_ERROR, "libjpeg-turbo image decompression failure");
-        return;
-    }
-
-    pixelStreamRenderer->imageReady(image);
+    glDisable(GL_DEPTH_TEST);
+    glColor4f(1.,0.,0.,1.);
+    g_mainWindow->getActiveGLWindow()->renderText(0.1, 0.95, 0., segmentStatistics->toString(), font);
 }

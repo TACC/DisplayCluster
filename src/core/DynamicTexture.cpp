@@ -304,7 +304,7 @@ void DynamicTexture::render(float tX, float tY, float tW, float tH, bool compute
 {
     if(depth_ == 0)
     {
-        updateRenderedFrameCount();
+        updateRenderedFrameIndex();
     }
 
     if(considerChildren == true && getProjectedPixelArea(true) > 0. && getProjectedPixelArea(false) > TEXTURE_SIZE*TEXTURE_SIZE && (getRoot()->imageWidth_ / pow(2,depth_) > TEXTURE_SIZE || getRoot()->imageHeight_ / pow(2,depth_) > TEXTURE_SIZE))
@@ -387,14 +387,6 @@ void DynamicTexture::render(float tX, float tY, float tW, float tH, bool compute
             glEnable(GL_TEXTURE_2D);
             glBindTexture(GL_TEXTURE_2D, textureId_);
 
-            // linear min / max filtering
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-            // on zoom-out, clamp to edge (instead of showing the texture tiled / repeated)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
             glBegin(GL_QUADS);
 
             // note we need to flip the y coordinate since the textures are loaded upside down
@@ -417,10 +409,10 @@ void DynamicTexture::render(float tX, float tY, float tW, float tH, bool compute
     }
 }
 
-void DynamicTexture::clearOldChildren(long minFrameCount)
+void DynamicTexture::clearOldChildren(uint64_t minFrameCount)
 {
     // clear children if renderChildrenFrameCount_ < minFrameCount
-    if(children_.size() > 0 && renderChildrenFrameCount_ < minFrameCount && getThreadsDoneDescending() == true)
+    if(children_.size() > 0 && renderChildrenFrameCount_ < minFrameCount && getThreadsDoneDescending())
     {
         children_.clear();
     }
@@ -659,6 +651,13 @@ void DynamicTexture::uploadTexture()
     glGenTextures(1, &textureId_);
     glBindTexture(GL_TEXTURE_2D, textureId_);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, scaledImage_.width(), scaledImage_.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, scaledImage_.bits());
+
+    // linear min / max filtering
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     textureBound_ = true;
 

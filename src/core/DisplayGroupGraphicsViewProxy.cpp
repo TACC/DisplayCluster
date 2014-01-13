@@ -43,12 +43,10 @@
 #include "ContentWindowManager.h"
 #include "ContentWindowGraphicsItem.h"
 
-DisplayGroupGraphicsViewProxy::DisplayGroupGraphicsViewProxy(boost::shared_ptr<DisplayGroupManager> displayGroupManager) : DisplayGroupInterface(displayGroupManager)
+DisplayGroupGraphicsViewProxy::DisplayGroupGraphicsViewProxy(DisplayGroupManagerPtr displayGroupManager)
+    : DisplayGroupInterface(displayGroupManager)
+    , graphicsView_( new DisplayGroupGraphicsView() )
 {
-    // create actual graphics view
-    graphicsView_ = new DisplayGroupGraphicsView();
-
-    // connect Options updated signal
     connect(displayGroupManager->getOptions().get(), SIGNAL(updated()), this, SLOT(optionsUpdated()));
 }
 
@@ -62,7 +60,7 @@ DisplayGroupGraphicsView * DisplayGroupGraphicsViewProxy::getGraphicsView()
     return graphicsView_;
 }
 
-void DisplayGroupGraphicsViewProxy::addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
+void DisplayGroupGraphicsViewProxy::addContentWindowManager(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source)
 {
     DisplayGroupInterface::addContentWindowManager(contentWindowManager, source);
 
@@ -73,7 +71,7 @@ void DisplayGroupGraphicsViewProxy::addContentWindowManager(boost::shared_ptr<Co
     }
 }
 
-void DisplayGroupGraphicsViewProxy::removeContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
+void DisplayGroupGraphicsViewProxy::removeContentWindowManager(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source)
 {
     DisplayGroupInterface::removeContentWindowManager(contentWindowManager, source);
 
@@ -101,7 +99,7 @@ void DisplayGroupGraphicsViewProxy::removeContentWindowManager(boost::shared_ptr
         graphicsView_->grabGestures();
 }
 
-void DisplayGroupGraphicsViewProxy::moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
+void DisplayGroupGraphicsViewProxy::moveContentWindowManagerToFront(ContentWindowManagerPtr contentWindowManager, DisplayGroupInterface * source)
 {
     DisplayGroupInterface::moveContentWindowManagerToFront(contentWindowManager, source);
 

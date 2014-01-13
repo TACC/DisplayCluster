@@ -50,7 +50,7 @@
 
 qreal ContentWindowGraphicsItem::zCounter_ = 0;
 
-ContentWindowGraphicsItem::ContentWindowGraphicsItem(boost::shared_ptr<ContentWindowManager> contentWindowManager)
+ContentWindowGraphicsItem::ContentWindowGraphicsItem(ContentWindowManagerPtr contentWindowManager)
     : ContentWindowInterface(contentWindowManager)
     , resizing_(false)
     , moving_(false)
@@ -155,12 +155,12 @@ void ContentWindowGraphicsItem::setWindowState(ContentWindowInterface::WindowSta
     ContentWindowInterface::setWindowState(windowState, source);
 }
 
-void ContentWindowGraphicsItem::setInteractionState(InteractionState interactionState, ContentWindowInterface * source)
+void ContentWindowGraphicsItem::setEvent(Event event, ContentWindowInterface * source)
 {
     if(source != this)
         prepareGeometryChange();
 
-    ContentWindowInterface::setInteractionState(interactionState, source);
+    ContentWindowInterface::setEvent(event, source);
 }
 
 void ContentWindowGraphicsItem::setZToFront()
@@ -220,11 +220,11 @@ void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
     }
     else
     {
-        boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager();
-        if(cwm)
+        ContentWindowManagerPtr contentWindow = getContentWindowManager();
+        if(contentWindow)
         {
             // Zoom or forward event depending on type
-            cwm->getInteractionDelegate().mouseMoveEvent(event);
+            contentWindow->getInteractionDelegate().mouseMoveEvent(event);
 
             // force a redraw to update window info label
             update();
@@ -264,7 +264,7 @@ void ContentWindowGraphicsItem::mousePressEvent(QGraphicsSceneMouseEvent * event
     // move to the front of the GUI display
     moveToFront();
 
-    boost::shared_ptr<ContentWindowManager> window = getContentWindowManager();
+    ContentWindowManagerPtr window = getContentWindowManager();
     if (!window)
         return;
 
@@ -328,15 +328,15 @@ void ContentWindowGraphicsItem::mouseReleaseEvent(QGraphicsSceneMouseEvent * eve
     resizing_ = false;
     moving_ = false;
 
-    boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager();
+    ContentWindowManagerPtr contentWindow = getContentWindowManager();
 
-    if( cwm )
+    if( contentWindow )
     {
-        cwm->getContent()->blockAdvance( false );
+        contentWindow->getContent()->blockAdvance( false );
 
         if (selected())
         {
-            cwm->getInteractionDelegate().mouseReleaseEvent(event);
+            contentWindow->getInteractionDelegate().mouseReleaseEvent(event);
         }
     }
 
@@ -355,14 +355,14 @@ void ContentWindowGraphicsItem::wheelEvent(QGraphicsSceneWheelEvent * event)
         return;
     }
 
-    boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager();
+    ContentWindowManagerPtr contentWindow = getContentWindowManager();
 
-    if( cwm )
+    if( contentWindow )
     {
         // handle wheel movements differently depending on state of item window
         if (selected())
         {
-            cwm->getInteractionDelegate().wheelEvent(event);
+            contentWindow->getInteractionDelegate().wheelEvent(event);
         }
         else
         {
@@ -379,11 +379,11 @@ void ContentWindowGraphicsItem::keyPressEvent(QKeyEvent *event)
 {
     if (selected())
     {
-        boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager();
+        ContentWindowManagerPtr contentWindow = getContentWindowManager();
 
-        if( cwm )
+        if( contentWindow )
         {
-            cwm->getInteractionDelegate().keyPressEvent(event);
+            contentWindow->getInteractionDelegate().keyPressEvent(event);
         }
     }
 }
@@ -392,11 +392,11 @@ void ContentWindowGraphicsItem::keyReleaseEvent(QKeyEvent *event)
 {
     if (selected())
     {
-        boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager();
+        ContentWindowManagerPtr contentWindow = getContentWindowManager();
 
-        if( cwm )
+        if( contentWindow )
         {
-            cwm->getInteractionDelegate().keyReleaseEvent(event);
+            contentWindow->getInteractionDelegate().keyReleaseEvent(event);
         }
     }
 }
@@ -528,11 +528,11 @@ void ContentWindowGraphicsItem::drawTextLabel_( QPainter* painter )
     QString coordinatesLabel = QString(" (") + QString::number(x_, 'f', 2) + QString(" ,") + QString::number(y_, 'f', 2) + QString(", ") + QString::number(w_, 'f', 2) + QString(", ") + QString::number(h_, 'f', 2) + QString(")\n");
     QString zoomCenterLabel = QString(" zoom = ") + QString::number(zoom_, 'f', 2) + QString(" @ (") + QString::number(centerX_, 'f', 2) + QString(", ") + QString::number(centerY_, 'f', 2) + QString(")");
     QString interactionLabel = QString(" x: ") +
-            QString::number(interactionState_.mouseX, 'f', 2) +
-            QString(" y: ") + QString::number(interactionState_.mouseY, 'f', 2) +
-            QString(" mouseLeft: ") + QString::number((int) interactionState_.mouseLeft, 'b', 1) +
-            QString(" mouseMiddle: ") + QString::number((int) interactionState_.mouseMiddle, 'b', 1) +
-            QString(" mouseRight: ") + QString::number((int) interactionState_.mouseRight, 'b', 1);
+            QString::number(event_.mouseX, 'f', 2) +
+            QString(" y: ") + QString::number(event_.mouseY, 'f', 2) +
+            QString(" mouseLeft: ") + QString::number((int) event_.mouseLeft, 'b', 1) +
+            QString(" mouseMiddle: ") + QString::number((int) event_.mouseMiddle, 'b', 1) +
+            QString(" mouseRight: ") + QString::number((int) event_.mouseRight, 'b', 1);
 
     QString windowInfoLabel = coordinatesLabel + zoomCenterLabel + interactionLabel;
     painter->drawText(textBoundingRect, Qt::AlignLeft | Qt::AlignBottom, windowInfoLabel);

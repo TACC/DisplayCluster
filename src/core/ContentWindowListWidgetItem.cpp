@@ -39,7 +39,7 @@
 #include "ContentWindowListWidgetItem.h"
 #include "ContentWindowManager.h"
 
-ContentWindowListWidgetItem::ContentWindowListWidgetItem(boost::shared_ptr<ContentWindowManager> contentWindowManager) : ContentWindowInterface(contentWindowManager)
+ContentWindowListWidgetItem::ContentWindowListWidgetItem(ContentWindowManagerPtr contentWindowManager) : ContentWindowInterface(contentWindowManager)
 {
 
 }

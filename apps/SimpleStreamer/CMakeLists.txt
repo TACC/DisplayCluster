@@ -8,7 +8,7 @@ find_package(GLUT REQUIRED)
 include_directories(${GLUT_INCLUDE_DIR})
 set(SIMPLESTREAMER_LIBS ${SIMPLESTREAMER_LIBS} ${GLUT_LIBRARIES})
 
-set(SIMPLESTREAMER_LIBS ${SIMPLESTREAMER_LIBS} DisplayClusterLibrary)
+set(SIMPLESTREAMER_LIBS ${SIMPLESTREAMER_LIBS} dcstream)
 
 set(SIMPLESTREAMER_SRCS
   src/main.cpp
@@ -22,4 +22,3 @@ target_link_libraries(simplestreamer ${SIMPLESTREAMER_LIBS})
 INSTALL(TARGETS simplestreamer
     RUNTIME DESTINATION bin COMPONENT simplestreamer
 )
-

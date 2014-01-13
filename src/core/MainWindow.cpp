@@ -39,31 +39,39 @@
 #include "MainWindow.h"
 #include "globals.h"
 #include "configuration/WallConfiguration.h"
-#include "Content.h"
+#include "configuration/MasterConfiguration.h"
+#include "ContentLoader.h"
 #include "ContentFactory.h"
 #include "ContentWindowManager.h"
 #include "log.h"
 #include "DisplayGroupManager.h"
 #include "DisplayGroupGraphicsViewProxy.h"
+#include "DisplayGroupGraphicsView.h"
 #include "DisplayGroupListWidgetProxy.h"
 #include "BackgroundWidget.h"
-#include "LocalPixelStreamerManager.h"
+#include "StateSerializationHelper.h"
+#include "localstreamer/DockPixelStreamer.h"
+
 #include "GLWindow.h"
 
 #if ENABLE_PYTHON_SUPPORT
     #include "PythonConsole.h"
 #endif
 
-#if ENABLE_SKELETON_SUPPORT
-    #include "SkeletonThread.h"
-#endif
-
 #if ENABLE_TUIO_TOUCH_LISTENER
     #include "MultiTouchListener.h"
 #endif
 
+#define WEBBROWSER_DEFAULT_SIZE  QSize(1280, 1024)
+#define WEBBROWSER_DEFAULT_URL   "http://www.google.ch"
+
+#define DOCK_WIDTH_RELATIVE_TO_WALL   0.175
+
 MainWindow::MainWindow()
-: backgroundWidget_(0)
+    : backgroundWidget_(0)
+#if ENABLE_TUIO_TOUCH_LISTENER
+    , touchListener_(0)
+#endif
 {
     // make application quit when last window is closed
     QObject::connect(QApplication::instance(), SIGNAL(lastWindowClosed()),
@@ -80,19 +88,10 @@ MainWindow::MainWindow()
 
         setupMasterWindowUI();
 
-        // timer will trigger polling of PixelStreams
-        connect(&pixelStreamTimer_, SIGNAL(timeout()), g_displayGroupManager.get(), SLOT(sendPixelStreams()));
-
-        // start the timer
-        pixelStreamTimer_.start(1000 / 30); // 30 fps
-
         show();
     }
     else
     {
-#if ENABLE_TUIO_TOUCH_LISTENER
-        touchListener_ = 0;
-#endif
         setupWallOpenGLWindows();
 
         // setup connection so updateGLWindows() will be called continuously
@@ -267,9 +266,6 @@ void MainWindow::setupMasterWindowUI()
     enableSkeletonTrackingAction->setChecked(true); // timer is started by default
     connect(enableSkeletonTrackingAction, SIGNAL(toggled(bool)), this, SLOT(setEnableSkeletonTracking(bool)));
 
-    connect(this, SIGNAL(enableSkeletonTracking()), g_skeletonThread, SLOT(startTimer()));
-    connect(this, SIGNAL(disableSkeletonTracking()), g_skeletonThread, SLOT(stopTimer()));
-
     // show skeletons action
     QAction * showSkeletonsAction = new QAction("Show Skeletons", this);
     showSkeletonsAction->setStatusTip("Show skeletons");
@@ -328,6 +324,9 @@ void MainWindow::setupMasterWindowUI()
     // add the local renderer group
     DisplayGroupGraphicsViewProxy * dggv = new DisplayGroupGraphicsViewProxy(g_displayGroupManager);
     mainWidget->addTab((QWidget *)dggv->getGraphicsView(), "Display group 0");
+    // Forward background touch events
+    connect(dggv->getGraphicsView(), SIGNAL(backgroundTap(QPointF)), this, SIGNAL(hideDock()));
+    connect(dggv->getGraphicsView(), SIGNAL(backgroundTapAndHold(QPointF)), this, SLOT(openDock(QPointF)));
 
 #if ENABLE_TUIO_TOUCH_LISTENER
     touchListener_ = new MultiTouchListener( dggv );
@@ -359,7 +358,7 @@ void MainWindow::setupWallOpenGLWindows()
         move(configuration->getScreenPosition(0));
         resize(configuration->getScreenWidth(), configuration->getScreenHeight());
 
-        boost::shared_ptr<GLWindow> glw(new GLWindow(0));
+        GLWindowPtr glw(new GLWindow(0));
         glWindows_.push_back(glw);
 
         setCentralWidget(glw.get());
@@ -387,7 +386,7 @@ void MainWindow::setupWallOpenGLWindows()
                 shareWidget = glWindows_[0].get();
             }
 
-            boost::shared_ptr<GLWindow> glw(new GLWindow(i, windowRect, shareWidget));
+            GLWindowPtr glw(new GLWindow(i, windowRect, shareWidget));
             glWindows_.push_back(glw);
 
             if(configuration->getFullscreen())
@@ -402,39 +401,26 @@ void MainWindow::setupWallOpenGLWindows()
     }
 }
 
-boost::shared_ptr<GLWindow> MainWindow::getGLWindow(int index)
+GLWindowPtr MainWindow::getGLWindow(int index)
 {
     return glWindows_[index];
 }
 
-boost::shared_ptr<GLWindow> MainWindow::getActiveGLWindow()
+GLWindowPtr MainWindow::getActiveGLWindow()
 {
     return activeGLWindow_;
 }
 
-std::vector<boost::shared_ptr<GLWindow> > MainWindow::getGLWindows()
+bool MainWindow::isRegionVisible(double x, double y, double w, double h) const
 {
-    return glWindows_;
-}
-
-void MainWindow::addContent(const QString& filename)
-{
-    boost::shared_ptr<Content> c = ContentFactory::getContent(filename);
-
-    if(c != NULL)
+    for(unsigned int i=0; i<glWindows_.size(); i++)
     {
-        boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
-
-        g_displayGroupManager->addContentWindowManager(cwm);
-
-        cwm->adjustSize( SIZE_1TO1 );
+        if(glWindows_[i]->isRegionVisible(QRectF(x, y, w, h)))
+        {
+            return true;
+        }
     }
-    else
-    {
-        QMessageBox messageBox;
-        messageBox.setText("Unsupported file format.");
-        messageBox.exec();
-    }
+    return false;
 }
 
 void MainWindow::openContent()
@@ -443,17 +429,26 @@ void MainWindow::openContent()
 
     if(!filename.isEmpty())
     {
-        addContent(filename);
+        const bool success = ContentLoader(g_displayGroupManager).load(filename);
+
+        if ( !success )
+        {
+            QMessageBox messageBox;
+            messageBox.setText("Unsupported file format.");
+            messageBox.exec();
+        }
     }
 }
 
-void MainWindow::estimateGridSize(unsigned int numElem, int &gridX, int &gridY)
+void MainWindow::estimateGridSize(unsigned int numElem, unsigned int &gridX, unsigned int &gridY)
 {
-    gridX = (int)(ceil(sqrt(numElem)));
-    gridY = (gridX*(gridX-1)>=(int)numElem) ? gridX-1 : gridX;
+    assert(numElem > 0);
+    gridX = (unsigned int)(ceil(sqrt(numElem)));
+    assert(gridX > 0);
+    gridY = (gridX*(gridX-1)>=numElem) ? gridX-1 : gridX;
 }
 
-void MainWindow::addContentDirectory(const QString& directoryName, int gridX, int gridY)
+void MainWindow::addContentDirectory(const QString& directoryName, unsigned int gridX, unsigned int gridY)
 {
     QDir directory(directoryName);
     directory.setFilter(QDir::Files);
@@ -471,7 +466,7 @@ void MainWindow::addContentDirectory(const QString& directoryName, int gridX, in
     }
 
     // If the grid size is unspecified, compute one large enough to hold all the elements
-    if (gridX <= 0 || gridY <= 0)
+    if (gridX == 0 || gridY == 0)
     {
         estimateGridSize(list.size(), gridX, gridY);
     }
@@ -479,27 +474,23 @@ void MainWindow::addContentDirectory(const QString& directoryName, int gridX, in
     float w = 1./(float)gridX;
     float h = 1./(float)gridY;
 
-    int contentIndex = 0;
+    unsigned int contentIndex = 0;
 
     for(int i=0; i<list.size() && contentIndex < gridX*gridY; i++)
     {
         const QFileInfo& fileInfo = list.at(i);
+        const QString& filename = fileInfo.absoluteFilePath();
 
-        boost::shared_ptr<Content> c = ContentFactory::getContent(fileInfo.absoluteFilePath());
+        const unsigned int x = contentIndex % gridX;
+        const unsigned int y = contentIndex / gridX;
+        const QPointF position(x*w + 0.5*w, y*h + 0.5*h);
+        const QSizeF size(w, h);
 
-        if(c != NULL)
+        const bool success = ContentLoader(g_displayGroupManager).load(filename, position, size);
+
+        if(success)
         {
-            boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
-
-            g_displayGroupManager->addContentWindowManager(cwm);
-
-            int x = contentIndex % gridX;
-            int y = contentIndex / gridX;
-
-            cwm->setCoordinates(x*w, y*h, w, h);
-
-            contentIndex++;
-
+            ++contentIndex;
             put_flog(LOG_DEBUG, "added file %s", fileInfo.absoluteFilePath().toStdString().c_str());
         }
         else
@@ -515,8 +506,9 @@ void MainWindow::openContentsDirectory()
 
     if(!directoryName.isEmpty())
     {
-        int gridX = QInputDialog::getInt(this, "Grid X dimension", "Grid X dimension");
-        int gridY = QInputDialog::getInt(this, "Grid Y dimension", "Grid Y dimension");
+        int gridX = QInputDialog::getInt(this, "Grid X dimension", "Grid X dimension", 0, 0);
+        int gridY = QInputDialog::getInt(this, "Grid Y dimension", "Grid Y dimension", 0, 0);
+        assert( gridX >= 0 && gridY >= 0 );
 
         addContentDirectory(directoryName, gridX, gridY);
     }
@@ -537,24 +529,19 @@ void MainWindow::showBackgroundWidget()
 
 void MainWindow::openWebBrowser()
 {
-    static int webbrowserCounter = 0;
     bool ok;
     QString url = QInputDialog::getText(this, tr("New WebBrowser Content"),
                                          tr("URL:"), QLineEdit::Normal,
-                                         "http://www.google.ch", &ok);
+                                         WEBBROWSER_DEFAULT_URL, &ok);
     if (ok && !url.isEmpty())
     {
-        bool success = g_localPixelStreamers->createWebBrowser("WebBrowser"+QString::number(webbrowserCounter++), url);
-        if(!success)
-        {
-            QMessageBox::warning(this, "Error", "A WebBrowser with this uri already exists.", QMessageBox::Ok, QMessageBox::Ok);
-        }
+        emit openWebBrowser(QPointF(), WEBBROWSER_DEFAULT_SIZE, url);
     }
 }
 
 void MainWindow::clearContents()
 {
-    g_displayGroupManager->setContentWindowManagers(std::vector<boost::shared_ptr<ContentWindowManager> >());
+    g_displayGroupManager->setContentWindowManagers(ContentWindowManagerPtrs());
 }
 
 void MainWindow::saveState()
@@ -570,9 +557,9 @@ void MainWindow::saveState()
             filename.append(".dcx");
         }
 
-        bool success = g_displayGroupManager->saveStateXMLFile(filename);
+        bool success = StateSerializationHelper(g_displayGroupManager).save(filename);
 
-        if(success != true)
+        if(!success)
         {
             QMessageBox::warning(this, "Error", "Could not save state file.", QMessageBox::Ok, QMessageBox::Ok);
         }
@@ -591,9 +578,7 @@ void MainWindow::loadState()
 
 void MainWindow::loadState(const QString& filename)
 {
-    bool success = g_displayGroupManager->loadStateXMLFile(filename);
-
-    if(!success)
+    if( !StateSerializationHelper(g_displayGroupManager).load(filename ))
     {
         QMessageBox::warning(this, "Error", "Could not load state file.", QMessageBox::Ok, QMessageBox::Ok);
     }
@@ -625,7 +610,7 @@ void MainWindow::constrainAspectRatio(bool set)
 
     if(set)
     {
-        std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers = g_displayGroupManager->getContentWindowManagers();
+        ContentWindowManagerPtrs contentWindowManagers = g_displayGroupManager->getContentWindowManagers();
 
         for(unsigned int i=0; i<contentWindowManagers.size(); i++)
         {
@@ -718,7 +703,7 @@ void MainWindow::dropEvent(QDropEvent* event)
     const QStringList& pathList = extractValidContentUrls(event->mimeData());
     foreach (QString url, pathList)
     {
-        addContent(url);
+        ContentLoader(g_displayGroupManager).load(url);
     }
 
     const QStringList& dirList = extractFolderUrls(event->mimeData());
@@ -736,6 +721,16 @@ void MainWindow::dropEvent(QDropEvent* event)
     }
 
     event->acceptProposedAction();
+}
+
+void MainWindow::openDock(const QPointF pos)
+{
+    const unsigned int dockWidth = g_configuration->getTotalWidth()*DOCK_WIDTH_RELATIVE_TO_WALL;
+    const unsigned int dockHeight = dockWidth * DockPixelStreamer::getDefaultAspectRatio();
+
+    const QString& dockRootDir = static_cast<MasterConfiguration*>(g_configuration)->getDockStartDir();
+
+    emit openDock(pos, QSize(dockWidth, dockHeight), dockRootDir);
 }
 
 void MainWindow::updateGLWindows()
@@ -783,6 +778,7 @@ void MainWindow::updateGLWindows()
     {
         glWindows_[0]->getTextureFactory().clearStaleObjects();
         glWindows_[0]->getDynamicTextureFactory().clearStaleObjects();
+        glWindows_[0]->getPDFFactory().clearStaleObjects();
         glWindows_[0]->getSVGFactory().clearStaleObjects();
         glWindows_[0]->getMovieFactory().clearStaleObjects();
         glWindows_[0]->getPixelStreamFactory().clearStaleObjects();
@@ -792,7 +788,7 @@ void MainWindow::updateGLWindows()
     }
 
     // increment frame counter
-    g_frameCount = g_frameCount + 1;
+    ++g_frameCount;
 
     emit(updateGLWindowsFinished());
 }

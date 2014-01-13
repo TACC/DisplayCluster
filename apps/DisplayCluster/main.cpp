@@ -46,7 +46,9 @@
 #include "MainWindow.h"
 #include "NetworkListener.h"
 #include "log.h"
-#include "LocalPixelStreamerManager.h"
+#include "localstreamer/PixelStreamerLauncher.h"
+#include "StateSerializationHelper.h"
+
 #include <mpi.h>
 #include <unistd.h>
 
@@ -60,8 +62,6 @@
 
 #if ENABLE_SKELETON_SUPPORT
     #include "SkeletonThread.h"
-
-    SkeletonThread * g_skeletonThread = NULL;
 #endif
 
 #define CONFIGURATION_FILENAME "configuration.xml"
@@ -108,6 +108,8 @@ int main(int argc, char * argv[])
     // calibrate timestamp offset between rank 0 and rank 1 clocks
     g_displayGroupManager->calibrateTimestampOffset();
 
+    g_mainWindow = new MainWindow();
+
 #if ENABLE_JOYSTICK_SUPPORT
     if(g_mpiRank == 0)
     {
@@ -132,36 +134,55 @@ int main(int argc, char * argv[])
 #endif
 
 #if ENABLE_SKELETON_SUPPORT
+    SkeletonThread* skeletonThread = 0;
+
     if(g_mpiRank == 0)
     {
-        g_skeletonThread = new SkeletonThread();
-        g_skeletonThread->start();
+        skeletonThread = new SkeletonThread();
+        skeletonThread->start();
 
         // wait for thread to start
-        while(g_skeletonThread->isRunning() == false || g_skeletonThread->isFinished() == true)
+        while( !skeletonThread->isRunning() || skeletonThread->isFinished() )
         {
             usleep(1000);
         }
     }
+
+    connect(g_mainWindow, SIGNAL(enableSkeletonTracking()), skeletonThread, SLOT(startTimer()));
+    connect(g_mainWindow, SIGNAL(disableSkeletonTracking()), skeletonThread, SLOT(stopTimer()));
+
+    connect(skeletonThread, SIGNAL(skeletonsUpdated(std::vector< boost::shared_ptr<SkeletonState> >)),
+            g_displayGroupManager.get(), SLOT(setSkeletons(std::vector<boost::shared_ptr<SkeletonState> >)),
+            Qt::QueuedConnection);
 #endif
 
     NetworkListener* networkListener = 0;
+    PixelStreamerLauncher* pixelStreamerLauncher = 0;
     if(g_mpiRank == 0)
     {
-        networkListener = new NetworkListener();
-        g_localPixelStreamers = new LocalPixelStreamerManager(g_displayGroupManager.get());
-    }
+        networkListener = new NetworkListener(*g_displayGroupManager);
 
-    g_mainWindow = new MainWindow();
+        pixelStreamerLauncher = new PixelStreamerLauncher(g_displayGroupManager.get());
+
+        pixelStreamerLauncher->connect(g_mainWindow, SIGNAL(openWebBrowser(QPointF,QSize,QString)),
+                                           SLOT(openWebBrowser(QPointF,QSize,QString)));
+        pixelStreamerLauncher->connect(g_mainWindow, SIGNAL(openDock(QPointF,QSize,QString)),
+                                           SLOT(openDock(QPointF,QSize,QString)));
+        pixelStreamerLauncher->connect(g_mainWindow, SIGNAL(hideDock()),
+                                           SLOT(hideDock()));
+    }
 
     // wait for render comms to be ready for receiving and rendering background
     MPI_Barrier(MPI_COMM_WORLD);
 
     if(g_mpiRank == 0)
     {
-        g_displayGroupManager->initBackground(); // Must be done after everything else is setup (or in the MainWindow constructor)
+        // Must be done after everything else is setup (or in the MainWindow constructor)
+        g_displayGroupManager->setBackgroundColor( g_configuration->getBackgroundColor( ));
+        g_displayGroupManager->setBackgroundContentFromUri( g_configuration->getBackgroundUri( ));
+
         if( argc == 2 )
-            g_displayGroupManager->loadStateXMLFile( argv[1] );
+            StateSerializationHelper(g_displayGroupManager).load( argv[1] );
     }
 
     // enter Qt event loop
@@ -175,6 +196,16 @@ int main(int argc, char * argv[])
     if(g_mpiRank != 0)
         g_displayGroupManager->deleteMarkers();
 
+#if ENABLE_SKELETON_SUPPORT
+    delete skeletonThread;
+    skeletonThread = 0;
+#endif
+
+#if ENABLE_JOYSTICK_SUPPORT
+    delete joystickThread;
+    joystickThread = 0;
+#endif
+
     // call finalize cleanup actions
     g_mainWindow->finalize();
 
@@ -185,9 +216,10 @@ int main(int argc, char * argv[])
     if(g_mpiRank == 0)
     {
         g_displayGroupManager->sendQuit();
-        delete g_localPixelStreamers;
-        g_localPixelStreamers = 0;
+        delete pixelStreamerLauncher;
+        pixelStreamerLauncher = 0;
         delete networkListener;
+        networkListener = 0;
     }
 
     delete g_configuration;

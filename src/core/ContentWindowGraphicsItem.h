@@ -49,7 +49,7 @@ class ContentWindowGraphicsItem : public QGraphicsObject, public ContentWindowIn
 
     public:
 
-        ContentWindowGraphicsItem(boost::shared_ptr<ContentWindowManager> contentWindowManager);
+        ContentWindowGraphicsItem(ContentWindowManagerPtr contentWindowManager);
         virtual ~ContentWindowGraphicsItem();
 
         // QGraphicsRectItem painting
@@ -63,7 +63,7 @@ class ContentWindowGraphicsItem : public QGraphicsObject, public ContentWindowIn
         virtual void setCenter(double centerX, double centerY, ContentWindowInterface * source=NULL);
         virtual void setZoom(double zoom, ContentWindowInterface * source=NULL);
         virtual void setWindowState(ContentWindowInterface::WindowState windowState, ContentWindowInterface * source=NULL);
-        virtual void setInteractionState(InteractionState interactionState, ContentWindowInterface * source=NULL);
+        virtual void setEvent(Event event, ContentWindowInterface * source=NULL);
 
         // increment the Z value of this item
         void setZToFront();

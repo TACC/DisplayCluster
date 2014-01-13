@@ -44,10 +44,8 @@
 #include "log.h"
 
 Movie::Movie(QString uri)
-    : initialized_(false)
-    , uri_(uri)
+    : uri_(uri)
     , textureId_(0)
-    , textureBound_(false)
     // FFMPEG
     , avFormatContext_(NULL)
     , avCodecContext_(NULL)
@@ -157,25 +155,21 @@ Movie::Movie(QString uri)
     image.fill(0);
 
     textureId_ = g_mainWindow->getGLWindow()->bindTexture(image, GL_TEXTURE_2D, GL_RGBA, QGLContext::LinearFilteringBindOption);
-    textureBound_ = true;
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     // assign buffer to pFrameRGB
     avpicture_alloc( (AVPicture *)avFrameRGB_, PIX_FMT_RGBA, avCodecContext_->width, avCodecContext_->height);
 
     // create sws scaler context
     swsContext_ = sws_getContext(avCodecContext_->width, avCodecContext_->height, avCodecContext_->pix_fmt, avCodecContext_->width, avCodecContext_->height, PIX_FMT_RGBA, SWS_FAST_BILINEAR, NULL, NULL, NULL);
-
-    initialized_ = true;
 }
 
 Movie::~Movie()
 {
-    if(textureBound_ == true)
-    {
-        // delete bound texture
-        glDeleteTextures(1, &textureId_); // it appears deleteTexture() below is not actually deleting the texture from the GPU...
+    if(textureId_)
         g_mainWindow->getGLWindow()->deleteTexture(textureId_);
-    }
 
     avcodec_close( avCodecContext_ );
 
@@ -210,22 +204,16 @@ void Movie::getDimensions(int &width, int &height)
 
 void Movie::render(float tX, float tY, float tW, float tH)
 {
-    updateRenderedFrameCount();
+    updateRenderedFrameIndex();
 
-    if(initialized_ != true)
-    {
+    if(!textureId_)
         return;
-    }
 
     // draw the texture
     glPushAttrib(GL_ENABLE_BIT | GL_TEXTURE_BIT);
 
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, textureId_);
-
-    // on zoom-out, clamp to edge (instead of showing the texture tiled / repeated)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     glBegin(GL_QUADS);
 
@@ -248,7 +236,7 @@ void Movie::render(float tX, float tY, float tW, float tH)
 
 void Movie::nextFrame(bool skip)
 {
-    if( !initialized_ || (paused_ && !skipped_frames_) )
+    if( !textureId_ || (paused_ && !skipped_frames_) )
         return;
 
     // rate limiting

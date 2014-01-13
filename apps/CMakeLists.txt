@@ -1,6 +1,7 @@
 # DisplayCluster main app
 if(BUILD_CORE_LIBRARY)
   add_subdirectory(DisplayCluster)
+  add_subdirectory(LocalStreamer)
 endif()
 
 # DesktopStreamer app
@@ -9,6 +10,6 @@ if(BUILD_DESKTOPSTREAMER)
 endif()
 
 # SimpleStreamer
-if(BUILD_DISPLAYCLUSTER_LIBRARY)
+if(BUILD_DCSTREAM_LIBRARY)
   add_subdirectory(SimpleStreamer)
 endif()

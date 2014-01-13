@@ -44,7 +44,7 @@
 #include <boost/shared_ptr.hpp>
 #include <QtGui>
 
-extern long g_frameCount;
+#include "globals.h"
 
 template <class T>
 class Factory {
@@ -100,7 +100,7 @@ class Factory {
 
             while(it != map_.end())
             {
-                if(g_frameCount - it->second->getRenderedFrameCount() > 1)
+                if(g_frameCount - it->second->getRenderedFrameIndex() > 1)
                 {
                     map_.erase(it++);  // note the post increment; increments the iterator but returns original value for erase
                 }

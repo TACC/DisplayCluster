@@ -37,20 +37,12 @@
 /*********************************************************************/
 
 #include "globals.h"
-#include <QString>
-
-#if ENABLE_SKELETON_SUPPORT
-    #include "SkeletonThread.h"
-
-    SkeletonThread * g_skeletonThread = NULL;
-#endif
 
 int g_mpiRank = -1;
 int g_mpiSize = -1;
 MPI_Comm g_mpiRenderComm;
+
 Configuration * g_configuration = NULL;
 DisplayGroupManagerPtr g_displayGroupManager;
 MainWindow * g_mainWindow = NULL;
-long g_frameCount = 0;
-// Rank0
-LocalPixelStreamerManager* g_localPixelStreamers = 0;
+uint64_t g_frameCount = 0; // Used to garbage collect FactoryObjects which are no longer being rendered

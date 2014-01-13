@@ -51,8 +51,8 @@
 #include "configuration/Configuration.h"
 
 
-ContentInteractionDelegate::ContentInteractionDelegate(ContentWindowManager& cwm)
-    : contentWindowManager_(cwm)
+ContentInteractionDelegate::ContentInteractionDelegate(ContentWindowManager& contentWindow)
+    : contentWindowManager_(contentWindow)
 {
 }
 

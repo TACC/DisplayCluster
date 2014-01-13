@@ -77,11 +77,13 @@ if(ENABLE_PDF_SUPPORT)
   )
 endif()
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
 list(APPEND SRCS
-    AsyncImageLoader.cpp
     BackgroundWidget.cpp
     Content.cpp
     ContentFactory.cpp
+    ContentLoader.cpp
     ContentType.cpp
     ContentInteractionDelegate.cpp
     ContentWindowManager.cpp
@@ -95,10 +97,10 @@ list(APPEND SRCS
     DisplayGroupGraphicsViewProxy.cpp
     DisplayGroupGraphicsView.cpp
     DisplayGroupListWidgetProxy.cpp
-    DockPixelStreamer.cpp
     DynamicTexture.cpp
     DynamicTextureContent.cpp
     FactoryObject.cpp
+    FpsCounter.cpp
     GLWindow.cpp
     globals.cpp
     gestures/DoubleTapGestureRecognizer.cpp
@@ -106,34 +108,44 @@ list(APPEND SRCS
     gestures/PanGestureRecognizer.cpp
     gestures/PinchGesture.cpp
     gestures/PinchGestureRecognizer.cpp
+    ../Event.cpp
     ../log.cpp
-    LocalPixelStreamer.cpp
-    LocalPixelStreamerManager.cpp
+    ../MessageHeader.cpp
+    ImageJpegDecompressor.cpp
     MainWindow.cpp
     Movie.cpp
     MovieContent.cpp
     NetworkListener.cpp
     NetworkListenerThread.cpp
     Options.cpp
-    Pictureflow.cpp
     PixelStream.cpp
+    PixelStreamBuffer.cpp
     PixelStreamContent.cpp
+    PixelStreamDispatcher.cpp
     PixelStreamInteractionDelegate.cpp
+    PixelStreamSegmentDecoder.cpp
     PixelStreamSegmentRenderer.cpp
-    PixelStreamSegmentJpegCompressor.cpp
     State.cpp
     StatePreview.cpp
+    StateSerializationHelper.cpp
     SVG.cpp
     SVGContent.cpp
-    SVGStreamSource.cpp
     Texture.cpp
     TextureContent.cpp
-    WebkitAuthenticationHelper.cpp
-    WebkitPixelStreamer.cpp
     ZoomInteractionDelegate.cpp
     configuration/Configuration.cpp
     configuration/MasterConfiguration.cpp
     configuration/WallConfiguration.cpp
+    localstreamer/AsyncImageLoader.cpp
+    localstreamer/CommandLineOptions.cpp
+    localstreamer/DockPixelStreamer.cpp
+    localstreamer/PixelStreamer.cpp
+    localstreamer/PixelStreamerFactory.cpp
+    localstreamer/PixelStreamerLauncher.cpp
+    localstreamer/PixelStreamerType.cpp
+    localstreamer/Pictureflow.cpp
+    localstreamer/WebkitAuthenticationHelper.cpp
+    localstreamer/WebkitPixelStreamer.cpp
     thumbnail/DefaultThumbnailGenerator.cpp
     thumbnail/FolderThumbnailGenerator.cpp
     thumbnail/ImageThumbnailGenerator.cpp
@@ -145,25 +157,28 @@ list(APPEND SRCS
 )
 
 list(APPEND MOC_HEADERS
-    AsyncImageLoader.h
     BackgroundWidget.h
     Content.h
     ContentWindowInterface.h
     DisplayGroupManager.h
     DisplayGroupInterface.h
+    DisplayGroupGraphicsView.h
     DisplayGroupGraphicsViewProxy.h
     DisplayGroupListWidgetProxy.h
-    DockPixelStreamer.h
-    LocalPixelStreamer.h
-    LocalPixelStreamerManager.h
+    EventReceiver.h
     MainWindow.h
     Marker.h
     NetworkListener.h
     NetworkListenerThread.h
     Options.h
-    Pictureflow.h
-    WebkitAuthenticationHelper.h
-    WebkitPixelStreamer.h
+    PixelStreamDispatcher.h
+    localstreamer/AsyncImageLoader.h
+    localstreamer/DockPixelStreamer.h
+    localstreamer/PixelStreamer.h
+    localstreamer/PixelStreamerLauncher.h
+    localstreamer/Pictureflow.h
+    localstreamer/WebkitAuthenticationHelper.h
+    localstreamer/WebkitPixelStreamer.h
 )
 
 # Qt resource file

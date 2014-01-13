@@ -44,8 +44,8 @@
 #include "gestures/PanGesture.h"
 #include "gestures/PinchGesture.h"
 
-ZoomInteractionDelegate::ZoomInteractionDelegate(ContentWindowManager& cwm)
-    : ContentInteractionDelegate(cwm)
+ZoomInteractionDelegate::ZoomInteractionDelegate(ContentWindowManager& contentWindow)
+    : ContentInteractionDelegate(contentWindow)
 {
 }
 

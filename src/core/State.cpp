@@ -145,40 +145,40 @@ void State::saveContentWindow_( QDomDocument& doc, QDomElement& root,
 
     double zoom = contentWindowManager->getZoom();
 
-    QDomElement cwmNode = doc.createElement("ContentWindow");
-    root.appendChild(cwmNode);
+    QDomElement contentWindowNode = doc.createElement("ContentWindow");
+    root.appendChild(contentWindowNode);
 
     QDomElement n = doc.createElement("URI");
     n.appendChild(doc.createTextNode(uri));
-    cwmNode.appendChild(n);
+    contentWindowNode.appendChild(n);
 
     n = doc.createElement("x");
     n.appendChild(doc.createTextNode(QString::number(x)));
-    cwmNode.appendChild(n);
+    contentWindowNode.appendChild(n);
 
     n = doc.createElement("y");
     n.appendChild(doc.createTextNode(QString::number(y)));
-    cwmNode.appendChild(n);
+    contentWindowNode.appendChild(n);
 
     n = doc.createElement("w");
     n.appendChild(doc.createTextNode(QString::number(w)));
-    cwmNode.appendChild(n);
+    contentWindowNode.appendChild(n);
 
     n = doc.createElement("h");
     n.appendChild(doc.createTextNode(QString::number(h)));
-    cwmNode.appendChild(n);
+    contentWindowNode.appendChild(n);
 
     n = doc.createElement("centerX");
     n.appendChild(doc.createTextNode(QString::number(centerX)));
-    cwmNode.appendChild(n);
+    contentWindowNode.appendChild(n);
 
     n = doc.createElement("centerY");
     n.appendChild(doc.createTextNode(QString::number(centerY)));
-    cwmNode.appendChild(n);
+    contentWindowNode.appendChild(n);
 
     n = doc.createElement("zoom");
     n.appendChild(doc.createTextNode(QString::number(zoom)));
-    cwmNode.appendChild(n);
+    contentWindowNode.appendChild(n);
 }
 
 bool State::checkVersion_( QXmlQuery& query ) const

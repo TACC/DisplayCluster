@@ -40,6 +40,8 @@
 #define SVG_H
 
 #include "FactoryObject.h"
+#include "types.h"
+
 #include <QtSvg>
 #include <QGLWidget>
 #include <QGLFramebufferObject>
@@ -48,38 +50,55 @@
 
 class GLWindow;
 
-class SVG : public FactoryObject {
+typedef boost::shared_ptr<QGLFramebufferObject> QGLFramebufferObjectPtr;
 
-    public:
+/**
+ * Hold texture FBO and region rendered for one GLWindow.
+ */
+struct SVGTextureData
+{
+    /** Frame buffer Object */
+    QGLFramebufferObjectPtr fbo;
 
-        SVG(QString uri);
-        ~SVG();
+    /** Texture region */
+    QRectF region;
+};
 
-        void getDimensions(int &width, int &height);
-        void render(float tX, float tY, float tW, float tH);
-        bool setImageData(QByteArray imageData);
+class SVG : public FactoryObject
+{
+public:
+    SVG(QString uri);
+    ~SVG();
 
-    private:
+    void getDimensions(int &width, int &height);
+    bool setImageData(QByteArray imageData);
+    void render(float tX, float tY, float tW, float tH);
 
-        // image location
-        QString uri_;
+private:
+    // image location
+    QString uri_;
 
-        // SVG renderer
-        QRectF svgExtents_;
-        QSvgRenderer svgRenderer_;
+    // SVG renderer
+    QRectF svgExtents_;
+    QSvgRenderer svgRenderer_;
 
-        std::map<boost::shared_ptr<GLWindow>, boost::shared_ptr<QGLFramebufferObject> > fbos_;
+    // Per-GLWindow texture data
+    std::map<int, SVGTextureData> textureData_;
 
-        // current rasterized image dimensions
-        int imageWidth_;
-        int imageHeight_;
+    // SVG default dimensions
+    int width_;
+    int height_;
 
-        // texture information
-        QRectF textureRect_;
-        QSizeF textureSize_;
-        GLuint textureId_;
+    QRectF computeTextureRect(const QRectF& screenRect, const QRectF& fullRect,
+                              const float tX, const float tY, const float tW, const float tH) const;
 
-        void generateTexture(QRectF screenRect, QRectF fullRect, float tX, float tY, float tW, float tH);
+    void renderToTexture(const QRectF& textureRect, QGLFramebufferObjectPtr targetFbo);
+
+    void saveGLState();
+    void restoreGLState();
+
+    void drawTexturedQuad(const float posX, const float posY,
+                          const float width, const float height, const GLuint textureID);
 };
 
 #endif

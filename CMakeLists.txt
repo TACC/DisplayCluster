@@ -18,7 +18,7 @@ endif(COMMAND cmake_policy)
 set(CMAKE_CXX_FLAGS "-Wall -ftemplate-depth-1024")
 
 # build options
-option(BUILD_DISPLAYCLUSTER_LIBRARY "Build DisplayCluster library" OFF)
+option(BUILD_DCSTREAM_LIBRARY "Build DisplayCluster dcstream library" OFF)
 option(BUILD_DESKTOPSTREAMER "Build DesktopStreamer application" OFF)
 option(ENABLE_TUIO_TOUCH_LISTENER "Enable TUIO touch listener for multi-touch events" OFF)
 option(ENABLE_JOYSTICK_SUPPORT "Enable joystick support" OFF)
@@ -41,6 +41,11 @@ if(APPLE)
   if(NOT CMAKE_INSTALL_NAME_DIR)
     set(CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
   endif()
+endif()
+
+# Used by cmake/modules/DoxygenRule.cmake to install documentation
+if(NOT DOC_DIR)
+  set(DOC_DIR share/${CMAKE_PROJECT_NAME}/doc)
 endif()
 
 # path for additional modules
@@ -72,7 +77,7 @@ find_package(LibJpegTurbo REQUIRED)
 include_directories(${LibJpegTurbo_INCLUDE_DIRS})
 list(APPEND LIBS ${LibJpegTurbo_LIBRARIES})
 
-find_package(Boost REQUIRED COMPONENTS serialization date_time unit_test_framework)
+find_package(Boost REQUIRED COMPONENTS serialization date_time unit_test_framework program_options)
 include_directories(${Boost_INCLUDE_DIRS})
 list(APPEND LIBS ${Boost_LIBRARIES})
 
@@ -104,7 +109,8 @@ if(BUILD_CORE_LIBRARY)
 endif()
 
 # install doc files
-install(DIRECTORY doc DESTINATION . COMPONENT doc)
+include(DoxygenRule)
+add_subdirectory(doc)
 
 # install example files
 install(DIRECTORY examples DESTINATION . COMPONENT examples)

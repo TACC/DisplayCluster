@@ -43,16 +43,11 @@
 #include "GLWindow.h"
 
 Texture::Texture(QString uri)
+    : uri_( uri )
+    , textureId_( 0 )
 {
-    // defaults
-    textureBound_ = false;
-
-    // assign values
-    uri_ = uri;
-
-    QImage image(uri_);
-
-    if(image.isNull() == true)
+    const QImage image(uri_);
+    if(image.isNull())
     {
         put_flog(LOG_ERROR, "error loading %s", uri_.toLocal8Bit().constData());
         return;
@@ -63,19 +58,18 @@ Texture::Texture(QString uri)
     imageHeight_ = image.height();
 
     // generate new texture
-    textureId_ = g_mainWindow->getGLWindow()->bindTexture(image, GL_TEXTURE_2D, GL_RGBA, QGLContext::DefaultBindOption);
-    textureBound_ = true;
+    textureId_ = g_mainWindow->getGLWindow()->bindTexture(image, GL_TEXTURE_2D, GL_RGBA,
+                                                          QGLContext::LinearFilteringBindOption |
+                                                          QGLContext::MipmapBindOption);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 }
 
 Texture::~Texture()
 {
-    // delete bound texture
-    if(textureBound_ == true)
-    {
-        glDeleteTextures(1, &textureId_); // it appears deleteTexture() below is not actually deleting the texture from the GPU...
+    if(textureId_)
         g_mainWindow->getGLWindow()->deleteTexture(textureId_);
-        textureBound_ = false;
-    }
 }
 
 void Texture::getDimensions(int &width, int &height)
@@ -86,37 +80,32 @@ void Texture::getDimensions(int &width, int &height)
 
 void Texture::render(float tX, float tY, float tW, float tH)
 {
-    updateRenderedFrameCount();
+    updateRenderedFrameIndex();
 
-    if(textureBound_ == true)
-    {
-        // draw the texture
-        glPushAttrib(GL_ENABLE_BIT | GL_TEXTURE_BIT);
+    if(!textureId_)
+        return;
 
-        glEnable(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, textureId_);
+    // draw the texture
+    glPushAttrib(GL_ENABLE_BIT | GL_TEXTURE_BIT);
 
-        // on zoom-out, clamp to edge (instead of showing the texture tiled / repeated)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, textureId_);
 
-        glBegin(GL_QUADS);
+    glBegin(GL_QUADS);
 
-        // note we need to flip the y coordinate since the textures are loaded upside down
-        glTexCoord2f(tX,1.-tY);
-        glVertex2f(0.,0.);
+    glTexCoord2f(tX,tY);
+    glVertex2f(0.,0.);
 
-        glTexCoord2f(tX+tW,1.-tY);
-        glVertex2f(1.,0.);
+    glTexCoord2f(tX+tW,tY);
+    glVertex2f(1.,0.);
 
-        glTexCoord2f(tX+tW,1.-(tY+tH));
-        glVertex2f(1.,1.);
+    glTexCoord2f(tX+tW,tY+tH);
+    glVertex2f(1.,1.);
 
-        glTexCoord2f(tX,1.-(tY+tH));
-        glVertex2f(0.,1.);
+    glTexCoord2f(tX,tY+tH);
+    glVertex2f(0.,1.);
 
-        glEnd();
+    glEnd();
 
-        glPopAttrib();
-    }
+    glPopAttrib();
 }

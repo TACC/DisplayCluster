@@ -83,7 +83,7 @@ void StatePreview::generateImage(const QSize& wallDimensions, const ContentWindo
     previewDimension.scale(QSize(PREVIEW_IMAGE_SIZE, PREVIEW_IMAGE_SIZE), Qt::KeepAspectRatio);
 
     // Transparent image
-    QImage preview(wallDimensions, QImage::Format_ARGB32);
+    QImage preview(previewDimension, QImage::Format_ARGB32);
     preview.fill(qRgba(0,0,0,0));
 
     // Paint all Contents at their correct location
@@ -92,15 +92,15 @@ void StatePreview::generateImage(const QSize& wallDimensions, const ContentWindo
 
     for(size_t i=0; i<contentWindowManagers.size(); i++)
     {
-        ContentWindowManager* cwm = contentWindowManagers[i].get();
-        if (cwm->getContent()->getType() != CONTENT_TYPE_PIXEL_STREAM)
+        ContentWindowManager* contentWindow = contentWindowManagers[i].get();
+        if (contentWindow->getContent()->getType() != CONTENT_TYPE_PIXEL_STREAM)
         {
             // Use ThumbnailFactory to generate thumbnails for the Contents
             const QString& filename = contentWindowManagers[i]->getContent()->getURI();
             QImage image = ThumbnailGeneratorFactory::getGenerator(filename, contentThumbnailSize)->generate(filename);
 
             double x, y, w ,h;
-            cwm->getCoordinates(x, y, w ,h);
+            contentWindow->getCoordinates(x, y, w ,h);
             QRectF area(x*preview.size().width(), y*preview.size().height(), w*preview.size().width(), h*preview.size().height());
 
             painter.drawImage(area, image);

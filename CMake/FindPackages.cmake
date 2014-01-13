@@ -24,7 +24,7 @@ else()
 endif()
 
 if(PKG_CONFIG_EXECUTABLE)
-  find_package(Boost 1.41.0 COMPONENTS date_time serialization unit_test_framework)
+  find_package(Boost 1.41.0 COMPONENTS program_options date_time serialization unit_test_framework)
   if((NOT Boost_FOUND) AND (NOT BOOST_FOUND))
     pkg_check_modules(Boost Boost>=1.41.0)
   endif()
@@ -32,7 +32,7 @@ if(PKG_CONFIG_EXECUTABLE)
     message(FATAL_ERROR "Could not find Boost")
   endif()
 else()
-  find_package(Boost 1.41.0  REQUIRED date_time serialization unit_test_framework)
+  find_package(Boost 1.41.0  REQUIRED program_options date_time serialization unit_test_framework)
 endif()
 
 if(PKG_CONFIG_EXECUTABLE)
@@ -256,7 +256,7 @@ if(GLUT_name)
   endif()
 endif()
 
-set(DISPLAYCLUSTER_BUILD_DEBS autoconf;automake;cmake;freeglut3-dev;git;git-review;git-svn;lcov;libavcodec-dev;libavformat-dev;libavutil-dev;libboost-date-time-dev;libboost-serialization-dev;libboost-test-dev;libjpeg-turbo8-dev;libopenmpi-dev;libswscale-dev;libturbojpeg;libxmu-dev;ninja-build;pkg-config;subversion)
+set(DISPLAYCLUSTER_BUILD_DEBS autoconf;automake;cmake;doxygen;freeglut3-dev;git;git-review;git-svn;lcov;libavcodec-dev;libavformat-dev;libavutil-dev;libboost-date-time-dev;libboost-program-options-dev;libboost-serialization-dev;libboost-test-dev;libjpeg-turbo8-dev;libopenmpi-dev;libswscale-dev;libturbojpeg;libxmu-dev;ninja-build;pkg-config;subversion)
 
 set(DISPLAYCLUSTER_DEPENDS MPI;Poppler;Boost;LibJpegTurbo;FFMPEG;OpenGL;Qt4;TUIO;GLUT)
 

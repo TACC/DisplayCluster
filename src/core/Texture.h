@@ -62,7 +62,6 @@ class Texture : public FactoryObject {
         int imageHeight_;
 
         // texture information
-        bool textureBound_;
         GLuint textureId_;
 };
 

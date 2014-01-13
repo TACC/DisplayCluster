@@ -71,7 +71,7 @@ void Content::setDimensions(int width, int height)
     emit(dimensionsChanged(width_, height_));
 }
 
-void Content::render(boost::shared_ptr<ContentWindowManager> window)
+void Content::render(ContentWindowManagerPtr window)
 {
     double x, y, w, h;
     window->getCoordinates(x, y, w, h);

@@ -1,15 +1,22 @@
 
+if(NOT BUILD_DCSTREAM_LIBRARY)
+  message(WARNING
+    "Can't build desktop streamer application without dcstream library")
+  return()
+endif()
+
 set(DESKTOP_STREAMER_SRCS ${DESKTOP_STREAMER_SRCS}
-  ../../src/log.cpp
-  src/DesktopSelectionRectangle.cpp
-  src/DesktopSelectionWindow.cpp
-  src/DesktopSelectionView.cpp
-  src/main.cpp
-  src/MainWindow.cpp
+    src/DesktopSelectionRectangle.cpp
+    src/DesktopSelectionWindow.cpp
+    src/DesktopSelectionView.cpp
+    src/main.cpp
+    src/MainWindow.cpp
 )
 
 set(DESKTOP_STREAMER_MOC_HEADERS
-  src/MainWindow.h
+    src/MainWindow.h
+    src/DesktopSelectionWindow.h
+    src/DesktopSelectionRectangle.h
 )
 
 qt4_wrap_cpp(DESKTOP_STREAMER_MOC_OUTFILES ${DESKTOP_STREAMER_MOC_HEADERS})
@@ -30,9 +37,10 @@ if(APPLE)
   add_executable(${STREAMER_APP_NAME} MACOSX_BUNDLE
     ${DESKTOP_STREAMER_SRCS} ${DESKTOP_STREAMER_MOC_OUTFILES} ${DESKTOP_STREAMER_RRC})
   set_target_properties(${STREAMER_APP_NAME} PROPERTIES
-    MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/src/Info.plist)
+    MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist)
 
-  install(FILES ${DESKTOP_STREAMER_LIBS}
+  get_target_property(dcstreamfile dcstream LOCATION)
+  install(FILES ${DESKTOP_STREAMER_LIBS} ${dcstreamfile}
     DESTINATION ${CMAKE_BINARY_DIR}/${STREAMER_APP_NAME}.app/Contents/MacOS)
 elseif(WIN32)
   set(STREAMER_APP_NAME desktopstreamer)
@@ -47,13 +55,13 @@ else()
     ${DESKTOP_STREAMER_SRCS} ${DESKTOP_STREAMER_MOC_OUTFILES} ${DESKTOP_STREAMER_RRC})
 endif()
 
-target_link_libraries(${STREAMER_APP_NAME} ${DESKTOP_STREAMER_LIBS})
+# Note: dcstream is a target, which needs to be handled differently above
+target_link_libraries(${STREAMER_APP_NAME} ${DESKTOP_STREAMER_LIBS} dcstream)
 
 # install executable
 install(TARGETS ${STREAMER_APP_NAME}
   RUNTIME DESTINATION bin COMPONENT app
-  BUNDLE DESTINATION . COMPONENT app
-)
+  BUNDLE DESTINATION . COMPONENT app)
 
 
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "DesktopStreamer is an application that lets you stream your desktop to a running DisplayCluster instance.")
@@ -111,17 +119,18 @@ else()
 endif()
 
 if(APPLE OR WIN32)
-  install(DIRECTORY "${QT_PLUGINS_DIR}/imageformats" DESTINATION ${PLUGIN_DEST_DIR}/plugins COMPONENT app)
+  install(DIRECTORY "${QT_PLUGINS_DIR}/imageformats"
+    DESTINATION ${PLUGIN_DEST_DIR}/plugins COMPONENT app)
 
-  install(CODE "
-     file(WRITE \"\${CMAKE_INSTALL_PREFIX}/${QTCONF_DEST_DIR}/qt.conf\" \"\")
-     " COMPONENT app)
+  install(CODE
+    "file(WRITE \"\${CMAKE_INSTALL_PREFIX}/${QTCONF_DEST_DIR}/qt.conf\" \"\")"
+    COMPONENT app)
 
   install(CODE "
      file(GLOB_RECURSE QTPLUGINS \"\${CMAKE_INSTALL_PREFIX}/${PLUGIN_DEST_DIR}/plugins/*${CMAKE_SHARED_LIBRARY_SUFFIX}\")
      include(BundleUtilities)
-     fixup_bundle(\"${APPS}\" \"\${QTPLUGINS}\" \"${DEPENDENCY_DIRS}\")
-     " COMPONENT app)
+     fixup_bundle(\"${APPS}\" \"\${QTPLUGINS}\" \"${DEPENDENCY_DIRS}\")"
+     COMPONENT app)
 endif()
 
 include(InstallRequiredSystemLibraries)

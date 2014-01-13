@@ -81,15 +81,11 @@ class Movie : public FactoryObject {
 
     private:
 
-        // true if all the movie initializations were successful
-        bool initialized_;
-
         // image location
         QString uri_;
 
         // texture
         GLuint textureId_;
-        bool textureBound_;
 
         // FFMPEG
         AVFormatContext * avFormatContext_;
