@@ -5,9 +5,7 @@ if(BUILD_CORE_LIBRARY)
 endif()
 
 # DesktopStreamer app
-if(BUILD_DESKTOPSTREAMER)
-  add_subdirectory(DesktopStreamer)
-endif()
+add_subdirectory(DesktopStreamer)
 
 # SimpleStreamer
 if(GLUT_FOUND)

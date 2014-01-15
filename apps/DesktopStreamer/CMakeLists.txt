@@ -1,10 +1,4 @@
 
-if(NOT BUILD_DCSTREAM_LIBRARY)
-  message(WARNING
-    "Can't build desktop streamer application without dcstream library")
-  return()
-endif()
-
 set(DESKTOP_STREAMER_SRCS ${DESKTOP_STREAMER_SRCS}
     src/DesktopSelectionRectangle.cpp
     src/DesktopSelectionWindow.cpp

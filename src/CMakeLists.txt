@@ -15,6 +15,4 @@ if(BUILD_CORE_LIBRARY)
   add_subdirectory(core)
 endif()
 
-if(BUILD_DCSTREAM_LIBRARY)
-  add_subdirectory(dcstream)
-endif()
+add_subdirectory(dcstream)

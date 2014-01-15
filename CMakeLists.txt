@@ -58,9 +58,6 @@ endif()
 include(${QT_USE_FILE})
 
 # build options
-option(BUILD_DCSTREAM_LIBRARY "Build DisplayCluster dcstream library" ON)
-option(BUILD_DESKTOPSTREAMER "Build DesktopStreamer application" ON)
-
 if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND)
   option(BUILD_CORE_LIBRARY "Build DisplayCluster Core library" ON)
 endif()
