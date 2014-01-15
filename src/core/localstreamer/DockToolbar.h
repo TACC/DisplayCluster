@@ -1,5 +1,5 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
 /*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
@@ -37,77 +37,39 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DOCKPIXELSTREAMER_H
-#define DOCKPIXELSTREAMER_H
+#ifndef DOCKTOOLBAR_H
+#define DOCKTOOLBAR_H
 
-#include "PixelStreamer.h"
+#include <QImage>
 
-#include <QtCore/QDir>
-#include <QtCore/QObject>
-#include <QtCore/QThread>
-#include <QtCore/QHash>
-#include <QtCore/QVector>
-#include <QtCore/QLinkedList>
-#include <QtGui/QImage>
-
-class PictureFlow;
-class AsyncImageLoader;
-class DockToolbar;
-
-class DockPixelStreamer : public PixelStreamer
+struct ToolbarButton
 {
-    Q_OBJECT
+    QString caption;
+    QImage icon;
+    QString command;
 
-public:
-    static QString getUniqueURI();
-    static float getDefaultAspectRatio();
-
-    DockPixelStreamer(const QSize& size, const QString& rootDir);
-    ~DockPixelStreamer();
-
-    virtual QSize size() const;
-
-    bool setRootDir(const QString& dir);
-
-public slots:
-    virtual void processEvent(Event event);
-
-private slots:
-    void update(const QImage &image);
-    void loadThumbnails(int newCenterIndex);
-    void loadNextThumbnailInList();
-
-signals:
-    void renderPreview( const QString& fileName, const int index );
-
-private:
-    PictureFlow* flow_;
-    AsyncImageLoader* loader_;
-    DockToolbar* toolbar_;
-
-    QThread loadThread_;
-
-    QString rootDir_;
-    QDir currentDir_;
-    QHash< QString, int > slideIndex_;
-
-    typedef QPair<bool, QString> SlideImageLoadingStatus;
-    QVector<SlideImageLoadingStatus> slideImagesLoaded_;
-    QLinkedList<int> slideImagesToLoad_;
-
-    void createFlow(const QSize& dockSize);
-    void createToolbar(const unsigned int height);
-    void createImageLoader();
-
-    void onItem();
-    void changeDirectory( const QString& dir );
-    void addRootDirToFlow();
-    void addFilesToFlow();
-    void addFoldersToFlow();
-
-    QSize getMinSize() const;
-    QSize getMaxSize() const;
-    QSize constrainSize(const QSize& size) const;
+    ToolbarButton(QString caption, QImage icon, QString command)
+        : caption(caption), icon(icon), command(command) {}
 };
 
-#endif // DOCKPIXELSTREAMER_H
+class DockToolbar
+{
+public:
+    DockToolbar(const unsigned int height);
+
+    void render(QImage& buffer);
+
+    void addButton(const ToolbarButton& button);
+
+    unsigned int getHeight() const;
+
+    QString getClickResult(const QPoint pos) const;
+
+private:
+    const unsigned int height_;
+    QRect area_;
+    QList<ToolbarButton> buttons;
+    void drawButton(QPainter& painter, const ToolbarButton& button, const int index);
+};
+
+#endif // DOCKTOOLBAR_H

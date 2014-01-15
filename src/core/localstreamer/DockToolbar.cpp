@@ -1,5 +1,5 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
 /*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
@@ -37,77 +37,81 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DOCKPIXELSTREAMER_H
-#define DOCKPIXELSTREAMER_H
+#include "DockToolbar.h"
 
-#include "PixelStreamer.h"
+#include <QPainter>
+#include <QColor>
 
-#include <QtCore/QDir>
-#include <QtCore/QObject>
-#include <QtCore/QThread>
-#include <QtCore/QHash>
-#include <QtCore/QVector>
-#include <QtCore/QLinkedList>
-#include <QtGui/QImage>
-
-class PictureFlow;
-class AsyncImageLoader;
-class DockToolbar;
-
-class DockPixelStreamer : public PixelStreamer
+DockToolbar::DockToolbar(const unsigned int height)
+    : height_(height)
 {
-    Q_OBJECT
+}
 
-public:
-    static QString getUniqueURI();
-    static float getDefaultAspectRatio();
+void DockToolbar::render(QImage& buffer)
+{
+    QPainter painter;
+    painter.begin(&buffer);
 
-    DockPixelStreamer(const QSize& size, const QString& rootDir);
-    ~DockPixelStreamer();
+    area_ = QRect(0,0,buffer.width(), height_);
+    QBrush brush;
+    brush.setColor(Qt::gray);
+    brush.setStyle(Qt::SolidPattern);
+    painter.fillRect(area_, brush);
 
-    virtual QSize size() const;
+    int i = 0;
+    foreach(ToolbarButton button, buttons)
+    {
+        drawButton(painter, button, i++);
+    }
 
-    bool setRootDir(const QString& dir);
+    painter.end();
+}
 
-public slots:
-    virtual void processEvent(Event event);
+void DockToolbar::addButton(const ToolbarButton& button)
+{
+    buttons.push_back(button);
+}
 
-private slots:
-    void update(const QImage &image);
-    void loadThumbnails(int newCenterIndex);
-    void loadNextThumbnailInList();
+unsigned int DockToolbar::getHeight() const
+{
+    return height_;
+}
 
-signals:
-    void renderPreview( const QString& fileName, const int index );
+QString DockToolbar::getClickResult(const QPoint pos) const
+{
+    if (!area_.contains(pos))
+        return QString();
 
-private:
-    PictureFlow* flow_;
-    AsyncImageLoader* loader_;
-    DockToolbar* toolbar_;
+    const int index = (float)pos.x() / (float)area_.width() * buttons.size();
 
-    QThread loadThread_;
+    return buttons.at(index).command;
+}
 
-    QString rootDir_;
-    QDir currentDir_;
-    QHash< QString, int > slideIndex_;
+void DockToolbar::drawButton(QPainter& painter, const ToolbarButton& button, const int index)
+{
+    const unsigned int n = buttons.size();
 
-    typedef QPair<bool, QString> SlideImageLoadingStatus;
-    QVector<SlideImageLoadingStatus> slideImagesLoaded_;
-    QLinkedList<int> slideImagesToLoad_;
+    const unsigned int margin = area_.height() * 0.1;
+    const unsigned int buttonWidth = (area_.width() - (n+1)*margin) / n;
 
-    void createFlow(const QSize& dockSize);
-    void createToolbar(const unsigned int height);
-    void createImageLoader();
+    QPoint topLeft(margin + index*(buttonWidth+margin), margin);
+    QSize buttonSize(buttonWidth, height_ - 2*margin);
+    QRect buttonArea(topLeft, buttonSize);
 
-    void onItem();
-    void changeDirectory( const QString& dir );
-    void addRootDirToFlow();
-    void addFilesToFlow();
-    void addFoldersToFlow();
+    QBrush brush;
+    brush.setColor(Qt::lightGray);
+    brush.setStyle(Qt::SolidPattern);
+    painter.fillRect(buttonArea, brush);
 
-    QSize getMinSize() const;
-    QSize getMaxSize() const;
-    QSize constrainSize(const QSize& size) const;
-};
+    QRect imageArea(buttonArea);
+    imageArea.setWidth(imageArea.height());
+    painter.drawImage(imageArea, button.icon);
 
-#endif // DOCKPIXELSTREAMER_H
+    QRect textArea(imageArea.topRight() + QPoint(margin, margin),
+                   buttonArea.bottomRight() - QPoint(margin, margin));
+    QFont font("Arial", textArea.height());
+    font.setBold(true);
+    painter.setFont(font);
+    painter.setPen(Qt::white);
+    painter.drawText(textArea, button.caption, QTextOption(Qt::AlignVCenter));
+}

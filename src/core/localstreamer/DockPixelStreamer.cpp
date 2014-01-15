@@ -41,6 +41,7 @@
 
 #include "Pictureflow.h"
 #include "AsyncImageLoader.h"
+#include "DockToolbar.h"
 
 #include "ContentFactory.h"
 #include "thumbnail/ThumbnailGeneratorFactory.h"
@@ -49,12 +50,14 @@
 #include "Command.h"
 
 #define DOCK_ASPECT_RATIO        0.45
-#define SLIDE_REL_HEIGHT_FACTOR  0.6
+#define SLIDE_REL_HEIGHT_FACTOR  0.5
 
 #define SLIDE_MIN_SIZE           128
 #define SLIDE_MAX_SIZE           512
 
 #define COVERFLOW_SPEED_FACTOR   0.1
+
+#define WEBBROWSER_ICON ":/img/browser-icon.png"
 
 #define STARTUP_PAGE "http://www.google.com"
 
@@ -72,25 +75,14 @@ DockPixelStreamer::DockPixelStreamer(const QSize& size, const QString& rootDir)
     : PixelStreamer()
     , flow_(new PictureFlow())
     , loader_(0)
+    , toolbar_(0)
 {
     const QSize& dockSize = constrainSize(size);
 
-    const unsigned int slideSize = dockSize.height() * SLIDE_REL_HEIGHT_FACTOR;
-    flow_->resize(dockSize);
-    flow_->setSlideSize( QSize( slideSize, slideSize ));
-    flow_->setBackgroundColor( Qt::darkGray );
+    createFlow(dockSize);
+    createToolbar(dockSize.height()*0.15);
+    createImageLoader();
 
-    connect( flow_, SIGNAL( imageUpdated( const QImage& )), this, SLOT( update( const QImage& )));
-    connect( flow_, SIGNAL( targetIndexChanged(int)), this, SLOT(loadThumbnails(int)) );
-
-    loader_ = new AsyncImageLoader(flow_->slideSize());
-    loader_->moveToThread( &loadThread_ );
-    connect( loader_, SIGNAL(imageLoaded(int, QImage)),
-             flow_, SLOT(setSlide( int, QImage )));
-    connect( this, SIGNAL(renderPreview( const QString&, const int )),
-             loader_, SLOT(loadImage( const QString&, const int )));
-    connect( loader_, SIGNAL(imageLoadingFinished()),
-             this, SLOT(loadNextThumbnailInList()));
     loadThread_.start();
 
     if (rootDir.isEmpty() || !setRootDir(rootDir))
@@ -103,6 +95,7 @@ DockPixelStreamer::~DockPixelStreamer()
     loadThread_.wait();
     delete flow_;
     delete loader_;
+    delete toolbar_;
 }
 
 void DockPixelStreamer::processEvent(Event event)
@@ -121,13 +114,16 @@ void DockPixelStreamer::processEvent(Event event)
         // yPos is the click position in pixel units inside the dock
         const int yPos = event.mouseY * flow_->size().height();
 
-        if (yPos < 100)
+        // Process toolbar action
+        if (yPos < (int)toolbar_->getHeight())
         {
-            Command command(COMMAND_TYPE_WEBBROWSER, STARTUP_PAGE);
-            emit sendCommand(command.getCommand());
+            QString command = toolbar_->getClickResult(QPoint(xPos,yPos));
+            if (!command.isEmpty())
+                emit sendCommand(command);
             return;
         }
 
+        // Process flow action
         if( xPos > dockHalfWidth-slideHalfWidth && xPos < dockHalfWidth+slideHalfWidth )
         {
             onItem();
@@ -181,7 +177,9 @@ void DockPixelStreamer::onItem()
 
 void DockPixelStreamer::update(const QImage& image)
 {
-    emit imageUpdated(image);
+    QImage newImage = image;
+    toolbar_->render(newImage);
+    emit imageUpdated(newImage);
 }
 
 void DockPixelStreamer::loadThumbnails(int newCenterIndex)
@@ -212,6 +210,42 @@ void DockPixelStreamer::loadNextThumbnailInList()
             return;
         }
     }
+}
+
+void DockPixelStreamer::createFlow(const QSize& dockSize)
+{
+    const unsigned int slideSize = dockSize.height() * SLIDE_REL_HEIGHT_FACTOR;
+    flow_->resize(dockSize);
+    flow_->setSlideSize( QSize( slideSize, slideSize ));
+    flow_->setBackgroundColor( Qt::darkGray );
+
+    connect( flow_, SIGNAL( imageUpdated( const QImage& )), this, SLOT( update( const QImage& )));
+    connect( flow_, SIGNAL( targetIndexChanged(int)), this, SLOT(loadThumbnails(int)) );
+}
+
+void DockPixelStreamer::createToolbar(const unsigned int height)
+{
+    toolbar_ = new DockToolbar(height);
+
+    QImage icon = QImage( WEBBROWSER_ICON );
+
+    Command webbrowserCommand(COMMAND_TYPE_WEBBROWSER, STARTUP_PAGE);
+    toolbar_->addButton( ToolbarButton( "Webbrowser", icon, webbrowserCommand.getCommand() ));
+
+    Command clearallCommand(COMMAND_TYPE_WEBBROWSER, "http://www.perdu.com");
+    toolbar_->addButton( ToolbarButton( "Clear all", icon, clearallCommand.getCommand() ));
+}
+
+void DockPixelStreamer::createImageLoader()
+{
+    loader_ = new AsyncImageLoader(flow_->slideSize());
+    loader_->moveToThread( &loadThread_ );
+    connect( loader_, SIGNAL(imageLoaded(int, QImage)),
+             flow_, SLOT(setSlide( int, QImage )));
+    connect( this, SIGNAL(renderPreview( const QString&, const int )),
+             loader_, SLOT(loadImage( const QString&, const int )));
+    connect( loader_, SIGNAL(imageLoadingFinished()),
+             this, SLOT(loadNextThumbnailInList()));
 }
 
 void DockPixelStreamer::changeDirectory( const QString& dir )

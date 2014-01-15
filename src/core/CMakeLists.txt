@@ -149,6 +149,7 @@ list(APPEND SRCS
     localstreamer/AsyncImageLoader.cpp
     localstreamer/CommandLineOptions.cpp
     localstreamer/DockPixelStreamer.cpp
+    localstreamer/DockToolbar.cpp
     localstreamer/PixelStreamer.cpp
     localstreamer/PixelStreamerFactory.cpp
     localstreamer/PixelStreamerLauncher.cpp
