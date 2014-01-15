@@ -1,25 +1,34 @@
 
 include_directories(SYSTEM ${OPENGL_INCLUDE_DIRS} ${FFMPEG_INCLUDE_DIR})
-list(APPEND LIBS ${OPENGL_LIBRARIES} ${FFMPEG_LIBRARIES})
+list(APPEND CORE_LIBRARY_LIBS ${OPENGL_LIBRARIES} ${FFMPEG_LIBRARIES})
+
+include_directories(SYSTEM ${MPI_INCLUDE_PATH})
+list(APPEND CORE_LIBRARY_LIBS ${MPI_CXX_LIBRARIES})
+
+list(APPEND CORE_LIBRARY_LIBS ${QT_LIBRARIES})
+list(APPEND CORE_LIBRARY_LIBS ${LibJpegTurbo_LIBRARIES})
+list(APPEND CORE_LIBRARY_LIBS ${Boost_LIBRARIES})
+
+#OpenMP
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
 # handle build options
 if(ENABLE_TUIO_TOUCH_LISTENER)
-  find_package(TUIO REQUIRED)
-  include_directories(${TUIO_INCLUDE_DIRS})
-  list(APPEND LIBS ${TUIO_LIBRARIES})
+  list(APPEND CORE_LIBRARY_LIBS ${TUIO_LIBRARIES})
 
   list(APPEND SRCS MultiTouchListener.cpp
                    TouchListener.cpp)
 
   find_package(X11 REQUIRED)
   include_directories(${X11_INCLUDE_DIR})
-  list(APPEND LIBS ${X11_LIBRARIES})
+  list(APPEND CORE_LIBRARY_LIBS ${X11_LIBRARIES})
 endif()
 
 if(ENABLE_JOYSTICK_SUPPORT)
   find_package(SDL REQUIRED)
   include_directories(${SDL_INCLUDE_DIR})
-  list(APPEND LIBS ${SDL_LIBRARY})
+  list(APPEND CORE_LIBRARY_LIBS ${SDL_LIBRARY})
 
   set(SRCS ${SRCS} JoystickThread.cpp)
   set(SRCS ${SRCS} DisplayGroupJoystick.cpp)
@@ -30,7 +39,7 @@ endif()
 if(ENABLE_SKELETON_SUPPORT)
   find_package(OpenNI REQUIRED)
   include_directories(SYSTEM ${OpenNI_INCLUDE_DIRS}) # use SYSTEM to suppress OpenNI compile warnings
-  list(APPEND LIBS ${OpenNI_LIBRARIES})
+  list(APPEND CORE_LIBRARY_LIBS ${OpenNI_LIBRARIES})
 
   list(APPEMD SRCS
     SkeletonThread.cpp
@@ -48,11 +57,11 @@ if(ENABLE_PYTHON_SUPPORT)
     find_package(PythonLibs REQUIRED)
     include_directories(${PYTHON_INCLUDE_PATH}) # deprecated, but include for old CMake versions
     include_directories(${PYTHON_INCLUDE_DIRS})
-    list(APPEND LIBS ${PYTHON_LIBRARIES})
+    list(APPEND CORE_LIBRARY_LIBS ${PYTHON_LIBRARIES})
 
     find_package(PythonQt REQUIRED)
     include_directories(${PythonQt_INCLUDE_DIRS})
-    list(APPEND LIBS ${PythonQt_LIBRARIES})
+    list(APPEND CORE_LIBRARY_LIBS ${PythonQt_LIBRARIES})
 
     set(SRCS ${SRCS} DisplayGroupPython.cpp)
     set(SRCS ${SRCS} PythonConsole.cpp)
@@ -62,9 +71,7 @@ if(ENABLE_PYTHON_SUPPORT)
 endif()
 
 if(ENABLE_PDF_SUPPORT)
-  find_package(Poppler REQUIRED)
-  include_directories(${POPPLER_QT_INCLUDE_DIR})
-  list(APPEND LIBS ${POPPLER_LIBRARIES})
+  list(APPEND CORE_LIBRARY_LIBS ${POPPLER_LIBRARIES})
 
   list(APPEND SRCS
     PDF.cpp
@@ -193,7 +200,7 @@ QT4_ADD_RESOURCES( CORE_RC_SRCS ${CORE_RC} )
 qt4_wrap_cpp(MOC_OUTFILES ${MOC_HEADERS} OPTIONS -DPOSIX_TIME_HPP___ -DPOSIX_TIME_SERIALIZE_HPP___ -DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED)
 
 add_library(DisplayClusterCore SHARED ${SRCS} ${MOC_OUTFILES} ${CORE_RC_SRCS} ${DISPLAYCLUSTER_LIBRARY_SHARED_HEADERS})
-target_link_libraries(DisplayClusterCore ${LIBS})
+target_link_libraries(DisplayClusterCore ${CORE_LIBRARY_LIBS})
 set_target_properties(DisplayClusterCore PROPERTIES
   VERSION ${VERSION} SOVERSION ${VERSION_ABI} OUTPUT_NAME DisplayClusterCore)
 install(TARGETS DisplayClusterCore

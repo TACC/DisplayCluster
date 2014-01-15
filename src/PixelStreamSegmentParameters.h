@@ -80,6 +80,7 @@ struct PixelStreamSegmentParameters
     {
     }
 
+private:
     friend class boost::serialization::access;
 
     /** Serialization method */

@@ -45,7 +45,7 @@
 #include <boost/serialization/vector.hpp>
 #include <mpi.h>
 
-#define DISPATCH_FREQUENCY 60
+#define DISPATCH_FREQUENCY 100
 
 #define STREAM_WINDOW_DEFAULT_SIZE 100
 

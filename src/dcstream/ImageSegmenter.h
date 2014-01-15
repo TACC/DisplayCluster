@@ -45,12 +45,12 @@
 namespace dc
 {
 
-class PixelStreamSegment;
-class PixelStreamSegmentParameters;
+struct PixelStreamSegment;
+struct PixelStreamSegmentParameters;
 typedef std::vector<PixelStreamSegment> PixelStreamSegments;
 typedef std::vector<PixelStreamSegmentParameters> SegmentParameters;
 
-class ImageWrapper;
+struct ImageWrapper;
 
 /**
  * Transform images into PixelStreamSegments.

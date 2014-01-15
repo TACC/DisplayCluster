@@ -48,7 +48,7 @@
 #include "PixelStreamSegment.h"
 #include "PixelStreamBuffer.h"
 
-#define USE_TIMER
+//#define USE_TIMER
 
 using dc::PixelStreamSegment;
 
@@ -64,7 +64,7 @@ class PixelStreamDispatcher : public QObject
 public:
     /** Construct a dispatcher */
     PixelStreamDispatcher();
-    
+
 public slots:
     /**
      * Add a source of Segments for a Stream
