@@ -101,11 +101,11 @@ public:
     bool sendPixelStreamSegment(const PixelStreamSegment& segment);
 
     /**
-     * Send a request to open Content on the wall
-     * @param uri The uri of the content. Must be accessible by all wall processes.
+     * Send a command to the wall
+     * @param command A command string formatted by the Command class.
      * @return true if the request could be sent, false otherwise.
      */
-    bool sendOpenContent(const QString& uri);
+    bool sendCommand(const QString& command);
 };
 
 }

@@ -4,6 +4,8 @@ set(DCSTREAM_LIBRARY_LIBS ${QT_QTCORE_LIBRARY}
                           ${LibJpegTurbo_LIBRARIES})
 
 set(DCSTREAM_LIBRARY_SRCS
+    ../Command.cpp
+    ../CommandType.cpp
     ../Event.cpp
     ../log.cpp
     ../MessageHeader.cpp

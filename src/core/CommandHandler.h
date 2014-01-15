@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,79 +37,33 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef NETWORK_LISTENER_THREAD_H
-#define NETWORK_LISTENER_THREAD_H
+#ifndef COMMANDHANDLER_H
+#define COMMANDHANDLER_H
 
-#include "MessageHeader.h"
-#include "Event.h"
-#include "PixelStreamSegment.h"
-#include "EventReceiver.h"
+#include <QObject>
+#include <QPointF>
+#include <QSize>
 
-#include <QtNetwork/QTcpSocket>
-#include <QQueue>
+#include "DisplayGroupManager.h"
 
-using dc::Event;
-using dc::PixelStreamSegment;
-
-class NetworkListenerThread : public EventReceiver
+class CommandHandler : public QObject
 {
     Q_OBJECT
 
 public:
-
-    NetworkListenerThread(int socketDescriptor);
-    ~NetworkListenerThread();
+    CommandHandler(DisplayGroupManager& displayGroupManager);
 
 public slots:
-
-    void processEvent(Event event);
-    void pixelStreamerClosed(QString uri);
-
-    void eventRegistrationRepy(QString uri, bool success);
+    void process(const QString command, const QString parentWindowUri);
 
 signals:
-
-    void finished();
-
-    void receivedAddPixelStreamSource(QString uri, size_t sourceIndex);
-    void receivedPixelStreamSegement(QString uri, size_t SourceIndex, PixelStreamSegment segment);
-    void receivedPixelStreamFinishFrame(QString uri, size_t SourceIndex);
-    void receivedRemovePixelStreamSource(QString uri, size_t sourceIndex);
-
-    void registerToEvents(QString uri, bool exclusive, EventReceiver* receiver);
-
-    void receivedCommand(QString command, QString senderUri);
-
-    /** @internal */
-    void dataAvailable();
-
-private slots:
-
-    void initialize();
-    void process();
-    void socketReceiveMessage();
+    void openWebBrowser(QPointF pos, QSize size, QString url);
 
 private:
+    DisplayGroupManager& displayGroupManager_;
 
-    int socketDescriptor_;
-    QTcpSocket* tcpSocket_;
-
-    QString pixelStreamUri_;
-
-    bool registeredToEvents_;
-    QQueue<Event> events_;
-
-    MessageHeader receiveMessageHeader();
-    QByteArray receiveMessageBody(const int size);
-
-    void handleMessage(const MessageHeader& messageHeader, const QByteArray& byteArray);
-    void handlePixelStreamMessage(const QString& uri, const QByteArray& byteArray);
-
-    void sendProtocolVersion();
-    void sendBindReply(const bool successful);
-    void send(const Event &event);
-    void sendQuit();
-    bool send(const MessageHeader& messageHeader);
+    void handleFileCommand(const QString& uri, const QString& parentWindowUri);
+    void handleWebbrowserCommand(const QString& url);
 };
 
-#endif
+#endif // COMMANDHANDLER_H

@@ -46,6 +46,8 @@
 #include "thumbnail/ThumbnailGeneratorFactory.h"
 #include "thumbnail/FolderThumbnailGenerator.h"
 
+#include "Command.h"
+
 #define DOCK_ASPECT_RATIO        0.45
 #define SLIDE_REL_HEIGHT_FACTOR  0.6
 
@@ -53,6 +55,8 @@
 #define SLIDE_MAX_SIZE           512
 
 #define COVERFLOW_SPEED_FACTOR   0.1
+
+#define STARTUP_PAGE "http://www.google.com"
 
 QString DockPixelStreamer::getUniqueURI()
 {
@@ -114,6 +118,16 @@ void DockPixelStreamer::processEvent(Event event)
         // SlideMid is half the slide width in pixels
         const int slideHalfWidth = flow_->slideSize().width() / 2;
 
+        // yPos is the click position in pixel units inside the dock
+        const int yPos = event.mouseY * flow_->size().height();
+
+        if (yPos < 100)
+        {
+            Command command(COMMAND_TYPE_WEBBROWSER, STARTUP_PAGE);
+            emit sendCommand(command.getCommand());
+            return;
+        }
+
         if( xPos > dockHalfWidth-slideHalfWidth && xPos < dockHalfWidth+slideHalfWidth )
         {
             onItem();
@@ -156,7 +170,8 @@ void DockPixelStreamer::onItem()
 
     if( image.text( "dir" ).isEmpty( ))
     {
-        emit openContent(source);
+        Command command(COMMAND_TYPE_FILE, source);
+        emit sendCommand(command.getCommand());
     }
     else
     {

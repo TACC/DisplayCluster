@@ -196,8 +196,8 @@ void NetworkListenerThread::handleMessage(const MessageHeader& messageHeader, co
         handlePixelStreamMessage(uri, byteArray);
         break;
 
-    case MESSAGE_TYPE_URI:
-        emit receivedUri(uri, QString(byteArray.data()));
+    case MESSAGE_TYPE_COMMAND:
+        emit receivedCommand(QString(byteArray.data()), uri);
         break;
 
     case MESSAGE_TYPE_BIND_EVENTS:

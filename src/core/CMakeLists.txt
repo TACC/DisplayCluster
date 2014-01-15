@@ -88,6 +88,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 list(APPEND SRCS
     BackgroundWidget.cpp
+    CommandHandler.cpp
     Content.cpp
     ContentFactory.cpp
     ContentLoader.cpp
@@ -115,6 +116,8 @@ list(APPEND SRCS
     gestures/PanGestureRecognizer.cpp
     gestures/PinchGesture.cpp
     gestures/PinchGestureRecognizer.cpp
+    ../Command.cpp
+    ../CommandType.cpp
     ../Event.cpp
     ../log.cpp
     ../MessageHeader.cpp
@@ -165,6 +168,7 @@ list(APPEND SRCS
 
 list(APPEND MOC_HEADERS
     BackgroundWidget.h
+    CommandHandler.h
     Content.h
     ContentWindowInterface.h
     DisplayGroupManager.h

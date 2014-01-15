@@ -48,6 +48,7 @@
 #include "log.h"
 #include "localstreamer/PixelStreamerLauncher.h"
 #include "StateSerializationHelper.h"
+#include "CommandHandler.h"
 
 #include <mpi.h>
 #include <unistd.h>
@@ -170,6 +171,9 @@ int main(int argc, char * argv[])
                                            SLOT(openDock(QPointF,QSize,QString)));
         pixelStreamerLauncher->connect(g_mainWindow, SIGNAL(hideDock()),
                                            SLOT(hideDock()));
+        pixelStreamerLauncher->connect(&networkListener->getCommandHandler(),
+                                       SIGNAL(openWebBrowser(QPointF,QSize,QString)),
+                                       SLOT(openWebBrowser(QPointF,QSize,QString)));
     }
 
     // wait for render comms to be ready for receiving and rendering background

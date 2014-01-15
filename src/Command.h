@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,79 +37,26 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef NETWORK_LISTENER_THREAD_H
-#define NETWORK_LISTENER_THREAD_H
+#ifndef COMMAND_H
+#define COMMAND_H
 
-#include "MessageHeader.h"
-#include "Event.h"
-#include "PixelStreamSegment.h"
-#include "EventReceiver.h"
+#include "CommandType.h"
 
-#include <QtNetwork/QTcpSocket>
-#include <QQueue>
-
-using dc::Event;
-using dc::PixelStreamSegment;
-
-class NetworkListenerThread : public EventReceiver
+class Command
 {
-    Q_OBJECT
-
 public:
+    Command(const CommandType type, const QString& args);
+    Command(const QString& command);
 
-    NetworkListenerThread(int socketDescriptor);
-    ~NetworkListenerThread();
-
-public slots:
-
-    void processEvent(Event event);
-    void pixelStreamerClosed(QString uri);
-
-    void eventRegistrationRepy(QString uri, bool success);
-
-signals:
-
-    void finished();
-
-    void receivedAddPixelStreamSource(QString uri, size_t sourceIndex);
-    void receivedPixelStreamSegement(QString uri, size_t SourceIndex, PixelStreamSegment segment);
-    void receivedPixelStreamFinishFrame(QString uri, size_t SourceIndex);
-    void receivedRemovePixelStreamSource(QString uri, size_t sourceIndex);
-
-    void registerToEvents(QString uri, bool exclusive, EventReceiver* receiver);
-
-    void receivedCommand(QString command, QString senderUri);
-
-    /** @internal */
-    void dataAvailable();
-
-private slots:
-
-    void initialize();
-    void process();
-    void socketReceiveMessage();
+    CommandType getType() const;
+    const QString& getArguments() const;
+    const QString& getCommand() const;
+    bool isValid() const;
 
 private:
-
-    int socketDescriptor_;
-    QTcpSocket* tcpSocket_;
-
-    QString pixelStreamUri_;
-
-    bool registeredToEvents_;
-    QQueue<Event> events_;
-
-    MessageHeader receiveMessageHeader();
-    QByteArray receiveMessageBody(const int size);
-
-    void handleMessage(const MessageHeader& messageHeader, const QByteArray& byteArray);
-    void handlePixelStreamMessage(const QString& uri, const QByteArray& byteArray);
-
-    void sendProtocolVersion();
-    void sendBindReply(const bool successful);
-    void send(const Event &event);
-    void sendQuit();
-    bool send(const MessageHeader& messageHeader);
+    CommandType type_;
+    QString args_;
+    QString command_;
 };
 
-#endif
+#endif // COMMAND_H

@@ -78,7 +78,7 @@ public:
 private slots:
     void sendImage(QImage image);
     void processPendingEvents();
-    void sendOpenContent(QString uri);
+    void sendCommand(QString command);
 
 private:
     PixelStreamer* pixelStreamer_;

@@ -43,6 +43,7 @@
 
 class PixelStreamDispatcher;
 class DisplayGroupManager;
+class CommandHandler;
 
 class NetworkListener : public QTcpServer
 {
@@ -54,15 +55,15 @@ public:
     NetworkListener(DisplayGroupManager& displayGroupManager, int port = defaultPortNumber_);
     ~NetworkListener();
 
-protected:
-    void incomingConnection(int socketDescriptor);
+    CommandHandler& getCommandHandler() const;
 
-private slots:
-    void handleUri(QString uri, QString contentUri);
+protected:
+    virtual void incomingConnection(int socketDescriptor);
 
 private:
     DisplayGroupManager& displayGroupManager_;
     PixelStreamDispatcher* pixelStreamDispatcher_;
+    CommandHandler* commandHandler_;
 };
 
 #endif

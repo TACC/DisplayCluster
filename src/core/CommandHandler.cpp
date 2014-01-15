@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,79 +37,60 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef NETWORK_LISTENER_THREAD_H
-#define NETWORK_LISTENER_THREAD_H
+#include "CommandHandler.h"
 
-#include "MessageHeader.h"
-#include "Event.h"
-#include "PixelStreamSegment.h"
-#include "EventReceiver.h"
+#include "Command.h"
+#include "log.h"
 
-#include <QtNetwork/QTcpSocket>
-#include <QQueue>
+#include "ContentLoader.h"
+#include "StateSerializationHelper.h"
 
-using dc::Event;
-using dc::PixelStreamSegment;
-
-class NetworkListenerThread : public EventReceiver
+CommandHandler::CommandHandler(DisplayGroupManager& displayGroupManager)
+    : displayGroupManager_(displayGroupManager)
 {
-    Q_OBJECT
+}
 
-public:
+void CommandHandler::process(const QString command, const QString parentWindowUri)
+{
+    Command commandObject(command);
 
-    NetworkListenerThread(int socketDescriptor);
-    ~NetworkListenerThread();
+    switch(commandObject.getType())
+    {
+    case COMMAND_TYPE_FILE:
+        handleFileCommand(commandObject.getArguments(), parentWindowUri);
+        break;
+    case COMMAND_TYPE_WEBBROWSER:
+        handleWebbrowserCommand(commandObject.getArguments());
+        break;
+    case COMMAND_TYPE_UNKNOWN:
+    default:
+        put_flog( LOG_ERROR, "Invalid command received: '%s'",
+                  command.toStdString().c_str());
+        return;
+    }
+}
 
-public slots:
+void CommandHandler::handleFileCommand(const QString& uri, const QString& parentWindowUri)
+{
+    const QString& extension = QFileInfo(uri).suffix().toLower();
 
-    void processEvent(Event event);
-    void pixelStreamerClosed(QString uri);
+    if( extension == "dcx" )
+    {
+        StateSerializationHelper(displayGroupManager_.shared_from_this()).load(uri);
+    }
+    else if ( ContentFactory::getSupportedExtensions().contains( extension ))
+    {
+        ContentLoader loader(displayGroupManager_.shared_from_this());
+        loader.load(uri, parentWindowUri);
+    }
+    else
+    {
+        put_flog(LOG_WARN, "Received uri with unsupported extension: '%s'",
+                 uri.toStdString().c_str());
+    }
+}
 
-    void eventRegistrationRepy(QString uri, bool success);
-
-signals:
-
-    void finished();
-
-    void receivedAddPixelStreamSource(QString uri, size_t sourceIndex);
-    void receivedPixelStreamSegement(QString uri, size_t SourceIndex, PixelStreamSegment segment);
-    void receivedPixelStreamFinishFrame(QString uri, size_t SourceIndex);
-    void receivedRemovePixelStreamSource(QString uri, size_t sourceIndex);
-
-    void registerToEvents(QString uri, bool exclusive, EventReceiver* receiver);
-
-    void receivedCommand(QString command, QString senderUri);
-
-    /** @internal */
-    void dataAvailable();
-
-private slots:
-
-    void initialize();
-    void process();
-    void socketReceiveMessage();
-
-private:
-
-    int socketDescriptor_;
-    QTcpSocket* tcpSocket_;
-
-    QString pixelStreamUri_;
-
-    bool registeredToEvents_;
-    QQueue<Event> events_;
-
-    MessageHeader receiveMessageHeader();
-    QByteArray receiveMessageBody(const int size);
-
-    void handleMessage(const MessageHeader& messageHeader, const QByteArray& byteArray);
-    void handlePixelStreamMessage(const QString& uri, const QByteArray& byteArray);
-
-    void sendProtocolVersion();
-    void sendBindReply(const bool successful);
-    void send(const Event &event);
-    void sendQuit();
-    bool send(const MessageHeader& messageHeader);
-};
-
-#endif
+void CommandHandler::handleWebbrowserCommand(const QString &url)
+{
+    emit openWebBrowser(QPointF(), QSize(), url);
+}

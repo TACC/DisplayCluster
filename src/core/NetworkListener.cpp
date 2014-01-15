@@ -43,15 +43,14 @@
 #include "DisplayGroupManager.h"
 #include "log.h"
 
-#include "StateSerializationHelper.h"
-#include "ContentLoader.h"
-#include "localstreamer/DockPixelStreamer.h"
+#include "CommandHandler.h"
 
 const int NetworkListener::defaultPortNumber_ = 1701;
 
 NetworkListener::NetworkListener(DisplayGroupManager& displayGroupManager, int port)
     : displayGroupManager_(displayGroupManager)
     , pixelStreamDispatcher_(0)
+    , commandHandler_(0)
 {
     qRegisterMetaType<size_t>("size_t");
 
@@ -62,11 +61,18 @@ NetworkListener::NetworkListener(DisplayGroupManager& displayGroupManager, int p
     }
 
     pixelStreamDispatcher_ = new PixelStreamDispatcher();
+    commandHandler_ = new CommandHandler(displayGroupManager_);
 }
 
 NetworkListener::~NetworkListener()
 {
     delete pixelStreamDispatcher_;
+    delete commandHandler_;
+}
+
+CommandHandler& NetworkListener::getCommandHandler() const
+{
+    return *commandHandler_;
 }
 
 void NetworkListener::incomingConnection(int socketDescriptor)
@@ -84,8 +90,9 @@ void NetworkListener::incomingConnection(int socketDescriptor)
     connect(thread, SIGNAL(finished()), worker, SLOT(deleteLater()));
     connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
 
-    // Uri commands
-    connect(worker, SIGNAL(receivedUri(QString,QString)), this, SLOT(handleUri(QString,QString)));
+    // Commands
+    connect(worker, SIGNAL(receivedCommand(QString,QString)),
+            commandHandler_, SLOT(process(QString,QString)));
 
     // DisplayGroupManager
     connect(&displayGroupManager_, SIGNAL(pixelStreamViewClosed(QString)),
@@ -106,26 +113,4 @@ void NetworkListener::incomingConnection(int socketDescriptor)
             pixelStreamDispatcher_, SLOT(removeSource(QString,size_t)));
 
     thread->start();
-}
-
-void NetworkListener::handleUri(QString senderUri, QString contentUri)
-{
-    if ( senderUri == DockPixelStreamer::getUniqueURI( ))
-    {
-        const QString& extension = QFileInfo(contentUri).suffix().toLower();
-
-        if( extension == "dcx" )
-        {
-            StateSerializationHelper(displayGroupManager_.shared_from_this()).load(contentUri);
-        }
-        else if ( ContentFactory::getSupportedExtensions().contains( extension ))
-        {
-            ContentLoader loader(displayGroupManager_.shared_from_this());
-            loader.load(contentUri, DockPixelStreamer::getUniqueURI());
-        }
-        else
-        {
-            put_flog(LOG_WARN, "Received uri with unsupported extension %s:", contentUri.toStdString().c_str());
-        }
-    }
 }

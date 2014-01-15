@@ -53,6 +53,8 @@
 #define LOCALSTREAMER_BIN "localstreamer"
 #endif
 
+#define WEBBROWSER_DEFAULT_SIZE  QSize(1280, 1024)
+
 PixelStreamerLauncher::PixelStreamerLauncher(DisplayGroupManager* displayGroupManager)
     : displayGroupManager_(displayGroupManager)
 {
@@ -65,14 +67,16 @@ void PixelStreamerLauncher::openWebBrowser(const QPointF pos, const QSize size, 
     static int webbrowserCounter = 0;
     const QString& uri = QString("WebBrowser_%1").arg(webbrowserCounter++);
 
-    QString program = QString("%1/%2").arg(QCoreApplication::applicationDirPath(), LOCALSTREAMER_BIN);
+    const QString program = QString("%1/%2").arg(QCoreApplication::applicationDirPath(), LOCALSTREAMER_BIN);
+
+    const QSize viewportSize = !size.isEmpty() ? size : WEBBROWSER_DEFAULT_SIZE;
 
     CommandLineOptions options;
     options.setPixelStreamerType(PS_WEBKIT);
     options.setName(uri);
     options.setUrl(url);
-    options.setWidth(size.width());
-    options.setHeight(size.height());
+    options.setWidth(viewportSize.width());
+    options.setHeight(viewportSize.height());
 
     processes_[uri] = new QProcess(this);
     if ( !processes_[uri]->startDetached(program, options.getCommandLineArguments(), QDir::currentPath( )))
