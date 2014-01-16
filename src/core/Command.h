@@ -37,49 +37,46 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "CommandHandler.h"
+#ifndef COMMAND_H
+#define COMMAND_H
 
-#include "Command.h"
-#include "AbstractCommandHandler.h"
-#include "log.h"
+#include "CommandType.h"
 
-CommandHandler::CommandHandler()
+/**
+ * String format, prefix-base network command.
+ */
+class Command
 {
-}
+public:
+    /**
+     * Constructor.
+     * @param type The type of the command.
+     * @param args The command arguments.
+     */
+    Command(const CommandType type, const QString& args);
 
-CommandHandler::~CommandHandler()
-{
-    for(CommandHandlerMap::iterator it = handlers_.begin(); it != handlers_.end(); ++it)
-        delete it->second;
-    handlers_.clear();
-}
+    /**
+     * Constructor.
+     * @param command A string-formatted command, as obtained by getCommand().
+     */
+    Command(const QString& command);
 
-void CommandHandler::registerCommandHandler(AbstractCommandHandler* handler)
-{
-    unregisterCommandHandler(handler->getType());
-    handlers_[handler->getType()] = handler;
-}
+    /** Get the command type. */
+    CommandType getType() const;
 
-void CommandHandler::unregisterCommandHandler(CommandType type)
-{
-    if (handlers_.count(type))
-    {
-        delete handlers_[type];
-        handlers_.erase(type);
-    }
-}
+    /** Get the command arguments */
+    const QString& getArguments() const;
 
-void CommandHandler::process(const QString command, const QString parentWindowUri)
-{
-    Command commandObject(command);
+    /** Get the command in string format, typically for sending over the network. */
+    const QString& getCommand() const;
 
-    if (handlers_.count(commandObject.getType()))
-    {
-        handlers_[commandObject.getType()]->handle(command, parentWindowUri);
-    }
-    else
-    {
-        put_flog( LOG_WARN, "No handler for command: '%s'",
-                  command.toStdString().c_str());
-    }
-}
+    /** Check if the Command is valid (i.e. has a known type). */
+    bool isValid() const;
+
+private:
+    CommandType type_;
+    QString args_;
+    QString command_;
+};
+
+#endif // COMMAND_H

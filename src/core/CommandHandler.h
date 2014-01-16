@@ -40,11 +40,14 @@
 #ifndef COMMANDHANDLER_H
 #define COMMANDHANDLER_H
 
-#include <QObject>
-#include <QPointF>
-#include <QSize>
+#include "CommandType.h"
 
-#include "DisplayGroupManager.h"
+#include <map>
+#include <QObject>
+
+class AbstractCommandHandler;
+
+typedef std::map<CommandType, AbstractCommandHandler*> CommandHandlerMap;
 
 /**
  * A command handler for String formatted network commands.
@@ -54,11 +57,27 @@ class CommandHandler : public QObject
     Q_OBJECT
 
 public:
+    /** Constructor */
+    CommandHandler();
+
+    /** Destructor */
+    ~CommandHandler();
+
     /**
-     * Constructor.
-     * @param displayGroupManager The target DisplayGroupManager for the commands.
+     * Register a command handler.
+     *
+     * This class takes ownership of the handler. If a handler for the same
+     * CommandType was already registered, it will be replaced.
+     * @param handler The handler to register.
      */
-    CommandHandler(DisplayGroupManager& displayGroupManager);
+    void registerCommandHandler(AbstractCommandHandler* handler);
+
+    /**
+     * Unregister a command handler.
+     *
+     * @param type The type for which to unregister the command handler.
+     */
+    void unregisterCommandHandler(CommandType type);
 
 public slots:
     /**
@@ -68,16 +87,8 @@ public slots:
      */
     void process(const QString command, const QString parentWindowUri);
 
-signals:
-    /** Signal to open a Webbrowser */
-    void openWebBrowser(QPointF pos, QSize size, QString url);
-
 private:
-    DisplayGroupManager& displayGroupManager_;
-
-    void handleFileCommand(const QString& uri, const QString& parentWindowUri);
-    void handleSessionCommand(const QString& arguments);
-    void handleWebbrowserCommand(const QString& url);
+     CommandHandlerMap handlers_;
 };
 
 #endif // COMMANDHANDLER_H

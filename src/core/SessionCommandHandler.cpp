@@ -37,49 +37,29 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "CommandHandler.h"
+#include "SessionCommandHandler.h"
 
 #include "Command.h"
-#include "AbstractCommandHandler.h"
+#include "DisplayGroupManager.h"
 #include "log.h"
 
-CommandHandler::CommandHandler()
+SessionCommandHandler::SessionCommandHandler(DisplayGroupManager& displayGroupManager)
+    : displayGroupManager_(displayGroupManager)
 {
 }
 
-CommandHandler::~CommandHandler()
+CommandType SessionCommandHandler::getType() const
 {
-    for(CommandHandlerMap::iterator it = handlers_.begin(); it != handlers_.end(); ++it)
-        delete it->second;
-    handlers_.clear();
+    return COMMAND_TYPE_SESSION;
 }
 
-void CommandHandler::registerCommandHandler(AbstractCommandHandler* handler)
+void SessionCommandHandler::handle(const Command& command, const QString& senderUri)
 {
-    unregisterCommandHandler(handler->getType());
-    handlers_[handler->getType()] = handler;
-}
+    const QString& arguments = command.getArguments();
 
-void CommandHandler::unregisterCommandHandler(CommandType type)
-{
-    if (handlers_.count(type))
-    {
-        delete handlers_[type];
-        handlers_.erase(type);
-    }
-}
-
-void CommandHandler::process(const QString command, const QString parentWindowUri)
-{
-    Command commandObject(command);
-
-    if (handlers_.count(commandObject.getType()))
-    {
-        handlers_[commandObject.getType()]->handle(command, parentWindowUri);
-    }
+    if (arguments == "clearall")
+        displayGroupManager_.setContentWindowManagers(ContentWindowManagerPtrs());
     else
-    {
-        put_flog( LOG_WARN, "No handler for command: '%s'",
-                  command.toStdString().c_str());
-    }
+        put_flog( LOG_ERROR, "Invalid Session command received: '%s'",
+                  arguments.toStdString().c_str());
 }

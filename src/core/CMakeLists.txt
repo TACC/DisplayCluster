@@ -88,7 +88,9 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 list(APPEND SRCS
     BackgroundWidget.cpp
+    Command.cpp
     CommandHandler.cpp
+    CommandType.cpp
     Content.cpp
     ContentFactory.cpp
     ContentLoader.cpp
@@ -108,6 +110,7 @@ list(APPEND SRCS
     DynamicTexture.cpp
     DynamicTextureContent.cpp
     FactoryObject.cpp
+    FileCommandHandler.cpp
     FpsCounter.cpp
     GLWindow.cpp
     globals.cpp
@@ -116,8 +119,6 @@ list(APPEND SRCS
     gestures/PanGestureRecognizer.cpp
     gestures/PinchGesture.cpp
     gestures/PinchGestureRecognizer.cpp
-    ../Command.cpp
-    ../CommandType.cpp
     ../Event.cpp
     ../log.cpp
     ../MessageHeader.cpp
@@ -135,6 +136,7 @@ list(APPEND SRCS
     PixelStreamInteractionDelegate.cpp
     PixelStreamSegmentDecoder.cpp
     PixelStreamSegmentRenderer.cpp
+    SessionCommandHandler.cpp
     State.cpp
     StatePreview.cpp
     StateSerializationHelper.cpp
@@ -142,6 +144,7 @@ list(APPEND SRCS
     SVGContent.cpp
     Texture.cpp
     TextureContent.cpp
+    WebbrowserCommandHandler.cpp
     ZoomInteractionDelegate.cpp
     configuration/Configuration.cpp
     configuration/MasterConfiguration.cpp
@@ -184,6 +187,7 @@ list(APPEND MOC_HEADERS
     NetworkListenerThread.h
     Options.h
     PixelStreamDispatcher.h
+    WebbrowserCommandHandler.h
     localstreamer/AsyncImageLoader.h
     localstreamer/DockPixelStreamer.h
     localstreamer/PixelStreamer.h

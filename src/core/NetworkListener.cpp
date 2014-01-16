@@ -49,8 +49,8 @@ const int NetworkListener::defaultPortNumber_ = 1701;
 
 NetworkListener::NetworkListener(DisplayGroupManager& displayGroupManager, int port)
     : displayGroupManager_(displayGroupManager)
-    , pixelStreamDispatcher_(0)
-    , commandHandler_(0)
+    , pixelStreamDispatcher_(new PixelStreamDispatcher())
+    , commandHandler_(new CommandHandler())
 {
     qRegisterMetaType<size_t>("size_t");
 
@@ -59,9 +59,6 @@ NetworkListener::NetworkListener(DisplayGroupManager& displayGroupManager, int p
         put_flog(LOG_FATAL, "could not listen on port %i", port);
         exit(-1);
     }
-
-    pixelStreamDispatcher_ = new PixelStreamDispatcher();
-    commandHandler_ = new CommandHandler(displayGroupManager_);
 }
 
 NetworkListener::~NetworkListener()

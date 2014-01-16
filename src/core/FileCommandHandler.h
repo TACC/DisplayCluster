@@ -37,49 +37,37 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "CommandHandler.h"
+#ifndef FILECOMMANDHANDLER_H
+#define FILECOMMANDHANDLER_H
 
-#include "Command.h"
 #include "AbstractCommandHandler.h"
-#include "log.h"
 
-CommandHandler::CommandHandler()
+class DisplayGroupManager;
+
+/**
+ * Handle file Commands.
+ */
+class FileCommandHandler : public AbstractCommandHandler
 {
-}
+public:
+    /**
+     * Constructor
+     * @param displayGroupManager The target DisplayGroupManager for the commands.
+     */
+    FileCommandHandler(DisplayGroupManager& displayGroupManager);
 
-CommandHandler::~CommandHandler()
-{
-    for(CommandHandlerMap::iterator it = handlers_.begin(); it != handlers_.end(); ++it)
-        delete it->second;
-    handlers_.clear();
-}
+    /** Get the type of commands handled by the implementation. */
+    virtual CommandType getType() const;
 
-void CommandHandler::registerCommandHandler(AbstractCommandHandler* handler)
-{
-    unregisterCommandHandler(handler->getType());
-    handlers_[handler->getType()] = handler;
-}
+    /**
+     * Handle a file Command.
+     * @param command The Command to handle.
+     * @param senderUri The identifier of the sender (optional).
+     */
+    virtual void handle(const Command& command, const QString& senderUri);
 
-void CommandHandler::unregisterCommandHandler(CommandType type)
-{
-    if (handlers_.count(type))
-    {
-        delete handlers_[type];
-        handlers_.erase(type);
-    }
-}
+private:
+    DisplayGroupManager& displayGroupManager_;
+};
 
-void CommandHandler::process(const QString command, const QString parentWindowUri)
-{
-    Command commandObject(command);
-
-    if (handlers_.count(commandObject.getType()))
-    {
-        handlers_[commandObject.getType()]->handle(command, parentWindowUri);
-    }
-    else
-    {
-        put_flog( LOG_WARN, "No handler for command: '%s'",
-                  command.toStdString().c_str());
-    }
-}
+#endif // FILECOMMANDHANDLER_H

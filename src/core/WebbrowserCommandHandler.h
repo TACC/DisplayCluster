@@ -37,49 +37,42 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "CommandHandler.h"
+#ifndef WEBBROWSERCOMMANDHANDLER_H
+#define WEBBROWSERCOMMANDHANDLER_H
 
-#include "Command.h"
 #include "AbstractCommandHandler.h"
-#include "log.h"
 
-CommandHandler::CommandHandler()
+#include <QObject>
+#include <QPointF>
+#include <QSize>
+
+class PixelStreamerLauncher;
+
+/**
+ * Handle webbrowser Commands.
+ */
+class WebbrowserCommandHandler : public QObject, public AbstractCommandHandler
 {
-}
+    Q_OBJECT
 
-CommandHandler::~CommandHandler()
-{
-    for(CommandHandlerMap::iterator it = handlers_.begin(); it != handlers_.end(); ++it)
-        delete it->second;
-    handlers_.clear();
-}
+public:
+    /** Constructor */
+    WebbrowserCommandHandler(PixelStreamerLauncher& pixelStreamLauncher);
 
-void CommandHandler::registerCommandHandler(AbstractCommandHandler* handler)
-{
-    unregisterCommandHandler(handler->getType());
-    handlers_[handler->getType()] = handler;
-}
+    /** Get the type of commands handled by the implementation. */
+    virtual CommandType getType() const;
 
-void CommandHandler::unregisterCommandHandler(CommandType type)
-{
-    if (handlers_.count(type))
-    {
-        delete handlers_[type];
-        handlers_.erase(type);
-    }
-}
+    /**
+     * Handle a webbrowswe Command.
+     * @param command The Command to handle.
+     * @param senderUri The identifier of the sender (optional).
+     */
+    virtual void handle(const Command& command, const QString& senderUri = QString());
 
-void CommandHandler::process(const QString command, const QString parentWindowUri)
-{
-    Command commandObject(command);
+signals:
+    /** Signal the PixelStreamLauncher to open a Webbrowser */
+    void openWebBrowser(QPointF pos, QSize size, QString url);
 
-    if (handlers_.count(commandObject.getType()))
-    {
-        handlers_[commandObject.getType()]->handle(command, parentWindowUri);
-    }
-    else
-    {
-        put_flog( LOG_WARN, "No handler for command: '%s'",
-                  command.toStdString().c_str());
-    }
-}
+};
+
+#endif // WEBBROWSERCOMMANDHANDLER_H

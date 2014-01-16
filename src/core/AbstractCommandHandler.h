@@ -37,49 +37,33 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "CommandHandler.h"
+#ifndef ABSTRACTCOMMANDHANDLER_H
+#define ABSTRACTCOMMANDHANDLER_H
 
-#include "Command.h"
-#include "AbstractCommandHandler.h"
-#include "log.h"
+#include "CommandType.h"
 
-CommandHandler::CommandHandler()
+#include <QString>
+
+class Command;
+
+/**
+ * The base interface for Command handlers.
+ */
+class AbstractCommandHandler
 {
-}
+public:
+    /** Destructor */
+    virtual ~AbstractCommandHandler() {}
 
-CommandHandler::~CommandHandler()
-{
-    for(CommandHandlerMap::iterator it = handlers_.begin(); it != handlers_.end(); ++it)
-        delete it->second;
-    handlers_.clear();
-}
+    /** Get the type of commands handled by the implementation. */
+    virtual CommandType getType() const = 0;
 
-void CommandHandler::registerCommandHandler(AbstractCommandHandler* handler)
-{
-    unregisterCommandHandler(handler->getType());
-    handlers_[handler->getType()] = handler;
-}
+    /**
+     * Handle a Command.
+     * @param command The Command to handle.
+     * @param senderUri The identifier of the sender (optional).
+     */
+    virtual void handle(const Command& command, const QString& senderUri) = 0;
+};
 
-void CommandHandler::unregisterCommandHandler(CommandType type)
-{
-    if (handlers_.count(type))
-    {
-        delete handlers_[type];
-        handlers_.erase(type);
-    }
-}
-
-void CommandHandler::process(const QString command, const QString parentWindowUri)
-{
-    Command commandObject(command);
-
-    if (handlers_.count(commandObject.getType()))
-    {
-        handlers_[commandObject.getType()]->handle(command, parentWindowUri);
-    }
-    else
-    {
-        put_flog( LOG_WARN, "No handler for command: '%s'",
-                  command.toStdString().c_str());
-    }
-}
+#endif // ABSTRACTCOMMANDHANDLER_H

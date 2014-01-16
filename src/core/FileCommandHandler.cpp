@@ -37,26 +37,41 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef COMMAND_H
-#define COMMAND_H
+#include "FileCommandHandler.h"
 
-#include "CommandType.h"
+#include "Command.h"
+#include "DisplayGroupManager.h"
+#include "ContentLoader.h"
+#include "StateSerializationHelper.h"
+#include "log.h"
 
-class Command
+FileCommandHandler::FileCommandHandler(DisplayGroupManager& displayGroupManager)
+    : displayGroupManager_(displayGroupManager)
 {
-public:
-    Command(const CommandType type, const QString& args);
-    Command(const QString& command);
+}
 
-    CommandType getType() const;
-    const QString& getArguments() const;
-    const QString& getCommand() const;
-    bool isValid() const;
+CommandType FileCommandHandler::getType() const
+{
+    return COMMAND_TYPE_FILE;
+}
 
-private:
-    CommandType type_;
-    QString args_;
-    QString command_;
-};
+void FileCommandHandler::handle(const Command& command, const QString& senderUri)
+{
+    const QString& uri = command.getArguments();
+    const QString& extension = QFileInfo(uri).suffix().toLower();
 
-#endif // COMMAND_H
+    if( extension == "dcx" )
+    {
+        StateSerializationHelper(displayGroupManager_.shared_from_this()).load(uri);
+    }
+    else if ( ContentFactory::getSupportedExtensions().contains( extension ))
+    {
+        ContentLoader loader(displayGroupManager_.shared_from_this());
+        loader.load(uri, senderUri);
+    }
+    else
+    {
+        put_flog(LOG_WARN, "Received uri with unsupported extension: '%s'",
+                 uri.toStdString().c_str());
+    }
+}

@@ -42,6 +42,9 @@
 
 #include <QString>
 
+/**
+ * The different types of Commands.
+ */
 enum CommandType
 {
     COMMAND_TYPE_UNKNOWN,
@@ -51,9 +54,10 @@ enum CommandType
     COMMAND_TYPE_RTNEURON
 };
 
+/** Get the string representation for a CommandType. */
 QString getCommandTypeString( const CommandType type );
 
+/** Get the CommandType from its string representation. */
 CommandType getCommandType( const QString& typeString );
-
 
 #endif // COMMANDTYPE_H

@@ -37,49 +37,24 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "CommandHandler.h"
+#include "WebbrowserCommandHandler.h"
 
 #include "Command.h"
-#include "AbstractCommandHandler.h"
-#include "log.h"
+#include "localstreamer/PixelStreamerLauncher.h"
 
-CommandHandler::CommandHandler()
+WebbrowserCommandHandler::WebbrowserCommandHandler(PixelStreamerLauncher& pixelStreamLauncher)
 {
+    connect(this, SIGNAL(openWebBrowser(QPointF,QSize,QString)),
+            &pixelStreamLauncher, SLOT(openWebBrowser(QPointF,QSize,QString)));
 }
 
-CommandHandler::~CommandHandler()
+CommandType WebbrowserCommandHandler::getType() const
 {
-    for(CommandHandlerMap::iterator it = handlers_.begin(); it != handlers_.end(); ++it)
-        delete it->second;
-    handlers_.clear();
+    return COMMAND_TYPE_WEBBROWSER;
 }
 
-void CommandHandler::registerCommandHandler(AbstractCommandHandler* handler)
+void WebbrowserCommandHandler::handle(const Command& command, const QString& senderUri)
 {
-    unregisterCommandHandler(handler->getType());
-    handlers_[handler->getType()] = handler;
-}
-
-void CommandHandler::unregisterCommandHandler(CommandType type)
-{
-    if (handlers_.count(type))
-    {
-        delete handlers_[type];
-        handlers_.erase(type);
-    }
-}
-
-void CommandHandler::process(const QString command, const QString parentWindowUri)
-{
-    Command commandObject(command);
-
-    if (handlers_.count(commandObject.getType()))
-    {
-        handlers_[commandObject.getType()]->handle(command, parentWindowUri);
-    }
-    else
-    {
-        put_flog( LOG_WARN, "No handler for command: '%s'",
-                  command.toStdString().c_str());
-    }
+    const QString& url = command.getArguments();
+    emit openWebBrowser(QPointF(), QSize(), url);
 }
