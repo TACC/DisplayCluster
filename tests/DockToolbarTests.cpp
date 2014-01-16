@@ -1,5 +1,5 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
 /*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
@@ -37,79 +37,52 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DOCKPIXELSTREAMER_H
-#define DOCKPIXELSTREAMER_H
+#define BOOST_TEST_MODULE DockToolbarTests
+#include <boost/test/unit_test.hpp>
+namespace ut = boost::unit_test;
 
-#include "PixelStreamer.h"
+#include "localstreamer/DockToolbar.h"
 
-#include <QtCore/QDir>
-#include <QtCore/QObject>
-#include <QtCore/QThread>
-#include <QtCore/QHash>
-#include <QtCore/QVector>
-#include <QtCore/QLinkedList>
-#include <QtGui/QImage>
-
-class PictureFlow;
-class AsyncImageLoader;
-class DockToolbar;
-
-class DockPixelStreamer : public PixelStreamer
+BOOST_AUTO_TEST_CASE( testDockToolbarImageSize )
 {
-    Q_OBJECT
+    QSize size( 512, 64 );
+    DockToolbar toolbar( size );
 
-public:
-    static QString getUniqueURI();
-    static float getDefaultAspectRatio();
+    BOOST_CHECK_EQUAL( toolbar.getSize().width(), size.width( ));
+    BOOST_CHECK_EQUAL( toolbar.getSize().height(), size.height( ));
 
-    DockPixelStreamer(const QSize& size, const QString& rootDir);
-    ~DockPixelStreamer();
+    BOOST_CHECK_EQUAL( toolbar.getImage().size().width(), size.width( ));
+    BOOST_CHECK_EQUAL( toolbar.getImage().size().height(), size.height( ));
+}
 
-    virtual QSize size() const;
+BOOST_AUTO_TEST_CASE( testDockToolbarButtons )
+{
+    QSize size( 512, 64 );
+    DockToolbar toolbar( size );
 
-    bool setRootDir(const QString& dir);
+    BOOST_CHECK( !toolbar.getButtonAt( QPoint( 128, 10 )));
 
-public slots:
-    virtual void processEvent(Event event);
+    toolbar.addButton(ToolbarButton("Button1", QImage(), "command1"));
+    toolbar.addButton(ToolbarButton("Button2", QImage(), "command2"));
+    toolbar.addButton(ToolbarButton("Button3", QImage(), "command3"));
 
-private slots:
-    void update(const QImage &image);
-    void loadThumbnails(int newCenterIndex);
-    void loadNextThumbnailInList();
+    BOOST_CHECK( !toolbar.getButtonAt( QPoint( 128, -10 )));
+    BOOST_CHECK( !toolbar.getButtonAt( QPoint( 128, 64 )));
+    BOOST_CHECK( !toolbar.getButtonAt( QPoint( 512, 10 )));
+    BOOST_CHECK( !toolbar.getButtonAt( QPoint( 784, 10 )));
 
-signals:
-    void renderPreview( const QString& fileName, const int index );
+    const ToolbarButton* button1 = toolbar.getButtonAt( QPoint( 128, 10 ));
+    BOOST_REQUIRE( button1 );
+    BOOST_CHECK_EQUAL( button1->caption.toStdString(), "Button1" );
+    BOOST_CHECK_EQUAL( button1->command.toStdString(), "command1" );
 
-private:
-    PictureFlow* flow_;
-    AsyncImageLoader* loader_;
-    DockToolbar* toolbar_;
-    QImage toolbarImage_;
+    const ToolbarButton* button2 = toolbar.getButtonAt( QPoint( 512/3 + 1, 50 ));
+    BOOST_REQUIRE( button2 );
+    BOOST_CHECK_EQUAL( button2->caption.toStdString(), "Button2" );
+    BOOST_CHECK_EQUAL( button2->command.toStdString(), "command2" );
 
-    QThread loadThread_;
-
-    QString rootDir_;
-    QDir currentDir_;
-    QHash< QString, int > slideIndex_;
-
-    typedef QPair<bool, QString> SlideImageLoadingStatus;
-    QVector<SlideImageLoadingStatus> slideImagesLoaded_;
-    QLinkedList<int> slideImagesToLoad_;
-
-    void createFlow(const QSize& dockSize);
-    void createToolbar(const unsigned int width, const unsigned int height);
-    void createImageLoader();
-
-    void processClickEvent(const Event& event);
-    void onItem();
-    void changeDirectory( const QString& dir );
-    void addRootDirToFlow();
-    void addFilesToFlow();
-    void addFoldersToFlow();
-
-    QSize getMinSize() const;
-    QSize getMaxSize() const;
-    QSize constrainSize(const QSize& size) const;
-};
-
-#endif // DOCKPIXELSTREAMER_H
+    const ToolbarButton* button3 = toolbar.getButtonAt( QPoint( 512-1, 50 ));
+    BOOST_REQUIRE( button3 );
+    BOOST_CHECK_EQUAL( button3->caption.toStdString(), "Button3" );
+    BOOST_CHECK_EQUAL( button3->command.toStdString(), "command3" );
+}

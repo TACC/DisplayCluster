@@ -59,6 +59,9 @@ void CommandHandler::process(const QString command, const QString parentWindowUr
     case COMMAND_TYPE_FILE:
         handleFileCommand(commandObject.getArguments(), parentWindowUri);
         break;
+    case COMMAND_TYPE_SESSION:
+        handleSessionCommand(commandObject.getArguments());
+        break;
     case COMMAND_TYPE_WEBBROWSER:
         handleWebbrowserCommand(commandObject.getArguments());
         break;
@@ -88,6 +91,15 @@ void CommandHandler::handleFileCommand(const QString& uri, const QString& parent
         put_flog(LOG_WARN, "Received uri with unsupported extension: '%s'",
                  uri.toStdString().c_str());
     }
+}
+
+void CommandHandler::handleSessionCommand(const QString &arguments)
+{
+    if (arguments == "clearall")
+        displayGroupManager_.setContentWindowManagers(ContentWindowManagerPtrs());
+    else
+        put_flog( LOG_ERROR, "Invalid Session command received: '%s'",
+                  arguments.toStdString().c_str());
 }
 
 void CommandHandler::handleWebbrowserCommand(const QString &url)

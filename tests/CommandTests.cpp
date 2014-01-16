@@ -49,6 +49,7 @@ BOOST_AUTO_TEST_CASE( testCommandTypeToStringConversion )
 {
     BOOST_CHECK_EQUAL( getCommandTypeString(COMMAND_TYPE_UNKNOWN).toStdString(), "unknown" );
     BOOST_CHECK_EQUAL( getCommandTypeString(COMMAND_TYPE_FILE).toStdString(), "file" );
+    BOOST_CHECK_EQUAL( getCommandTypeString(COMMAND_TYPE_SESSION).toStdString(), "session" );
     BOOST_CHECK_EQUAL( getCommandTypeString(COMMAND_TYPE_WEBBROWSER).toStdString(), "webbrowser" );
     BOOST_CHECK_EQUAL( getCommandTypeString(COMMAND_TYPE_RTNEURON).toStdString(), "rtneuron" );
 
@@ -56,6 +57,7 @@ BOOST_AUTO_TEST_CASE( testCommandTypeToStringConversion )
     BOOST_CHECK_EQUAL( getCommandType("zorglump"), COMMAND_TYPE_UNKNOWN );
     BOOST_CHECK_EQUAL( getCommandType("unknown"), COMMAND_TYPE_UNKNOWN );
     BOOST_CHECK_EQUAL( getCommandType("file"), COMMAND_TYPE_FILE );
+    BOOST_CHECK_EQUAL( getCommandType("session"), COMMAND_TYPE_SESSION );
     BOOST_CHECK_EQUAL( getCommandType("webbrowser"), COMMAND_TYPE_WEBBROWSER );
     BOOST_CHECK_EQUAL( getCommandType("rtneuron"), COMMAND_TYPE_RTNEURON );
 }

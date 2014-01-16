@@ -42,33 +42,60 @@
 
 #include <QImage>
 
+/**
+ * A simple button for the DockToolbar.
+ */
 struct ToolbarButton
 {
+    /** Text caption. */
     QString caption;
+    /** Icon image. */
     QImage icon;
+    /** User-defined command associated with this button. */
     QString command;
 
+    /** Constructor */
     ToolbarButton(QString caption, QImage icon, QString command)
         : caption(caption), icon(icon), command(command) {}
 };
 
+/**
+ * A Toolbar for the Dock.
+ *
+ * Renders a list of buttons layed out horizontally with an icon and text caption.
+ */
 class DockToolbar
 {
 public:
-    DockToolbar(const unsigned int height);
+    /**
+     * Constructor
+     * @param size The size of the Toolbar in pixels.
+     */
+    DockToolbar(const QSize size);
 
-    void render(QImage& buffer);
-
+    /** Add a button. */
     void addButton(const ToolbarButton& button);
 
-    unsigned int getHeight() const;
+    /** Get the size in pixels. */
+    QSize getSize() const;
 
-    QString getClickResult(const QPoint pos) const;
+    /** Get the image, regenerating it if required. */
+    const QImage& getImage();
+
+    /**
+     * Get the button at the given position.
+     * @param pos A position in pixels inside the toolbar.
+     * @return A pointer to the button, or a nullptr if there is no button at the given position.
+     */
+    const ToolbarButton* getButtonAt(const QPoint pos) const;
 
 private:
-    const unsigned int height_;
     QRect area_;
     QList<ToolbarButton> buttons;
+    QImage image_;
+    bool needsUpdate_;
+
+    void render(QImage& buffer);
     void drawButton(QPainter& painter, const ToolbarButton& button, const int index);
 };
 

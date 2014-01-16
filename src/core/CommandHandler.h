@@ -46,23 +46,37 @@
 
 #include "DisplayGroupManager.h"
 
+/**
+ * A command handler for String formatted network commands.
+ */
 class CommandHandler : public QObject
 {
     Q_OBJECT
 
 public:
+    /**
+     * Constructor.
+     * @param displayGroupManager The target DisplayGroupManager for the commands.
+     */
     CommandHandler(DisplayGroupManager& displayGroupManager);
 
 public slots:
+    /**
+     * Process a command.
+     * @param command The command string, formatted by the Command class.
+     * @param parentWindowUri Optional identifier of the window issuing the command.
+     */
     void process(const QString command, const QString parentWindowUri);
 
 signals:
+    /** Signal to open a Webbrowser */
     void openWebBrowser(QPointF pos, QSize size, QString url);
 
 private:
     DisplayGroupManager& displayGroupManager_;
 
     void handleFileCommand(const QString& uri, const QString& parentWindowUri);
+    void handleSessionCommand(const QString& arguments);
     void handleWebbrowserCommand(const QString& url);
 };
 

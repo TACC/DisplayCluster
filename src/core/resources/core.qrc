@@ -7,5 +7,6 @@
         <file>error.png</file>
         <file>marker.png</file>
         <file>browser-icon.png</file>
+        <file>clearall-icon.png</file>
     </qresource>
 </RCC>

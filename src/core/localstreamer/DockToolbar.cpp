@@ -42,8 +42,10 @@
 #include <QPainter>
 #include <QColor>
 
-DockToolbar::DockToolbar(const unsigned int height)
-    : height_(height)
+DockToolbar::DockToolbar(const QSize size)
+    : area_(0, 0, size.width(), size.height())
+    , image_(size, QImage::Format_RGB32)
+    , needsUpdate_(true)
 {
 }
 
@@ -52,7 +54,6 @@ void DockToolbar::render(QImage& buffer)
     QPainter painter;
     painter.begin(&buffer);
 
-    area_ = QRect(0,0,buffer.width(), height_);
     QBrush brush;
     brush.setColor(Qt::gray);
     brush.setStyle(Qt::SolidPattern);
@@ -70,45 +71,66 @@ void DockToolbar::render(QImage& buffer)
 void DockToolbar::addButton(const ToolbarButton& button)
 {
     buttons.push_back(button);
+    needsUpdate_ = true;
 }
 
-unsigned int DockToolbar::getHeight() const
+QSize DockToolbar::getSize() const
 {
-    return height_;
+    return area_.size();
 }
 
-QString DockToolbar::getClickResult(const QPoint pos) const
+const ToolbarButton* DockToolbar::getButtonAt(const QPoint pos) const
 {
     if (!area_.contains(pos))
-        return QString();
+        return 0;
 
-    const int index = (float)pos.x() / (float)area_.width() * buttons.size();
+    const unsigned int index = (float)pos.x() / (float)area_.width() * buttons.size();
 
-    return buttons.at(index).command;
+    if ((int)index >= buttons.size())
+        return 0;
+
+    return &(buttons.at(index));
+}
+
+const QImage& DockToolbar::getImage()
+{
+    if(needsUpdate_)
+    {
+        render(image_);
+        needsUpdate_ = false;
+    }
+
+    return image_;
 }
 
 void DockToolbar::drawButton(QPainter& painter, const ToolbarButton& button, const int index)
 {
+    // Compute dimensions
     const unsigned int n = buttons.size();
-
     const unsigned int margin = area_.height() * 0.1;
     const unsigned int buttonWidth = (area_.width() - (n+1)*margin) / n;
+    const unsigned int buttonHeight = area_.height() - 2*margin;
 
-    QPoint topLeft(margin + index*(buttonWidth+margin), margin);
-    QSize buttonSize(buttonWidth, height_ - 2*margin);
-    QRect buttonArea(topLeft, buttonSize);
+    const QPoint topLeft(margin + index*(buttonWidth+margin), margin);
+    const QSize buttonSize(buttonWidth, buttonHeight);
+    const QRect buttonArea(topLeft, buttonSize);
 
+    // Render background
     QBrush brush;
     brush.setColor(Qt::lightGray);
     brush.setStyle(Qt::SolidPattern);
-    painter.fillRect(buttonArea, brush);
+    painter.setBrush(brush); // Filling
+    painter.setPen(Qt::NoPen); // Outline
+    painter.drawRoundedRect(buttonArea, 5, 5);
 
+    // Render icon
     QRect imageArea(buttonArea);
     imageArea.setWidth(imageArea.height());
     painter.drawImage(imageArea, button.icon);
 
-    QRect textArea(imageArea.topRight() + QPoint(margin, margin),
-                   buttonArea.bottomRight() - QPoint(margin, margin));
+    // Render caption
+    const QRect textArea(imageArea.topRight() + QPoint(margin, margin),
+                         buttonArea.bottomRight() - QPoint(margin, margin));
     QFont font("Arial", textArea.height());
     font.setBold(true);
     painter.setFont(font);

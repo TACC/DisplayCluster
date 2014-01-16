@@ -50,7 +50,7 @@
 #include "Command.h"
 
 #define DOCK_ASPECT_RATIO        0.45
-#define SLIDE_REL_HEIGHT_FACTOR  0.5
+#define SLIDE_REL_HEIGHT_FACTOR  0.55
 
 #define SLIDE_MIN_SIZE           128
 #define SLIDE_MAX_SIZE           512
@@ -58,6 +58,7 @@
 #define COVERFLOW_SPEED_FACTOR   0.1
 
 #define WEBBROWSER_ICON ":/img/browser-icon.png"
+#define CLEARALL_ICON ":/img/clearall-icon.png"
 
 #define STARTUP_PAGE "http://www.google.com"
 
@@ -80,7 +81,7 @@ DockPixelStreamer::DockPixelStreamer(const QSize& size, const QString& rootDir)
     const QSize& dockSize = constrainSize(size);
 
     createFlow(dockSize);
-    createToolbar(dockSize.height()*0.15);
+    createToolbar(dockSize.width(), dockSize.height()*0.15);
     createImageLoader();
 
     loadThread_.start();
@@ -102,39 +103,7 @@ void DockPixelStreamer::processEvent(Event event)
 {
     if (event.type == Event::EVT_CLICK)
     {
-        // xPos is click position in (pixel) units inside the dock
-        const int xPos = event.mouseX * flow_->size().width();
-
-        // mid is half the width of the dock in (pixel) units
-        const int dockHalfWidth = flow_->size().width() / 2;
-
-        // SlideMid is half the slide width in pixels
-        const int slideHalfWidth = flow_->slideSize().width() / 2;
-
-        // yPos is the click position in pixel units inside the dock
-        const int yPos = event.mouseY * flow_->size().height();
-
-        // Process toolbar action
-        if (yPos < (int)toolbar_->getHeight())
-        {
-            QString command = toolbar_->getClickResult(QPoint(xPos,yPos));
-            if (!command.isEmpty())
-                emit sendCommand(command);
-            return;
-        }
-
-        // Process flow action
-        if( xPos > dockHalfWidth-slideHalfWidth && xPos < dockHalfWidth+slideHalfWidth )
-        {
-            onItem();
-        }
-        else
-        {
-            if( xPos > dockHalfWidth )
-                flow_->showNext();
-            else
-                flow_->showPrevious();
-        }
+        processClickEvent(event);
     }
 
     else if (event.type == Event::EVT_MOVE || event.type == Event::EVT_WHEEL)
@@ -144,9 +113,44 @@ void DockPixelStreamer::processEvent(Event event)
     }
 }
 
+void DockPixelStreamer::processClickEvent(const Event& event)
+{
+    // click position in pixel units inside the dock
+    const int xPos = event.mouseX * flow_->size().width();
+    const int yPos = event.mouseY * flow_->size().height();
+
+    // mid is half the width of the dock in (pixel) units
+    const int dockHalfWidth = flow_->size().width() / 2;
+
+    // SlideMid is half the slide width in pixels
+    const int slideHalfWidth = flow_->slideSize().width() / 2;
+
+    // Process toolbar action
+    if (yPos < (int)toolbar_->getSize().height())
+    {
+        const ToolbarButton* button = toolbar_->getButtonAt(QPoint(xPos,yPos));
+        if (button && !button->command.isEmpty())
+            emit sendCommand(button->command);
+        return;
+    }
+
+    // Process flow action
+    if( xPos > dockHalfWidth-slideHalfWidth && xPos < dockHalfWidth+slideHalfWidth )
+    {
+        onItem();
+    }
+    else
+    {
+        if( xPos > dockHalfWidth )
+            flow_->showNext();
+        else
+            flow_->showPrevious();
+    }
+}
+
 QSize DockPixelStreamer::size() const
 {
-    return flow_->size();
+    return QSize(flow_->size().width(), flow_->size().height() + toolbar_->getSize().height());
 }
 
 bool DockPixelStreamer::setRootDir(const QString& dir)
@@ -177,8 +181,17 @@ void DockPixelStreamer::onItem()
 
 void DockPixelStreamer::update(const QImage& image)
 {
-    QImage newImage = image;
-    toolbar_->render(newImage);
+    QImage newImage(size(), image.format());
+
+    // Copy Toolbar
+    uchar* dst = newImage.bits();
+    const QImage& toolbarImage = toolbar_->getImage();
+    memcpy(dst, toolbarImage.bits(), toolbarImage.byteCount());
+    dst += toolbarImage.byteCount();
+
+    // Copy Flow
+    memcpy(dst, image.bits(), image.byteCount());
+
     emit imageUpdated(newImage);
 }
 
@@ -223,17 +236,15 @@ void DockPixelStreamer::createFlow(const QSize& dockSize)
     connect( flow_, SIGNAL( targetIndexChanged(int)), this, SLOT(loadThumbnails(int)) );
 }
 
-void DockPixelStreamer::createToolbar(const unsigned int height)
+void DockPixelStreamer::createToolbar(const unsigned int width, const unsigned int height)
 {
-    toolbar_ = new DockToolbar(height);
-
-    QImage icon = QImage( WEBBROWSER_ICON );
+    toolbar_ = new DockToolbar(QSize(width, height));
 
     Command webbrowserCommand(COMMAND_TYPE_WEBBROWSER, STARTUP_PAGE);
-    toolbar_->addButton( ToolbarButton( "Webbrowser", icon, webbrowserCommand.getCommand() ));
+    toolbar_->addButton( ToolbarButton( "Webbrowser", QImage(WEBBROWSER_ICON), webbrowserCommand.getCommand() ));
 
-    Command clearallCommand(COMMAND_TYPE_WEBBROWSER, "http://www.perdu.com");
-    toolbar_->addButton( ToolbarButton( "Clear all", icon, clearallCommand.getCommand() ));
+    Command clearallCommand(COMMAND_TYPE_SESSION, "clearall");
+    toolbar_->addButton( ToolbarButton( "Clear all", QImage(CLEARALL_ICON), clearallCommand.getCommand() ));
 }
 
 void DockPixelStreamer::createImageLoader()
