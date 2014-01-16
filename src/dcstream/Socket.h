@@ -43,7 +43,7 @@
 #include <QByteArray>
 #include <QObject>
 
-class MessageHeader;
+struct MessageHeader;
 class QTcpSocket;
 
 namespace dc

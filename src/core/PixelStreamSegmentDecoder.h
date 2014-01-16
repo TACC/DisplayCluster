@@ -44,7 +44,7 @@
 
 namespace dc
 {
-class PixelStreamSegment;
+struct PixelStreamSegment;
 }
 using dc::PixelStreamSegment;
 

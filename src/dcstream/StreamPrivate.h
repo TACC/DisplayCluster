@@ -52,8 +52,8 @@ namespace dc
 {
 
 class Socket;
-class PixelStreamSegment;
-class PixelStreamSegmentParameters;
+struct PixelStreamSegment;
+struct PixelStreamSegmentParameters;
 
 /**
  * Private implementation for the Stream class.

@@ -1,10 +1,4 @@
 
-if(NOT BUILD_DCSTREAM_LIBRARY)
-  message(WARNING
-    "Can't build desktop streamer application without dcstream library")
-  return()
-endif()
-
 set(DESKTOP_STREAMER_SRCS ${DESKTOP_STREAMER_SRCS}
     src/DesktopSelectionRectangle.cpp
     src/DesktopSelectionWindow.cpp
@@ -22,26 +16,21 @@ set(DESKTOP_STREAMER_MOC_HEADERS
 qt4_wrap_cpp(DESKTOP_STREAMER_MOC_OUTFILES ${DESKTOP_STREAMER_MOC_HEADERS})
 qt4_add_resources(DESKTOP_STREAMER_RRC resources.qrc)
 
-set(DESKTOP_STREAMER_LIBS ${QT_QTCORE_LIBRARY}
-                          ${QT_QTGUI_LIBRARY}
-                          ${QT_QTNETWORK_LIBRARY}
-                          ${LibJpegTurbo_LIBRARIES})
+set(DESKTOP_STREAMER_LIBS ${QT_QTCORE_LIBRARY} ${QT_QTGUI_LIBRARY})
 
 if(APPLE)
   set(STREAMER_APP_NAME DesktopStreamer)
+  set(STREAMER_ICON_FILE desktopstreamer.icns)
 
   # set where in the bundle to put the icns file
-  set_source_files_properties(${STREAMER_APP_NAME}.icns
+  set_source_files_properties(${STREAMER_ICON_FILE}
     PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 
-  add_executable(${STREAMER_APP_NAME} MACOSX_BUNDLE
+  # include the icns file in the target
+  add_executable(${STREAMER_APP_NAME} MACOSX_BUNDLE ${STREAMER_ICON_FILE}
     ${DESKTOP_STREAMER_SRCS} ${DESKTOP_STREAMER_MOC_OUTFILES} ${DESKTOP_STREAMER_RRC})
   set_target_properties(${STREAMER_APP_NAME} PROPERTIES
     MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist)
-
-  get_target_property(dcstreamfile dcstream LOCATION)
-  install(FILES ${DESKTOP_STREAMER_LIBS} ${dcstreamfile}
-    DESTINATION ${CMAKE_BINARY_DIR}/${STREAMER_APP_NAME}.app/Contents/MacOS)
 elseif(WIN32)
   set(STREAMER_APP_NAME desktopstreamer)
   list(APPEND DESKTOP_STREAMER_LIBS ${QT_QTMAIN_LIBRARY})
