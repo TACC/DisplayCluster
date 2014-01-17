@@ -42,8 +42,12 @@
 #include "thumbnail/ThumbnailGeneratorFactory.h"
 #include "thumbnail/ThumbnailGenerator.h"
 
+#include <QFileInfo>
+#include <QDateTime>
+
 #define USE_CACHE
 #define CACHE_MAX_SIZE 100
+#define MODIFICATION_DATE_KEY "lastModificationDate"
 
 AsyncImageLoader::AsyncImageLoader(const QSize& defaultSize)
     : defaultSize_(defaultSize)
@@ -54,22 +58,33 @@ AsyncImageLoader::AsyncImageLoader(const QSize& defaultSize)
 void AsyncImageLoader::loadImage( const QString& filename, const int index )
 {
 #ifdef USE_CACHE
-    if (cache_.contains(filename))
+    if (imageInCache(filename))
     {
         emit imageLoaded(index, *cache_[filename]);
+        return;
     }
-    else
+#endif
+
+    QImage image = ThumbnailGeneratorFactory::getGenerator(filename, defaultSize_)->generate(filename);
+    if (!image.isNull())
     {
-#endif
-        QImage image = ThumbnailGeneratorFactory::getGenerator(filename, defaultSize_)->generate(filename);
-        if (!image.isNull())
-        {
 #ifdef USE_CACHE
-            cache_.insert(filename, new QImage(image));
+        // QCache requires a <T>* and takes ownership, so we have to create new QImage
+        QImage* cacheImage = new QImage(image);
+        cacheImage->setText(MODIFICATION_DATE_KEY, QFileInfo(filename).lastModified().toString());
+        cache_.insert(filename, cacheImage);
 #endif
-            emit imageLoaded(index, image);
-        }
+        emit imageLoaded(index, image);
     }
 
     emit imageLoadingFinished();
+}
+
+bool AsyncImageLoader::imageInCache(const QString& filename) const
+{
+    if (!cache_.contains(filename))
+        return false;
+
+    const QFileInfo info(filename);
+    return info.lastModified().toString() == cache_.object(filename)->text(MODIFICATION_DATE_KEY);
 }
