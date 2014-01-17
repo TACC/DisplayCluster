@@ -177,9 +177,10 @@ int main(int argc, char * argv[])
         networkListener = new NetworkListener(*g_displayGroupManager);
 
         CommandHandler& handler = networkListener->getCommandHandler();
-        handler.registerCommandHandler(new FileCommandHandler(*g_displayGroupManager));
+        handler.registerCommandHandler(new FileCommandHandler(g_displayGroupManager));
         handler.registerCommandHandler(new SessionCommandHandler(*g_displayGroupManager));
-        handler.registerCommandHandler(new WebbrowserCommandHandler(*pixelStreamerLauncher));
+        handler.registerCommandHandler(new WebbrowserCommandHandler(*g_displayGroupManager,
+                                                                    *pixelStreamerLauncher));
     }
 
     // wait for render comms to be ready for receiving and rendering background

@@ -84,7 +84,6 @@ private:
     PictureFlow* flow_;
     AsyncImageLoader* loader_;
     DockToolbar* toolbar_;
-    QImage toolbarImage_;
 
     QThread loadThread_;
 

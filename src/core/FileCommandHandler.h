@@ -42,7 +42,7 @@
 
 #include "AbstractCommandHandler.h"
 
-class DisplayGroupManager;
+#include "types.h"
 
 /**
  * Handle file Commands.
@@ -54,7 +54,7 @@ public:
      * Constructor
      * @param displayGroupManager The target DisplayGroupManager for the commands.
      */
-    FileCommandHandler(DisplayGroupManager& displayGroupManager);
+    FileCommandHandler(DisplayGroupManagerPtr displayGroupManager);
 
     /** Get the type of commands handled by the implementation. */
     virtual CommandType getType() const;
@@ -67,7 +67,7 @@ public:
     virtual void handle(const Command& command, const QString& senderUri);
 
 private:
-    DisplayGroupManager& displayGroupManager_;
+    DisplayGroupManagerPtr displayGroupManager_;
 };
 
 #endif // FILECOMMANDHANDLER_H

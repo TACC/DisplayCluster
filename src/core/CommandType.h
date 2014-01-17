@@ -50,8 +50,7 @@ enum CommandType
     COMMAND_TYPE_UNKNOWN,
     COMMAND_TYPE_FILE,
     COMMAND_TYPE_SESSION,
-    COMMAND_TYPE_WEBBROWSER,
-    COMMAND_TYPE_RTNEURON
+    COMMAND_TYPE_WEBBROWSER
 };
 
 /** Get the string representation for a CommandType. */

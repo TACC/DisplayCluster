@@ -49,14 +49,14 @@ struct ToolbarButton
 {
     /** Text caption. */
     QString caption;
-    /** Icon image. */
+    /** Icon image, should be square and have at least the same height as the Toolbar to avoid upscaling. */
     QImage icon;
     /** User-defined command associated with this button. */
     QString command;
 
     /** Constructor */
-    ToolbarButton(QString caption, QImage icon, QString command)
-        : caption(caption), icon(icon), command(command) {}
+    ToolbarButton(QString captionParam, QImage iconParam, QString commandParam)
+        : caption(captionParam), icon(iconParam), command(commandParam) {}
 };
 
 /**
@@ -73,30 +73,36 @@ public:
      */
     DockToolbar(const QSize size);
 
-    /** Add a button. */
-    void addButton(const ToolbarButton& button);
+    /** Destructor. */
+    ~DockToolbar();
+
+    /**
+     * Add a button to the right of the Toolbar.
+     * @param button The button to add. This class takes ownership of the object.
+     */
+    void addButton(ToolbarButton* button);
 
     /** Get the size in pixels. */
     QSize getSize() const;
 
     /** Get the image, regenerating it if required. */
-    const QImage& getImage();
+    const QImage& getImage() const;
 
     /**
      * Get the button at the given position.
      * @param pos A position in pixels inside the toolbar.
      * @return A pointer to the button, or a nullptr if there is no button at the given position.
      */
-    const ToolbarButton* getButtonAt(const QPoint pos) const;
+    const ToolbarButton* getButtonAt(const QPoint& pos) const;
 
 private:
     QRect area_;
-    QList<ToolbarButton> buttons;
-    QImage image_;
-    bool needsUpdate_;
+    QList<ToolbarButton*> buttons_;
+    mutable QImage image_;
+    mutable bool needsUpdate_;
 
-    void render(QImage& buffer);
-    void drawButton(QPainter& painter, const ToolbarButton& button, const int index);
+    void render(QImage& buffer) const;
+    void drawButton(QPainter& painter, const ToolbarButton& button, const int index) const;
 };
 
 #endif // DOCKTOOLBAR_H

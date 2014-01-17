@@ -47,6 +47,7 @@
 #include <QSize>
 
 class PixelStreamerLauncher;
+class DisplayGroupManager;
 
 /**
  * Handle webbrowser Commands.
@@ -57,7 +58,8 @@ class WebbrowserCommandHandler : public QObject, public AbstractCommandHandler
 
 public:
     /** Constructor */
-    WebbrowserCommandHandler(PixelStreamerLauncher& pixelStreamLauncher);
+    WebbrowserCommandHandler(DisplayGroupManager& displayGroupManager,
+                             PixelStreamerLauncher& pixelStreamLauncher);
 
     /** Get the type of commands handled by the implementation. */
     virtual CommandType getType() const;
@@ -72,6 +74,9 @@ public:
 signals:
     /** Signal the PixelStreamLauncher to open a Webbrowser */
     void openWebBrowser(QPointF pos, QSize size, QString url);
+
+private:
+    DisplayGroupManager& displayGroupManager_;
 
 };
 

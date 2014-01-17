@@ -51,7 +51,6 @@ CommandHandler::~CommandHandler()
 {
     for(CommandHandlerMap::iterator it = handlers_.begin(); it != handlers_.end(); ++it)
         delete it->second;
-    handlers_.clear();
 }
 
 void CommandHandler::registerCommandHandler(AbstractCommandHandler* handler)

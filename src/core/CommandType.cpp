@@ -47,8 +47,7 @@ static TypeMap typemap = boost::assign::list_of< TypeMap::relation >
         (COMMAND_TYPE_UNKNOWN, QString("unknown"))
         (COMMAND_TYPE_FILE, QString("file"))
         (COMMAND_TYPE_SESSION, QString("session"))
-        (COMMAND_TYPE_WEBBROWSER, QString("webbrowser"))
-        (COMMAND_TYPE_RTNEURON, QString("rtneuron"));
+        (COMMAND_TYPE_WEBBROWSER, QString("webbrowser"));
 
 QString getCommandTypeString( const CommandType type )
 {

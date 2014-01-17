@@ -241,10 +241,12 @@ void DockPixelStreamer::createToolbar(const unsigned int width, const unsigned i
     toolbar_ = new DockToolbar(QSize(width, height));
 
     Command webbrowserCommand(COMMAND_TYPE_WEBBROWSER, STARTUP_PAGE);
-    toolbar_->addButton( ToolbarButton( "Webbrowser", QImage(WEBBROWSER_ICON), webbrowserCommand.getCommand() ));
+    toolbar_->addButton( new ToolbarButton( "Webbrowser", QImage(WEBBROWSER_ICON),
+                                            webbrowserCommand.getCommand() ));
 
     Command clearallCommand(COMMAND_TYPE_SESSION, "clearall");
-    toolbar_->addButton( ToolbarButton( "Clear all", QImage(CLEARALL_ICON), clearallCommand.getCommand() ));
+    toolbar_->addButton( new ToolbarButton( "Clear all", QImage(CLEARALL_ICON),
+                                            clearallCommand.getCommand() ));
 }
 
 void DockPixelStreamer::createImageLoader()

@@ -49,7 +49,15 @@ DockToolbar::DockToolbar(const QSize size)
 {
 }
 
-void DockToolbar::render(QImage& buffer)
+DockToolbar::~DockToolbar()
+{
+    foreach(ToolbarButton* button, buttons_)
+    {
+        delete button;
+    }
+}
+
+void DockToolbar::render(QImage& buffer) const
 {
     QPainter painter;
     painter.begin(&buffer);
@@ -60,17 +68,17 @@ void DockToolbar::render(QImage& buffer)
     painter.fillRect(area_, brush);
 
     int i = 0;
-    foreach(ToolbarButton button, buttons)
+    foreach(ToolbarButton* button, buttons_)
     {
-        drawButton(painter, button, i++);
+        drawButton(painter, *button, i++);
     }
 
     painter.end();
 }
 
-void DockToolbar::addButton(const ToolbarButton& button)
+void DockToolbar::addButton(ToolbarButton* button)
 {
-    buttons.push_back(button);
+    buttons_.push_back(button);
     needsUpdate_ = true;
 }
 
@@ -79,20 +87,20 @@ QSize DockToolbar::getSize() const
     return area_.size();
 }
 
-const ToolbarButton* DockToolbar::getButtonAt(const QPoint pos) const
+const ToolbarButton* DockToolbar::getButtonAt(const QPoint& pos) const
 {
     if (!area_.contains(pos))
         return 0;
 
-    const unsigned int index = (float)pos.x() / (float)area_.width() * buttons.size();
+    const unsigned int index = (float)pos.x() / (float)area_.width() * buttons_.size();
 
-    if ((int)index >= buttons.size())
+    if ((int)index >= buttons_.size())
         return 0;
 
-    return &(buttons.at(index));
+    return buttons_.at(index);
 }
 
-const QImage& DockToolbar::getImage()
+const QImage& DockToolbar::getImage() const
 {
     if(needsUpdate_)
     {
@@ -103,12 +111,12 @@ const QImage& DockToolbar::getImage()
     return image_;
 }
 
-void DockToolbar::drawButton(QPainter& painter, const ToolbarButton& button, const int index)
+void DockToolbar::drawButton(QPainter& painter, const ToolbarButton& button, const int index) const
 {
     // Compute dimensions
-    const unsigned int n = buttons.size();
+    const unsigned int buttonsCount = buttons_.size();
     const unsigned int margin = area_.height() * 0.1;
-    const unsigned int buttonWidth = (area_.width() - (n+1)*margin) / n;
+    const unsigned int buttonWidth = (area_.width() - (buttonsCount+1)*margin) / buttonsCount;
     const unsigned int buttonHeight = area_.height() - 2*margin;
 
     const QPoint topLeft(margin + index*(buttonWidth+margin), margin);

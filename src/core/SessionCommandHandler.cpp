@@ -43,6 +43,8 @@
 #include "DisplayGroupManager.h"
 #include "log.h"
 
+#define CLEARALL_COMMAND "clearall"
+
 SessionCommandHandler::SessionCommandHandler(DisplayGroupManager& displayGroupManager)
     : displayGroupManager_(displayGroupManager)
 {
@@ -57,7 +59,7 @@ void SessionCommandHandler::handle(const Command& command, const QString& sender
 {
     const QString& arguments = command.getArguments();
 
-    if (arguments == "clearall")
+    if (arguments == CLEARALL_COMMAND)
         displayGroupManager_.setContentWindowManagers(ContentWindowManagerPtrs());
     else
         put_flog( LOG_ERROR, "Invalid Session command received: '%s'",

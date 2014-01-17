@@ -62,9 +62,9 @@ BOOST_AUTO_TEST_CASE( testDockToolbarButtons )
 
     BOOST_CHECK( !toolbar.getButtonAt( QPoint( 128, 10 )));
 
-    toolbar.addButton(ToolbarButton("Button1", QImage(), "command1"));
-    toolbar.addButton(ToolbarButton("Button2", QImage(), "command2"));
-    toolbar.addButton(ToolbarButton("Button3", QImage(), "command3"));
+    toolbar.addButton(new ToolbarButton("Button1", QImage(), "command1"));
+    toolbar.addButton(new ToolbarButton("Button2", QImage(), "command2"));
+    toolbar.addButton(new ToolbarButton("Button3", QImage(), "command3"));
 
     BOOST_CHECK( !toolbar.getButtonAt( QPoint( 128, -10 )));
     BOOST_CHECK( !toolbar.getButtonAt( QPoint( 128, 64 )));

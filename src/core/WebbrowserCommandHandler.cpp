@@ -42,7 +42,12 @@
 #include "Command.h"
 #include "localstreamer/PixelStreamerLauncher.h"
 
-WebbrowserCommandHandler::WebbrowserCommandHandler(PixelStreamerLauncher& pixelStreamLauncher)
+#include "ContentWindowManager.h"
+#include "DisplayGroupManager.h"
+
+WebbrowserCommandHandler::WebbrowserCommandHandler(DisplayGroupManager& displayGroupManager,
+                                                   PixelStreamerLauncher& pixelStreamLauncher)
+    : displayGroupManager_(displayGroupManager)
 {
     connect(this, SIGNAL(openWebBrowser(QPointF,QSize,QString)),
             &pixelStreamLauncher, SLOT(openWebBrowser(QPointF,QSize,QString)));
@@ -56,5 +61,12 @@ CommandType WebbrowserCommandHandler::getType() const
 void WebbrowserCommandHandler::handle(const Command& command, const QString& senderUri)
 {
     const QString& url = command.getArguments();
-    emit openWebBrowser(QPointF(), QSize(), url);
+    QPointF position;
+
+    // Center the new content where the dock is
+    ContentWindowManagerPtr parentWindow = displayGroupManager_.getContentWindowManager(senderUri);
+    if (parentWindow)
+        position = parentWindow->getCoordinates().topLeft();
+
+    emit openWebBrowser(position, QSize(), url);
 }

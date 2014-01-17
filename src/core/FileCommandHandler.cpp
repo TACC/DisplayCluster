@@ -45,7 +45,7 @@
 #include "StateSerializationHelper.h"
 #include "log.h"
 
-FileCommandHandler::FileCommandHandler(DisplayGroupManager& displayGroupManager)
+FileCommandHandler::FileCommandHandler(DisplayGroupManagerPtr displayGroupManager)
     : displayGroupManager_(displayGroupManager)
 {
 }
@@ -62,11 +62,11 @@ void FileCommandHandler::handle(const Command& command, const QString& senderUri
 
     if( extension == "dcx" )
     {
-        StateSerializationHelper(displayGroupManager_.shared_from_this()).load(uri);
+        StateSerializationHelper(displayGroupManager_).load(uri);
     }
     else if ( ContentFactory::getSupportedExtensions().contains( extension ))
     {
-        ContentLoader loader(displayGroupManager_.shared_from_this());
+        ContentLoader loader(displayGroupManager_);
         loader.load(uri, senderUri);
     }
     else
