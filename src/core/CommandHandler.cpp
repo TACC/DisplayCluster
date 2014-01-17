@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,79 +37,48 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef NETWORK_LISTENER_THREAD_H
-#define NETWORK_LISTENER_THREAD_H
+#include "CommandHandler.h"
 
-#include "MessageHeader.h"
-#include "Event.h"
-#include "PixelStreamSegment.h"
-#include "EventReceiver.h"
+#include "Command.h"
+#include "AbstractCommandHandler.h"
+#include "log.h"
 
-#include <QtNetwork/QTcpSocket>
-#include <QQueue>
-
-using dc::Event;
-using dc::PixelStreamSegment;
-
-class NetworkListenerThread : public EventReceiver
+CommandHandler::CommandHandler()
 {
-    Q_OBJECT
+}
 
-public:
+CommandHandler::~CommandHandler()
+{
+    for(CommandHandlerMap::iterator it = handlers_.begin(); it != handlers_.end(); ++it)
+        delete it->second;
+}
 
-    NetworkListenerThread(int socketDescriptor);
-    ~NetworkListenerThread();
+void CommandHandler::registerCommandHandler(AbstractCommandHandler* handler)
+{
+    unregisterCommandHandler(handler->getType());
+    handlers_[handler->getType()] = handler;
+}
 
-public slots:
+void CommandHandler::unregisterCommandHandler(CommandType type)
+{
+    if (handlers_.count(type))
+    {
+        delete handlers_[type];
+        handlers_.erase(type);
+    }
+}
 
-    void processEvent(Event event);
-    void pixelStreamerClosed(QString uri);
+void CommandHandler::process(const QString command, const QString parentWindowUri)
+{
+    Command commandObject(command);
 
-    void eventRegistrationRepy(QString uri, bool success);
-
-signals:
-
-    void finished();
-
-    void receivedAddPixelStreamSource(QString uri, size_t sourceIndex);
-    void receivedPixelStreamSegement(QString uri, size_t SourceIndex, PixelStreamSegment segment);
-    void receivedPixelStreamFinishFrame(QString uri, size_t SourceIndex);
-    void receivedRemovePixelStreamSource(QString uri, size_t sourceIndex);
-
-    void registerToEvents(QString uri, bool exclusive, EventReceiver* receiver);
-
-    void receivedCommand(QString command, QString senderUri);
-
-    /** @internal */
-    void dataAvailable();
-
-private slots:
-
-    void initialize();
-    void process();
-    void socketReceiveMessage();
-
-private:
-
-    int socketDescriptor_;
-    QTcpSocket* tcpSocket_;
-
-    QString pixelStreamUri_;
-
-    bool registeredToEvents_;
-    QQueue<Event> events_;
-
-    MessageHeader receiveMessageHeader();
-    QByteArray receiveMessageBody(const int size);
-
-    void handleMessage(const MessageHeader& messageHeader, const QByteArray& byteArray);
-    void handlePixelStreamMessage(const QString& uri, const QByteArray& byteArray);
-
-    void sendProtocolVersion();
-    void sendBindReply(const bool successful);
-    void send(const Event &event);
-    void sendQuit();
-    bool send(const MessageHeader& messageHeader);
-};
-
-#endif
+    if (handlers_.count(commandObject.getType()))
+    {
+        handlers_[commandObject.getType()]->handle(command, parentWindowUri);
+    }
+    else
+    {
+        put_flog( LOG_WARN, "No handler for command: '%s'",
+                  command.toStdString().c_str());
+    }
+}

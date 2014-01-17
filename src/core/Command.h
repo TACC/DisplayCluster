@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,79 +37,46 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef NETWORK_LISTENER_THREAD_H
-#define NETWORK_LISTENER_THREAD_H
+#ifndef COMMAND_H
+#define COMMAND_H
 
-#include "MessageHeader.h"
-#include "Event.h"
-#include "PixelStreamSegment.h"
-#include "EventReceiver.h"
+#include "CommandType.h"
 
-#include <QtNetwork/QTcpSocket>
-#include <QQueue>
-
-using dc::Event;
-using dc::PixelStreamSegment;
-
-class NetworkListenerThread : public EventReceiver
+/**
+ * String format, prefix-base network command.
+ */
+class Command
 {
-    Q_OBJECT
-
 public:
+    /**
+     * Constructor.
+     * @param type The type of the command.
+     * @param args The command arguments.
+     */
+    Command(const CommandType type, const QString& args);
 
-    NetworkListenerThread(int socketDescriptor);
-    ~NetworkListenerThread();
+    /**
+     * Constructor.
+     * @param command A string-formatted command, as obtained by getCommand().
+     */
+    Command(const QString& command);
 
-public slots:
+    /** Get the command type. */
+    CommandType getType() const;
 
-    void processEvent(Event event);
-    void pixelStreamerClosed(QString uri);
+    /** Get the command arguments */
+    const QString& getArguments() const;
 
-    void eventRegistrationRepy(QString uri, bool success);
+    /** Get the command in string format, typically for sending over the network. */
+    const QString& getCommand() const;
 
-signals:
-
-    void finished();
-
-    void receivedAddPixelStreamSource(QString uri, size_t sourceIndex);
-    void receivedPixelStreamSegement(QString uri, size_t SourceIndex, PixelStreamSegment segment);
-    void receivedPixelStreamFinishFrame(QString uri, size_t SourceIndex);
-    void receivedRemovePixelStreamSource(QString uri, size_t sourceIndex);
-
-    void registerToEvents(QString uri, bool exclusive, EventReceiver* receiver);
-
-    void receivedCommand(QString command, QString senderUri);
-
-    /** @internal */
-    void dataAvailable();
-
-private slots:
-
-    void initialize();
-    void process();
-    void socketReceiveMessage();
+    /** Check if the Command is valid (i.e. has a known type). */
+    bool isValid() const;
 
 private:
-
-    int socketDescriptor_;
-    QTcpSocket* tcpSocket_;
-
-    QString pixelStreamUri_;
-
-    bool registeredToEvents_;
-    QQueue<Event> events_;
-
-    MessageHeader receiveMessageHeader();
-    QByteArray receiveMessageBody(const int size);
-
-    void handleMessage(const MessageHeader& messageHeader, const QByteArray& byteArray);
-    void handlePixelStreamMessage(const QString& uri, const QByteArray& byteArray);
-
-    void sendProtocolVersion();
-    void sendBindReply(const bool successful);
-    void send(const Event &event);
-    void sendQuit();
-    bool send(const MessageHeader& messageHeader);
+    CommandType type_;
+    QString args_;
+    QString command_;
 };
 
-#endif
+#endif // COMMAND_H

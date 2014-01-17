@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,79 +37,36 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef NETWORK_LISTENER_THREAD_H
-#define NETWORK_LISTENER_THREAD_H
+#include "WebbrowserCommandHandler.h"
 
-#include "MessageHeader.h"
-#include "Event.h"
-#include "PixelStreamSegment.h"
-#include "EventReceiver.h"
+#include "Command.h"
+#include "localstreamer/PixelStreamerLauncher.h"
 
-#include <QtNetwork/QTcpSocket>
-#include <QQueue>
+#include "ContentWindowManager.h"
+#include "DisplayGroupManager.h"
 
-using dc::Event;
-using dc::PixelStreamSegment;
-
-class NetworkListenerThread : public EventReceiver
+WebbrowserCommandHandler::WebbrowserCommandHandler(DisplayGroupManager& displayGroupManager,
+                                                   PixelStreamerLauncher& pixelStreamLauncher)
+    : displayGroupManager_(displayGroupManager)
 {
-    Q_OBJECT
+    connect(this, SIGNAL(openWebBrowser(QPointF,QSize,QString)),
+            &pixelStreamLauncher, SLOT(openWebBrowser(QPointF,QSize,QString)));
+}
 
-public:
+CommandType WebbrowserCommandHandler::getType() const
+{
+    return COMMAND_TYPE_WEBBROWSER;
+}
 
-    NetworkListenerThread(int socketDescriptor);
-    ~NetworkListenerThread();
+void WebbrowserCommandHandler::handle(const Command& command, const QString& senderUri)
+{
+    const QString& url = command.getArguments();
+    QPointF position;
 
-public slots:
+    // Center the new content where the dock is
+    ContentWindowManagerPtr parentWindow = displayGroupManager_.getContentWindowManager(senderUri);
+    if (parentWindow)
+        position = parentWindow->getCoordinates().topLeft();
 
-    void processEvent(Event event);
-    void pixelStreamerClosed(QString uri);
-
-    void eventRegistrationRepy(QString uri, bool success);
-
-signals:
-
-    void finished();
-
-    void receivedAddPixelStreamSource(QString uri, size_t sourceIndex);
-    void receivedPixelStreamSegement(QString uri, size_t SourceIndex, PixelStreamSegment segment);
-    void receivedPixelStreamFinishFrame(QString uri, size_t SourceIndex);
-    void receivedRemovePixelStreamSource(QString uri, size_t sourceIndex);
-
-    void registerToEvents(QString uri, bool exclusive, EventReceiver* receiver);
-
-    void receivedCommand(QString command, QString senderUri);
-
-    /** @internal */
-    void dataAvailable();
-
-private slots:
-
-    void initialize();
-    void process();
-    void socketReceiveMessage();
-
-private:
-
-    int socketDescriptor_;
-    QTcpSocket* tcpSocket_;
-
-    QString pixelStreamUri_;
-
-    bool registeredToEvents_;
-    QQueue<Event> events_;
-
-    MessageHeader receiveMessageHeader();
-    QByteArray receiveMessageBody(const int size);
-
-    void handleMessage(const MessageHeader& messageHeader, const QByteArray& byteArray);
-    void handlePixelStreamMessage(const QString& uri, const QByteArray& byteArray);
-
-    void sendProtocolVersion();
-    void sendBindReply(const bool successful);
-    void send(const Event &event);
-    void sendQuit();
-    bool send(const MessageHeader& messageHeader);
-};
-
-#endif
+    emit openWebBrowser(position, QSize(), url);
+}

@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,79 +37,63 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef NETWORK_LISTENER_THREAD_H
-#define NETWORK_LISTENER_THREAD_H
 
-#include "MessageHeader.h"
-#include "Event.h"
-#include "PixelStreamSegment.h"
-#include "EventReceiver.h"
+#define BOOST_TEST_MODULE CommandTests
+#include <boost/test/unit_test.hpp>
+namespace ut = boost::unit_test;
 
-#include <QtNetwork/QTcpSocket>
-#include <QQueue>
+#include "Command.h"
+#include "CommandType.h"
 
-using dc::Event;
-using dc::PixelStreamSegment;
-
-class NetworkListenerThread : public EventReceiver
+BOOST_AUTO_TEST_CASE( testCommandTypeToStringConversion )
 {
-    Q_OBJECT
+    BOOST_CHECK_EQUAL( getCommandTypeString(COMMAND_TYPE_UNKNOWN).toStdString(), "unknown" );
+    BOOST_CHECK_EQUAL( getCommandTypeString(COMMAND_TYPE_FILE).toStdString(), "file" );
+    BOOST_CHECK_EQUAL( getCommandTypeString(COMMAND_TYPE_SESSION).toStdString(), "session" );
+    BOOST_CHECK_EQUAL( getCommandTypeString(COMMAND_TYPE_WEBBROWSER).toStdString(), "webbrowser" );
 
-public:
+    BOOST_CHECK_EQUAL( getCommandType(""), COMMAND_TYPE_UNKNOWN );
+    BOOST_CHECK_EQUAL( getCommandType("zorglump"), COMMAND_TYPE_UNKNOWN );
+    BOOST_CHECK_EQUAL( getCommandType("unknown"), COMMAND_TYPE_UNKNOWN );
+    BOOST_CHECK_EQUAL( getCommandType("file"), COMMAND_TYPE_FILE );
+    BOOST_CHECK_EQUAL( getCommandType("session"), COMMAND_TYPE_SESSION );
+    BOOST_CHECK_EQUAL( getCommandType("webbrowser"), COMMAND_TYPE_WEBBROWSER );
+}
 
-    NetworkListenerThread(int socketDescriptor);
-    ~NetworkListenerThread();
+BOOST_AUTO_TEST_CASE( testCommandConstruction )
+{
+    Command command(COMMAND_TYPE_WEBBROWSER, "http://www.google.com");
 
-public slots:
+    BOOST_CHECK_EQUAL( command.getType(), COMMAND_TYPE_WEBBROWSER );
+    BOOST_CHECK_EQUAL( command.getArguments().toStdString(), "http://www.google.com");
+    BOOST_CHECK_EQUAL( command.getCommand().toStdString(), "webbrowser::http://www.google.com");
+    BOOST_CHECK( command.isValid( ));
+}
 
-    void processEvent(Event event);
-    void pixelStreamerClosed(QString uri);
+BOOST_AUTO_TEST_CASE( testCommandValidDeconstruction )
+{
+    Command command("webbrowser::http://www.google.com");
 
-    void eventRegistrationRepy(QString uri, bool success);
+    BOOST_CHECK_EQUAL( command.getType(), COMMAND_TYPE_WEBBROWSER );
+    BOOST_CHECK_EQUAL( command.getArguments().toStdString(), "http://www.google.com");
+    BOOST_CHECK( command.isValid( ));
+}
 
-signals:
+BOOST_AUTO_TEST_CASE( testCommandInvalidDeconstruction )
+{
+    {
+        Command command("iruegfn09::83r(*RY$r4//froif");
 
-    void finished();
+        BOOST_CHECK_EQUAL( command.getType(), COMMAND_TYPE_UNKNOWN );
+        BOOST_CHECK_EQUAL( command.getArguments().toStdString(), "");
+        BOOST_CHECK( !command.isValid( ));
+    }
+    {
+        Command command("otgninh");
 
-    void receivedAddPixelStreamSource(QString uri, size_t sourceIndex);
-    void receivedPixelStreamSegement(QString uri, size_t SourceIndex, PixelStreamSegment segment);
-    void receivedPixelStreamFinishFrame(QString uri, size_t SourceIndex);
-    void receivedRemovePixelStreamSource(QString uri, size_t sourceIndex);
+        BOOST_CHECK_EQUAL( command.getType(), COMMAND_TYPE_UNKNOWN );
+        BOOST_CHECK_EQUAL( command.getArguments().toStdString(), "");
+        BOOST_CHECK( !command.isValid( ));
+    }
+}
 
-    void registerToEvents(QString uri, bool exclusive, EventReceiver* receiver);
-
-    void receivedCommand(QString command, QString senderUri);
-
-    /** @internal */
-    void dataAvailable();
-
-private slots:
-
-    void initialize();
-    void process();
-    void socketReceiveMessage();
-
-private:
-
-    int socketDescriptor_;
-    QTcpSocket* tcpSocket_;
-
-    QString pixelStreamUri_;
-
-    bool registeredToEvents_;
-    QQueue<Event> events_;
-
-    MessageHeader receiveMessageHeader();
-    QByteArray receiveMessageBody(const int size);
-
-    void handleMessage(const MessageHeader& messageHeader, const QByteArray& byteArray);
-    void handlePixelStreamMessage(const QString& uri, const QByteArray& byteArray);
-
-    void sendProtocolVersion();
-    void sendBindReply(const bool successful);
-    void send(const Event &event);
-    void sendQuit();
-    bool send(const MessageHeader& messageHeader);
-};
-
-#endif

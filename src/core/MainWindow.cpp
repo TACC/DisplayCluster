@@ -62,7 +62,6 @@
     #include "MultiTouchListener.h"
 #endif
 
-#define WEBBROWSER_DEFAULT_SIZE  QSize(1280, 1024)
 #define WEBBROWSER_DEFAULT_URL   "http://www.google.ch"
 
 #define DOCK_WIDTH_RELATIVE_TO_WALL   0.175
@@ -527,7 +526,7 @@ void MainWindow::openWebBrowser()
                                          WEBBROWSER_DEFAULT_URL, &ok);
     if (ok && !url.isEmpty())
     {
-        emit openWebBrowser(QPointF(), WEBBROWSER_DEFAULT_SIZE, url);
+        emit openWebBrowser(QPointF(), QSize(), url);
     }
 }
 

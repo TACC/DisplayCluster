@@ -74,7 +74,7 @@ signals:
     void imageUpdated(QImage image);
 
     /** Emit this signal to send a command to the receiver. */
-    void openContent(QString uri);
+    void sendCommand(QString uri);
 };
 
 #endif // PIXELSTREAMER_H

@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,79 +37,47 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef NETWORK_LISTENER_THREAD_H
-#define NETWORK_LISTENER_THREAD_H
+#ifndef WEBBROWSERCOMMANDHANDLER_H
+#define WEBBROWSERCOMMANDHANDLER_H
 
-#include "MessageHeader.h"
-#include "Event.h"
-#include "PixelStreamSegment.h"
-#include "EventReceiver.h"
+#include "AbstractCommandHandler.h"
 
-#include <QtNetwork/QTcpSocket>
-#include <QQueue>
+#include <QObject>
+#include <QPointF>
+#include <QSize>
 
-using dc::Event;
-using dc::PixelStreamSegment;
+class PixelStreamerLauncher;
+class DisplayGroupManager;
 
-class NetworkListenerThread : public EventReceiver
+/**
+ * Handle webbrowser Commands.
+ */
+class WebbrowserCommandHandler : public QObject, public AbstractCommandHandler
 {
     Q_OBJECT
 
 public:
+    /** Constructor */
+    WebbrowserCommandHandler(DisplayGroupManager& displayGroupManager,
+                             PixelStreamerLauncher& pixelStreamLauncher);
 
-    NetworkListenerThread(int socketDescriptor);
-    ~NetworkListenerThread();
+    /** Get the type of commands handled by the implementation. */
+    virtual CommandType getType() const;
 
-public slots:
-
-    void processEvent(Event event);
-    void pixelStreamerClosed(QString uri);
-
-    void eventRegistrationRepy(QString uri, bool success);
+    /**
+     * Handle a webbrowswe Command.
+     * @param command The Command to handle.
+     * @param senderUri The identifier of the sender (optional).
+     */
+    virtual void handle(const Command& command, const QString& senderUri = QString());
 
 signals:
-
-    void finished();
-
-    void receivedAddPixelStreamSource(QString uri, size_t sourceIndex);
-    void receivedPixelStreamSegement(QString uri, size_t SourceIndex, PixelStreamSegment segment);
-    void receivedPixelStreamFinishFrame(QString uri, size_t SourceIndex);
-    void receivedRemovePixelStreamSource(QString uri, size_t sourceIndex);
-
-    void registerToEvents(QString uri, bool exclusive, EventReceiver* receiver);
-
-    void receivedCommand(QString command, QString senderUri);
-
-    /** @internal */
-    void dataAvailable();
-
-private slots:
-
-    void initialize();
-    void process();
-    void socketReceiveMessage();
+    /** Signal the PixelStreamLauncher to open a Webbrowser */
+    void openWebBrowser(QPointF pos, QSize size, QString url);
 
 private:
+    DisplayGroupManager& displayGroupManager_;
 
-    int socketDescriptor_;
-    QTcpSocket* tcpSocket_;
-
-    QString pixelStreamUri_;
-
-    bool registeredToEvents_;
-    QQueue<Event> events_;
-
-    MessageHeader receiveMessageHeader();
-    QByteArray receiveMessageBody(const int size);
-
-    void handleMessage(const MessageHeader& messageHeader, const QByteArray& byteArray);
-    void handlePixelStreamMessage(const QString& uri, const QByteArray& byteArray);
-
-    void sendProtocolVersion();
-    void sendBindReply(const bool successful);
-    void send(const Event &event);
-    void sendQuit();
-    bool send(const MessageHeader& messageHeader);
 };
 
-#endif
+#endif // WEBBROWSERCOMMANDHANDLER_H
