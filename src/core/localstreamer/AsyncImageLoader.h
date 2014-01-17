@@ -89,6 +89,8 @@ signals:
 private:
     QSize defaultSize_;
     QCache<QString, QImage> cache_;
+
+    bool imageInCache(const QString& filename) const;
 };
 
 
