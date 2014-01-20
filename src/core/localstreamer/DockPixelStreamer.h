@@ -52,6 +52,7 @@
 
 class PictureFlow;
 class AsyncImageLoader;
+class DockToolbar;
 
 class DockPixelStreamer : public PixelStreamer
 {
@@ -82,6 +83,7 @@ signals:
 private:
     PictureFlow* flow_;
     AsyncImageLoader* loader_;
+    DockToolbar* toolbar_;
 
     QThread loadThread_;
 
@@ -93,6 +95,11 @@ private:
     QVector<SlideImageLoadingStatus> slideImagesLoaded_;
     QLinkedList<int> slideImagesToLoad_;
 
+    void createFlow(const QSize& dockSize);
+    void createToolbar(const unsigned int width, const unsigned int height);
+    void createImageLoader();
+
+    void processClickEvent(const Event& event);
     void onItem();
     void changeDirectory( const QString& dir );
     void addRootDirToFlow();

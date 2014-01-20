@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,79 +37,52 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef NETWORK_LISTENER_THREAD_H
-#define NETWORK_LISTENER_THREAD_H
+#define BOOST_TEST_MODULE DockToolbarTests
+#include <boost/test/unit_test.hpp>
+namespace ut = boost::unit_test;
 
-#include "MessageHeader.h"
-#include "Event.h"
-#include "PixelStreamSegment.h"
-#include "EventReceiver.h"
+#include "localstreamer/DockToolbar.h"
 
-#include <QtNetwork/QTcpSocket>
-#include <QQueue>
-
-using dc::Event;
-using dc::PixelStreamSegment;
-
-class NetworkListenerThread : public EventReceiver
+BOOST_AUTO_TEST_CASE( testDockToolbarImageSize )
 {
-    Q_OBJECT
+    QSize size( 512, 64 );
+    DockToolbar toolbar( size );
 
-public:
+    BOOST_CHECK_EQUAL( toolbar.getSize().width(), size.width( ));
+    BOOST_CHECK_EQUAL( toolbar.getSize().height(), size.height( ));
 
-    NetworkListenerThread(int socketDescriptor);
-    ~NetworkListenerThread();
+    BOOST_CHECK_EQUAL( toolbar.getImage().size().width(), size.width( ));
+    BOOST_CHECK_EQUAL( toolbar.getImage().size().height(), size.height( ));
+}
 
-public slots:
+BOOST_AUTO_TEST_CASE( testDockToolbarButtons )
+{
+    QSize size( 512, 64 );
+    DockToolbar toolbar( size );
 
-    void processEvent(Event event);
-    void pixelStreamerClosed(QString uri);
+    BOOST_CHECK( !toolbar.getButtonAt( QPoint( 128, 10 )));
 
-    void eventRegistrationRepy(QString uri, bool success);
+    toolbar.addButton(new ToolbarButton("Button1", QImage(), "command1"));
+    toolbar.addButton(new ToolbarButton("Button2", QImage(), "command2"));
+    toolbar.addButton(new ToolbarButton("Button3", QImage(), "command3"));
 
-signals:
+    BOOST_CHECK( !toolbar.getButtonAt( QPoint( 128, -10 )));
+    BOOST_CHECK( !toolbar.getButtonAt( QPoint( 128, 64 )));
+    BOOST_CHECK( !toolbar.getButtonAt( QPoint( 512, 10 )));
+    BOOST_CHECK( !toolbar.getButtonAt( QPoint( 784, 10 )));
 
-    void finished();
+    const ToolbarButton* button1 = toolbar.getButtonAt( QPoint( 128, 10 ));
+    BOOST_REQUIRE( button1 );
+    BOOST_CHECK_EQUAL( button1->caption.toStdString(), "Button1" );
+    BOOST_CHECK_EQUAL( button1->command.toStdString(), "command1" );
 
-    void receivedAddPixelStreamSource(QString uri, size_t sourceIndex);
-    void receivedPixelStreamSegement(QString uri, size_t SourceIndex, PixelStreamSegment segment);
-    void receivedPixelStreamFinishFrame(QString uri, size_t SourceIndex);
-    void receivedRemovePixelStreamSource(QString uri, size_t sourceIndex);
+    const ToolbarButton* button2 = toolbar.getButtonAt( QPoint( 512/3 + 1, 50 ));
+    BOOST_REQUIRE( button2 );
+    BOOST_CHECK_EQUAL( button2->caption.toStdString(), "Button2" );
+    BOOST_CHECK_EQUAL( button2->command.toStdString(), "command2" );
 
-    void registerToEvents(QString uri, bool exclusive, EventReceiver* receiver);
-
-    void receivedCommand(QString command, QString senderUri);
-
-    /** @internal */
-    void dataAvailable();
-
-private slots:
-
-    void initialize();
-    void process();
-    void socketReceiveMessage();
-
-private:
-
-    int socketDescriptor_;
-    QTcpSocket* tcpSocket_;
-
-    QString pixelStreamUri_;
-
-    bool registeredToEvents_;
-    QQueue<Event> events_;
-
-    MessageHeader receiveMessageHeader();
-    QByteArray receiveMessageBody(const int size);
-
-    void handleMessage(const MessageHeader& messageHeader, const QByteArray& byteArray);
-    void handlePixelStreamMessage(const QString& uri, const QByteArray& byteArray);
-
-    void sendProtocolVersion();
-    void sendBindReply(const bool successful);
-    void send(const Event &event);
-    void sendQuit();
-    bool send(const MessageHeader& messageHeader);
-};
-
-#endif
+    const ToolbarButton* button3 = toolbar.getButtonAt( QPoint( 512-1, 50 ));
+    BOOST_REQUIRE( button3 );
+    BOOST_CHECK_EQUAL( button3->caption.toStdString(), "Button3" );
+    BOOST_CHECK_EQUAL( button3->command.toStdString(), "command3" );
+}

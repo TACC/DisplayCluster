@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,79 +37,72 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef NETWORK_LISTENER_THREAD_H
-#define NETWORK_LISTENER_THREAD_H
+#ifndef DOCKTOOLBAR_H
+#define DOCKTOOLBAR_H
 
-#include "MessageHeader.h"
-#include "Event.h"
-#include "PixelStreamSegment.h"
-#include "EventReceiver.h"
+#include <QImage>
 
-#include <QtNetwork/QTcpSocket>
-#include <QQueue>
-
-using dc::Event;
-using dc::PixelStreamSegment;
-
-class NetworkListenerThread : public EventReceiver
+/**
+ * A simple button for the DockToolbar.
+ */
+struct ToolbarButton
 {
-    Q_OBJECT
+    /** Text caption. */
+    QString caption;
+    /** Icon image, should be square and have at least the same height as the Toolbar to avoid upscaling. */
+    QImage icon;
+    /** User-defined command associated with this button. */
+    QString command;
 
-public:
-
-    NetworkListenerThread(int socketDescriptor);
-    ~NetworkListenerThread();
-
-public slots:
-
-    void processEvent(Event event);
-    void pixelStreamerClosed(QString uri);
-
-    void eventRegistrationRepy(QString uri, bool success);
-
-signals:
-
-    void finished();
-
-    void receivedAddPixelStreamSource(QString uri, size_t sourceIndex);
-    void receivedPixelStreamSegement(QString uri, size_t SourceIndex, PixelStreamSegment segment);
-    void receivedPixelStreamFinishFrame(QString uri, size_t SourceIndex);
-    void receivedRemovePixelStreamSource(QString uri, size_t sourceIndex);
-
-    void registerToEvents(QString uri, bool exclusive, EventReceiver* receiver);
-
-    void receivedCommand(QString command, QString senderUri);
-
-    /** @internal */
-    void dataAvailable();
-
-private slots:
-
-    void initialize();
-    void process();
-    void socketReceiveMessage();
-
-private:
-
-    int socketDescriptor_;
-    QTcpSocket* tcpSocket_;
-
-    QString pixelStreamUri_;
-
-    bool registeredToEvents_;
-    QQueue<Event> events_;
-
-    MessageHeader receiveMessageHeader();
-    QByteArray receiveMessageBody(const int size);
-
-    void handleMessage(const MessageHeader& messageHeader, const QByteArray& byteArray);
-    void handlePixelStreamMessage(const QString& uri, const QByteArray& byteArray);
-
-    void sendProtocolVersion();
-    void sendBindReply(const bool successful);
-    void send(const Event &event);
-    void sendQuit();
-    bool send(const MessageHeader& messageHeader);
+    /** Constructor */
+    ToolbarButton(QString captionParam, QImage iconParam, QString commandParam)
+        : caption(captionParam), icon(iconParam), command(commandParam) {}
 };
 
-#endif
+/**
+ * A Toolbar for the Dock.
+ *
+ * Renders a list of buttons layed out horizontally with an icon and text caption.
+ */
+class DockToolbar
+{
+public:
+    /**
+     * Constructor
+     * @param size The size of the Toolbar in pixels.
+     */
+    DockToolbar(const QSize size);
+
+    /** Destructor. */
+    ~DockToolbar();
+
+    /**
+     * Add a button to the right of the Toolbar.
+     * @param button The button to add. This class takes ownership of the object.
+     */
+    void addButton(ToolbarButton* button);
+
+    /** Get the size in pixels. */
+    QSize getSize() const;
+
+    /** Get the image, regenerating it if required. */
+    const QImage& getImage() const;
+
+    /**
+     * Get the button at the given position.
+     * @param pos A position in pixels inside the toolbar.
+     * @return A pointer to the button, or a nullptr if there is no button at the given position.
+     */
+    const ToolbarButton* getButtonAt(const QPoint& pos) const;
+
+private:
+    QRect area_;
+    QList<ToolbarButton*> buttons_;
+    mutable QImage image_;
+    mutable bool needsUpdate_;
+
+    void render(QImage& buffer) const;
+    void drawButton(QPainter& painter, const ToolbarButton& button, const int index) const;
+};
+
+#endif // DOCKTOOLBAR_H

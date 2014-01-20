@@ -72,7 +72,7 @@ bool Application::initialize(const CommandLineOptions& options)
     if (!pixelStreamer_)
         return false;
     connect(pixelStreamer_, SIGNAL(imageUpdated(QImage)), this, SLOT(sendImage(QImage)));
-    connect(pixelStreamer_, SIGNAL(openContent(QString)), this, SLOT(sendOpenContent(QString)));
+    connect(pixelStreamer_, SIGNAL(sendCommand(QString)), this, SLOT(sendCommand(QString)));
 
     // Connect to DisplayCluster
     dcStream_ = new dc::Stream(options.getName().toStdString(), DC_STREAM_HOST_ADDRESS);
@@ -130,7 +130,7 @@ void Application::processPendingEvents()
     }
 }
 
-void Application::sendOpenContent(QString uri)
+void Application::sendCommand(QString command)
 {
-    dcStream_->impl_->sendOpenContent(uri);
+    dcStream_->impl_->sendCommand(command);
 }

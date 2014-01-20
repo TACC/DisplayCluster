@@ -49,6 +49,11 @@
 #include "localstreamer/PixelStreamerLauncher.h"
 #include "StateSerializationHelper.h"
 
+#include "CommandHandler.h"
+#include "SessionCommandHandler.h"
+#include "FileCommandHandler.h"
+#include "WebbrowserCommandHandler.h"
+
 #include <mpi.h>
 #include <unistd.h>
 
@@ -160,8 +165,6 @@ int main(int argc, char * argv[])
     PixelStreamerLauncher* pixelStreamerLauncher = 0;
     if(g_mpiRank == 0)
     {
-        networkListener = new NetworkListener(*g_displayGroupManager);
-
         pixelStreamerLauncher = new PixelStreamerLauncher(g_displayGroupManager.get());
 
         pixelStreamerLauncher->connect(g_mainWindow, SIGNAL(openWebBrowser(QPointF,QSize,QString)),
@@ -170,6 +173,14 @@ int main(int argc, char * argv[])
                                            SLOT(openDock(QPointF,QSize,QString)));
         pixelStreamerLauncher->connect(g_mainWindow, SIGNAL(hideDock()),
                                            SLOT(hideDock()));
+
+        networkListener = new NetworkListener(*g_displayGroupManager);
+
+        CommandHandler& handler = networkListener->getCommandHandler();
+        handler.registerCommandHandler(new FileCommandHandler(g_displayGroupManager));
+        handler.registerCommandHandler(new SessionCommandHandler(*g_displayGroupManager));
+        handler.registerCommandHandler(new WebbrowserCommandHandler(*g_displayGroupManager,
+                                                                    *pixelStreamerLauncher));
     }
 
     // wait for render comms to be ready for receiving and rendering background

@@ -1,5 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,79 +37,24 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef NETWORK_LISTENER_THREAD_H
-#define NETWORK_LISTENER_THREAD_H
+#include "CommandType.h"
 
-#include "MessageHeader.h"
-#include "Event.h"
-#include "PixelStreamSegment.h"
-#include "EventReceiver.h"
+#include <boost/bimap.hpp>
+#include <boost/assign/list_of.hpp>
 
-#include <QtNetwork/QTcpSocket>
-#include <QQueue>
+typedef boost::bimap< CommandType, QString > TypeMap;
+static TypeMap typemap = boost::assign::list_of< TypeMap::relation >
+        (COMMAND_TYPE_UNKNOWN, QString("unknown"))
+        (COMMAND_TYPE_FILE, QString("file"))
+        (COMMAND_TYPE_SESSION, QString("session"))
+        (COMMAND_TYPE_WEBBROWSER, QString("webbrowser"));
 
-using dc::Event;
-using dc::PixelStreamSegment;
-
-class NetworkListenerThread : public EventReceiver
+QString getCommandTypeString( const CommandType type )
 {
-    Q_OBJECT
+    return typemap.left.find( type )->second;
+}
 
-public:
-
-    NetworkListenerThread(int socketDescriptor);
-    ~NetworkListenerThread();
-
-public slots:
-
-    void processEvent(Event event);
-    void pixelStreamerClosed(QString uri);
-
-    void eventRegistrationRepy(QString uri, bool success);
-
-signals:
-
-    void finished();
-
-    void receivedAddPixelStreamSource(QString uri, size_t sourceIndex);
-    void receivedPixelStreamSegement(QString uri, size_t SourceIndex, PixelStreamSegment segment);
-    void receivedPixelStreamFinishFrame(QString uri, size_t SourceIndex);
-    void receivedRemovePixelStreamSource(QString uri, size_t sourceIndex);
-
-    void registerToEvents(QString uri, bool exclusive, EventReceiver* receiver);
-
-    void receivedCommand(QString command, QString senderUri);
-
-    /** @internal */
-    void dataAvailable();
-
-private slots:
-
-    void initialize();
-    void process();
-    void socketReceiveMessage();
-
-private:
-
-    int socketDescriptor_;
-    QTcpSocket* tcpSocket_;
-
-    QString pixelStreamUri_;
-
-    bool registeredToEvents_;
-    QQueue<Event> events_;
-
-    MessageHeader receiveMessageHeader();
-    QByteArray receiveMessageBody(const int size);
-
-    void handleMessage(const MessageHeader& messageHeader, const QByteArray& byteArray);
-    void handlePixelStreamMessage(const QString& uri, const QByteArray& byteArray);
-
-    void sendProtocolVersion();
-    void sendBindReply(const bool successful);
-    void send(const Event &event);
-    void sendQuit();
-    bool send(const MessageHeader& messageHeader);
-};
-
-#endif
+CommandType getCommandType( const QString& typeString )
+{
+    return typemap.right.find( typeString )->second;
+}

@@ -1,5 +1,5 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
 /*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
@@ -37,87 +37,111 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "StreamPrivate.h"
+#include "DockToolbar.h"
 
-#include "Stream.h" // For defaultCompressionQuality
+#include <QPainter>
+#include <QColor>
 
-#include "Socket.h"
-#include "PixelStreamSegment.h"
-#include "PixelStreamSegmentParameters.h"
-
-#define SEGMENT_SIZE 512
-
-namespace dc
+DockToolbar::DockToolbar(const QSize size)
+    : area_(0, 0, size.width(), size.height())
+    , image_(size, QImage::Format_RGB32)
+    , needsUpdate_(true)
 {
-
-StreamPrivate::StreamPrivate(const std::string &name)
-    : name_(name)
-    , dcSocket_(0)
-    , registeredForEvents_(false)
-{
-    imageSegmenter_.setNominalSegmentDimensions(SEGMENT_SIZE, SEGMENT_SIZE);
 }
 
-bool StreamPrivate::open(const std::string& address)
+DockToolbar::~DockToolbar()
 {
-    // Connect to DisplayCluster application
-    dcSocket_ = new Socket(address);
-
-    if(!dcSocket_->isConnected())
+    foreach(ToolbarButton* button, buttons_)
     {
-        delete dcSocket_;
-        dcSocket_ = 0;
+        delete button;
+    }
+}
 
-        return false;
+void DockToolbar::render(QImage& buffer) const
+{
+    QPainter painter;
+    painter.begin(&buffer);
+
+    QBrush brush;
+    brush.setColor(Qt::gray);
+    brush.setStyle(Qt::SolidPattern);
+    painter.fillRect(area_, brush);
+
+    int i = 0;
+    foreach(ToolbarButton* button, buttons_)
+    {
+        drawButton(painter, *button, i++);
     }
 
-    // Open a window for the PixelStream
-    MessageHeader mh(MESSAGE_TYPE_PIXELSTREAM_OPEN, 0, name_);
-    return dcSocket_->send(mh, QByteArray());
+    painter.end();
 }
 
-bool StreamPrivate::close()
+void DockToolbar::addButton(ToolbarButton* button)
 {
-    if( !dcSocket_ || !dcSocket_->isConnected( ))
-        return true;
-
-    MessageHeader mh(MESSAGE_TYPE_QUIT, 0, name_);
-    dcSocket_->send(mh, QByteArray());
-
-    delete dcSocket_;
-    dcSocket_ = 0;
-
-    registeredForEvents_ = false;
-
-    return true;
+    buttons_.push_back(button);
+    needsUpdate_ = true;
 }
 
-bool StreamPrivate::sendPixelStreamSegment(const PixelStreamSegment &segment)
+QSize DockToolbar::getSize() const
 {
-    // Create message header
-    size_t segmentSize = sizeof(PixelStreamSegmentParameters) + segment.imageData.size();
-    MessageHeader mh(MESSAGE_TYPE_PIXELSTREAM, segmentSize, name_);
-
-    // This byte array will hold the message to be sent over the socket
-    QByteArray message;
-
-    // Message payload part 1: segment parameters
-    message.append((const char *)(&segment.parameters), sizeof(PixelStreamSegmentParameters));
-
-    // Message payload part 2: image data
-    message.append(segment.imageData);
-
-    return dcSocket_->send(mh, message);
+    return area_.size();
 }
 
-bool StreamPrivate::sendCommand(const QString& command)
+const ToolbarButton* DockToolbar::getButtonAt(const QPoint& pos) const
 {
-    QByteArray message;
-    message.append(command);
+    if (!area_.contains(pos))
+        return 0;
 
-    MessageHeader mh(MESSAGE_TYPE_COMMAND, message.size(), name_);
+    const unsigned int index = (float)pos.x() / (float)area_.width() * buttons_.size();
 
-    return dcSocket_->send(mh, message);
+    if ((int)index >= buttons_.size())
+        return 0;
+
+    return buttons_.at(index);
 }
 
+const QImage& DockToolbar::getImage() const
+{
+    if(needsUpdate_)
+    {
+        render(image_);
+        needsUpdate_ = false;
+    }
+
+    return image_;
+}
+
+void DockToolbar::drawButton(QPainter& painter, const ToolbarButton& button, const int index) const
+{
+    // Compute dimensions
+    const unsigned int buttonsCount = buttons_.size();
+    const unsigned int margin = area_.height() * 0.1;
+    const unsigned int buttonWidth = (area_.width() - (buttonsCount+1)*margin) / buttonsCount;
+    const unsigned int buttonHeight = area_.height() - 2*margin;
+
+    const QPoint topLeft(margin + index*(buttonWidth+margin), margin);
+    const QSize buttonSize(buttonWidth, buttonHeight);
+    const QRect buttonArea(topLeft, buttonSize);
+
+    // Render background
+    QBrush brush;
+    brush.setColor(Qt::lightGray);
+    brush.setStyle(Qt::SolidPattern);
+    painter.setBrush(brush); // Filling
+    painter.setPen(Qt::NoPen); // Outline
+    painter.drawRoundedRect(buttonArea, 5, 5);
+
+    // Render icon
+    QRect imageArea(buttonArea);
+    imageArea.setWidth(imageArea.height());
+    painter.drawImage(imageArea, button.icon);
+
+    // Render caption
+    const QRect textArea(imageArea.topRight() + QPoint(margin, margin),
+                         buttonArea.bottomRight() - QPoint(margin, margin));
+    QFont font("Arial", textArea.height());
+    font.setBold(true);
+    painter.setFont(font);
+    painter.setPen(Qt::white);
+    painter.drawText(textArea, button.caption, QTextOption(Qt::AlignVCenter));
 }
