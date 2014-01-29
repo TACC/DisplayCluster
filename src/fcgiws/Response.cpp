@@ -71,6 +71,7 @@ std::string Response::serialize() const
     }
 
     ss << "Content-Length: " << body.length() << CRLF;
+    ss << "Status: " << statusCode << SP << statusMsg << CRLF;
     ss << CRLF;
     ss << body;
     return ss.str();

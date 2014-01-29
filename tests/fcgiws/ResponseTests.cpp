@@ -45,7 +45,8 @@ namespace ut = boost::unit_test;
 
 BOOST_AUTO_TEST_CASE( testSerializeWithEmptyBody )
 {
-    std::string expected = "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
+    const std::string expected = "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n"
+	                   "Status: 200 OK\r\n\r\n";
     std::stringstream ss;
 
     fcgiws::Response response;
@@ -60,7 +61,8 @@ BOOST_AUTO_TEST_CASE( testSerializeWithEmptyBody )
 
 BOOST_AUTO_TEST_CASE( testSerializeWithNonEmptyBody )
 {
-    std::string expected = "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}";
+    const std::string expected = "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n"
+	                   "Status: 200 OK\r\n\r\n{}";
     std::stringstream ss;
     fcgiws::Response response;
     response.statusCode = 200;
@@ -74,7 +76,8 @@ BOOST_AUTO_TEST_CASE( testSerializeWithNonEmptyBody )
 
 BOOST_AUTO_TEST_CASE( testSerializeNoBodyAndCustomHeaders )
 {
-    std::string expected = "HTTP/1.1 200 OK\r\nCustom-h1: 1\r\nCustom-h2: 2\r\nContent-Length: 0\r\n\r\n";
+    const std::string expected = "HTTP/1.1 200 OK\r\nCustom-h1: 1\r\nCustom-h2: 2\r\n"
+	                   "Content-Length: 0\r\nStatus: 200 OK\r\n\r\n";
     std::stringstream ss;
 
     fcgiws::Response response;
@@ -116,5 +119,4 @@ BOOST_AUTO_TEST_CASE( test500Response )
     BOOST_CHECK_EQUAL("Internal Server Error", r.statusMsg);
     BOOST_CHECK_EQUAL(0, r.httpHeaders.size());
     BOOST_CHECK_EQUAL("", r.body);
-    
 }
