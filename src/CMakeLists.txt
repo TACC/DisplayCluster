@@ -1,4 +1,3 @@
-
 # process config file
 configure_file(config.h.in ${CMAKE_BINARY_DIR}/config.h)
 include_directories(${CMAKE_BINARY_DIR})
@@ -13,6 +12,8 @@ set(DISPLAYCLUSTER_LIBRARY_SHARED_HEADERS
 
 if(BUILD_CORE_LIBRARY)
   add_subdirectory(core)
+  # Build FastCGI web services library
+  add_subdirectory(fcgiws)
 endif()
 
 add_subdirectory(dcstream)
