@@ -50,14 +50,34 @@ const std::string CRLF = "\r\n";
 namespace fcgiws
 {
 
-const Response Response::OK =
-{200, "OK", "", std::map<std::string, std::string>()};
+const ResponsePtr Response::OK()
+{ 
+    ResponsePtr response(new Response());
+    response->statusCode = 200;
+    response->statusMsg = "OK";
+    response->body = "{\"code\":\"200\", \"msg\":\"OK\"}";
+    return response;
+}
 
-const Response Response::NotFound =
-{404, "Not Found", "", std::map<std::string, std::string>()};
 
-const Response Response::ServerError =
-{500, "Internal Server Error", "", std::map<std::string, std::string>()};
+const ResponsePtr Response::NotFound()
+{ 
+    ResponsePtr response(new Response());
+    response->statusCode = 404;
+    response->statusMsg = "Not Found";
+    response->body = "{\"code\":\"404\", \"msg\":\"Not Found\"}";
+    return response;
+}
+
+
+const ResponsePtr Response::ServerError()
+{ 
+    ResponsePtr response(new Response());
+    response->statusCode = 500;
+    response->statusMsg = "Internal Server Error";
+    response->body = "{\"code\":\"500\", \"msg\":\"Internal Server Error\"}";
+    return response;
+}
 
 std::string Response::serialize() const
 {
@@ -71,6 +91,7 @@ std::string Response::serialize() const
     }
 
     ss << "Content-Length: " << body.length() << CRLF;
+    ss << "Status: " << statusCode << SP << statusMsg << CRLF;
     ss << CRLF;
     ss << body;
     return ss.str();

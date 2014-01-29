@@ -87,12 +87,12 @@ struct Response
     std::string serialize() const;
 
     /*
-     * Singletons for 200, 404, and 500 HTT responses
+     * Factory methods for 200, 404, and 500 HTTP responses
      * See http://tools.ietf.org/search/rfc2616 for more details
      */
-    static const Response OK;
-    static const Response NotFound;
-    static const Response ServerError;
+    static const ResponsePtr OK();
+    static const ResponsePtr NotFound();
+    static const ResponsePtr  ServerError();
 };
 
 std::ostream& operator<<(std::ostream& os, const Response& obj);

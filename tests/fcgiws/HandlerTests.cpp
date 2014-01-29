@@ -52,8 +52,7 @@ class MockHandler : public fcgiws::Handler
 public:
     virtual fcgiws::ResponsePtr handle(const fcgiws::Request& request) const
     {
-        fcgiws::ResponsePtr response(new fcgiws::Response(fcgiws::Response::OK));
-        return response;
+        return fcgiws::Response::OK();
     }
 };
 
@@ -62,7 +61,7 @@ BOOST_AUTO_TEST_CASE( testConstructorWithoutParameters )
     fcgiws::DefaultHandler handler;
     
     fcgiws::Request request;
-    BOOST_CHECK_EQUAL(fcgiws::Response::NotFound.serialize(),
+    BOOST_CHECK_EQUAL(fcgiws::Response::NotFound()->serialize(),
                       handler.handle(request)->serialize());
 }
 
@@ -71,6 +70,6 @@ BOOST_AUTO_TEST_CASE( testConstructorWithParameters )
     MockHandler mock;
     
     fcgiws::Request request;
-    BOOST_CHECK_EQUAL(fcgiws::Response::OK.serialize(),
+    BOOST_CHECK_EQUAL(fcgiws::Response::OK()->serialize(),
                       mock.handle(request)->serialize());
 }
