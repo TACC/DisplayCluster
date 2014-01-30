@@ -78,7 +78,7 @@ public:
      *
      * @param request A valid fcgiws::Request object.
      */
-    virtual ResponsePtr handle(const Request& request) const = 0;
+    virtual ConstResponsePtr handle(const Request& request) const = 0;
 
     /**
      * Default handler that always returns a 404 Not Found response.

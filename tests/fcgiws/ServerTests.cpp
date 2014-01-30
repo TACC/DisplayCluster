@@ -48,7 +48,7 @@ public:
 
     MockHandler() : simulateFailure(false) {}
 
-    virtual fcgiws::ResponsePtr handle(const fcgiws::Request& request) const
+    virtual fcgiws::ConstResponsePtr handle(const fcgiws::Request& request) const
     {
         if(simulateFailure)
             return fcgiws::ResponsePtr();

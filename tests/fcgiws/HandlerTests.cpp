@@ -50,7 +50,7 @@ namespace ut = boost::unit_test;
 class MockHandler : public fcgiws::Handler
 {
 public:
-    virtual fcgiws::ResponsePtr handle(const fcgiws::Request& request) const
+    virtual fcgiws::ConstResponsePtr handle(const fcgiws::Request& request) const
     {
         return fcgiws::Response::OK();
     }
@@ -61,8 +61,7 @@ BOOST_AUTO_TEST_CASE( testConstructorWithoutParameters )
     fcgiws::DefaultHandler handler;
     
     fcgiws::Request request;
-    BOOST_CHECK_EQUAL(fcgiws::Response::NotFound()->serialize(),
-                      handler.handle(request)->serialize());
+    BOOST_CHECK_EQUAL(fcgiws::Response::NotFound(), handler.handle(request));
 }
 
 BOOST_AUTO_TEST_CASE( testConstructorWithParameters )
@@ -70,6 +69,5 @@ BOOST_AUTO_TEST_CASE( testConstructorWithParameters )
     MockHandler mock;
     
     fcgiws::Request request;
-    BOOST_CHECK_EQUAL(fcgiws::Response::OK()->serialize(),
-                      mock.handle(request)->serialize());
+    BOOST_CHECK_EQUAL(fcgiws::Response::OK(), mock.handle(request));
 }

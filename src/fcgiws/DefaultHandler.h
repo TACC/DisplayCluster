@@ -52,7 +52,7 @@ class DefaultHandler : public Handler
 {
 public:
     virtual ~DefaultHandler();
-    virtual ResponsePtr handle(const Request& request) const;
+    virtual ConstResponsePtr handle(const Request& request) const;
 };
 
 }

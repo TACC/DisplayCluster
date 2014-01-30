@@ -44,7 +44,7 @@ namespace fcgiws
 
 DefaultHandler::~DefaultHandler() {}
 
-ResponsePtr DefaultHandler::handle(const Request& request) const
+ConstResponsePtr DefaultHandler::handle(const Request& request) const
 {
     return Response::NotFound();
 }

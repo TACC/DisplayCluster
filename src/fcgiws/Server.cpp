@@ -84,7 +84,7 @@ void Server::_processRequest()
 
     const Handler& handler = _mapper.getHandler(request->resource);
 
-    ResponsePtr response = handler.handle(*request);
+    ConstResponsePtr response = handler.handle(*request);
     if(!response)
     {
         _sendResponse(*Response::ServerError());
