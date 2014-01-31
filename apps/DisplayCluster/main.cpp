@@ -54,6 +54,11 @@
 #include "FileCommandHandler.h"
 #include "WebbrowserCommandHandler.h"
 
+#include "ws/WebServiceServer.h"
+#include "ws/TextInputDispatcher.h"
+#include "ws/TextInputHandler.h"
+#include "ws/DisplayGroupManagerAdapter.h"
+
 #include <mpi.h>
 #include <unistd.h>
 
@@ -71,7 +76,6 @@
 
 #define CONFIGURATION_FILENAME "configuration.xml"
 #define DISPLAYCLUSTER_DIR "DISPLAYCLUSTER_DIR"
-
 
 int main(int argc, char * argv[])
 {
@@ -163,6 +167,9 @@ int main(int argc, char * argv[])
 
     NetworkListener* networkListener = 0;
     PixelStreamerLauncher* pixelStreamerLauncher = 0;
+    WebServiceServer* webServiceServer = 0;
+    TextInputDispatcher* textInputDispatcher = 0;
+
     if(g_mpiRank == 0)
     {
         pixelStreamerLauncher = new PixelStreamerLauncher(g_displayGroupManager.get());
@@ -181,7 +188,24 @@ int main(int argc, char * argv[])
         handler.registerCommandHandler(new SessionCommandHandler(*g_displayGroupManager));
         handler.registerCommandHandler(new WebbrowserCommandHandler(*g_displayGroupManager,
                                                                     *pixelStreamerLauncher));
+
+        // FastCGI WebService Server
+        const int webServicePort =
+                static_cast<MasterConfiguration*>(g_configuration)->getWebServicePort();
+        webServiceServer = new WebServiceServer(webServicePort);
+
+        TextInputHandler* textInputHandler = new TextInputHandler(
+                new DisplayGroupManagerAdapter(g_displayGroupManager));
+        webServiceServer->addHandler("/dcapi/textinput", fcgiws::HandlerPtr(textInputHandler));
+
+        textInputHandler->moveToThread(webServiceServer);
+        textInputDispatcher = new TextInputDispatcher(g_displayGroupManager);
+        textInputDispatcher->connect(textInputHandler, SIGNAL(receivedKeyInput(char)),
+                             SLOT(sendKeyEventToActiveWindow(char)));
+
+        webServiceServer->start();
     }
+
 
     // wait for render comms to be ready for receiving and rendering background
     MPI_Barrier(MPI_COMM_WORLD);
@@ -231,6 +255,13 @@ int main(int argc, char * argv[])
         pixelStreamerLauncher = 0;
         delete networkListener;
         networkListener = 0;
+
+        delete textInputDispatcher;
+        textInputDispatcher = 0;
+        webServiceServer->stop();
+        webServiceServer->wait();
+        delete webServiceServer;
+        webServiceServer = 0;
     }
 
     delete g_configuration;

@@ -41,6 +41,8 @@
 #define BOOST_TEST_MODULE DefaultHandlerTests
 #include <boost/test/unit_test.hpp>
 #include "fcgiws/DefaultHandler.h"
+#include "fcgiws/Response.h"
+#include "fcgiws/Request.h"
 
 namespace ut = boost::unit_test;
 
@@ -59,7 +61,7 @@ public:
 BOOST_AUTO_TEST_CASE( testConstructorWithoutParameters )
 {
     fcgiws::DefaultHandler handler;
-    
+
     fcgiws::Request request;
     BOOST_CHECK_EQUAL(fcgiws::Response::NotFound(), handler.handle(request));
 }
@@ -67,7 +69,7 @@ BOOST_AUTO_TEST_CASE( testConstructorWithoutParameters )
 BOOST_AUTO_TEST_CASE( testConstructorWithParameters )
 {
     MockHandler mock;
-    
+
     fcgiws::Request request;
     BOOST_CHECK_EQUAL(fcgiws::Response::OK(), mock.handle(request));
 }

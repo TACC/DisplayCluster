@@ -40,16 +40,10 @@
 #ifndef HANDLER_H
 #define HANDLER_H
 
-#include <boost/shared_ptr.hpp>
-
-#include "Response.h"
-#include "Request.h"
+#include "types.h"
 
 namespace fcgiws
 {
-
-class Handler;
-typedef boost::shared_ptr<Handler> HandlerPtr;
 
 /**
  * A request handler encapuslates the "service" code entry point of a web
@@ -62,14 +56,9 @@ class Handler
 public:
 
     /**
-     * Constructor
-     */
-    Handler();
-
-    /**
      * Destructor
      */
-    virtual ~Handler();
+    virtual ~Handler() {}
 
     /**
      * Through this method the handling functionality is exposed. This method is
@@ -79,11 +68,6 @@ public:
      * @param request A valid fcgiws::Request object.
      */
     virtual ConstResponsePtr handle(const Request& request) const = 0;
-
-    /**
-     * Default handler that always returns a 404 Not Found response.
-     */
-    static const Handler& DEFAULT;
 };
 
 }

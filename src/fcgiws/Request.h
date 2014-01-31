@@ -43,12 +43,8 @@
 #include <map>
 #include <string>
 
-#include <boost/shared_ptr.hpp>
-
-namespace fcgiws {
-
-struct Request;
-typedef boost::shared_ptr<struct Request> RequestPtr;
+namespace fcgiws
+{
 
 struct Request
 {

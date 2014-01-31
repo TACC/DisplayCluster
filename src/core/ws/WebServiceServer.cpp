@@ -1,5 +1,5 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
 /*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
@@ -37,42 +37,41 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MASTERCONFIGURATION_H
-#define MASTERCONFIGURATION_H
+#include "WebServiceServer.h"
 
-#include "Configuration.h"
-/**
- * @brief The MasterConfiguration class manages all the parameters needed
- * to setup the Master process.
- */
-class MasterConfiguration : public Configuration
+#include "fcgiws/Server.h"
+#include "fcgiws/DefaultHandler.h"
+
+#include "log.h"
+
+WebServiceServer::WebServiceServer(const unsigned int port, QObject *parent)
+    : QThread(parent)
+    , server_(new fcgiws::Server())
+    , port_(port)
+{}
+
+WebServiceServer::~WebServiceServer()
 {
-public:
-    /**
-     * @brief MasterConfiguration constructor
-     * @param filename \see Configuration
-     * @param options \see Configuration
-     */
-    MasterConfiguration(const QString& filename, OptionsPtr options);
+    delete server_;
+}
 
-    /**
-     * @brief getDockStartDir Get the Dock startup directory
-     * @return directory path
-     */
-    const QString& getDockStartDir() const;
+bool WebServiceServer::addHandler(const std::string& pattern, fcgiws::HandlerPtr handler)
+{
+    const bool success = server_->addHandler(pattern, handler);
+    if (!success)
+        put_flog(LOG_WARN, "Invalid regex: '%s', handler could not be added", pattern.c_str());
 
-    /**
-     * @brief getWebServicePort Get the port where the WebService server
-     * will be listening for incoming requests.
-     * @return port for WebService server
-     */
-    const int getWebServicePort() const;
+    return success;
+}
 
-private:
-    void loadMasterSettings();
+void WebServiceServer::run()
+{
+    put_flog(LOG_INFO, "Listening on port: %d", port_);
+    server_->run(port_);
+}
 
-    QString dockStartDir_;
-    int dcWebServicePort_;
-};
-
-#endif // MASTERCONFIGURATION_H
+bool WebServiceServer::stop()
+{
+    put_flog(LOG_INFO, "Shutting down");
+    return server_->stop();
+}

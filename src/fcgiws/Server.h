@@ -79,7 +79,7 @@ public:
      * @param pattern A regular expression.
      * @param handler A request handler.
      * @returns true if the handler was registered succesfully, false otherwise,
-     *   for instance if the regulare expression is not valid.
+     *   for instance if the regular expression is not valid.
      */
     bool addHandler(const std::string& pattern, HandlerPtr handler);
 
@@ -106,7 +106,10 @@ public:
     {
         _processRequest();
     }
-    void setMapper(Mapper mapper) {_mapper = mapper;}
+    void setMapper(Mapper mapper)
+    {
+        _mapper = mapper;
+    }
     void setRequestBuilder(RequestBuilder* builder)
     {
         _requestBuilder.reset(builder);

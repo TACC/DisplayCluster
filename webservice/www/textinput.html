@@ -1,0 +1,58 @@
+<!-- Web page used to send keystrokes to application server -->
+<html>
+<head>
+<title>Trying things out</title>
+<script src="scripts/jquery-2.1.0.min.js" type="text/javascript"></script>
+<script type="text/javascript">
+
+var defaultMessageTimer;
+
+// Creates a new timer for the display of the default message
+function defaultMessage() {
+    defaultMessageTimer = setTimeout(
+        function() {
+            $("#text").text("Press A Key");
+        }, 1000
+    );
+}
+
+$(document).keypress(
+function(e) {
+    console.log(e.keyCode);
+    // Something has been typed, reset the default message timer
+    window.clearTimeout(defaultMessageTimer);
+    // For tab and enter, do not execute default browser behavior.
+    // Then sending of this keys is done in keydown.
+    if (e.keyCode == 9 || e.keyCode == 8) {
+        e.preventDefault();
+        return
+    }
+    $.post("/dcapi/textinput", data=String.fromCharCode(e.which));
+    $("#text").text(String.fromCharCode(e.which));
+    defaultMessage();
+}
+);
+
+// Chrome does not generate keypress for tab and enter, so we chose to 
+// handle this keys for ALL browsers in this method.
+$(document).keydown(
+function(e){
+    if(e.keyCode == 9 || e.keyCode == 8) {
+        // Something has been typed, reset the default message timer
+        window.clearTimeout(defaultMessageTimer);
+        e.preventDefault();
+        $.post("/dcapi/textinput", data=String.fromCharCode(e.keyCode));
+        $("#text").text(String.fromCharCode(e.keyCode));
+        defaultMessage();
+    }
+}
+);
+
+</script>
+</head>
+<body>
+<b>Introduce text</b><p>
+<!--<textarea id="text" rows="4" cols="50"></textarea>-->
+<h1 id="text">Press A Key</h1>
+</body>
+</html>

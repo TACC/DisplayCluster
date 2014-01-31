@@ -41,6 +41,7 @@
 #define DEFAULT_HANDLER_H
 
 #include "Handler.h"
+#include "types.h"
 
 namespace fcgiws
 {
@@ -57,4 +58,4 @@ public:
 
 }
 
-#endif // DEFAUTL_HANDLER_H
+#endif // DEFAULT_HANDLER_H

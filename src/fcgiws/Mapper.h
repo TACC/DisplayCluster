@@ -45,7 +45,7 @@
 
 #include <boost/regex.hpp>
 
-#include "Handler.h"
+#include "types.h"
 
 namespace fcgiws
 {
@@ -99,6 +99,7 @@ public:
 
 private:
     std::list<MappingPair> mappings;
+    HandlerPtr _defaultHandler;
 };
 
 }

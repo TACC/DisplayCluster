@@ -1,5 +1,5 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
 /*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
@@ -37,42 +37,30 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MASTERCONFIGURATION_H
-#define MASTERCONFIGURATION_H
+#ifndef DISPLAYGROUPMANAGERADAPTER_H
+#define DISPLAYGROUPMANAGERADAPTER_H
 
-#include "Configuration.h"
+#include <QString>
+
+#include "types.h"
+
 /**
- * @brief The MasterConfiguration class manages all the parameters needed
- * to setup the Master process.
+ * Adapter class for DisplayGroupManager with virtual methods for unit testing.
  */
-class MasterConfiguration : public Configuration
+class DisplayGroupManagerAdapter
 {
 public:
-    /**
-     * @brief MasterConfiguration constructor
-     * @param filename \see Configuration
-     * @param options \see Configuration
-     */
-    MasterConfiguration(const QString& filename, OptionsPtr options);
+    /** Constructor. */
+    DisplayGroupManagerAdapter(DisplayGroupManagerPtr displayGroupManager);
 
-    /**
-     * @brief getDockStartDir Get the Dock startup directory
-     * @return directory path
-     */
-    const QString& getDockStartDir() const;
+    /** Destructor. */
+    virtual ~DisplayGroupManagerAdapter();
 
-    /**
-     * @brief getWebServicePort Get the port where the WebService server
-     * will be listening for incoming requests.
-     * @return port for WebService server
-     */
-    const int getWebServicePort() const;
+    /** Does the DisplayGroupManager have any windows. */
+    virtual bool hasWindows() const;
 
 private:
-    void loadMasterSettings();
-
-    QString dockStartDir_;
-    int dcWebServicePort_;
+    DisplayGroupManagerPtr displayGroupManager_;
 };
 
-#endif // MASTERCONFIGURATION_H
+#endif // DISPLAYGROUPMANAGERADAPTER_H

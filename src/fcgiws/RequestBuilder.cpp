@@ -39,6 +39,8 @@
 
 #include "RequestBuilder.h"
 
+#include "Request.h"
+
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
 

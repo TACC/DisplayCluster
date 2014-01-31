@@ -23,11 +23,15 @@ include_directories(${CMAKE_SOURCE_DIR}/src/core)
 include_directories(${CMAKE_BINARY_DIR}) ### for config.h ###
 
 #Local classes for test executables
-set(MOC_HEADERS MockNetworkListener.h)
+set(MOC_HEADERS
+  MockNetworkListener.h
+  MockTextInputDispatcher.h
+)
 qt4_wrap_cpp(MOC_OUTFILES ${MOC_HEADERS})
 
 set(LOCAL_FILES
   MockNetworkListener.cpp
+  MockTextInputDispatcher.cpp
   glxDisplay.h
   GlobalQtApp.h
   MinimalGlobalQtApp.h

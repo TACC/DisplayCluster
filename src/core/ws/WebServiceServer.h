@@ -1,6 +1,6 @@
 /*********************************************************************/
 /* Copyright (c) 2014, EPFL/Blue Brain Project                       */
-/*                     Julio Delgado <julio.delgadomangas@epfl.ch>   */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -37,18 +37,52 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "Handler.h"
-#include "DefaultHandler.h"
+#ifndef WEBSERVICESERVER_H
+#define WEBSERVICESERVER_H
 
-namespace fcgiws
+#include <QThread>
+
+#include "fcgiws/types.h"
+
+/**
+ * A Qt wrapper to run the fcgiws::Server in a QThread.
+ */
+class WebServiceServer : public QThread
 {
+    Q_OBJECT
+public:
+    /** Constructor */
+    explicit WebServiceServer(const unsigned int port, QObject *parent = 0);
 
-Handler::Handler()
-{}
+    /** Destructor */
+    ~WebServiceServer();
 
-Handler::~Handler()
-{}
+    /**
+     * Registers a request handler with a particular regular expression.
+     *
+     * When the URL of an incoming request matches the regular expression
+     * the handler is invoked.
+     *
+     * @param pattern A regular expression.
+     * @param handler A request handler. If the handler is a QObject, it should be moved
+     *        to this thread before making any signal/slot connections.
+     * @return true if the handler was registered succesfully, false otherwise,
+     *         for instance if the regular expression is not valid.
+     */
+    bool addHandler(const std::string& pattern, fcgiws::HandlerPtr handler);
 
-const Handler& Handler::DEFAULT = DefaultHandler();
+    /**
+     * Stop the server. This method is thread-safe.
+     */
+    bool stop();
 
-}
+protected:
+    /** @overload Start the server. */
+    virtual void run();
+
+private:
+    fcgiws::Server* server_;
+    unsigned int port_;
+};
+
+#endif // WEBSERVICESERVER_H

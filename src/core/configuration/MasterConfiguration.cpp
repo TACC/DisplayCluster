@@ -43,6 +43,8 @@
 
 #include "log.h"
 
+#define DEFAULT_WEBSERVICE_PORT 8888
+
 MasterConfiguration::MasterConfiguration(const QString &filename, OptionsPtr options)
     : Configuration(filename, options)
 {
@@ -66,9 +68,24 @@ void MasterConfiguration::loadMasterSettings()
         dockStartDir_ = queryResult.remove(QRegExp("[\\n\\t\\r]"));
     if( dockStartDir_.isEmpty( ))
         dockStartDir_ = QDir::homePath();
+
+    // WebService server port
+    query.setQuery("string(/configuration/webservice/@port)");
+    if (query.evaluateTo(&queryResult))
+    {
+        if (queryResult.isEmpty())
+            dcWebServicePort_ = DEFAULT_WEBSERVICE_PORT;
+    else
+        dcWebServicePort_ = queryResult.toInt();
+    }
 }
 
 const QString &MasterConfiguration::getDockStartDir() const
 {
     return dockStartDir_;
+}
+
+const int MasterConfiguration::getWebServicePort() const
+{
+    return dcWebServicePort_;
 }

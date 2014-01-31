@@ -1,5 +1,5 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
 /*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
@@ -37,42 +37,39 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MASTERCONFIGURATION_H
-#define MASTERCONFIGURATION_H
+#ifndef TEXTINPUTDISPATCHER_H
+#define TEXTINPUTDISPATCHER_H
 
-#include "Configuration.h"
+#include <QObject>
+
+#include "types.h"
+#include "AsciiToQtKeyCodeMapper.h"
+
 /**
- * @brief The MasterConfiguration class manages all the parameters needed
- * to setup the Master process.
+ * Dispatch text input from the WebServiceServer thread to the active ContentWindowManager.
  */
-class MasterConfiguration : public Configuration
+class TextInputDispatcher : public QObject
 {
+    Q_OBJECT
+
 public:
     /**
-     * @brief MasterConfiguration constructor
-     * @param filename \see Configuration
-     * @param options \see Configuration
+     * Constructor.
+     * @param displayGroupManager The DisplayGroup which holds the target ContentWindowManager.
+     * @param parent An optional parent QObjet
      */
-    MasterConfiguration(const QString& filename, OptionsPtr options);
+    explicit TextInputDispatcher(DisplayGroupManagerPtr displayGroupManager, QObject *parent = 0);
 
+public slots:
     /**
-     * @brief getDockStartDir Get the Dock startup directory
-     * @return directory path
+     * Send the given key event to the active (frontmost) window
+     * @param key The key code to send
      */
-    const QString& getDockStartDir() const;
-
-    /**
-     * @brief getWebServicePort Get the port where the WebService server
-     * will be listening for incoming requests.
-     * @return port for WebService server
-     */
-    const int getWebServicePort() const;
+    void sendKeyEventToActiveWindow(const char key) const;
 
 private:
-    void loadMasterSettings();
-
-    QString dockStartDir_;
-    int dcWebServicePort_;
+    DisplayGroupManagerPtr displayGroupManager_;
+    AsciiToQtKeyCodeMapper keyMapper_;
 };
 
-#endif // MASTERCONFIGURATION_H
+#endif // TEXTINPUTDISPATCHER_H

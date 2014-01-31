@@ -44,14 +44,10 @@
 #include <string>
 #include <iostream>
 
-#include <boost/shared_ptr.hpp>
+#include "types.h"
 
 namespace fcgiws
 {
-
-struct Response;
-typedef boost::shared_ptr<Response> ResponsePtr;
-typedef boost::shared_ptr<const Response> ConstResponsePtr;
 
 /**
  * Structure representing a HTTP reponse message as specified in

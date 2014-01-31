@@ -36,69 +36,95 @@
 /* interpreted as representing official policies, either expressed   */
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
-#ifndef REQUEST_BUILDER_H
-#define REQUEST_BUILDER_H
 
-#include <fcgiapp.h>
+#define BOOST_TEST_MODULE TextInputHandlerTests
+#include <boost/test/unit_test.hpp>
+namespace ut = boost::unit_test;
 
-#include "types.h"
+#include "MinimalGlobalQtApp.h"
 
-namespace fcgiws
-{
+#include "ws/TextInputHandler.h"
+#include "ws/DisplayGroupManagerAdapter.h"
 
-/**
- * This class encapsulates the logic necessary to extract information
- * from a FastCGI request (FCGX_Request), into a fcgiws::Request object
- * that can be consumed by the rest of the application.
- */
-class RequestBuilder
+#include "fcgiws/Response.h"
+#include "fcgiws/Request.h"
+#include "fcgiws/types.h"
+
+#include "MockTextInputDispatcher.h"
+
+BOOST_GLOBAL_FIXTURE( MinimalGlobalQtApp );
+
+class MockDisplayGroupManagerAdapter : public DisplayGroupManagerAdapter
 {
 public:
-    /**
-     * Destructor
-     */
-    virtual ~RequestBuilder();
+    MockDisplayGroupManagerAdapter(bool hasWindows)
+        : DisplayGroupManagerAdapter(DisplayGroupManagerPtr())
+        , hasWindows_(hasWindows)
+    {}
 
-    /**
-     * Creates a new fcgiws::Request object using the information contained
-     * in the FastCGI request.
-     *
-     * @param fcgiRequest A populated FastCGI request object.
-     * @returns A boost::shared_ptr to a fcgiws::Request object.
-     */
-    virtual RequestPtr buildRequest(FCGX_Request& fcgiRequest);
-
+    virtual bool hasWindows() const
+    {
+        return hasWindows_;
+    }
 private:
-    /*
-     * Retrieves the data from the body of the FCGI request.
-     * @param fcgiRequest A populated FastCGI request object.
-     * @returns A string with the data found int the body or an empty string.
-     */
-    std::string _getData(FCGX_Request& fcgiRequest);
-
-    /*
-     * This method must be called once a query string has been added to the
-     * request. The query string is parsed and the pairs key/value are added
-     * to the parameters map in the request.
-     *
-     * @param request A boost::shared_ptr to a fcgiws::Request object.
-     * @returns void
-     */
-    void _populateParameters(RequestPtr request);
-
-    /*
-     * Looks for HTTP headers in the environment parameters present in the
-     * FastCGI request, and loads them in the the fcgiws::Request httpHeaders
-     * map.
-     *
-     * @param fcgiRequest A populated FastCGI object.
-     * @param request A boost::shared_ptr to a fcgiws::Request object.
-     * @returns void
-     *
-     */
-    void _populateHttpHeaders(FCGX_Request& fcgiRequest, RequestPtr request);
+    bool hasWindows_;
 };
 
+BOOST_AUTO_TEST_CASE( testWhenRequestHasCharThenTextInputDispatcherReceivesIt )
+{
+    TextInputHandler handler(new MockDisplayGroupManagerAdapter(true));
+
+    MockTextInputDispatcher mockDispatcher;
+    mockDispatcher.connect(&handler, SIGNAL(receivedKeyInput(char)),
+                           SLOT(sendKeyEventToActiveWindow(char)));
+    // Checking default value
+    BOOST_REQUIRE_EQUAL(mockDispatcher.getKey(), '0');
+
+    fcgiws::RequestPtr request(new fcgiws::Request());
+
+    request->data = "a";
+    handler.handle(*request);
+    BOOST_CHECK_EQUAL(mockDispatcher.getKey(), 'a');
+
+    request->data = "7";
+    handler.handle(*request);
+    BOOST_CHECK_EQUAL(mockDispatcher.getKey(), '7');
 }
 
-#endif // REQUEST_BUILDER_H
+BOOST_AUTO_TEST_CASE( testWhenRequestIsTooLongThenReturnCodeIs400 )
+{
+    TextInputHandler handler(new MockDisplayGroupManagerAdapter(true));
+
+    fcgiws::RequestPtr request(new fcgiws::Request());
+    fcgiws::ConstResponsePtr response;
+
+    request->data = "iamtoolong";
+    response = handler.handle(*request);
+    BOOST_CHECK_EQUAL(response->statusCode, 400);
+    BOOST_CHECK_EQUAL(response->statusMsg, "Bad Request");
+}
+
+BOOST_AUTO_TEST_CASE( testWhenRequestEmptyInvalidThenReturnCodeIs400 )
+{
+    TextInputHandler handler(new MockDisplayGroupManagerAdapter(true));
+
+    fcgiws::RequestPtr request(new fcgiws::Request());
+    fcgiws::ConstResponsePtr response;
+
+    request->data = "";
+    response = handler.handle(*request);
+    BOOST_CHECK_EQUAL(response->statusCode, 400);
+    BOOST_CHECK_EQUAL(response->statusMsg, "Bad Request");
+}
+
+BOOST_AUTO_TEST_CASE( testWhenDisplayGroupHasNoWindowsThenReturnCodeIs404 )
+{
+    TextInputHandler handler(new MockDisplayGroupManagerAdapter(false));
+
+    fcgiws::RequestPtr request(new fcgiws::Request());
+
+    request->data = "a";
+    fcgiws::ConstResponsePtr response = handler.handle(*request);
+    BOOST_CHECK_EQUAL(response->statusCode, 404);
+    BOOST_CHECK_EQUAL(response->statusMsg, "Not Found");
+}

@@ -38,7 +38,9 @@
 /*********************************************************************/
 
 #include "Server.h"
+
 #include "Response.h"
+#include "Request.h"
 
 #include <sys/socket.h>
 #include <netdb.h>

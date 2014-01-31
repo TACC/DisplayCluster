@@ -1,5 +1,5 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
 /*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
@@ -37,42 +37,53 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MASTERCONFIGURATION_H
-#define MASTERCONFIGURATION_H
+#ifndef TEXTINPUTHANDLER_H
+#define TEXTINPUTHANDLER_H
 
-#include "Configuration.h"
+#include <QObject>
+
+#include "fcgiws/Handler.h"
+
+class DisplayGroupManagerAdapter;
+
 /**
- * @brief The MasterConfiguration class manages all the parameters needed
- * to setup the Master process.
+ * Handle "/textinput" requests for the WebService.
+ *
+ * When a valid request is received, the receivedText() signal is emitted.
+ * This class is typically used in the WebServiceServer thread and communicates
+ * with the TextInputDispatcher in the main thread via signals/slots.
  */
-class MasterConfiguration : public Configuration
+class TextInputHandler : public QObject, public fcgiws::Handler
 {
+    Q_OBJECT
+
 public:
     /**
-     * @brief MasterConfiguration constructor
-     * @param filename \see Configuration
-     * @param options \see Configuration
+     * Handle TextInput requests.
+     * @param displayGroupManagerAdapter An adapter over the displayGroupManager,
+     * used for unit testing. If provided, the class takes ownership of it.
      */
-    MasterConfiguration(const QString& filename, OptionsPtr options);
+    TextInputHandler(DisplayGroupManagerAdapter* displayGroupManagerAdapter);
+
+    /** Destructor */
+    virtual ~TextInputHandler();
 
     /**
-     * @brief getDockStartDir Get the Dock startup directory
-     * @return directory path
+     * Handle a request.
+     * @param request A valid fcgiws::Request object.
+     * @return A valid Response object.
      */
-    const QString& getDockStartDir() const;
+    virtual fcgiws::ConstResponsePtr handle(const fcgiws::Request& request) const;
 
+signals:
     /**
-     * @brief getWebServicePort Get the port where the WebService server
-     * will be listening for incoming requests.
-     * @return port for WebService server
+     * Emitted whenever a request is successfully handled.
+     * @param key The key code received in the Request.
      */
-    const int getWebServicePort() const;
+    void receivedKeyInput(char key) const;
 
 private:
-    void loadMasterSettings();
-
-    QString dockStartDir_;
-    int dcWebServicePort_;
+    DisplayGroupManagerAdapter* displayGroupManagerAdapter_;
 };
 
-#endif // MASTERCONFIGURATION_H
+#endif // TEXTINPUTHANDLER_H

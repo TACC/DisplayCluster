@@ -41,6 +41,8 @@
 #define BOOST_TEST_MODULE RequestBuilderTests
 #include <boost/test/unit_test.hpp>
 #include "fcgiws/RequestBuilder.h"
+#include "fcgiws/Request.h"
+
 namespace ut = boost::unit_test;
 
 char ** populateEnv(const std::string& queryString="")

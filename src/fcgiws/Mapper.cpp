@@ -38,13 +38,16 @@
 /*********************************************************************/
 
 #include "Mapper.h"
+#include "Handler.h"
 #include "DefaultHandler.h"
+
 #include <boost/regex/pattern_except.hpp>
 
 namespace fcgiws
 {
 
 Mapper::Mapper()
+    : _defaultHandler(new DefaultHandler())
 {}
 
 bool Mapper::addHandler(const std::string& pattern, HandlerPtr handler)
@@ -69,7 +72,7 @@ const Handler& Mapper::getHandler(const std::string& url) const
             return *it->second;
     }
 
-    return Handler::DEFAULT;
+    return *_defaultHandler;
 }
 
 }

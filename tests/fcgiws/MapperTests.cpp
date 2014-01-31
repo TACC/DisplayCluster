@@ -47,8 +47,8 @@ namespace ut = boost::unit_test;
 BOOST_AUTO_TEST_CASE( testEmptyMapper )
 {
     fcgiws::Mapper mapper;
-    BOOST_CHECK_EQUAL( &fcgiws::Handler::DEFAULT, &mapper.getHandler("/video" ));
-    BOOST_CHECK_EQUAL( &fcgiws::Handler::DEFAULT, &mapper.getHandler("/video/12344" ));
+    BOOST_CHECK( dynamic_cast<const fcgiws::DefaultHandler*>(&mapper.getHandler("/video" )));
+    BOOST_CHECK( dynamic_cast<const fcgiws::DefaultHandler*>(&mapper.getHandler("/video/12344" )));
 }
 
 BOOST_AUTO_TEST_CASE( testUrlDoesNotMatchAnyRegex )
@@ -56,8 +56,8 @@ BOOST_AUTO_TEST_CASE( testUrlDoesNotMatchAnyRegex )
     fcgiws::Mapper mapper;
     fcgiws::HandlerPtr handler(new fcgiws::DefaultHandler());
     mapper.addHandler("/video/play/(.*)", handler);
-    BOOST_CHECK_EQUAL( &fcgiws::Handler::DEFAULT, &mapper.getHandler("/video") );
-    BOOST_CHECK_EQUAL( &fcgiws::Handler::DEFAULT, &mapper.getHandler("/video/12344") );
+    BOOST_CHECK( dynamic_cast<const fcgiws::DefaultHandler*>(&mapper.getHandler("/video" )));
+    BOOST_CHECK( dynamic_cast<const fcgiws::DefaultHandler*>(&mapper.getHandler("/video/12344" )));
 }
 
 BOOST_AUTO_TEST_CASE( testUrlMatchesFirstRegex )
@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE( testUrlMatchesFirstRegex )
     BOOST_CHECK_EQUAL( handler1.get(), &mapper.getHandler("/video/play/1234") );
     BOOST_CHECK_EQUAL( handler1.get(), &mapper.getHandler("/video/play/") );
     BOOST_CHECK_NE( handler2.get(), &mapper.getHandler("/video/play/1234") );
-    BOOST_CHECK_EQUAL( &fcgiws::Handler::DEFAULT, &mapper.getHandler("/video/play") );
+    BOOST_CHECK( dynamic_cast<const fcgiws::DefaultHandler*>(&mapper.getHandler("/video/play" )));
 }
 
 BOOST_AUTO_TEST_CASE( testMapperReturnsFirstMatchWhenMoreThanOnePossible )
@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE( testMapperReturnsFirstMatchWhenMoreThanOnePossible )
     BOOST_CHECK_EQUAL( handler1.get(), &mapper.getHandler("/video/play/") );
     BOOST_CHECK_EQUAL( handler2.get(), &mapper.getHandler("/video/play/1234") );
     BOOST_CHECK_NE( handler1.get(), &mapper.getHandler("/video/play/1234") );
-    BOOST_CHECK_EQUAL( &fcgiws::Handler::DEFAULT, &mapper.getHandler("/video/play") );
+    BOOST_CHECK( dynamic_cast<const fcgiws::DefaultHandler*>(&mapper.getHandler("/video/play" )));
 }
 
 BOOST_AUTO_TEST_CASE( testIncorrectRegex )

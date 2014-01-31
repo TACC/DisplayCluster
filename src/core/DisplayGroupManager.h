@@ -102,6 +102,19 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         void setBackgroundContentWindowManager(ContentWindowManagerPtr contentWindowManager);
         ContentWindowManagerPtr getBackgroundContentWindowManager() const;
 
+        /**
+         * Is the DisplayGroup empty.
+         * @return true if the DisplayGroup has no ContentWindowManager, false otherwise.
+         */
+        bool isEmpty() const;
+
+        /**
+         * Get the active window.
+         * @return A shared pointer to the active window. Can be empty if there is
+         *         no Window available. @see isEmpty().
+         */
+        ContentWindowManagerPtr getActiveWindow() const;
+
 public slots:
 
         // this can be invoked from other threads to construct a DisplayGroupInterface and move it to that thread

@@ -39,6 +39,9 @@
 
 #include "DefaultHandler.h"
 
+#include "Response.h"
+#include "Request.h"
+
 namespace fcgiws
 {
 

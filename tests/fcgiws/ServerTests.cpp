@@ -40,6 +40,9 @@
 #define BOOST_TEST_MODULE RequestBuilderTests
 #include <boost/test/unit_test.hpp>
 #include "fcgiws/Server.h"
+#include "fcgiws/Response.h"
+#include "fcgiws/Request.h"
+
 namespace ut = boost::unit_test;
 
 class MockHandler : public fcgiws::Handler
