@@ -37,82 +37,39 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef FASTCGI_WRAPPER_H
-#define FASTCGI_WRAPPER_H
+#ifndef HANDLER_H
+#define HANDLER_H
 
-#include <string>
-#include <boost/scoped_ptr.hpp>
+#include "types.h"
 
-#include <fcgiapp.h>
-
-namespace fcgiws
+namespace dcWebservice
 {
 
 /**
- * Wrapper for the FastCGI library. All methods are virtual to facilitate tests.
+ * A request handler encapuslates the "service" code entry point of a web
+ * service. The library takes care of reading requests from the wire and
+ * transforming them into dcWebserviceResquest object. A handler takes a Request
+ * object, processes it and generates a dcWebservice::Response object.
  */
-class FastCGIWrapper
+class Handler
 {
 public:
-    /**
-     * Constructor
-     */
-    FastCGIWrapper();
 
     /**
      * Destructor
      */
-    virtual ~FastCGIWrapper();
+    virtual ~Handler() {}
 
     /**
-     * Initialize the FCGI library. After this method is called, it is assumed
-     * that it is safe to call accept() to receive requests.
+     * Through this method the handling functionality is exposed. This method is
+     * called by the server to invoke the web service functionality associated
+     * with a particular Handler.
      *
-     * @param socket An id identifying the socket where requests are going to be
-     * received.
-     * @param nbOfConnections number of connections to enqueue in the socket.
-     * @returns true if initialization succeeds, false otherwise.
+     * @param request A valid dcWebservice::Request object.
      */
-    virtual bool init(const unsigned int port, const unsigned int nbOfConnections = 5);
-
-    /**
-     * Blocks until a request arrives.
-     *
-     * @returns true if a request is received successfully, false otherwise.
-     */
-    virtual bool accept();
-
-    /**
-     * Get the actual FCGX_Request object associated with this wrapper.
-     *
-     * @returns The FCGX_Request object associated with this wrapper.
-     */
-    virtual FCGX_Request* getRequest();
-
-    /**
-     * Sends the message back to the requester and finalizes the request.
-     *
-     * @param msg A string representing a message that is going to be sent
-     * to the initiator of the request. Normally this message should be a
-     * valid HTTP response message.
-     * @returns true upon success, false otherwise.
-     */
-    virtual bool write(const std::string& msg);
-
-    /**
-     * Calling this method will force the interruption of the accept blocking
-     * call. This method is meant to be used only during application cleanup.
-     *
-     * @return true if success, false otherwise.
-     */
-    virtual bool stop();
-
-private:
-    boost::scoped_ptr<FCGX_Request> _request;
-    volatile bool _run;
-    int _socket;
+    virtual ConstResponsePtr handle(const Request& request) const = 0;
 };
 
 }
 
-#endif // FASTCGI_WRAPPER_H
+#endif // HANDLER_H

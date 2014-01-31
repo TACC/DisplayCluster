@@ -37,39 +37,68 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
+#include "Server.h"
 
-#define BOOST_TEST_MODULE DefaultHandlerTests
-#include <boost/test/unit_test.hpp>
-#include "fcgiws/DefaultHandler.h"
-#include "fcgiws/Response.h"
-#include "fcgiws/Request.h"
+#include "Response.h"
+#include "Request.h"
 
-namespace ut = boost::unit_test;
+#include <sys/socket.h>
+#include <netdb.h>
+#include <cstdio>
 
-/*
- * Mock handler that always returns an OK resonse, regardless of the request
- */
-class MockHandler : public fcgiws::Handler
+namespace dcWebservice
 {
-public:
-    virtual fcgiws::ConstResponsePtr handle(const fcgiws::Request& request) const
-    {
-        return fcgiws::Response::OK();
-    }
-};
 
-BOOST_AUTO_TEST_CASE( testConstructorWithoutParameters )
+Server::Server() : _requestBuilder(new RequestBuilder()),
+    _fcgi(new FastCGIWrapper())
+{}
+
+bool Server::addHandler(const std::string& pattern, HandlerPtr handler)
 {
-    fcgiws::DefaultHandler handler;
-
-    fcgiws::Request request;
-    BOOST_CHECK_EQUAL(fcgiws::Response::NotFound(), handler.handle(request));
+    return _mapper.addHandler(pattern, handler);
 }
 
-BOOST_AUTO_TEST_CASE( testConstructorWithParameters )
+bool Server::run(const unsigned int port)
 {
-    MockHandler mock;
+    if(!_fcgi->init(port))
+        return false;
 
-    fcgiws::Request request;
-    BOOST_CHECK_EQUAL(fcgiws::Response::OK(), mock.handle(request));
+    while(_fcgi->accept())
+    {
+        _processRequest();
+    }
+    return true;
+}
+
+void Server::_sendResponse(const Response& response)
+{
+    _fcgi->write(response.serialize());
+}
+
+void Server::_processRequest()
+{
+    RequestPtr request = _requestBuilder->buildRequest(*_fcgi->getRequest());
+    if(!request)
+    {
+        _sendResponse(*Response::ServerError());
+        return;
+    }
+
+    const Handler& handler = _mapper.getHandler(request->resource);
+
+    ConstResponsePtr response = handler.handle(*request);
+    if(!response)
+    {
+        _sendResponse(*Response::ServerError());
+        return;
+    }
+
+    _sendResponse(*response);
+}
+
+bool Server::stop()
+{
+    return _fcgi->stop();
+}
+
 }

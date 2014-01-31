@@ -1,6 +1,6 @@
 /*********************************************************************/
 /* Copyright (c) 2014, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/*                     Julio Delgado <julio.delgadomangas@epfl.ch>   */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -37,22 +37,64 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef FCGIWS_TYPES_H
-#define FCGIWS_TYPES_H
+#ifndef REQUEST_H
+#define REQUEST_H
 
-#include <boost/shared_ptr.hpp>
+#include <map>
+#include <string>
 
-namespace fcgiws
+namespace dcWebservice
 {
-class Handler;
-struct Response;
-struct Request;
-class Server;
 
-typedef boost::shared_ptr<Handler> HandlerPtr;
-typedef boost::shared_ptr<Response> ResponsePtr;
-typedef boost::shared_ptr<const Response> ConstResponsePtr;
-typedef boost::shared_ptr<Request> RequestPtr;
+struct Request
+{
+    /**
+     * HTTP headers table
+     */
+    std::map<std::string, std::string> httpHeaders;
+
+    /**
+     * Originally requested URL
+     */
+    std::string url;
+
+    /**
+     * HTTP request method (GET, POST, PUT, DELETE, ...)
+     */
+    std::string method;
+
+    /**
+     * The query string, if one is present in the url. Given
+     *
+     * http://bbpteam.epfl.ch/dc/video&file=f.mp4&type=thumbnail
+     *
+     * queryString is equals to file=f.mp4&type=thumbnail
+     */
+    std::string queryString;
+
+    /**
+     * The path to the resource indicated in the url. This is the part
+     * of the URL used for mapping a Handler. Given
+     *
+     * http://bbpteam.epfl.ch/dc/video&file=f.mp4&type=thumbnail
+     *
+     * resource is equals to /dc/video
+     */
+    std::string resource;
+
+    /**
+     * If a query string is present this map contains the pairs name, value
+     * for each of the parameters in the query string.
+     */
+    std::map<std::string, std::string> parameters;
+
+    /**
+     * If the request contains data in its body the data is stored here. Normally
+     * data is only inspected/used in POST requests
+     */
+    std::string data;
+};
+
 }
 
-#endif // FCGIWS_TYPES_H
+#endif // REQUEST_H

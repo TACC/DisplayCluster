@@ -40,8 +40,8 @@
 #include "TextInputHandler.h"
 
 #include "ws/DisplayGroupManagerAdapter.h"
-#include "fcgiws/Response.h"
-#include "fcgiws/Request.h"
+#include "dcWebservice/Response.h"
+#include "dcWebservice/Request.h"
 
 #include <QString>
 
@@ -55,9 +55,9 @@ TextInputHandler::~TextInputHandler()
     delete displayGroupManagerAdapter_;
 }
 
-fcgiws::ConstResponsePtr TextInputHandler::handle(const fcgiws::Request& request) const
+dcWebservice::ConstResponsePtr TextInputHandler::handle(const dcWebservice::Request& request) const
 {
-    fcgiws::ResponsePtr response(new fcgiws::Response());
+    dcWebservice::ResponsePtr response(new dcWebservice::Response());
 
     if(request.data.size() != 1)
     {

@@ -36,69 +36,23 @@
 /* interpreted as representing official policies, either expressed   */
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
-#ifndef REQUEST_BUILDER_H
-#define REQUEST_BUILDER_H
 
-#include <fcgiapp.h>
+#ifndef FCGIWS_TYPES_H
+#define FCGIWS_TYPES_H
 
-#include "types.h"
+#include <boost/shared_ptr.hpp>
 
-namespace fcgiws
+namespace dcWebservice
 {
+class Handler;
+struct Response;
+struct Request;
+class Server;
 
-/**
- * This class encapsulates the logic necessary to extract information
- * from a FastCGI request (FCGX_Request), into a fcgiws::Request object
- * that can be consumed by the rest of the application.
- */
-class RequestBuilder
-{
-public:
-    /**
-     * Destructor
-     */
-    virtual ~RequestBuilder();
-
-    /**
-     * Creates a new fcgiws::Request object using the information contained
-     * in the FastCGI request.
-     *
-     * @param fcgiRequest A populated FastCGI request object.
-     * @returns A boost::shared_ptr to a fcgiws::Request object.
-     */
-    virtual RequestPtr buildRequest(FCGX_Request& fcgiRequest);
-
-private:
-    /*
-     * Retrieves the data from the body of the FCGI request.
-     * @param fcgiRequest A populated FastCGI request object.
-     * @returns A string with the data found int the body or an empty string.
-     */
-    std::string _getData(FCGX_Request& fcgiRequest);
-
-    /*
-     * This method must be called once a query string has been added to the
-     * request. The query string is parsed and the pairs key/value are added
-     * to the parameters map in the request.
-     *
-     * @param request A boost::shared_ptr to a fcgiws::Request object.
-     * @returns void
-     */
-    void _populateParameters(RequestPtr request);
-
-    /*
-     * Looks for HTTP headers in the environment parameters present in the
-     * FastCGI request, and loads them in the the fcgiws::Request httpHeaders
-     * map.
-     *
-     * @param fcgiRequest A populated FastCGI object.
-     * @param request A boost::shared_ptr to a fcgiws::Request object.
-     * @returns void
-     *
-     */
-    void _populateHttpHeaders(FCGX_Request& fcgiRequest, RequestPtr request);
-};
-
+typedef boost::shared_ptr<Handler> HandlerPtr;
+typedef boost::shared_ptr<Response> ResponsePtr;
+typedef boost::shared_ptr<const Response> ConstResponsePtr;
+typedef boost::shared_ptr<Request> RequestPtr;
 }
 
-#endif // REQUEST_BUILDER_H
+#endif // FCGIWS_TYPES_H

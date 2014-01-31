@@ -37,72 +37,19 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MAPPER_H
-#define MAPPER_H
+#include "DefaultHandler.h"
 
-#include <utility>
-#include <list>
+#include "Response.h"
+#include "Request.h"
 
-#include <boost/regex.hpp>
-
-#include "types.h"
-
-namespace fcgiws
+namespace dcWebservice
 {
 
-typedef boost::shared_ptr<boost::regex> RegexPtr;
-typedef std::pair<RegexPtr, HandlerPtr> MappingPair;
+DefaultHandler::~DefaultHandler() {}
 
-/**
- * Maps regular expressions to Request Handlers.
- *
- * A mapper keeps a map of regular expressions to Handlers. A Handler can be
- * retrieved by providing a string that matches one of the regexes
- * present in the map. The handler returned is the first one for which a regex
- * match is found, therefore attention must be put in the order in which
- * Handlers are registered, since some regexes may define a subset of other
- * regexes.
- */
-class Mapper
+ConstResponsePtr DefaultHandler::handle(const Request& request) const
 {
-public:
-    /**
-     * Constructor
-     */
-    Mapper();
-
-    /**
-     * Register a handler with a regex defined by the pattern string passed
-     * as parameter. If this method is called several times with the same
-     * string pattern, previous mappings will be overwriten.
-     *
-     * @param pattern A string representing a valid regular expression.
-     * @param handler A request handler.
-     * @returns true if the mapper was added succesfuly, false otherwise.
-     *
-     */
-    bool addHandler(const std::string& pattern, HandlerPtr handler);
-
-    /**
-     * Given a string, it returns the first handler for which positive regex
-     * match is found.
-     *
-     * @param url A string that will be matched agains the different regexes
-     * registered with the mapper.
-     *
-     * @returns The first handler whose regex matches the input string, or a
-     * default handler if not match is found. The default handler always
-     * returns a fcgiws::Response::NotFound response, when its handle method is
-     * invoked.
-     */
-    const Handler& getHandler(const std::string& url) const;
-
-private:
-    std::list<MappingPair> mappings;
-    HandlerPtr _defaultHandler;
-};
-
+    return Response::NotFound();
 }
 
-#endif // MAPPER_H
-
+}

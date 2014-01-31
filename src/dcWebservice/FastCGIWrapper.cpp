@@ -37,39 +37,86 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef HANDLER_H
-#define HANDLER_H
+#include <sstream>
+#include <cstdio>
 
-#include "types.h"
+#include "FastCGIWrapper.h"
 
-namespace fcgiws
+namespace dcWebservice
 {
 
-/**
- * A request handler encapuslates the "service" code entry point of a web
- * service. The library takes care of reading requests from the wire and
- * transforming them into fcgiws::Resquest object. A handler takes a Request
- * object, processes it and generates a fcgiws::Response object.
- */
-class Handler
+FastCGIWrapper::FastCGIWrapper()
+    : _request(new FCGX_Request())
+    , _run(false)
+    , _socket(-1)
+{}
+
+FastCGIWrapper::~FastCGIWrapper()
+{}
+
+bool FastCGIWrapper::init(const unsigned int port, const unsigned int nbOfConnections)
 {
-public:
+    std::stringstream ss;
+    ss << ":" << port;
+    _socket = FCGX_OpenSocket(ss.str().c_str(), nbOfConnections);
+    if(_socket < 0)
+        return false;
 
-    /**
-     * Destructor
-     */
-    virtual ~Handler() {}
-
-    /**
-     * Through this method the handling functionality is exposed. This method is
-     * called by the server to invoke the web service functionality associated
-     * with a particular Handler.
-     *
-     * @param request A valid fcgiws::Request object.
-     */
-    virtual ConstResponsePtr handle(const Request& request) const = 0;
-};
-
+    _run = true;
+    FCGX_Init(); // FastCGI takes care of not initializing itself more than once
+    FCGX_InitRequest(_request.get(), _socket, 0);
+    return true;
 }
 
-#endif // HANDLER_H
+
+bool FastCGIWrapper::accept()
+{
+    /*
+     * Here we use non-blocking io. Read "man select"
+     * to understand how this is used
+     */
+    fd_set read_from;
+    struct timeval timeout;
+    int retval = 0;
+
+    while(_run)
+    {
+        // Timeout must be reset every iteration
+        timeout.tv_sec = 1;
+        timeout.tv_usec = 0;
+
+        // Set of file descriptors we are interested in must be reset
+        // every iteration
+        FD_ZERO(&read_from);
+        FD_SET(_socket, &read_from);
+        retval = select(_socket + 1, &read_from, 0,0, &timeout);
+        if( retval == -1)
+            break;
+        else if(retval)
+            return FCGX_Accept_r(_request.get()) >= 0;
+    }
+    return false;
+}
+
+FCGX_Request* FastCGIWrapper::getRequest()
+{
+    return _request.get();
+}
+
+bool FastCGIWrapper::write(const std::string& msg)
+{
+    FCGX_PutS(msg.c_str(), _request->out);
+    FCGX_FFlush(_request->out);
+    FCGX_FClose(_request->out);
+    FCGX_Finish_r(_request.get());
+    return true;
+}
+
+bool FastCGIWrapper::stop()
+{
+    _run = false;
+    FCGX_ShutdownPending();
+    return true;
+}
+
+}

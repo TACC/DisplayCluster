@@ -37,86 +37,69 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include <sstream>
-#include <cstdio>
+#ifndef RESPONSE_H
+#define RESPONSE_H
 
-#include "FastCGIWrapper.h"
+#include <map>
+#include <string>
+#include <iostream>
 
-namespace fcgiws
+#include "types.h"
+
+namespace dcWebservice
 {
 
-FastCGIWrapper::FastCGIWrapper()
-    : _request(new FCGX_Request())
-    , _run(false)
-    , _socket(-1)
-{}
-
-FastCGIWrapper::~FastCGIWrapper()
-{}
-
-bool FastCGIWrapper::init(const unsigned int port, const unsigned int nbOfConnections)
+/**
+ * Structure representing a HTTP reponse message as specified in
+ * http://tools.ietf.org/search/rfc2616
+ */
+struct Response
 {
-    std::stringstream ss;
-    ss << ":" << port;
-    _socket = FCGX_OpenSocket(ss.str().c_str(), nbOfConnections);
-    if(_socket < 0)
-        return false;
-
-    _run = true;
-    FCGX_Init(); // FastCGI takes care of not initializing itself more than once
-    FCGX_InitRequest(_request.get(), _socket, 0);
-    return true;
-}
-
-
-bool FastCGIWrapper::accept()
-{
-    /*
-     * Here we use non-blocking io. Read "man select"
-     * to understand how this is used
+    /**
+     * Constructor
      */
-    fd_set read_from;
-    struct timeval timeout;
-    int retval = 0;
+    Response(unsigned int code = 0, std::string msg = "", std::string body="");
 
-    while(_run)
-    {
-        // Timeout must be reset every iteration
-        timeout.tv_sec = 1;
-        timeout.tv_usec = 0;
+    /**
+     * HTTP status code as defined in RFC 2616.
+     */
+    unsigned int statusCode;
 
-        // Set of file descriptors we are interested in must be reset
-        // every iteration
-        FD_ZERO(&read_from);
-        FD_SET(_socket, &read_from);
-        retval = select(_socket + 1, &read_from, 0,0, &timeout);
-        if( retval == -1)
-            break;
-        else if(retval)
-            return FCGX_Accept_r(_request.get()) >= 0;
-    }
-    return false;
-}
+    /**
+     * HTTP status message as defined in RFC 2616.
+     */
+    std::string statusMsg;
 
-FCGX_Request* FastCGIWrapper::getRequest()
-{
-    return _request.get();
-}
+    /**
+     * HTTP response body, as defined in RFC 2616.
+     */
+    std::string body;
 
-bool FastCGIWrapper::write(const std::string& msg)
-{
-    FCGX_PutS(msg.c_str(), _request->out);
-    FCGX_FFlush(_request->out);
-    FCGX_FClose(_request->out);
-    FCGX_Finish_r(_request.get());
-    return true;
-}
+    /**
+     * HTTP response headers as defined in RFC 2616.
+     */
+    std::map<std::string, std::string> httpHeaders;
 
-bool FastCGIWrapper::stop()
-{
-    _run = false;
-    FCGX_ShutdownPending();
-    return true;
-}
+    /**
+     * Serialize the object into a String contaning a RFC 2616 compliant
+     * HTTP response message.
+     *
+     * @returns A new string representing a HTTP response message.
+     */
+    std::string serialize() const;
+
+    /*
+     * Factory methods for 200, 404, and 500 HTTP responses
+     * See http://tools.ietf.org/search/rfc2616 for more details
+     */
+    static ConstResponsePtr OK();
+    static ConstResponsePtr NotFound();
+    static ConstResponsePtr ServerError();
+};
+
+std::ostream& operator<<(std::ostream& os, const Response& obj);
+bool operator==(const Response& lhs, const Response& rhs);
 
 }
+
+#endif // RESPONSE_H

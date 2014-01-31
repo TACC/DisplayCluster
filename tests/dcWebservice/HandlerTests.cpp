@@ -38,81 +38,38 @@
 /*********************************************************************/
 
 
-#define BOOST_TEST_MODULE RequestBuilderTests
+#define BOOST_TEST_MODULE DefaultHandlerTests
 #include <boost/test/unit_test.hpp>
-#include "fcgiws/RequestBuilder.h"
-#include "fcgiws/Request.h"
+#include "dcWebservice/DefaultHandler.h"
+#include "dcWebservice/Response.h"
+#include "dcWebservice/Request.h"
 
 namespace ut = boost::unit_test;
 
-char ** populateEnv(const std::string& queryString="")
+/*
+ * Mock handler that always returns an OK resonse, regardless of the request
+ */
+class MockHandler : public dcWebservice::Handler
 {
-    char ** envp = new char*[8];
-    int i = 0;
-    envp[i++] = const_cast<char *>("REQUEST_METHOD=GET");
-    envp[i++] = const_cast<char *>("REQUEST_URI=/media/index.htm");
-    envp[i++] = const_cast<char *>("DOCUMENT_URI=/media/index.htm");
+public:
+    virtual dcWebservice::ConstResponsePtr handle(const dcWebservice::Request& request) const
+    {
+        return dcWebservice::Response::OK();
+    }
+};
 
-    std::string qs = "QUERY_STRING=" + queryString;
-    envp[i] = new char[qs.length() + 1];
-    strcpy(envp[i++], qs.c_str());
+BOOST_AUTO_TEST_CASE( testConstructorWithoutParameters )
+{
+    dcWebservice::DefaultHandler handler;
 
-    envp[i++] = const_cast<char *>("CONTENT_LENGTH=");
-    envp[i++]= const_cast<char *>("HTTP_ACCEPT=text/html");
-    envp[i++] = 0;
-    return envp;
+    dcWebservice::Request request;
+    BOOST_CHECK_EQUAL(dcWebservice::Response::NotFound(), handler.handle(request));
 }
 
-void freeMemory(char** envp) {
-    delete [] envp[3];
-    delete [] envp;
-}
-
-
-void checkEmptyQueryString(const std::string& qs)
+BOOST_AUTO_TEST_CASE( testConstructorWithParameters )
 {
-    char ** envp = populateEnv(qs);
-    FCGX_Init();
-    FCGX_Request fcgiRequest;
+    MockHandler mock;
 
-    fcgiRequest.envp = envp;
-    fcgiws::RequestBuilder builder;
-    fcgiws::RequestPtr request = builder.buildRequest(fcgiRequest);
-    BOOST_CHECK_EQUAL(request->queryString, qs);
-    BOOST_CHECK_EQUAL(0, request->parameters.size());
-    freeMemory(envp);
-}
-
-
-BOOST_AUTO_TEST_CASE( testRequestWithoutData )
-{
-    std::string qs = "key1=val1&key2=val2&key3&key4=";
-    char ** envp = populateEnv(qs);
-    FCGX_Request fcgiRequest;
-    fcgiRequest.envp = envp;
-
-    fcgiws::RequestBuilder builder;
-    fcgiws::RequestPtr request = builder.buildRequest(fcgiRequest);
-
-    BOOST_CHECK_EQUAL(request->method, "GET");
-    BOOST_CHECK_EQUAL(request->url, "/media/index.htm");
-    BOOST_CHECK_EQUAL(request->resource, "/media/index.htm");
-    BOOST_CHECK_EQUAL(request->queryString, qs);
-    BOOST_CHECK_EQUAL(request->httpHeaders["HTTP_ACCEPT"], "text/html");
-    BOOST_CHECK_EQUAL(4, request->parameters.size());
-    BOOST_CHECK_EQUAL(request->parameters["key1"], "val1");
-    BOOST_CHECK_EQUAL(request->parameters["key2"], "val2");
-    BOOST_CHECK_EQUAL(request->parameters["key3"], "");
-    BOOST_CHECK_EQUAL(request->parameters["key4"], "");
-    freeMemory(envp);
-}
-
-BOOST_AUTO_TEST_CASE( testRequestEmptyQueryString )
-{
-    checkEmptyQueryString("");
-    checkEmptyQueryString("&");
-    checkEmptyQueryString("&&&");
-    checkEmptyQueryString("=");
-    checkEmptyQueryString("=&=");
-    checkEmptyQueryString("=a&=b&&");
+    dcWebservice::Request request;
+    BOOST_CHECK_EQUAL(dcWebservice::Response::OK(), mock.handle(request));
 }

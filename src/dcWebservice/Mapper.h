@@ -37,69 +37,72 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef RESPONSE_H
-#define RESPONSE_H
+#ifndef MAPPER_H
+#define MAPPER_H
 
-#include <map>
-#include <string>
-#include <iostream>
+#include <utility>
+#include <list>
+
+#include <boost/regex.hpp>
 
 #include "types.h"
 
-namespace fcgiws
+namespace dcWebservice
 {
 
+typedef boost::shared_ptr<boost::regex> RegexPtr;
+typedef std::pair<RegexPtr, HandlerPtr> MappingPair;
+
 /**
- * Structure representing a HTTP reponse message as specified in
- * http://tools.ietf.org/search/rfc2616
+ * Maps regular expressions to Request Handlers.
+ *
+ * A mapper keeps a map of regular expressions to Handlers. A Handler can be
+ * retrieved by providing a string that matches one of the regexes
+ * present in the map. The handler returned is the first one for which a regex
+ * match is found, therefore attention must be put in the order in which
+ * Handlers are registered, since some regexes may define a subset of other
+ * regexes.
  */
-struct Response
+class Mapper
 {
+public:
     /**
      * Constructor
      */
-    Response(unsigned int code = 0, std::string msg = "", std::string body="");
+    Mapper();
 
     /**
-     * HTTP status code as defined in RFC 2616.
-     */
-    unsigned int statusCode;
-
-    /**
-     * HTTP status message as defined in RFC 2616.
-     */
-    std::string statusMsg;
-
-    /**
-     * HTTP response body, as defined in RFC 2616.
-     */
-    std::string body;
-
-    /**
-     * HTTP response headers as defined in RFC 2616.
-     */
-    std::map<std::string, std::string> httpHeaders;
-
-    /**
-     * Serialize the object into a String contaning a RFC 2616 compliant
-     * HTTP response message.
+     * Register a handler with a regex defined by the pattern string passed
+     * as parameter. If this method is called several times with the same
+     * string pattern, previous mappings will be overwriten.
      *
-     * @returns A new string representing a HTTP response message.
+     * @param pattern A string representing a valid regular expression.
+     * @param handler A request handler.
+     * @returns true if the mapper was added succesfuly, false otherwise.
+     *
      */
-    std::string serialize() const;
+    bool addHandler(const std::string& pattern, HandlerPtr handler);
 
-    /*
-     * Factory methods for 200, 404, and 500 HTTP responses
-     * See http://tools.ietf.org/search/rfc2616 for more details
+    /**
+     * Given a string, it returns the first handler for which positive regex
+     * match is found.
+     *
+     * @param url A string that will be matched agains the different regexes
+     * registered with the mapper.
+     *
+     * @returns The first handler whose regex matches the input string, or a
+     * default handler if not match is found. The default handler always
+     * returns a dcWebservice::Response::NotFound response, when its handle method is
+     * invoked.
      */
-    static ConstResponsePtr OK();
-    static ConstResponsePtr NotFound();
-    static ConstResponsePtr ServerError();
+    const Handler& getHandler(const std::string& url) const;
+
+private:
+    std::list<MappingPair> mappings;
+    HandlerPtr _defaultHandler;
 };
-
-std::ostream& operator<<(std::ostream& os, const Response& obj);
-bool operator==(const Response& lhs, const Response& rhs);
 
 }
 
-#endif // RESPONSE_H
+#endif // MAPPER_H
+

@@ -39,14 +39,14 @@
 
 #include "WebServiceServer.h"
 
-#include "fcgiws/Server.h"
-#include "fcgiws/DefaultHandler.h"
+#include "dcWebservice/Server.h"
+#include "dcWebservice/DefaultHandler.h"
 
 #include "log.h"
 
 WebServiceServer::WebServiceServer(const unsigned int port, QObject *parent)
     : QThread(parent)
-    , server_(new fcgiws::Server())
+    , server_(new dcWebservice::Server())
     , port_(port)
 {}
 
@@ -55,7 +55,7 @@ WebServiceServer::~WebServiceServer()
     delete server_;
 }
 
-bool WebServiceServer::addHandler(const std::string& pattern, fcgiws::HandlerPtr handler)
+bool WebServiceServer::addHandler(const std::string& pattern, dcWebservice::HandlerPtr handler)
 {
     const bool success = server_->addHandler(pattern, handler);
     if (!success)

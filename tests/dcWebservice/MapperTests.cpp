@@ -1,6 +1,6 @@
 /*********************************************************************/
 /* Copyright (c) 2014, EPFL/Blue Brain Project                       */
-/*                     Julio Delgado <julio.delgadomangas@epfl.ch>   */
+/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -37,25 +37,58 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DEFAULT_HANDLER_H
-#define DEFAULT_HANDLER_H
 
-#include "Handler.h"
-#include "types.h"
+#define BOOST_TEST_MODULE MapperTests
+#include "dcWebservice/Mapper.h"
+#include "dcWebservice/DefaultHandler.h"
+#include <boost/test/unit_test.hpp>
+namespace ut = boost::unit_test;
 
-namespace fcgiws
+BOOST_AUTO_TEST_CASE( testEmptyMapper )
 {
-
-/**
- * Default handler that always returns a 404 Not Found response.
- */
-class DefaultHandler : public Handler
-{
-public:
-    virtual ~DefaultHandler();
-    virtual ConstResponsePtr handle(const Request& request) const;
-};
-
+    dcWebservice::Mapper mapper;
+    BOOST_CHECK( dynamic_cast<const dcWebservice::DefaultHandler*>(&mapper.getHandler("/video" )));
+    BOOST_CHECK( dynamic_cast<const dcWebservice::DefaultHandler*>(&mapper.getHandler("/video/12344" )));
 }
 
-#endif // DEFAULT_HANDLER_H
+BOOST_AUTO_TEST_CASE( testUrlDoesNotMatchAnyRegex )
+{
+    dcWebservice::Mapper mapper;
+    dcWebservice::HandlerPtr handler(new dcWebservice::DefaultHandler());
+    mapper.addHandler("/video/play/(.*)", handler);
+    BOOST_CHECK( dynamic_cast<const dcWebservice::DefaultHandler*>(&mapper.getHandler("/video" )));
+    BOOST_CHECK( dynamic_cast<const dcWebservice::DefaultHandler*>(&mapper.getHandler("/video/12344" )));
+}
+
+BOOST_AUTO_TEST_CASE( testUrlMatchesFirstRegex )
+{
+    dcWebservice::Mapper mapper;
+    dcWebservice::HandlerPtr handler1(new dcWebservice::DefaultHandler());
+    dcWebservice::HandlerPtr handler2(new dcWebservice::DefaultHandler());
+    mapper.addHandler("/video/play/(.*)", handler1);
+    mapper.addHandler("/nop/", handler2);
+    BOOST_CHECK_EQUAL( handler1.get(), &mapper.getHandler("/video/play/1234") );
+    BOOST_CHECK_EQUAL( handler1.get(), &mapper.getHandler("/video/play/") );
+    BOOST_CHECK_NE( handler2.get(), &mapper.getHandler("/video/play/1234") );
+    BOOST_CHECK( dynamic_cast<const dcWebservice::DefaultHandler*>(&mapper.getHandler("/video/play" )));
+}
+
+BOOST_AUTO_TEST_CASE( testMapperReturnsFirstMatchWhenMoreThanOnePossible )
+{
+    dcWebservice::Mapper mapper;
+    dcWebservice::HandlerPtr handler1(new dcWebservice::DefaultHandler());
+    dcWebservice::HandlerPtr handler2(new dcWebservice::DefaultHandler());
+    mapper.addHandler("/video/play/", handler1);
+    mapper.addHandler("/video/play/(.*)", handler2);
+    BOOST_CHECK_EQUAL( handler1.get(), &mapper.getHandler("/video/play/") );
+    BOOST_CHECK_EQUAL( handler2.get(), &mapper.getHandler("/video/play/1234") );
+    BOOST_CHECK_NE( handler1.get(), &mapper.getHandler("/video/play/1234") );
+    BOOST_CHECK( dynamic_cast<const dcWebservice::DefaultHandler*>(&mapper.getHandler("/video/play" )));
+}
+
+BOOST_AUTO_TEST_CASE( testIncorrectRegex )
+{
+    dcWebservice::Mapper mapper;
+    dcWebservice::HandlerPtr handler1(new dcWebservice::DefaultHandler());
+    BOOST_CHECK_EQUAL(false, mapper.addHandler("/video/(.*", handler1));
+}

@@ -42,10 +42,10 @@
 
 #include <QThread>
 
-#include "fcgiws/types.h"
+#include "dcWebservice/types.h"
 
 /**
- * A Qt wrapper to run the fcgiws::Server in a QThread.
+ * A Qt wrapper to run the dcWebservice::Server in a QThread.
  */
 class WebServiceServer : public QThread
 {
@@ -69,7 +69,7 @@ public:
      * @return true if the handler was registered succesfully, false otherwise,
      *         for instance if the regular expression is not valid.
      */
-    bool addHandler(const std::string& pattern, fcgiws::HandlerPtr handler);
+    bool addHandler(const std::string& pattern, dcWebservice::HandlerPtr handler);
 
     /**
      * Stop the server. This method is thread-safe.
@@ -81,7 +81,7 @@ protected:
     virtual void run();
 
 private:
-    fcgiws::Server* server_;
+    dcWebservice::Server* server_;
     unsigned int port_;
 };
 

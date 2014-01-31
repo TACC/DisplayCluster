@@ -56,7 +56,7 @@ const char * AT = "&";
 const char * EQ = "=";
 }
 
-namespace fcgiws
+namespace dcWebservice
 {
 
 RequestBuilder::~RequestBuilder() {}

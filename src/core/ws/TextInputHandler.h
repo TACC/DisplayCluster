@@ -42,7 +42,7 @@
 
 #include <QObject>
 
-#include "fcgiws/Handler.h"
+#include "dcWebservice/Handler.h"
 
 class DisplayGroupManagerAdapter;
 
@@ -53,7 +53,7 @@ class DisplayGroupManagerAdapter;
  * This class is typically used in the WebServiceServer thread and communicates
  * with the TextInputDispatcher in the main thread via signals/slots.
  */
-class TextInputHandler : public QObject, public fcgiws::Handler
+class TextInputHandler : public QObject, public dcWebservice::Handler
 {
     Q_OBJECT
 
@@ -70,10 +70,10 @@ public:
 
     /**
      * Handle a request.
-     * @param request A valid fcgiws::Request object.
+     * @param request A valid dcWebservice::Request object.
      * @return A valid Response object.
      */
-    virtual fcgiws::ConstResponsePtr handle(const fcgiws::Request& request) const;
+    virtual dcWebservice::ConstResponsePtr handle(const dcWebservice::Request& request) const;
 
 signals:
     /**

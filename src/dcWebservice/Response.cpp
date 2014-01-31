@@ -37,86 +37,76 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
+#include <sstream>
 
-#define BOOST_TEST_MODULE ResponseTests
-#include <boost/test/unit_test.hpp>
-#include "fcgiws/Response.h"
-namespace ut = boost::unit_test;
+#include "Response.h"
 
-BOOST_AUTO_TEST_CASE( testSerializeWithEmptyBody )
+namespace {
+const std::string HTTP_VERSION = "HTTP/1.1";
+const std::string SP = " ";
+const std::string CRLF = "\r\n";
+}
+
+namespace dcWebservice
 {
-    const std::string expected = "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n"
-	                   "Status: 200 OK\r\n\r\n";
+
+Response::Response(unsigned int code, std::string  msg, std::string body)
+    : statusCode(code),
+      statusMsg(msg),
+      body(body)
+{}
+
+ConstResponsePtr Response::OK()
+{
+    static ConstResponsePtr response(new Response(200, "OK",
+		       "{\"code\":\"200\", \"msg\":\"OK\"}"));
+    return response;
+}
+
+
+ConstResponsePtr Response::NotFound()
+{ 
+    static ConstResponsePtr response(new Response(404, "Not Found",
+		       "{\"code\":\"404\", \"msg\":\"Not Found\"}"));
+    return response;
+}
+
+ConstResponsePtr Response::ServerError()
+{ 
+    static ConstResponsePtr response(new Response(500, "Internal Server Error",
+		       "{\"code\":\"500\", \"msg\":\"Internal Server Error\"}"));
+    return response;
+}
+
+std::string Response::serialize() const
+{
     std::stringstream ss;
+    ss << HTTP_VERSION << SP << statusCode << SP << statusMsg << CRLF;
 
-    fcgiws::Response response;
-    response.statusCode = 200;
-    response.statusMsg = "OK";
-    response.body = "";
+    for(std::map<std::string, std::string>::const_iterator it = httpHeaders.begin() ;
+        it != httpHeaders.end() ; ++it)
+    {
+        ss << it->first << ": " << it->second << CRLF;
+    }
 
-    ss << response;
-    BOOST_CHECK_EQUAL(expected, response.serialize());
-    BOOST_CHECK_EQUAL(ss.str(), response.serialize());
+    ss << "Content-Length: " << body.length() << CRLF;
+    ss << "Status: " << statusCode << SP << statusMsg << CRLF;
+    ss << CRLF;
+    ss << body;
+    return ss.str();
 }
 
-BOOST_AUTO_TEST_CASE( testSerializeWithNonEmptyBody )
+std::ostream& operator<<(std::ostream& os, const Response& obj)
 {
-    const std::string expected = "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n"
-	                   "Status: 200 OK\r\n\r\n{}";
-    std::stringstream ss;
-    fcgiws::Response response;
-    response.statusCode = 200;
-    response.statusMsg = "OK";
-    response.body = "{}";
-
-    ss << response;
-    BOOST_CHECK_EQUAL(expected, response.serialize());
-    BOOST_CHECK_EQUAL(ss.str(), response.serialize());
+    os << obj.serialize();
+    return os;
 }
 
-BOOST_AUTO_TEST_CASE( testSerializeNoBodyAndCustomHeaders )
+bool operator==(const Response& lhs, const Response& rhs)
 {
-    const std::string expected = "HTTP/1.1 200 OK\r\nCustom-h1: 1\r\nCustom-h2: 2\r\n"
-	                   "Content-Length: 0\r\nStatus: 200 OK\r\n\r\n";
-    std::stringstream ss;
-
-    fcgiws::Response response;
-    response.statusCode = 200;
-    response.statusMsg = "OK";
-    response.httpHeaders["Custom-h1"] = "1";
-    response.httpHeaders["Custom-h2"] = "2";
-    response.body = "";
-    ss << response;
-
-    BOOST_CHECK_EQUAL(expected, response.serialize());
-    BOOST_CHECK_EQUAL(ss.str(), response.serialize());
+    return (lhs.statusCode == rhs.statusCode &&
+	    lhs.statusMsg == rhs.statusMsg &&
+	    lhs.body == rhs.body);
 }
 
-BOOST_AUTO_TEST_CASE( test200Response )
-{
-    fcgiws::Response r = *fcgiws::Response::OK();
-    BOOST_CHECK_EQUAL(200, r.statusCode);
-    BOOST_CHECK_EQUAL("OK", r.statusMsg);
-    BOOST_CHECK_EQUAL(0, r.httpHeaders.size());
-    BOOST_CHECK_EQUAL("{\"code\":\"200\", \"msg\":\"OK\"}", r.body);
-    
-}
-
-BOOST_AUTO_TEST_CASE( test404Response )
-{
-    fcgiws::Response r = *fcgiws::Response::NotFound();
-    BOOST_CHECK_EQUAL(404, r.statusCode);
-    BOOST_CHECK_EQUAL("Not Found", r.statusMsg);
-    BOOST_CHECK_EQUAL(0, r.httpHeaders.size());
-    BOOST_CHECK_EQUAL("{\"code\":\"404\", \"msg\":\"Not Found\"}", r.body);
-    
-}
-
-BOOST_AUTO_TEST_CASE( test500Response )
-{
-    fcgiws::Response r = *fcgiws::Response::ServerError();
-    BOOST_CHECK_EQUAL(500, r.statusCode);
-    BOOST_CHECK_EQUAL("Internal Server Error", r.statusMsg);
-    BOOST_CHECK_EQUAL(0, r.httpHeaders.size());
-    BOOST_CHECK_EQUAL("{\"code\":\"500\", \"msg\":\"Internal Server Error\"}", r.body);
 }

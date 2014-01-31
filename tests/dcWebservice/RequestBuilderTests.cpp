@@ -37,68 +37,82 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "Server.h"
 
-#include "Response.h"
-#include "Request.h"
+#define BOOST_TEST_MODULE RequestBuilderTests
+#include <boost/test/unit_test.hpp>
+#include "dcWebservice/RequestBuilder.h"
+#include "dcWebservice/Request.h"
 
-#include <sys/socket.h>
-#include <netdb.h>
-#include <cstdio>
+namespace ut = boost::unit_test;
 
-namespace fcgiws
+char ** populateEnv(const std::string& queryString="")
 {
+    char ** envp = new char*[8];
+    int i = 0;
+    envp[i++] = const_cast<char *>("REQUEST_METHOD=GET");
+    envp[i++] = const_cast<char *>("REQUEST_URI=/media/index.htm");
+    envp[i++] = const_cast<char *>("DOCUMENT_URI=/media/index.htm");
 
-Server::Server() : _requestBuilder(new RequestBuilder()),
-    _fcgi(new FastCGIWrapper())
-{}
+    std::string qs = "QUERY_STRING=" + queryString;
+    envp[i] = new char[qs.length() + 1];
+    strcpy(envp[i++], qs.c_str());
 
-bool Server::addHandler(const std::string& pattern, HandlerPtr handler)
-{
-    return _mapper.addHandler(pattern, handler);
+    envp[i++] = const_cast<char *>("CONTENT_LENGTH=");
+    envp[i++]= const_cast<char *>("HTTP_ACCEPT=text/html");
+    envp[i++] = 0;
+    return envp;
 }
 
-bool Server::run(const unsigned int port)
-{
-    if(!_fcgi->init(port))
-        return false;
-
-    while(_fcgi->accept())
-    {
-        _processRequest();
-    }
-    return true;
+void freeMemory(char** envp) {
+    delete [] envp[3];
+    delete [] envp;
 }
 
-void Server::_sendResponse(const Response& response)
+
+void checkEmptyQueryString(const std::string& qs)
 {
-    _fcgi->write(response.serialize());
+    char ** envp = populateEnv(qs);
+    FCGX_Init();
+    FCGX_Request fcgiRequest;
+
+    fcgiRequest.envp = envp;
+    dcWebservice::RequestBuilder builder;
+    dcWebservice::RequestPtr request = builder.buildRequest(fcgiRequest);
+    BOOST_CHECK_EQUAL(request->queryString, qs);
+    BOOST_CHECK_EQUAL(0, request->parameters.size());
+    freeMemory(envp);
 }
 
-void Server::_processRequest()
+
+BOOST_AUTO_TEST_CASE( testRequestWithoutData )
 {
-    RequestPtr request = _requestBuilder->buildRequest(*_fcgi->getRequest());
-    if(!request)
-    {
-        _sendResponse(*Response::ServerError());
-        return;
-    }
+    std::string qs = "key1=val1&key2=val2&key3&key4=";
+    char ** envp = populateEnv(qs);
+    FCGX_Request fcgiRequest;
+    fcgiRequest.envp = envp;
 
-    const Handler& handler = _mapper.getHandler(request->resource);
+    dcWebservice::RequestBuilder builder;
+    dcWebservice::RequestPtr request = builder.buildRequest(fcgiRequest);
 
-    ConstResponsePtr response = handler.handle(*request);
-    if(!response)
-    {
-        _sendResponse(*Response::ServerError());
-        return;
-    }
-
-    _sendResponse(*response);
+    BOOST_CHECK_EQUAL(request->method, "GET");
+    BOOST_CHECK_EQUAL(request->url, "/media/index.htm");
+    BOOST_CHECK_EQUAL(request->resource, "/media/index.htm");
+    BOOST_CHECK_EQUAL(request->queryString, qs);
+    BOOST_CHECK_EQUAL(request->httpHeaders["HTTP_ACCEPT"], "text/html");
+    BOOST_CHECK_EQUAL(4, request->parameters.size());
+    BOOST_CHECK_EQUAL(request->parameters["key1"], "val1");
+    BOOST_CHECK_EQUAL(request->parameters["key2"], "val2");
+    BOOST_CHECK_EQUAL(request->parameters["key3"], "");
+    BOOST_CHECK_EQUAL(request->parameters["key4"], "");
+    freeMemory(envp);
 }
 
-bool Server::stop()
+BOOST_AUTO_TEST_CASE( testRequestEmptyQueryString )
 {
-    return _fcgi->stop();
-}
-
+    checkEmptyQueryString("");
+    checkEmptyQueryString("&");
+    checkEmptyQueryString("&&&");
+    checkEmptyQueryString("=");
+    checkEmptyQueryString("=&=");
+    checkEmptyQueryString("=a&=b&&");
 }

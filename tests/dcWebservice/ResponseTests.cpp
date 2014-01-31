@@ -37,64 +37,86 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef REQUEST_H
-#define REQUEST_H
 
-#include <map>
-#include <string>
+#define BOOST_TEST_MODULE ResponseTests
+#include <boost/test/unit_test.hpp>
+#include "dcWebservice/Response.h"
+namespace ut = boost::unit_test;
 
-namespace fcgiws
+BOOST_AUTO_TEST_CASE( testSerializeWithEmptyBody )
 {
+    const std::string expected = "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n"
+	                   "Status: 200 OK\r\n\r\n";
+    std::stringstream ss;
 
-struct Request
-{
-    /**
-     * HTTP headers table
-     */
-    std::map<std::string, std::string> httpHeaders;
+    dcWebservice::Response response;
+    response.statusCode = 200;
+    response.statusMsg = "OK";
+    response.body = "";
 
-    /**
-     * Originally requested URL
-     */
-    std::string url;
-
-    /**
-     * HTTP request method (GET, POST, PUT, DELETE, ...)
-     */
-    std::string method;
-
-    /**
-     * The query string, if one is present in the url. Given
-     *
-     * http://bbpteam.epfl.ch/dc/video&file=f.mp4&type=thumbnail
-     *
-     * queryString is equals to file=f.mp4&type=thumbnail
-     */
-    std::string queryString;
-
-    /**
-     * The path to the resource indicated in the url. This is the part
-     * of the URL used for mapping a Handler. Given
-     *
-     * http://bbpteam.epfl.ch/dc/video&file=f.mp4&type=thumbnail
-     *
-     * resource is equals to /dc/video
-     */
-    std::string resource;
-
-    /**
-     * If a query string is present this map contains the pairs name, value
-     * for each of the parameters in the query string.
-     */
-    std::map<std::string, std::string> parameters;
-
-    /**
-     * If the request contains data in its body the data is stored here. Normally
-     * data is only inspected/used in POST requests
-     */
-    std::string data;
-};
-
+    ss << response;
+    BOOST_CHECK_EQUAL(expected, response.serialize());
+    BOOST_CHECK_EQUAL(ss.str(), response.serialize());
 }
 
-#endif // REQUEST_H
+BOOST_AUTO_TEST_CASE( testSerializeWithNonEmptyBody )
+{
+    const std::string expected = "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n"
+	                   "Status: 200 OK\r\n\r\n{}";
+    std::stringstream ss;
+    dcWebservice::Response response;
+    response.statusCode = 200;
+    response.statusMsg = "OK";
+    response.body = "{}";
+
+    ss << response;
+    BOOST_CHECK_EQUAL(expected, response.serialize());
+    BOOST_CHECK_EQUAL(ss.str(), response.serialize());
+}
+
+BOOST_AUTO_TEST_CASE( testSerializeNoBodyAndCustomHeaders )
+{
+    const std::string expected = "HTTP/1.1 200 OK\r\nCustom-h1: 1\r\nCustom-h2: 2\r\n"
+	                   "Content-Length: 0\r\nStatus: 200 OK\r\n\r\n";
+    std::stringstream ss;
+
+    dcWebservice::Response response;
+    response.statusCode = 200;
+    response.statusMsg = "OK";
+    response.httpHeaders["Custom-h1"] = "1";
+    response.httpHeaders["Custom-h2"] = "2";
+    response.body = "";
+    ss << response;
+
+    BOOST_CHECK_EQUAL(expected, response.serialize());
+    BOOST_CHECK_EQUAL(ss.str(), response.serialize());
+}
+
+BOOST_AUTO_TEST_CASE( test200Response )
+{
+    dcWebservice::Response r = *dcWebservice::Response::OK();
+    BOOST_CHECK_EQUAL(200, r.statusCode);
+    BOOST_CHECK_EQUAL("OK", r.statusMsg);
+    BOOST_CHECK_EQUAL(0, r.httpHeaders.size());
+    BOOST_CHECK_EQUAL("{\"code\":\"200\", \"msg\":\"OK\"}", r.body);
+    
+}
+
+BOOST_AUTO_TEST_CASE( test404Response )
+{
+    dcWebservice::Response r = *dcWebservice::Response::NotFound();
+    BOOST_CHECK_EQUAL(404, r.statusCode);
+    BOOST_CHECK_EQUAL("Not Found", r.statusMsg);
+    BOOST_CHECK_EQUAL(0, r.httpHeaders.size());
+    BOOST_CHECK_EQUAL("{\"code\":\"404\", \"msg\":\"Not Found\"}", r.body);
+    
+}
+
+BOOST_AUTO_TEST_CASE( test500Response )
+{
+    dcWebservice::Response r = *dcWebservice::Response::ServerError();
+    BOOST_CHECK_EQUAL(500, r.statusCode);
+    BOOST_CHECK_EQUAL("Internal Server Error", r.statusMsg);
+    BOOST_CHECK_EQUAL(0, r.httpHeaders.size());
+    BOOST_CHECK_EQUAL("{\"code\":\"500\", \"msg\":\"Internal Server Error\"}", r.body);
+}

@@ -39,39 +39,39 @@
 #define TESTS 1
 #define BOOST_TEST_MODULE RequestBuilderTests
 #include <boost/test/unit_test.hpp>
-#include "fcgiws/Server.h"
-#include "fcgiws/Response.h"
-#include "fcgiws/Request.h"
+#include "dcWebservice/Server.h"
+#include "dcWebservice/Response.h"
+#include "dcWebservice/Request.h"
 
 namespace ut = boost::unit_test;
 
-class MockHandler : public fcgiws::Handler
+class MockHandler : public dcWebservice::Handler
 {
 public:
 
     MockHandler() : simulateFailure(false) {}
 
-    virtual fcgiws::ConstResponsePtr handle(const fcgiws::Request& request) const
+    virtual dcWebservice::ConstResponsePtr handle(const dcWebservice::Request& request) const
     {
         if(simulateFailure)
-            return fcgiws::ResponsePtr();
-        return fcgiws::Response::OK();
+            return dcWebservice::ResponsePtr();
+        return dcWebservice::Response::OK();
     }
 
     bool simulateFailure;
 };
 
-class FakeBuilder : public fcgiws::RequestBuilder
+class FakeBuilder : public dcWebservice::RequestBuilder
 {
 public:
 
     FakeBuilder() : simulateFailure(false) {};
 
-    virtual fcgiws::RequestPtr buildRequest(FCGX_Request& fcgiRequest)
+    virtual dcWebservice::RequestPtr buildRequest(FCGX_Request& fcgiRequest)
     {
         if(simulateFailure)
-            return fcgiws::RequestPtr();
-        fcgiws::RequestPtr request(new fcgiws::Request());
+            return dcWebservice::RequestPtr();
+        dcWebservice::RequestPtr request(new dcWebservice::Request());
         request->resource = "/home/index.html";
         return request;
     }
@@ -79,7 +79,7 @@ public:
     bool simulateFailure;
 };
 
-class FakeFCGI : public fcgiws::FastCGIWrapper
+class FakeFCGI : public dcWebservice::FastCGIWrapper
 {
 public:
     virtual bool init(const int socket)
@@ -108,7 +108,7 @@ public:
 
 BOOST_AUTO_TEST_CASE( testWhenRequestBuilderFailsReponseIsServerError )
 {
-    fcgiws::Server server;
+    dcWebservice::Server server;
     FakeFCGI* fcgi = new FakeFCGI();
     FakeBuilder* builder = new FakeBuilder();
 
@@ -117,13 +117,13 @@ BOOST_AUTO_TEST_CASE( testWhenRequestBuilderFailsReponseIsServerError )
     server.setFastCGIWrapper(fcgi);
     server.fireProcessing();
 
-    BOOST_CHECK_EQUAL(fcgiws::Response::ServerError()->serialize(),
+    BOOST_CHECK_EQUAL(dcWebservice::Response::ServerError()->serialize(),
                       fcgi->message);
 }
 
 BOOST_AUTO_TEST_CASE( testWhenEmptyMappingsThenReturns404 )
 {
-    fcgiws::Server server;
+    dcWebservice::Server server;
     FakeFCGI* fcgi = new FakeFCGI();
     FakeBuilder* builder = new FakeBuilder();
 
@@ -131,49 +131,49 @@ BOOST_AUTO_TEST_CASE( testWhenEmptyMappingsThenReturns404 )
     server.setFastCGIWrapper(fcgi);
     server.fireProcessing();
 
-    BOOST_CHECK_EQUAL(fcgiws::Response::NotFound()->serialize(),
+    BOOST_CHECK_EQUAL(dcWebservice::Response::NotFound()->serialize(),
                       fcgi->message);
 }
 
 BOOST_AUTO_TEST_CASE( testWhenMappedURLThenHandlerCalled )
 {
-    fcgiws::Server server;
+    dcWebservice::Server server;
     FakeFCGI* fcgi = new FakeFCGI();
     FakeBuilder* builder = new FakeBuilder();
-    fcgiws::HandlerPtr handler(new MockHandler());
+    dcWebservice::HandlerPtr handler(new MockHandler());
 
     server.addHandler("/home/index.html", handler);
     server.setRequestBuilder(builder);
     server.setFastCGIWrapper(fcgi);
     server.fireProcessing();
 
-    BOOST_CHECK_EQUAL(fcgiws::Response::OK()->serialize(),
+    BOOST_CHECK_EQUAL(dcWebservice::Response::OK()->serialize(),
                       fcgi->message);
 }
 
 BOOST_AUTO_TEST_CASE( testWhenUnmappedMappedURLThen404Returned )
 {
-    fcgiws::Server server;
+    dcWebservice::Server server;
     FakeFCGI* fcgi = new FakeFCGI();
     FakeBuilder* builder = new FakeBuilder();
-    fcgiws::HandlerPtr handler(new MockHandler());
+    dcWebservice::HandlerPtr handler(new MockHandler());
 
     server.addHandler("/away/index.html", handler);
     server.setRequestBuilder(builder);
     server.setFastCGIWrapper(fcgi);
     server.fireProcessing();
 
-    BOOST_CHECK_EQUAL(fcgiws::Response::NotFound()->serialize(),
+    BOOST_CHECK_EQUAL(dcWebservice::Response::NotFound()->serialize(),
                       fcgi->message);
 }
 
 BOOST_AUTO_TEST_CASE( testWhenHandlerFailsThenServerError )
 {
-    fcgiws::Server server;
+    dcWebservice::Server server;
     FakeFCGI* fcgi = new FakeFCGI();
     FakeBuilder* builder = new FakeBuilder();
     MockHandler* h = new MockHandler();
-    fcgiws::HandlerPtr handler(h);
+    dcWebservice::HandlerPtr handler(h);
 
     h->simulateFailure = true;
     builder->simulateFailure = false;
@@ -182,7 +182,7 @@ BOOST_AUTO_TEST_CASE( testWhenHandlerFailsThenServerError )
     server.setFastCGIWrapper(fcgi);
     server.fireProcessing();
 
-    BOOST_CHECK_EQUAL(fcgiws::Response::ServerError()->serialize(),
+    BOOST_CHECK_EQUAL(dcWebservice::Response::ServerError()->serialize(),
                       fcgi->message);
 }
 

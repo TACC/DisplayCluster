@@ -196,7 +196,7 @@ int main(int argc, char * argv[])
 
         TextInputHandler* textInputHandler = new TextInputHandler(
                 new DisplayGroupManagerAdapter(g_displayGroupManager));
-        webServiceServer->addHandler("/dcapi/textinput", fcgiws::HandlerPtr(textInputHandler));
+        webServiceServer->addHandler("/dcapi/textinput", dcWebservice::HandlerPtr(textInputHandler));
 
         textInputHandler->moveToThread(webServiceServer);
         textInputDispatcher = new TextInputDispatcher(g_displayGroupManager);

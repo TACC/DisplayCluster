@@ -46,9 +46,9 @@ namespace ut = boost::unit_test;
 #include "ws/TextInputHandler.h"
 #include "ws/DisplayGroupManagerAdapter.h"
 
-#include "fcgiws/Response.h"
-#include "fcgiws/Request.h"
-#include "fcgiws/types.h"
+#include "dcWebservice/Response.h"
+#include "dcWebservice/Request.h"
+#include "dcWebservice/types.h"
 
 #include "MockTextInputDispatcher.h"
 
@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE( testWhenRequestHasCharThenTextInputDispatcherReceivesIt )
     // Checking default value
     BOOST_REQUIRE_EQUAL(mockDispatcher.getKey(), '0');
 
-    fcgiws::RequestPtr request(new fcgiws::Request());
+    dcWebservice::RequestPtr request(new dcWebservice::Request());
 
     request->data = "a";
     handler.handle(*request);
@@ -95,8 +95,8 @@ BOOST_AUTO_TEST_CASE( testWhenRequestIsTooLongThenReturnCodeIs400 )
 {
     TextInputHandler handler(new MockDisplayGroupManagerAdapter(true));
 
-    fcgiws::RequestPtr request(new fcgiws::Request());
-    fcgiws::ConstResponsePtr response;
+    dcWebservice::RequestPtr request(new dcWebservice::Request());
+    dcWebservice::ConstResponsePtr response;
 
     request->data = "iamtoolong";
     response = handler.handle(*request);
@@ -108,8 +108,8 @@ BOOST_AUTO_TEST_CASE( testWhenRequestEmptyInvalidThenReturnCodeIs400 )
 {
     TextInputHandler handler(new MockDisplayGroupManagerAdapter(true));
 
-    fcgiws::RequestPtr request(new fcgiws::Request());
-    fcgiws::ConstResponsePtr response;
+    dcWebservice::RequestPtr request(new dcWebservice::Request());
+    dcWebservice::ConstResponsePtr response;
 
     request->data = "";
     response = handler.handle(*request);
@@ -121,10 +121,10 @@ BOOST_AUTO_TEST_CASE( testWhenDisplayGroupHasNoWindowsThenReturnCodeIs404 )
 {
     TextInputHandler handler(new MockDisplayGroupManagerAdapter(false));
 
-    fcgiws::RequestPtr request(new fcgiws::Request());
+    dcWebservice::RequestPtr request(new dcWebservice::Request());
 
     request->data = "a";
-    fcgiws::ConstResponsePtr response = handler.handle(*request);
+    dcWebservice::ConstResponsePtr response = handler.handle(*request);
     BOOST_CHECK_EQUAL(response->statusCode, 404);
     BOOST_CHECK_EQUAL(response->statusMsg, "Not Found");
 }

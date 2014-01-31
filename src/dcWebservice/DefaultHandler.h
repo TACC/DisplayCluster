@@ -37,19 +37,25 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "DefaultHandler.h"
+#ifndef DEFAULT_HANDLER_H
+#define DEFAULT_HANDLER_H
 
-#include "Response.h"
-#include "Request.h"
+#include "Handler.h"
+#include "types.h"
 
-namespace fcgiws
+namespace dcWebservice
 {
 
-DefaultHandler::~DefaultHandler() {}
-
-ConstResponsePtr DefaultHandler::handle(const Request& request) const
+/**
+ * Default handler that always returns a 404 Not Found response.
+ */
+class DefaultHandler : public Handler
 {
-    return Response::NotFound();
-}
+public:
+    virtual ~DefaultHandler();
+    virtual ConstResponsePtr handle(const Request& request) const;
+};
 
 }
+
+#endif // DEFAULT_HANDLER_H

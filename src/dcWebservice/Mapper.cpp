@@ -37,98 +37,42 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef SERVER_H
-#define SERVER_H
-
 #include "Mapper.h"
-#include "RequestBuilder.h"
 #include "Handler.h"
-#include "FastCGIWrapper.h"
+#include "DefaultHandler.h"
 
-#include <boost/scoped_ptr.hpp>
+#include <boost/regex/pattern_except.hpp>
 
-namespace fcgiws
+namespace dcWebservice
 {
 
-/**
- * FastCGI application server.
- *
- * The Server class has two main puposes, listening for incomming requests
- * and dispatching them to handlers.
- *
- * Users of this class must register handlers using the addHandler method.
- * Upon reception of a request the Server looks for the Handler mapped to
- * the URL of the request.
- *
- * The port in which the server listens for incoming requests is configurable.
- */
-class Server
+Mapper::Mapper()
+    : _defaultHandler(new DefaultHandler())
+{}
+
+bool Mapper::addHandler(const std::string& pattern, HandlerPtr handler)
 {
-public:
-    /**
-     * Constructor.
-     */
-    Server();
-
-    /**
-     * Registers a request handler with a particular regular expression.
-     *
-     * When the URL of an incoming request matches the regular expression
-     * the handler is invoked.
-     *
-     * @param pattern A regular expression.
-     * @param handler A request handler.
-     * @returns true if the handler was registered succesfully, false otherwise,
-     *   for instance if the regular expression is not valid.
-     */
-    bool addHandler(const std::string& pattern, HandlerPtr handler);
-
-    /**
-     * Binds a TCP socket in the port specified and starts listening for
-     * incoming requests. Runs entirely in the same thread in which it is
-     * called. This method blocks until a call to stop() is executed.
-     *
-     * @param port The port used in the creation of the TCP socket.
-     * @returns true upon successful completion, false otherwise.
-     */
-    bool run(const unsigned int port);
-
-    /**
-     * Stops the Server request processing loop. If the server is running
-     * this method causes the Server to stop processing.
-     *
-     * @returns true upcon successful completion, false otherwise.
-     */
-    bool stop();
-
-#ifdef TESTS
-    void fireProcessing()
-    {
-        _processRequest();
+    try {
+        MappingPair pair = std::make_pair(new boost::regex(pattern), handler);
+        mappings.push_back(pair);
+        return true;
+    } catch (boost::regex_error err) {
+        return false;
     }
-    void setMapper(Mapper mapper)
-    {
-        _mapper = mapper;
-    }
-    void setRequestBuilder(RequestBuilder* builder)
-    {
-        _requestBuilder.reset(builder);
-    }
-    void setFastCGIWrapper(FastCGIWrapper* wrapper)
-    {
-        _fcgi.reset(wrapper);
-    }
-#endif
-
-private:
-    Mapper _mapper;
-    boost::scoped_ptr<RequestBuilder> _requestBuilder;
-    boost::scoped_ptr<FastCGIWrapper> _fcgi;
-
-    void _sendResponse(const Response& response);
-    void _processRequest();
-};
-
 }
 
-#endif // SERVER_H
+const Handler& Mapper::getHandler(const std::string& url) const
+{
+    for(std::list<MappingPair>::const_iterator it = mappings.begin() ;
+        it != mappings.end() ; ++it)
+    {
+        boost::cmatch matchResults;
+        const boost::regex& re = *it->first;
+        if(boost::regex_match(url.c_str(), matchResults, re))
+            return *it->second;
+    }
+
+    return *_defaultHandler;
+}
+
+}
