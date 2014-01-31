@@ -51,6 +51,7 @@ namespace fcgiws
 
 struct Response;
 typedef boost::shared_ptr<Response> ResponsePtr;
+typedef boost::shared_ptr<const Response> ConstResponsePtr;
 
 /**
  * Structure representing a HTTP reponse message as specified in
@@ -58,6 +59,11 @@ typedef boost::shared_ptr<Response> ResponsePtr;
  */
 struct Response
 {
+    /**
+     * Constructor
+     */
+    Response(unsigned int code = 0, std::string msg = "", std::string body="");
+
     /**
      * HTTP status code as defined in RFC 2616.
      */
@@ -87,15 +93,16 @@ struct Response
     std::string serialize() const;
 
     /*
-     * Singletons for 200, 404, and 500 HTT responses
+     * Factory methods for 200, 404, and 500 HTTP responses
      * See http://tools.ietf.org/search/rfc2616 for more details
      */
-    static const Response OK;
-    static const Response NotFound;
-    static const Response ServerError;
+    static ConstResponsePtr OK();
+    static ConstResponsePtr NotFound();
+    static ConstResponsePtr ServerError();
 };
 
 std::ostream& operator<<(std::ostream& os, const Response& obj);
+bool operator==(const Response& lhs, const Response& rhs);
 
 }
 

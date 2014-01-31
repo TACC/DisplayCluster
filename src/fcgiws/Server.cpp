@@ -78,16 +78,16 @@ void Server::_processRequest()
     RequestPtr request = _requestBuilder->buildRequest(*_fcgi->getRequest());
     if(!request)
     {
-        _sendResponse(Response::ServerError);
+        _sendResponse(*Response::ServerError());
         return;
     }
 
     const Handler& handler = _mapper.getHandler(request->resource);
 
-    ResponsePtr response = handler.handle(*request);
+    ConstResponsePtr response = handler.handle(*request);
     if(!response)
     {
-        _sendResponse(Response::ServerError);
+        _sendResponse(*Response::ServerError());
         return;
     }
 

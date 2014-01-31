@@ -48,12 +48,11 @@ public:
 
     MockHandler() : simulateFailure(false) {}
 
-    virtual fcgiws::ResponsePtr handle(const fcgiws::Request& request) const
+    virtual fcgiws::ConstResponsePtr handle(const fcgiws::Request& request) const
     {
         if(simulateFailure)
             return fcgiws::ResponsePtr();
-        fcgiws::ResponsePtr response(new fcgiws::Response(fcgiws::Response::OK));
-        return response;
+        return fcgiws::Response::OK();
     }
 
     bool simulateFailure;
@@ -115,7 +114,7 @@ BOOST_AUTO_TEST_CASE( testWhenRequestBuilderFailsReponseIsServerError )
     server.setFastCGIWrapper(fcgi);
     server.fireProcessing();
 
-    BOOST_CHECK_EQUAL(fcgiws::Response::ServerError.serialize(),
+    BOOST_CHECK_EQUAL(fcgiws::Response::ServerError()->serialize(),
                       fcgi->message);
 }
 
@@ -129,7 +128,7 @@ BOOST_AUTO_TEST_CASE( testWhenEmptyMappingsThenReturns404 )
     server.setFastCGIWrapper(fcgi);
     server.fireProcessing();
 
-    BOOST_CHECK_EQUAL(fcgiws::Response::NotFound.serialize(),
+    BOOST_CHECK_EQUAL(fcgiws::Response::NotFound()->serialize(),
                       fcgi->message);
 }
 
@@ -145,7 +144,7 @@ BOOST_AUTO_TEST_CASE( testWhenMappedURLThenHandlerCalled )
     server.setFastCGIWrapper(fcgi);
     server.fireProcessing();
 
-    BOOST_CHECK_EQUAL(fcgiws::Response::OK.serialize(),
+    BOOST_CHECK_EQUAL(fcgiws::Response::OK()->serialize(),
                       fcgi->message);
 }
 
@@ -161,7 +160,7 @@ BOOST_AUTO_TEST_CASE( testWhenUnmappedMappedURLThen404Returned )
     server.setFastCGIWrapper(fcgi);
     server.fireProcessing();
 
-    BOOST_CHECK_EQUAL(fcgiws::Response::NotFound.serialize(),
+    BOOST_CHECK_EQUAL(fcgiws::Response::NotFound()->serialize(),
                       fcgi->message);
 }
 
@@ -180,7 +179,7 @@ BOOST_AUTO_TEST_CASE( testWhenHandlerFailsThenServerError )
     server.setFastCGIWrapper(fcgi);
     server.fireProcessing();
 
-    BOOST_CHECK_EQUAL(fcgiws::Response::ServerError.serialize(),
+    BOOST_CHECK_EQUAL(fcgiws::Response::ServerError()->serialize(),
                       fcgi->message);
 }
 

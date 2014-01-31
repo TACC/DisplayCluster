@@ -50,14 +50,33 @@ const std::string CRLF = "\r\n";
 namespace fcgiws
 {
 
-const Response Response::OK =
-{200, "OK", "", std::map<std::string, std::string>()};
+Response::Response(unsigned int code, std::string  msg, std::string body)
+    : statusCode(code),
+      statusMsg(msg),
+      body(body)
+{}
 
-const Response Response::NotFound =
-{404, "Not Found", "", std::map<std::string, std::string>()};
+ConstResponsePtr Response::OK()
+{
+    static ConstResponsePtr response(new Response(200, "OK",
+		       "{\"code\":\"200\", \"msg\":\"OK\"}"));
+    return response;
+}
 
-const Response Response::ServerError =
-{500, "Internal Server Error", "", std::map<std::string, std::string>()};
+
+ConstResponsePtr Response::NotFound()
+{ 
+    static ConstResponsePtr response(new Response(404, "Not Found",
+		       "{\"code\":\"404\", \"msg\":\"Not Found\"}"));
+    return response;
+}
+
+ConstResponsePtr Response::ServerError()
+{ 
+    static ConstResponsePtr response(new Response(500, "Internal Server Error",
+		       "{\"code\":\"500\", \"msg\":\"Internal Server Error\"}"));
+    return response;
+}
 
 std::string Response::serialize() const
 {
@@ -71,6 +90,7 @@ std::string Response::serialize() const
     }
 
     ss << "Content-Length: " << body.length() << CRLF;
+    ss << "Status: " << statusCode << SP << statusMsg << CRLF;
     ss << CRLF;
     ss << body;
     return ss.str();
@@ -80,6 +100,13 @@ std::ostream& operator<<(std::ostream& os, const Response& obj)
 {
     os << obj.serialize();
     return os;
+}
+
+bool operator==(const Response& lhs, const Response& rhs)
+{
+    return (lhs.statusCode == rhs.statusCode &&
+	    lhs.statusMsg == rhs.statusMsg &&
+	    lhs.body == rhs.body);
 }
 
 }
