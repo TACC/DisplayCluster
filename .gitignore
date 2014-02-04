@@ -4,3 +4,6 @@ CMake/
 CMakeLists.txt.user*
 Makefile
 .DS_Store
+*~
+*#
+*.autosave
