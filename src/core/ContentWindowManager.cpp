@@ -44,6 +44,7 @@
 #include "configuration/Configuration.h"
 #include "GLWindow.h"
 #include "config.h"
+#include "log.h"
 
 // Specialized delegate implementations
 #include "PixelStreamInteractionDelegate.h"
@@ -165,7 +166,11 @@ void ContentWindowManager::moveToFront(ContentWindowInterface * source)
 
     if(source != this)
     {
-        getDisplayGroupManager()->moveContentWindowManagerToFront(shared_from_this());
+        DisplayGroupManagerPtr dgm = getDisplayGroupManager();
+        if (dgm)
+            dgm->moveContentWindowManagerToFront(shared_from_this());
+        else
+            put_flog(LOG_DEBUG, "The DisplayGroupMangerPtr is invalid");
     }
 }
 
