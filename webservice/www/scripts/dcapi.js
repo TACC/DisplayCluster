@@ -1,4 +1,3 @@
-<!--
 /*********************************************************************/
 /* Copyright (c) 2014, EPFL/Blue Brain Project                       */
 /*                     Julio Delgado <julio.delgadomangas@epfl.ch>   */
@@ -37,71 +36,29 @@
 /* interpreted as representing official policies, either expressed   */
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
--->
-<!-- Web page used to send keystrokes to application server -->
-<html>
-<head>
-<title>Display Wall Text Capture</title>
-<script src="scripts/jquery-2.1.0.min.js" type="text/javascript"></script>
-<script src="scripts/dcapi.js" type="text/javascript"></script>
-<script type="text/javascript">
 
-var defaultMessageTimer;
+var DEFAULT_MESSAGE = "Press A Key";
+var TEXT_API = "/dcapi/textinput";
 
+var KEY_TAB = 9
+var KEY_ENTER = 13 
+var KEY_DEL = 8
 // Creates a new timer for the display of the default message
-function startDefaultMsgTimer(component) {
-    defaultMessageTimer = startDefaultMessageTimer(component);
+function startDefaultMessageTimer(component) {
+    return setTimeout(
+        function() {
+                $(component).text(DEFAULT_MESSAGE);
+        }, 1000
+    );
 }
 
-function clearTimer() {
-    endTimer(defaultMessageTimer);
+// Cancels the execution of the timer
+function endTimer(timer) {
+    window.clearTimeout(timer);
 }
 
-function clearTextIfNecessary(component) {
-    var text = $(component).text()
-    if (text == DEFAULT_MESSAGE)
-        $(component).text("");
 
+// Sends character to server
+function sendCharacter(character) {
+    $.post(TEXT_API, data=character);
 }
-
-$(document).keypress(
-function(e) {
-     // Something has been typed, reset the default message timer
-     clearTimer();
- 
-    // For tab and enter, do not execute default browser behavior.
-    // Then sending of this keys is done in keydown.
-    if (e.keyCode == KEY_TAB || e.keyCode == KEY_DEL) {
-        e.preventDefault();
-        return
-    }
-    clearTextIfNecessary("#text");
-    sendCharacter(String.fromCharCode(e.which));
-    $("#text").append(String.fromCharCode(e.which));
-    startDefaultMsgTimer("#text");
-}
-);
-
-// Chrome does not generate keypress for tab and enter, so we chose to 
-// handle this keys for ALL browsers in this method.
-$(document).keydown(
-function(e){
-    if(e.keyCode == KEY_TAB || e.keyCode == KEY_DEL) {
-        // Something has been typed, reset the default message timer
-        clearTimer();
-        e.preventDefault();
-        sendCharacter(String.fromCharCode(e.keyCode));
-        clearTextIfNecessary("#text");
-        $("#text").append(String.fromCharCode(e.keyCode));
-        startDefaultMsgTimer("#text");
-    }
-}
-);
-
-</script>
-</head>
-<body>
-<b>Introduce text</b><p>
-<h1 id="text">Press A Key</h1>
-</body>
-</html>
