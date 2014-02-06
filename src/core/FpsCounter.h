@@ -41,7 +41,7 @@
 #define FPSCOUNTER_H
 
 #include <vector>
-#include <QTime>
+#include <QDateTime>
 
 class FpsCounter
 {
@@ -54,7 +54,7 @@ public:
     QString toString() const;
 
 private:
-    std::vector<QTime> history_;
+    std::vector<QDateTime> history_;
 };
 
 #endif // FPSCOUNTER_H

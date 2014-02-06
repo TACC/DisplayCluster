@@ -55,7 +55,7 @@ PixelStreamDispatcher::PixelStreamDispatcher()
     connect(&sendTimer_, SIGNAL(timeout()), this, SLOT(dispatchFrames()));
     sendTimer_.start(1000/DISPATCH_FREQUENCY);
 #else
-    lastFrameSent_ = QTime::currentTime();
+    lastFrameSent_ = QDateTime::currentDateTime();
     // Not using a queued connection here causes the rendering to lag behind and the main UI to freeze..
     connect(this, SIGNAL(dispatchFramesSignal()), this, SLOT(dispatchFrames()), Qt::QueuedConnection);
 #endif
@@ -106,7 +106,7 @@ void PixelStreamDispatcher::processFrameFinished(const QString uri, const size_t
 
 #ifdef USE_TIMER
 #else
-    QTime now = QTime::currentTime();
+    QDateTime now = QDateTime::currentDateTime();
     if (lastFrameSent_.msecsTo(now) > 1000/DISPATCH_FREQUENCY)
     {
         lastFrameSent_ = now;
