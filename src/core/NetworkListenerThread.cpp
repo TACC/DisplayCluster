@@ -45,6 +45,8 @@
 
 #include <stdint.h>
 
+#define RECEIVE_TIMEOUT_MS  3000
+
 NetworkListenerThread::NetworkListenerThread(int socketDescriptor)
     : socketDescriptor_(socketDescriptor)
     , tcpSocket_(new QTcpSocket(this)) // Make sure that tcpSocket_ parent is *this* so it also gets moved to thread!
@@ -148,7 +150,11 @@ QByteArray NetworkListenerThread::receiveMessageBody(const int size)
 
         while(messageByteArray.size() < size)
         {
-            tcpSocket_->waitForReadyRead();
+            if (!tcpSocket_->waitForReadyRead(RECEIVE_TIMEOUT_MS))
+            {
+                emit finished();
+                return QByteArray();
+            }
 
             messageByteArray.append(tcpSocket_->read(size - messageByteArray.size()));
         }

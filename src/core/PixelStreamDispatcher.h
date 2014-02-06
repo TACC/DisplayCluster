@@ -42,8 +42,8 @@
 
 #include <QObject>
 #include <QTimer>
+#include <QDateTime>
 #include <map>
-#include <QTime>
 
 #include "PixelStreamSegment.h"
 #include "PixelStreamBuffer.h"
@@ -139,7 +139,7 @@ private:
 #ifdef USE_TIMER
     QTimer sendTimer_;
 #else
-    QTime lastFrameSent_;
+    QDateTime lastFrameSent_;
 #endif
 };
 
