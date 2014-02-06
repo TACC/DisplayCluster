@@ -59,7 +59,7 @@ include(${QT_USE_FILE})
 
 # build options
 if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND AND FCGI_FOUND)
-  option(BUILD_CORE_LIBRARY "Build DisplayCluster Core library" ON)
+  set(BUILD_CORE_LIBRARY ON)
 endif()
 
 if(TUIO_FOUND)

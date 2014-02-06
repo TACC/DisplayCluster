@@ -294,7 +294,7 @@ if(FCGI_name)
   endif()
 endif()
 
-set(DISPLAYCLUSTER_BUILD_DEBS autoconf;automake;cmake;doxygen;freeglut3-dev;git;git-review;git-svn;lcov;libavcodec-dev;libavformat-dev;libavutil-dev;libboost-date-time-dev;libboost-program-options-dev;libboost-regex-dev;libboost-serialization-dev;libboost-test-dev;libfcgi-dev;libjpeg-turbo8-dev;libopenmpi-dev;libpoppler-dev;libswscale-dev;libturbojpeg;libxmu-dev;ninja-build;openmpi-bin;pkg-config;subversion)
+set(DISPLAYCLUSTER_BUILD_DEBS autoconf;automake;cmake;cppcheck;doxygen;freeglut3-dev;git;git-review;git-svn;lcov;libavcodec-dev;libavformat-dev;libavutil-dev;libboost-date-time-dev;libboost-program-options-dev;libboost-regex-dev;libboost-serialization-dev;libboost-test-dev;libfcgi-dev;libjpeg-turbo8-dev;libopenmpi-dev;libpoppler-dev;libswscale-dev;libturbojpeg;libxmu-dev;ninja-build;openmpi-bin;pkg-config;subversion)
 
 set(DISPLAYCLUSTER_DEPENDS Boost;LibJpegTurbo;Qt4;MPI;Poppler;GLUT;OpenGL;TUIO;FFMPEG;OpenMP;FCGI)
 

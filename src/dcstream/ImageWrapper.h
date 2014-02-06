@@ -70,10 +70,12 @@ struct ImageWrapper
     /**
      * ImageWrapper constructor
      *
+     * The first pixel is the top-left corner of the image, going to the
+     * bottom-right corner. Data arrays which follow the GL convention (as
+     * obtained by glReadPixels()) should be reordered using swapYAxis() prior
+     * to constructing the image wrapper.
+     *
      * @param data The source image buffer, containing getBufferSize() bytes
-     *        The first pixel is the top-left corner of the image, going to the bottom-right corner.
-     *        Data arrays which follow the GL convention (as obtained by glReadPixels()) should be
-     *        reordered using swapYAxis() prior to constructing the image wrapper.
      * @param width The width of the image
      * @param height The height of the image
      * @param format The format of the imageBuffer
@@ -81,10 +83,11 @@ struct ImageWrapper
      * @param y The global position of the image in the stream
      * @version 1.0
      */
-    ImageWrapper(const void *data, const unsigned int width, const unsigned int height,
-                 const PixelFormat format, const unsigned int x = 0, const unsigned int y = 0);
+    ImageWrapper( const void *data, const unsigned int width,
+                  const unsigned int height, const PixelFormat format,
+                  const unsigned int x = 0, const unsigned int y = 0 );
 
-    /** Pointer to the image data. Check size with getBufferSize(). @version 1.0 */
+    /** Pointer to the image data of size getBufferSize(). @version 1.0 */
     const void* const data;
 
     /** @name Dimensions */

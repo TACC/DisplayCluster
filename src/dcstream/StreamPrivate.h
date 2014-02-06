@@ -1,6 +1,7 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/* Copyright (c) 2013-2014, EPFL/Blue Brain Project                  */
 /*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/*                     Stefan.Eilemann@epfl.ch                       */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -45,13 +46,13 @@
 #include "Event.h"
 #include "MessageHeader.h"
 #include "ImageSegmenter.h"
+#include "Socket.h" // member
 
 class QString;
 
 namespace dc
 {
 
-class Socket;
 struct PixelStreamSegment;
 struct PixelStreamSegmentParameters;
 
@@ -61,20 +62,6 @@ struct PixelStreamSegmentParameters;
 class StreamPrivate
 {
 public:
-    StreamPrivate(const std::string& name);
-
-    /** The stream identifier. */
-    const std::string name_;
-
-    /** The communication socket instance */
-    Socket* dcSocket_;
-
-    /** The image segmenter */
-    ImageSegmenter imageSegmenter_;
-
-    /** Has a successful event registration reply been received */
-    bool registeredForEvents_;
-
     /**
      * Open a new connection to the DisplayCluster application
      * @param address Address of the target DisplayCluster instance.
@@ -83,7 +70,21 @@ public:
      * before any of them starts sending images.
      * @return true if the connection could be established
      */
-    bool open(const std::string &address);
+    StreamPrivate( const std::string& name, const std::string& address );
+
+    ~StreamPrivate();
+
+    /** The stream identifier. */
+    const std::string name_;
+
+    /** The communication socket instance */
+    Socket dcSocket_;
+
+    /** The image segmenter */
+    ImageSegmenter imageSegmenter_;
+
+    /** Has a successful event registration reply been received */
+    bool registeredForEvents_;
 
     /**
      * Close the stream.

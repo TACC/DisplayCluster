@@ -179,37 +179,35 @@ bool Socket::connect(const std::string& hostname, const unsigned short port)
     }
 
     // handshake
-    if (checkProtocolVersion())
+    if( checkProtocolVersion( ))
     {
         put_flog(LOG_INFO, "connected to host %s", hostname.c_str());
         return true;
     }
-    else
-    {
-        put_flog(LOG_ERROR, "Protocol version check failed for host: %s:%i", hostname.c_str(), port);
-        socket_->disconnectFromHost();
-        return false;
-    }
+
+    put_flog( LOG_ERROR, "Protocol version check failed for host: %s:%i",
+              hostname.c_str(), port );
+    socket_->disconnectFromHost();
+    return false;
 }
 
 bool Socket::checkProtocolVersion()
 {
     while( socket_->bytesAvailable() < qint64(sizeof(int32_t)) )
     {
-        if ( !socket_->waitForReadyRead(RECEIVE_TIMEOUT_MS) )
+        if( !socket_->waitForReadyRead( RECEIVE_TIMEOUT_MS ))
             return false;
     }
 
     int32_t protocolVersion = -1;
     socket_->read((char *)&protocolVersion, sizeof(int32_t));
 
-    if(protocolVersion != NETWORK_PROTOCOL_VERSION)
-    {
-        put_flog(LOG_ERROR, "unsupported protocol version %i != %i", protocolVersion, NETWORK_PROTOCOL_VERSION);
-        return false;
-    }
+    if( protocolVersion == NETWORK_PROTOCOL_VERSION )
+        return true;
 
-    return true;
+    put_flog( LOG_ERROR, "unsupported protocol version %i != %i",
+              protocolVersion, NETWORK_PROTOCOL_VERSION );
+    return false;
 }
 
 }

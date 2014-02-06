@@ -1,6 +1,7 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/* Copyright (c) 2013-2014, EPFL/Blue Brain Project                  */
+/*                          Raphael Dumusc <raphael.dumusc@epfl.ch>  */
+/*                          Stefan.Eilemann@epfl.ch                  */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -55,8 +56,9 @@ class StreamPrivate;
 /**
  * Stream visual data to a DisplayCluster application.
  *
- * A Stream can be subdivided into one or more images.
- * This allows to have different applications each responsible for sending one part of the global image.
+ * A Stream can be subdivided into one or more images.  This allows to have
+ * different applications each responsible for sending one part of the global
+ * image.
  *
  * The methods in this class are reentrant (all instances are independant) but are not thread-safe.
  */
@@ -66,16 +68,18 @@ public:
     /**
      * Open a new connection to the DisplayCluster application.
      *
-     * The user can check if the connection was successfully established with isConnected().
-     * The DisplayCluster application creates a window for the Stream using the given
-     * name as an identifier.
-     * Different Streams can contribute to a single window by using the same name.
-     * All the Streams which contribute to the same window should be created before
-     * any of them starts sending images.
+     * The user can check if the connection was successfully established with
+     * isConnected().  The DisplayCluster application creates a window for the
+     * Stream using the given name as an identifier.
+     *
+     * Different Streams can contribute to a single window by using the same
+     * name.  All the Streams which contribute to the same window should be
+     * created before any of them starts sending images.
      *
      * @param name An identifier for the stream which cannot be empty.
-     * @param address Address of the target DisplayCluster instance.
-     *        It can be a hostname like "localhost" or an IP in string format, e.g. "192.168.1.83".
+     * @param address Address of the target DisplayCluster instance, can be a
+     *                hostname like "localhost" or an IP in string format like
+     *                "192.168.1.83".
      * @version 1.0
      */
     Stream(const std::string& name, const std::string& address);
@@ -83,7 +87,7 @@ public:
     /** Destruct the Stream, closing the connection. @version 1.0 */
     virtual ~Stream();
 
-    /** @return true if the stream is connected, false otherwise. @version 1.0 */
+    /** @return true if the stream is connected, false otherwise. @version 1.0*/
     bool isConnected() const;
 
     /**
@@ -92,6 +96,7 @@ public:
      * @param image The image to send
      * @return true if the image data could be sent, false otherwise
      * @version 1.0
+     * @sa finishFrame()
      */
     bool send(const ImageWrapper& image);
 
@@ -99,9 +104,9 @@ public:
      * Notify that all the images for this frame have been sent.
      *
      * This method must be called everytime this Stream instance has finished
-     * sending its image(s) for the current frame.
-     * The receiver will display the images once all the senders which use the same
-     * name have finished a frame.
+     * sending its image(s) for the current frame. The receiver will display
+     * the images once all the senders which use the same name have finished a
+     * frame.
      *
      * @see send()
      * @version 1.0
@@ -114,18 +119,21 @@ public:
      * After registering, the DisplayCluster master application will send Events
      * whenever a user is interacting with this Stream's window.
      *
-     * Registation is only possible after a window for the stream has been created
-     * on the DisplayWall. A window is first created when all Streams that use the
-     * same identifier have sent the first frame and called finishFrame().
+     * Registation is only possible after a window for the stream has been
+     * created on the DisplayWall. A window is first created when all Streams
+     * that use the same identifier have sent the first frame and called
+     * finishFrame().
      *
      * Events can be retrieved using hasEvent() and getEvent().
-     * The current registration status can be checked with isRegisteredForEvents().
+     *
+     * The current registration status can be checked with
+     * isRegisteredForEvents().
      *
      * This method is synchronous and waits for a registration reply from the
      * DisplayWall before returning.
      *
      * @param exclusive Binds only one stream source for the same name
-     * @return true if the registration could be or was already established, false otherwise.
+     * @return true if the registration could be or was already established.
      * @version 1.0
      */
     bool registerForEvents(const bool exclusive = false);
@@ -133,7 +141,8 @@ public:
     /**
      * Is this stream registered to receive events.
      *
-     * Check if the stream has already successfully registered with registerForEvents().
+     * Check if the stream has already successfully registered with
+     * registerForEvents().
      *
      * @return true after the DisplayCluster application has acknowledged the
      *         registration request, false otherwise
@@ -145,9 +154,9 @@ public:
      * Get the native descriptor for the data stream.
      *
      * This descriptor can for instance be used by poll() on UNIX systems.
-     * Having this descriptor lets a Stream class user detect when the Stream has received any data.
-     * The user can the use query the state of the Stream, for example using hasEvent(),
-     * and process the events accordingly.
+     * Having this descriptor lets a Stream class user detect when the Stream
+     * has received any data. The user can the use query the state of the
+     * Stream, for example using hasEvent(), and process the events accordingly.
      *
      * @return The native descriptor if available; otherwise returns -1.
      * @version 1.0
@@ -158,7 +167,8 @@ public:
      * Check if a new Event is available.
      *
      * This method is non-blocking. Use this method prior to calling getEvent(),
-     * for example as the condition for a while() loop to process all pending events.
+     * for example as the condition for a while() loop to process all pending
+     * events.
      *
      * @return True if an Event is available, false otherwise
      * @version 1.0
@@ -171,7 +181,8 @@ public:
      * This method is sychronous and waits until an Event is available before
      * returning (or a 1 second timeout occurs).
      *
-     * Check if an Event is available with hasEvent() before calling this method.
+     * Check if an Event is available with hasEvent() before calling this
+     * method.
      *
      * @return The next Event if available, otherwise an empty (default) Event.
      * @version 1.0
