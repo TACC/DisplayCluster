@@ -134,7 +134,8 @@ bool Socket::receive(MessageHeader & messageHeader, QByteArray & message)
 
         while(message.size() < int(messageHeader.size))
         {
-            socket_->waitForReadyRead();
+            if ( !socket_->waitForReadyRead(RECEIVE_TIMEOUT_MS) )
+                return false;
 
             message.append(socket_->read(messageHeader.size - message.size()));
         }
