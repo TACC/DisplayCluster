@@ -47,7 +47,7 @@ FpsCounter::FpsCounter()
 
 void FpsCounter::tick()
 {
-    history_.push_back(QTime::currentTime());
+    history_.push_back(QDateTime::currentDateTime());
 
     // see if we need to remove an entry
     while(history_.size() > HISTORY_SIZE)
