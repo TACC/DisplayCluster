@@ -63,11 +63,14 @@ class StreamPrivate
 {
 public:
     /**
-     * Open a new connection to the DisplayCluster application
+     * Create a new stream and open a new connection to the DisplayCluster.
+     *
+     * It can be a hostname like "localhost" or an IP in string format,
+     * e.g. "192.168.1.83" This method must be called by all Streams sharing a
+     * common identifier before any of them starts sending images.
+     *
+     * @param name the unique stream name
      * @param address Address of the target DisplayCluster instance.
-     * It can be a hostname like "localhost" or an IP in string format, e.g. "192.168.1.83"
-     * This method must be called by all Streams sharing a common identifier
-     * before any of them starts sending images.
      * @return true if the connection could be established
      */
     StreamPrivate( const std::string& name, const std::string& address );

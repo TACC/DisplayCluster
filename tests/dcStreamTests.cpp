@@ -47,6 +47,10 @@ namespace ut = boost::unit_test;
 #include "configuration/MasterConfiguration.h"
 #include "dcstream/Stream.h"
 
+// Tests local throughput of the streaming library by sending raw as well as
+// blank and random images through dc::Stream. Baseline test for best-case
+// performance when streaming pixels.
+
 #define WIDTH  (3840u)
 #define HEIGHT (2160u)
 #define NPIXELS (WIDTH * HEIGHT)

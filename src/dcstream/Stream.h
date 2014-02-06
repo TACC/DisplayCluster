@@ -69,11 +69,11 @@ public:
      * Open a new connection to the DisplayCluster application.
      *
      * The user can check if the connection was successfully established with
-     * isConnected().  The DisplayCluster application creates a window for the
+     * isConnected(). The DisplayCluster application creates a window for the
      * Stream using the given name as an identifier.
      *
      * Different Streams can contribute to a single window by using the same
-     * name.  All the Streams which contribute to the same window should be
+     * name. All the Streams which contribute to the same window should be
      * created before any of them starts sending images.
      *
      * @param name An identifier for the stream which cannot be empty.
