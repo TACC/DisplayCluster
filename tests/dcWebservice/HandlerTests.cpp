@@ -1,6 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
+/*                     Julio Delgado <julio.delgadomangas@epfl.ch>   */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -37,42 +37,39 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MASTERCONFIGURATION_H
-#define MASTERCONFIGURATION_H
 
-#include "Configuration.h"
-/**
- * @brief The MasterConfiguration class manages all the parameters needed
- * to setup the Master process.
+#define BOOST_TEST_MODULE DefaultHandlerTests
+#include <boost/test/unit_test.hpp>
+#include "dcWebservice/DefaultHandler.h"
+#include "dcWebservice/Response.h"
+#include "dcWebservice/Request.h"
+
+namespace ut = boost::unit_test;
+
+/*
+ * Mock handler that always returns an OK resonse, regardless of the request
  */
-class MasterConfiguration : public Configuration
+class MockHandler : public dcWebservice::Handler
 {
 public:
-    /**
-     * @brief MasterConfiguration constructor
-     * @param filename \see Configuration
-     * @param options \see Configuration
-     */
-    MasterConfiguration(const QString& filename, OptionsPtr options);
-
-    /**
-     * @brief getDockStartDir Get the Dock startup directory
-     * @return directory path
-     */
-    const QString& getDockStartDir() const;
-
-    /**
-     * @brief getWebServicePort Get the port where the WebService server
-     * will be listening for incoming requests.
-     * @return port for WebService server
-     */
-    const int getWebServicePort() const;
-
-private:
-    void loadMasterSettings();
-
-    QString dockStartDir_;
-    int dcWebServicePort_;
+    virtual dcWebservice::ConstResponsePtr handle(const dcWebservice::Request& request) const
+    {
+        return dcWebservice::Response::OK();
+    }
 };
 
-#endif // MASTERCONFIGURATION_H
+BOOST_AUTO_TEST_CASE( testConstructorWithoutParameters )
+{
+    dcWebservice::DefaultHandler handler;
+
+    dcWebservice::Request request;
+    BOOST_CHECK_EQUAL(dcWebservice::Response::NotFound(), handler.handle(request));
+}
+
+BOOST_AUTO_TEST_CASE( testConstructorWithParameters )
+{
+    MockHandler mock;
+
+    dcWebservice::Request request;
+    BOOST_CHECK_EQUAL(dcWebservice::Response::OK(), mock.handle(request));
+}

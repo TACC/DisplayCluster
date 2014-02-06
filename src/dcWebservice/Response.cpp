@@ -1,6 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
+/*                     Julio Delgado <julio.delgadomangas@epfl.ch>   */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -37,42 +37,76 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MASTERCONFIGURATION_H
-#define MASTERCONFIGURATION_H
+#include <sstream>
 
-#include "Configuration.h"
-/**
- * @brief The MasterConfiguration class manages all the parameters needed
- * to setup the Master process.
- */
-class MasterConfiguration : public Configuration
+#include "Response.h"
+
+namespace {
+const std::string HTTP_VERSION = "HTTP/1.1";
+const std::string SP = " ";
+const std::string CRLF = "\r\n";
+}
+
+namespace dcWebservice
 {
-public:
-    /**
-     * @brief MasterConfiguration constructor
-     * @param filename \see Configuration
-     * @param options \see Configuration
-     */
-    MasterConfiguration(const QString& filename, OptionsPtr options);
 
-    /**
-     * @brief getDockStartDir Get the Dock startup directory
-     * @return directory path
-     */
-    const QString& getDockStartDir() const;
+Response::Response(unsigned int code, std::string  msg, std::string body)
+    : statusCode(code),
+      statusMsg(msg),
+      body(body)
+{}
 
-    /**
-     * @brief getWebServicePort Get the port where the WebService server
-     * will be listening for incoming requests.
-     * @return port for WebService server
-     */
-    const int getWebServicePort() const;
+ConstResponsePtr Response::OK()
+{
+    static ConstResponsePtr response(new Response(200, "OK",
+		       "{\"code\":\"200\", \"msg\":\"OK\"}"));
+    return response;
+}
 
-private:
-    void loadMasterSettings();
 
-    QString dockStartDir_;
-    int dcWebServicePort_;
-};
+ConstResponsePtr Response::NotFound()
+{ 
+    static ConstResponsePtr response(new Response(404, "Not Found",
+		       "{\"code\":\"404\", \"msg\":\"Not Found\"}"));
+    return response;
+}
 
-#endif // MASTERCONFIGURATION_H
+ConstResponsePtr Response::ServerError()
+{ 
+    static ConstResponsePtr response(new Response(500, "Internal Server Error",
+		       "{\"code\":\"500\", \"msg\":\"Internal Server Error\"}"));
+    return response;
+}
+
+std::string Response::serialize() const
+{
+    std::stringstream ss;
+    ss << HTTP_VERSION << SP << statusCode << SP << statusMsg << CRLF;
+
+    for(std::map<std::string, std::string>::const_iterator it = httpHeaders.begin() ;
+        it != httpHeaders.end() ; ++it)
+    {
+        ss << it->first << ": " << it->second << CRLF;
+    }
+
+    ss << "Content-Length: " << body.length() << CRLF;
+    ss << "Status: " << statusCode << SP << statusMsg << CRLF;
+    ss << CRLF;
+    ss << body;
+    return ss.str();
+}
+
+std::ostream& operator<<(std::ostream& os, const Response& obj)
+{
+    os << obj.serialize();
+    return os;
+}
+
+bool operator==(const Response& lhs, const Response& rhs)
+{
+    return (lhs.statusCode == rhs.statusCode &&
+	    lhs.statusMsg == rhs.statusMsg &&
+	    lhs.body == rhs.body);
+}
+
+}

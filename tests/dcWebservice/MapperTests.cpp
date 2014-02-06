@@ -1,5 +1,5 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
 /*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
@@ -37,42 +37,58 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MASTERCONFIGURATION_H
-#define MASTERCONFIGURATION_H
 
-#include "Configuration.h"
-/**
- * @brief The MasterConfiguration class manages all the parameters needed
- * to setup the Master process.
- */
-class MasterConfiguration : public Configuration
+#define BOOST_TEST_MODULE MapperTests
+#include "dcWebservice/Mapper.h"
+#include "dcWebservice/DefaultHandler.h"
+#include <boost/test/unit_test.hpp>
+namespace ut = boost::unit_test;
+
+BOOST_AUTO_TEST_CASE( testEmptyMapper )
 {
-public:
-    /**
-     * @brief MasterConfiguration constructor
-     * @param filename \see Configuration
-     * @param options \see Configuration
-     */
-    MasterConfiguration(const QString& filename, OptionsPtr options);
+    dcWebservice::Mapper mapper;
+    BOOST_CHECK( dynamic_cast<const dcWebservice::DefaultHandler*>(&mapper.getHandler("/video" )));
+    BOOST_CHECK( dynamic_cast<const dcWebservice::DefaultHandler*>(&mapper.getHandler("/video/12344" )));
+}
 
-    /**
-     * @brief getDockStartDir Get the Dock startup directory
-     * @return directory path
-     */
-    const QString& getDockStartDir() const;
+BOOST_AUTO_TEST_CASE( testUrlDoesNotMatchAnyRegex )
+{
+    dcWebservice::Mapper mapper;
+    dcWebservice::HandlerPtr handler(new dcWebservice::DefaultHandler());
+    mapper.addHandler("/video/play/(.*)", handler);
+    BOOST_CHECK( dynamic_cast<const dcWebservice::DefaultHandler*>(&mapper.getHandler("/video" )));
+    BOOST_CHECK( dynamic_cast<const dcWebservice::DefaultHandler*>(&mapper.getHandler("/video/12344" )));
+}
 
-    /**
-     * @brief getWebServicePort Get the port where the WebService server
-     * will be listening for incoming requests.
-     * @return port for WebService server
-     */
-    const int getWebServicePort() const;
+BOOST_AUTO_TEST_CASE( testUrlMatchesFirstRegex )
+{
+    dcWebservice::Mapper mapper;
+    dcWebservice::HandlerPtr handler1(new dcWebservice::DefaultHandler());
+    dcWebservice::HandlerPtr handler2(new dcWebservice::DefaultHandler());
+    mapper.addHandler("/video/play/(.*)", handler1);
+    mapper.addHandler("/nop/", handler2);
+    BOOST_CHECK_EQUAL( handler1.get(), &mapper.getHandler("/video/play/1234") );
+    BOOST_CHECK_EQUAL( handler1.get(), &mapper.getHandler("/video/play/") );
+    BOOST_CHECK_NE( handler2.get(), &mapper.getHandler("/video/play/1234") );
+    BOOST_CHECK( dynamic_cast<const dcWebservice::DefaultHandler*>(&mapper.getHandler("/video/play" )));
+}
 
-private:
-    void loadMasterSettings();
+BOOST_AUTO_TEST_CASE( testMapperReturnsFirstMatchWhenMoreThanOnePossible )
+{
+    dcWebservice::Mapper mapper;
+    dcWebservice::HandlerPtr handler1(new dcWebservice::DefaultHandler());
+    dcWebservice::HandlerPtr handler2(new dcWebservice::DefaultHandler());
+    mapper.addHandler("/video/play/", handler1);
+    mapper.addHandler("/video/play/(.*)", handler2);
+    BOOST_CHECK_EQUAL( handler1.get(), &mapper.getHandler("/video/play/") );
+    BOOST_CHECK_EQUAL( handler2.get(), &mapper.getHandler("/video/play/1234") );
+    BOOST_CHECK_NE( handler1.get(), &mapper.getHandler("/video/play/1234") );
+    BOOST_CHECK( dynamic_cast<const dcWebservice::DefaultHandler*>(&mapper.getHandler("/video/play" )));
+}
 
-    QString dockStartDir_;
-    int dcWebServicePort_;
-};
-
-#endif // MASTERCONFIGURATION_H
+BOOST_AUTO_TEST_CASE( testIncorrectRegex )
+{
+    dcWebservice::Mapper mapper;
+    dcWebservice::HandlerPtr handler1(new dcWebservice::DefaultHandler());
+    BOOST_CHECK_EQUAL(false, mapper.addHandler("/video/(.*", handler1));
+}

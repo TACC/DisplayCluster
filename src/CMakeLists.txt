@@ -13,7 +13,7 @@ set(DISPLAYCLUSTER_LIBRARY_SHARED_HEADERS
 if(BUILD_CORE_LIBRARY)
   add_subdirectory(core)
   # Build FastCGI web services library
-  add_subdirectory(fcgiws)
+  add_subdirectory(dcWebservice)
 endif()
 
 add_subdirectory(dcstream)

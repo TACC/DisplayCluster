@@ -1,6 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
+/*                     Julio Delgado <julio.delgadomangas@epfl.ch>   */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -37,42 +37,86 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MASTERCONFIGURATION_H
-#define MASTERCONFIGURATION_H
+#include <sstream>
+#include <cstdio>
 
-#include "Configuration.h"
-/**
- * @brief The MasterConfiguration class manages all the parameters needed
- * to setup the Master process.
- */
-class MasterConfiguration : public Configuration
+#include "FastCGIWrapper.h"
+
+namespace dcWebservice
 {
-public:
-    /**
-     * @brief MasterConfiguration constructor
-     * @param filename \see Configuration
-     * @param options \see Configuration
+
+FastCGIWrapper::FastCGIWrapper()
+    : _request(new FCGX_Request())
+    , _run(false)
+    , _socket(-1)
+{}
+
+FastCGIWrapper::~FastCGIWrapper()
+{}
+
+bool FastCGIWrapper::init(const unsigned int port, const unsigned int nbOfConnections)
+{
+    std::stringstream ss;
+    ss << ":" << port;
+    _socket = FCGX_OpenSocket(ss.str().c_str(), nbOfConnections);
+    if(_socket < 0)
+        return false;
+
+    _run = true;
+    FCGX_Init(); // FastCGI takes care of not initializing itself more than once
+    FCGX_InitRequest(_request.get(), _socket, 0);
+    return true;
+}
+
+
+bool FastCGIWrapper::accept()
+{
+    /*
+     * Here we use non-blocking io. Read "man select"
+     * to understand how this is used
      */
-    MasterConfiguration(const QString& filename, OptionsPtr options);
+    fd_set read_from;
+    struct timeval timeout;
+    int retval = 0;
 
-    /**
-     * @brief getDockStartDir Get the Dock startup directory
-     * @return directory path
-     */
-    const QString& getDockStartDir() const;
+    while(_run)
+    {
+        // Timeout must be reset every iteration
+        timeout.tv_sec = 1;
+        timeout.tv_usec = 0;
 
-    /**
-     * @brief getWebServicePort Get the port where the WebService server
-     * will be listening for incoming requests.
-     * @return port for WebService server
-     */
-    const int getWebServicePort() const;
+        // Set of file descriptors we are interested in must be reset
+        // every iteration
+        FD_ZERO(&read_from);
+        FD_SET(_socket, &read_from);
+        retval = select(_socket + 1, &read_from, 0,0, &timeout);
+        if( retval == -1)
+            break;
+        else if(retval)
+            return FCGX_Accept_r(_request.get()) >= 0;
+    }
+    return false;
+}
 
-private:
-    void loadMasterSettings();
+FCGX_Request* FastCGIWrapper::getRequest()
+{
+    return _request.get();
+}
 
-    QString dockStartDir_;
-    int dcWebServicePort_;
-};
+bool FastCGIWrapper::write(const std::string& msg)
+{
+    FCGX_PutS(msg.c_str(), _request->out);
+    FCGX_FFlush(_request->out);
+    FCGX_FClose(_request->out);
+    FCGX_Finish_r(_request.get());
+    return true;
+}
 
-#endif // MASTERCONFIGURATION_H
+bool FastCGIWrapper::stop()
+{
+    _run = false;
+    FCGX_ShutdownPending();
+    return true;
+}
+
+}

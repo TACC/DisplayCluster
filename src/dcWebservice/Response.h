@@ -1,6 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
+/*                     Julio Delgado <julio.delgadomangas@epfl.ch>   */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -37,42 +37,69 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MASTERCONFIGURATION_H
-#define MASTERCONFIGURATION_H
+#ifndef RESPONSE_H
+#define RESPONSE_H
 
-#include "Configuration.h"
-/**
- * @brief The MasterConfiguration class manages all the parameters needed
- * to setup the Master process.
- */
-class MasterConfiguration : public Configuration
+#include <map>
+#include <string>
+#include <iostream>
+
+#include "types.h"
+
+namespace dcWebservice
 {
-public:
-    /**
-     * @brief MasterConfiguration constructor
-     * @param filename \see Configuration
-     * @param options \see Configuration
-     */
-    MasterConfiguration(const QString& filename, OptionsPtr options);
 
+/**
+ * Structure representing a HTTP reponse message as specified in
+ * http://tools.ietf.org/search/rfc2616
+ */
+struct Response
+{
     /**
-     * @brief getDockStartDir Get the Dock startup directory
-     * @return directory path
+     * Constructor
      */
-    const QString& getDockStartDir() const;
+    Response(unsigned int code = 0, std::string msg = "", std::string body="");
 
     /**
-     * @brief getWebServicePort Get the port where the WebService server
-     * will be listening for incoming requests.
-     * @return port for WebService server
+     * HTTP status code as defined in RFC 2616.
      */
-    const int getWebServicePort() const;
+    unsigned int statusCode;
 
-private:
-    void loadMasterSettings();
+    /**
+     * HTTP status message as defined in RFC 2616.
+     */
+    std::string statusMsg;
 
-    QString dockStartDir_;
-    int dcWebServicePort_;
+    /**
+     * HTTP response body, as defined in RFC 2616.
+     */
+    std::string body;
+
+    /**
+     * HTTP response headers as defined in RFC 2616.
+     */
+    std::map<std::string, std::string> httpHeaders;
+
+    /**
+     * Serialize the object into a String contaning a RFC 2616 compliant
+     * HTTP response message.
+     *
+     * @returns A new string representing a HTTP response message.
+     */
+    std::string serialize() const;
+
+    /*
+     * Factory methods for 200, 404, and 500 HTTP responses
+     * See http://tools.ietf.org/search/rfc2616 for more details
+     */
+    static ConstResponsePtr OK();
+    static ConstResponsePtr NotFound();
+    static ConstResponsePtr ServerError();
 };
 
-#endif // MASTERCONFIGURATION_H
+std::ostream& operator<<(std::ostream& os, const Response& obj);
+bool operator==(const Response& lhs, const Response& rhs);
+
+}
+
+#endif // RESPONSE_H

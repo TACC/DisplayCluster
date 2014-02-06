@@ -1,5 +1,5 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
 /*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
@@ -37,42 +37,31 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MASTERCONFIGURATION_H
-#define MASTERCONFIGURATION_H
 
-#include "Configuration.h"
-/**
- * @brief The MasterConfiguration class manages all the parameters needed
- * to setup the Master process.
- */
-class MasterConfiguration : public Configuration
+#define BOOST_TEST_MODULE PixelStreamBufferTests
+#include <boost/test/unit_test.hpp>
+namespace ut = boost::unit_test;
+
+#include "ws/AsciiToQtKeyCodeMapper.h"
+
+#include <qnamespace.h>
+
+BOOST_AUTO_TEST_CASE( TestSpecialKeyCode )
 {
-public:
-    /**
-     * @brief MasterConfiguration constructor
-     * @param filename \see Configuration
-     * @param options \see Configuration
-     */
-    MasterConfiguration(const QString& filename, OptionsPtr options);
+    AsciiToQtKeyCodeMapper mapper;
+    BOOST_CHECK_EQUAL(mapper.getQtKeyCode(8), Qt::Key_Backspace);
+    BOOST_CHECK_EQUAL(mapper.getQtKeyCode(9), Qt::Key_Tab);
+    BOOST_CHECK_EQUAL(mapper.getQtKeyCode(10), Qt::Key_Return);
+    BOOST_CHECK_EQUAL(mapper.getQtKeyCode(13), Qt::Key_Enter);
+    BOOST_CHECK_EQUAL(mapper.getQtKeyCode(27), Qt::Key_Escape);
+}
 
-    /**
-     * @brief getDockStartDir Get the Dock startup directory
-     * @return directory path
-     */
-    const QString& getDockStartDir() const;
-
-    /**
-     * @brief getWebServicePort Get the port where the WebService server
-     * will be listening for incoming requests.
-     * @return port for WebService server
-     */
-    const int getWebServicePort() const;
-
-private:
-    void loadMasterSettings();
-
-    QString dockStartDir_;
-    int dcWebServicePort_;
-};
-
-#endif // MASTERCONFIGURATION_H
+BOOST_AUTO_TEST_CASE( TestNormalCharater )
+{
+    AsciiToQtKeyCodeMapper mapper;
+    BOOST_CHECK_EQUAL(mapper.getQtKeyCode('a'), 'a');
+    BOOST_CHECK_EQUAL(mapper.getQtKeyCode('b'), 'b');
+    BOOST_CHECK_EQUAL(mapper.getQtKeyCode('c'), 'c');
+    BOOST_CHECK_EQUAL(mapper.getQtKeyCode('A'), 'A');
+    BOOST_CHECK_EQUAL(mapper.getQtKeyCode('B'), 'B');
+}

@@ -55,6 +55,8 @@ namespace ut = boost::unit_test;
 #define CONFIG_EXPECTED_DISPLAY ":0.2"
 #define CONFIG_EXPECTED_HOST_NAME "bbplxviz03i"
 
+#define CONFIG_EXPECTED_WEBSERVICE_PORT 10000
+
 BOOST_GLOBAL_FIXTURE( MinimalGlobalQtApp );
 
 void testBaseParameters(const Configuration& config, OptionsPtr options)
@@ -114,6 +116,7 @@ BOOST_AUTO_TEST_CASE( test_master_configuration )
     MasterConfiguration config(CONFIG_TEST_FILENAME, options);
 
     BOOST_CHECK_EQUAL( config.getDockStartDir().toStdString(), CONFIG_EXPECTED_DOCK_DIR );
+    BOOST_CHECK_EQUAL( config.getWebServicePort(), CONFIG_EXPECTED_WEBSERVICE_PORT );
 }
 
 BOOST_AUTO_TEST_CASE( test_save_configuration )

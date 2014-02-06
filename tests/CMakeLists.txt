@@ -11,7 +11,8 @@ if(NOT WIN32) # tests want to be with DLLs on Windows - no rpath
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
 endif()
 
-file(GLOB_RECURSE TEST_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/fcgiws/ *Tests.cpp)
+file(GLOB_RECURSE TEST_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+            ${CMAKE_CURRENT_SOURCE_DIR}/dcWebservice/ *Tests.cpp)
 list(SORT TEST_FILES)
 
 find_package(X11)
@@ -23,11 +24,15 @@ include_directories(${CMAKE_SOURCE_DIR}/src/core)
 include_directories(${CMAKE_BINARY_DIR}) ### for config.h ###
 
 #Local classes for test executables
-set(MOC_HEADERS MockNetworkListener.h)
+set(MOC_HEADERS
+  MockNetworkListener.h
+  MockTextInputDispatcher.h
+)
 qt4_wrap_cpp(MOC_OUTFILES ${MOC_HEADERS})
 
 set(LOCAL_FILES
   MockNetworkListener.cpp
+  MockTextInputDispatcher.cpp
   glxDisplay.h
   GlobalQtApp.h
   MinimalGlobalQtApp.h

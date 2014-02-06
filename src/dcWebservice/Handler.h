@@ -1,6 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
+/*                     Julio Delgado <julio.delgadomangas@epfl.ch>   */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -37,42 +37,39 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MASTERCONFIGURATION_H
-#define MASTERCONFIGURATION_H
+#ifndef HANDLER_H
+#define HANDLER_H
 
-#include "Configuration.h"
+#include "types.h"
+
+namespace dcWebservice
+{
+
 /**
- * @brief The MasterConfiguration class manages all the parameters needed
- * to setup the Master process.
+ * A request handler encapuslates the "service" code entry point of a web
+ * service. The library takes care of reading requests from the wire and
+ * transforming them into dcWebserviceResquest object. A handler takes a Request
+ * object, processes it and generates a dcWebservice::Response object.
  */
-class MasterConfiguration : public Configuration
+class Handler
 {
 public:
-    /**
-     * @brief MasterConfiguration constructor
-     * @param filename \see Configuration
-     * @param options \see Configuration
-     */
-    MasterConfiguration(const QString& filename, OptionsPtr options);
 
     /**
-     * @brief getDockStartDir Get the Dock startup directory
-     * @return directory path
+     * Destructor
      */
-    const QString& getDockStartDir() const;
+    virtual ~Handler() {}
 
     /**
-     * @brief getWebServicePort Get the port where the WebService server
-     * will be listening for incoming requests.
-     * @return port for WebService server
+     * Through this method the handling functionality is exposed. This method is
+     * called by the server to invoke the web service functionality associated
+     * with a particular Handler.
+     *
+     * @param request A valid dcWebservice::Request object.
      */
-    const int getWebServicePort() const;
-
-private:
-    void loadMasterSettings();
-
-    QString dockStartDir_;
-    int dcWebServicePort_;
+    virtual ConstResponsePtr handle(const Request& request) const = 0;
 };
 
-#endif // MASTERCONFIGURATION_H
+}
+
+#endif // HANDLER_H

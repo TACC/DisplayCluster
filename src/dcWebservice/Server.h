@@ -1,6 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
+/*                     Julio Delgado <julio.delgadomangas@epfl.ch>   */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -37,42 +37,98 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MASTERCONFIGURATION_H
-#define MASTERCONFIGURATION_H
+#ifndef SERVER_H
+#define SERVER_H
 
-#include "Configuration.h"
+#include "Mapper.h"
+#include "RequestBuilder.h"
+#include "Handler.h"
+#include "FastCGIWrapper.h"
+
+#include <boost/scoped_ptr.hpp>
+
+namespace dcWebservice
+{
+
 /**
- * @brief The MasterConfiguration class manages all the parameters needed
- * to setup the Master process.
+ * FastCGI application server.
+ *
+ * The Server class has two main puposes, listening for incomming requests
+ * and dispatching them to handlers.
+ *
+ * Users of this class must register handlers using the addHandler method.
+ * Upon reception of a request the Server looks for the Handler mapped to
+ * the URL of the request.
+ *
+ * The port in which the server listens for incoming requests is configurable.
  */
-class MasterConfiguration : public Configuration
+class Server
 {
 public:
     /**
-     * @brief MasterConfiguration constructor
-     * @param filename \see Configuration
-     * @param options \see Configuration
+     * Constructor.
      */
-    MasterConfiguration(const QString& filename, OptionsPtr options);
+    Server();
 
     /**
-     * @brief getDockStartDir Get the Dock startup directory
-     * @return directory path
+     * Registers a request handler with a particular regular expression.
+     *
+     * When the URL of an incoming request matches the regular expression
+     * the handler is invoked.
+     *
+     * @param pattern A regular expression.
+     * @param handler A request handler.
+     * @returns true if the handler was registered succesfully, false otherwise,
+     *   for instance if the regular expression is not valid.
      */
-    const QString& getDockStartDir() const;
+    bool addHandler(const std::string& pattern, HandlerPtr handler);
 
     /**
-     * @brief getWebServicePort Get the port where the WebService server
-     * will be listening for incoming requests.
-     * @return port for WebService server
+     * Binds a TCP socket in the port specified and starts listening for
+     * incoming requests. Runs entirely in the same thread in which it is
+     * called. This method blocks until a call to stop() is executed.
+     *
+     * @param port The port used in the creation of the TCP socket.
+     * @returns true upon successful completion, false otherwise.
      */
-    const int getWebServicePort() const;
+    bool run(const unsigned int port);
+
+    /**
+     * Stops the Server request processing loop. If the server is running
+     * this method causes the Server to stop processing.
+     *
+     * @returns true upcon successful completion, false otherwise.
+     */
+    bool stop();
+
+#ifdef TESTS
+    void fireProcessing()
+    {
+        _processRequest();
+    }
+    void setMapper(Mapper mapper)
+    {
+        _mapper = mapper;
+    }
+    void setRequestBuilder(RequestBuilder* builder)
+    {
+        _requestBuilder.reset(builder);
+    }
+    void setFastCGIWrapper(FastCGIWrapper* wrapper)
+    {
+        _fcgi.reset(wrapper);
+    }
+#endif
 
 private:
-    void loadMasterSettings();
+    Mapper _mapper;
+    boost::scoped_ptr<RequestBuilder> _requestBuilder;
+    boost::scoped_ptr<FastCGIWrapper> _fcgi;
 
-    QString dockStartDir_;
-    int dcWebServicePort_;
+    void _sendResponse(const Response& response);
+    void _processRequest();
 };
 
-#endif // MASTERCONFIGURATION_H
+}
+
+#endif // SERVER_H

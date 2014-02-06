@@ -1,5 +1,5 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
 /*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
@@ -36,43 +36,69 @@
 /* interpreted as representing official policies, either expressed   */
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
+#ifndef REQUEST_BUILDER_H
+#define REQUEST_BUILDER_H
 
-#ifndef MASTERCONFIGURATION_H
-#define MASTERCONFIGURATION_H
+#include <fcgiapp.h>
 
-#include "Configuration.h"
+#include "types.h"
+
+namespace dcWebservice
+{
+
 /**
- * @brief The MasterConfiguration class manages all the parameters needed
- * to setup the Master process.
+ * This class encapsulates the logic necessary to extract information
+ * from a FastCGI request (FCGX_Request), into a dcWebservice::Request object
+ * that can be consumed by the rest of the application.
  */
-class MasterConfiguration : public Configuration
+class RequestBuilder
 {
 public:
     /**
-     * @brief MasterConfiguration constructor
-     * @param filename \see Configuration
-     * @param options \see Configuration
+     * Destructor
      */
-    MasterConfiguration(const QString& filename, OptionsPtr options);
+    virtual ~RequestBuilder();
 
     /**
-     * @brief getDockStartDir Get the Dock startup directory
-     * @return directory path
+     * Creates a new dcWebservice::Request object using the information contained
+     * in the FastCGI request.
+     *
+     * @param fcgiRequest A populated FastCGI request object.
+     * @returns A boost::shared_ptr to a dcWebservice::Request object.
      */
-    const QString& getDockStartDir() const;
-
-    /**
-     * @brief getWebServicePort Get the port where the WebService server
-     * will be listening for incoming requests.
-     * @return port for WebService server
-     */
-    const int getWebServicePort() const;
+    virtual RequestPtr buildRequest(FCGX_Request& fcgiRequest);
 
 private:
-    void loadMasterSettings();
+    /*
+     * Retrieves the data from the body of the FCGI request.
+     * @param fcgiRequest A populated FastCGI request object.
+     * @returns A string with the data found int the body or an empty string.
+     */
+    std::string _getData(FCGX_Request& fcgiRequest);
 
-    QString dockStartDir_;
-    int dcWebServicePort_;
+    /*
+     * This method must be called once a query string has been added to the
+     * request. The query string is parsed and the pairs key/value are added
+     * to the parameters map in the request.
+     *
+     * @param request A boost::shared_ptr to a dcWebservice::Request object.
+     * @returns void
+     */
+    void _populateParameters(RequestPtr request);
+
+    /*
+     * Looks for HTTP headers in the environment parameters present in the
+     * FastCGI request, and loads them in the the dcWebservice::Request httpHeaders
+     * map.
+     *
+     * @param fcgiRequest A populated FastCGI object.
+     * @param request A boost::shared_ptr to a dcWebservice::Request object.
+     * @returns void
+     *
+     */
+    void _populateHttpHeaders(FCGX_Request& fcgiRequest, RequestPtr request);
 };
 
-#endif // MASTERCONFIGURATION_H
+}
+
+#endif // REQUEST_BUILDER_H

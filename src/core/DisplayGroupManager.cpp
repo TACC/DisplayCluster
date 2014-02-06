@@ -283,6 +283,19 @@ ContentWindowManagerPtr DisplayGroupManager::getBackgroundContentWindowManager()
     return backgroundContent_;
 }
 
+bool DisplayGroupManager::isEmpty() const
+{
+    return contentWindowManagers_.empty();
+}
+
+ContentWindowManagerPtr DisplayGroupManager::getActiveWindow() const
+{
+    if (isEmpty())
+        return ContentWindowManagerPtr();
+
+    return contentWindowManagers_.back();
+}
+
 bool DisplayGroupManager::setBackgroundContentFromUri(const QString filename)
 {
     if(!filename.isEmpty())
