@@ -75,7 +75,7 @@ class DCThread : public QThread
             BOOST_CHECK( stream.finishFrame( ));
         }
         float time = timer.elapsed() / 1000.f;
-        std::cout << "raw " << NPIXELS / float(1024*1024) / time
+        std::cout << "raw " << NPIXELS / float(1024*1024) / time * NIMAGES
                   << " megapixel/s (" << NIMAGES / time << " FPS)" << std::endl;
 
 
@@ -87,7 +87,7 @@ class DCThread : public QThread
             BOOST_CHECK( stream.finishFrame( ));
         }
         time = timer.elapsed() / 1000.f;
-        std::cout << "blk " << NPIXELS / float(1024*1024) / time
+        std::cout << "blk " << NPIXELS / float(1024*1024) / time * NIMAGES
                   << " megapixel/s (" << NIMAGES / time << " FPS)"
                   << std::endl;
 
@@ -100,7 +100,7 @@ class DCThread : public QThread
             BOOST_CHECK( stream.finishFrame( ));
         }
         time = timer.elapsed() / 1000.f;
-        std::cout << "rnd " << NPIXELS / float(1024*1024) / time
+        std::cout << "rnd " << NPIXELS / float(1024*1024) / time * NIMAGES
                   << " megapixel/s (" << NIMAGES / time << " FPS)"
                   << std::endl;
 
