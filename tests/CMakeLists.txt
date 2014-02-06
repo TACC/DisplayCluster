@@ -2,7 +2,7 @@
 # Copyright (c) 2013, EPFL/Blue Brain Project
 #                     Daniel Nachbaur <daniel.nachbaur@epfl.ch>
 
-# Change this number when adding tests to force a CMake run: 1
+# Change this number when adding tests to force a CMake run: 3
 
 enable_testing()
 add_definitions(-DBOOST_TEST_DYN_LINK) # generates main() for unit tests
@@ -10,6 +10,8 @@ add_definitions(-DBOOST_TEST_DYN_LINK) # generates main() for unit tests
 if(NOT WIN32) # tests want to be with DLLs on Windows - no rpath
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
 endif()
+configure_file(configuration.xml
+  ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/configuration.xml)
 
 file(GLOB_RECURSE TEST_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/fcgiws/ *Tests.cpp)
 list(SORT TEST_FILES)
