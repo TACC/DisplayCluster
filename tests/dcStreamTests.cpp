@@ -47,8 +47,8 @@ namespace ut = boost::unit_test;
 #include "configuration/MasterConfiguration.h"
 #include "dcstream/Stream.h"
 
-#define WIDTH  (1920u)
-#define HEIGHT (1080u)
+#define WIDTH  (3840u)
+#define HEIGHT (2160u)
 #define NPIXELS (WIDTH * HEIGHT)
 #define NBYTES  (NPIXELS * 4u)
 #define NIMAGES (100u)
@@ -59,6 +59,7 @@ class DCThread : public QThread
 {
     void run()
     {
+        QElapsedTimer timer;
         uint8_t* pixels = new uint8_t[ NBYTES ];
         ::memset( pixels, 0, NBYTES );
         dc::ImageWrapper image( pixels, WIDTH, HEIGHT, dc::RGBA );
@@ -66,18 +67,46 @@ class DCThread : public QThread
         dc::Stream stream( "test", "localhost" );
         BOOST_CHECK( stream.isConnected( ));
 
-        QElapsedTimer timer;
+        image.compressionPolicy = dc::COMPRESSION_OFF;
         timer.start();
-
         for( size_t i = 0; i < NIMAGES; ++i )
         {
             BOOST_CHECK( stream.send( image ));
             BOOST_CHECK( stream.finishFrame( ));
         }
+        float time = timer.elapsed() / 1000.f;
+        std::cout << "raw " << NPIXELS / float(1024*1024) / time
+                  << " megapixel/s (" << NIMAGES / time << " FPS)" << std::endl;
 
-        const float time = timer.elapsed() / 1000.f;
-        std::cout << NPIXELS / float(1024*1024) / time << " megapixel/s ("
-                  << NIMAGES / time << " FPS)" << std::endl;
+
+        image.compressionPolicy = dc::COMPRESSION_ON;
+        timer.restart();
+        for( size_t i = 0; i < NIMAGES; ++i )
+        {
+            BOOST_CHECK( stream.send( image ));
+            BOOST_CHECK( stream.finishFrame( ));
+        }
+        time = timer.elapsed() / 1000.f;
+        std::cout << "blk " << NPIXELS / float(1024*1024) / time
+                  << " megapixel/s (" << NIMAGES / time << " FPS)"
+                  << std::endl;
+
+        for( size_t i = 0; i < NBYTES; ++i )
+            pixels[i] = uint8_t( qrand( ));
+        timer.restart();
+        for( size_t i = 0; i < NIMAGES; ++i )
+        {
+            BOOST_CHECK( stream.send( image ));
+            BOOST_CHECK( stream.finishFrame( ));
+        }
+        time = timer.elapsed() / 1000.f;
+        std::cout << "rnd " << NPIXELS / float(1024*1024) / time
+                  << " megapixel/s (" << NIMAGES / time << " FPS)"
+                  << std::endl;
+
+        std::cout << "raw: uncompressed, "
+                  << "blk: Compressed blank images, "
+                  << "rnd: Compressed random image content" << std::endl;
 
         delete [] pixels;
         QApplication::instance()->exit();
