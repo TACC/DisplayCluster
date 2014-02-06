@@ -52,7 +52,7 @@ class WebServiceServer : public QThread
     Q_OBJECT
 public:
     /** Constructor */
-    explicit WebServiceServer(const unsigned int port, QObject *parent = 0);
+    WebServiceServer(const unsigned int port, QObject *parent = 0);
 
     /** Destructor */
     ~WebServiceServer();

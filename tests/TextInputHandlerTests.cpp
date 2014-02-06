@@ -72,7 +72,8 @@ private:
 
 BOOST_AUTO_TEST_CASE( testWhenRequestHasCharThenTextInputDispatcherReceivesIt )
 {
-    TextInputHandler handler(new MockDisplayGroupManagerAdapter(true));
+    DisplayGroupManagerAdapterPtr adapter(new MockDisplayGroupManagerAdapter(true));
+    TextInputHandler handler(adapter);
 
     MockTextInputDispatcher mockDispatcher;
     mockDispatcher.connect(&handler, SIGNAL(receivedKeyInput(char)),
@@ -93,7 +94,8 @@ BOOST_AUTO_TEST_CASE( testWhenRequestHasCharThenTextInputDispatcherReceivesIt )
 
 BOOST_AUTO_TEST_CASE( testWhenRequestIsTooLongThenReturnCodeIs400 )
 {
-    TextInputHandler handler(new MockDisplayGroupManagerAdapter(true));
+    DisplayGroupManagerAdapterPtr adapter(new MockDisplayGroupManagerAdapter(true));
+    TextInputHandler handler(adapter);
 
     dcWebservice::RequestPtr request(new dcWebservice::Request());
     dcWebservice::ConstResponsePtr response;
@@ -106,7 +108,8 @@ BOOST_AUTO_TEST_CASE( testWhenRequestIsTooLongThenReturnCodeIs400 )
 
 BOOST_AUTO_TEST_CASE( testWhenRequestEmptyInvalidThenReturnCodeIs400 )
 {
-    TextInputHandler handler(new MockDisplayGroupManagerAdapter(true));
+    DisplayGroupManagerAdapterPtr adapter(new MockDisplayGroupManagerAdapter(true));
+    TextInputHandler handler(adapter);
 
     dcWebservice::RequestPtr request(new dcWebservice::Request());
     dcWebservice::ConstResponsePtr response;
@@ -119,7 +122,8 @@ BOOST_AUTO_TEST_CASE( testWhenRequestEmptyInvalidThenReturnCodeIs400 )
 
 BOOST_AUTO_TEST_CASE( testWhenDisplayGroupHasNoWindowsThenReturnCodeIs404 )
 {
-    TextInputHandler handler(new MockDisplayGroupManagerAdapter(false));
+    DisplayGroupManagerAdapterPtr adapter(new MockDisplayGroupManagerAdapter(false));
+    TextInputHandler handler(adapter);
 
     dcWebservice::RequestPtr request(new dcWebservice::Request());
 

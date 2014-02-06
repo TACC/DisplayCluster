@@ -194,8 +194,8 @@ int main(int argc, char * argv[])
                 static_cast<MasterConfiguration*>(g_configuration)->getWebServicePort();
         webServiceServer = new WebServiceServer(webServicePort);
 
-        TextInputHandler* textInputHandler = new TextInputHandler(
-                new DisplayGroupManagerAdapter(g_displayGroupManager));
+        DisplayGroupManagerAdapterPtr adapter(new DisplayGroupManagerAdapter(g_displayGroupManager));
+        TextInputHandler* textInputHandler = new TextInputHandler(adapter);
         webServiceServer->addHandler("/dcapi/textinput", dcWebservice::HandlerPtr(textInputHandler));
 
         textInputHandler->moveToThread(webServiceServer);

@@ -44,7 +44,7 @@
 
 #include "dcWebservice/Handler.h"
 
-class DisplayGroupManagerAdapter;
+#include "types.h"
 
 /**
  * Handle "/textinput" requests for the WebService.
@@ -63,7 +63,7 @@ public:
      * @param displayGroupManagerAdapter An adapter over the displayGroupManager,
      * used for unit testing. If provided, the class takes ownership of it.
      */
-    TextInputHandler(DisplayGroupManagerAdapter* displayGroupManagerAdapter);
+    TextInputHandler(DisplayGroupManagerAdapterPtr displayGroupManagerAdapter);
 
     /** Destructor */
     virtual ~TextInputHandler();
@@ -83,7 +83,7 @@ signals:
     void receivedKeyInput(char key) const;
 
 private:
-    DisplayGroupManagerAdapter* displayGroupManagerAdapter_;
+    DisplayGroupManagerAdapterPtr displayGroupManagerAdapter_;
 };
 
 #endif // TEXTINPUTHANDLER_H

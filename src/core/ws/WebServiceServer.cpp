@@ -57,11 +57,11 @@ WebServiceServer::~WebServiceServer()
 
 bool WebServiceServer::addHandler(const std::string& pattern, dcWebservice::HandlerPtr handler)
 {
-    const bool success = server_->addHandler(pattern, handler);
-    if (!success)
-        put_flog(LOG_WARN, "Invalid regex: '%s', handler could not be added", pattern.c_str());
+    if (server_->addHandler(pattern, handler))
+        return true;
 
-    return success;
+    put_flog(LOG_WARN, "Invalid regex: '%s', handler could not be added", pattern.c_str());
+    return false;
 }
 
 void WebServiceServer::run()

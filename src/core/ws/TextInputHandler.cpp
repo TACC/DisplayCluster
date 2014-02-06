@@ -43,16 +43,15 @@
 #include "dcWebservice/Response.h"
 #include "dcWebservice/Request.h"
 
-#include <QString>
+#include <sstream>
 
-TextInputHandler::TextInputHandler(DisplayGroupManagerAdapter* displayGroupManagerAdapter)
+TextInputHandler::TextInputHandler(DisplayGroupManagerAdapterPtr displayGroupManagerAdapter)
     : displayGroupManagerAdapter_(displayGroupManagerAdapter)
 {
 }
 
 TextInputHandler::~TextInputHandler()
 {
-    delete displayGroupManagerAdapter_;
 }
 
 dcWebservice::ConstResponsePtr TextInputHandler::handle(const dcWebservice::Request& request) const
@@ -63,9 +62,10 @@ dcWebservice::ConstResponsePtr TextInputHandler::handle(const dcWebservice::Requ
     {
         response->statusCode = 400;
         response->statusMsg = "Bad Request";
-        QString body = QString("{\"code\":\"400\", \"msg\":\"Bad Request. "\
-                               "Expected one character, received %1\"}").arg(request.data.size());
-        response->body = body.toStdString();
+        std::ostringstream body;
+        body << "{\"code\":\"400\", \"msg\":\"Bad Request. Expected one character, ";
+        body << "received " << request.data.size() << " \"}";
+        response->body = body.str();
     }
     else if (displayGroupManagerAdapter_->hasWindows())
     {

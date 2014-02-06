@@ -75,8 +75,8 @@ void MasterConfiguration::loadMasterSettings()
     {
         if (queryResult.isEmpty())
             dcWebServicePort_ = DEFAULT_WEBSERVICE_PORT;
-    else
-        dcWebServicePort_ = queryResult.toInt();
+        else
+            dcWebServicePort_ = queryResult.toInt();
     }
 }
 

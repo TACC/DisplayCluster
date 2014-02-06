@@ -56,9 +56,9 @@ public:
     /**
      * Constructor.
      * @param displayGroupManager The DisplayGroup which holds the target ContentWindowManager.
-     * @param parent An optional parent QObjet
+     * @param parent An optional parent QObject
      */
-    explicit TextInputDispatcher(DisplayGroupManagerPtr displayGroupManager, QObject *parent = 0);
+    TextInputDispatcher(DisplayGroupManagerPtr displayGroupManager, QObject *parent = 0);
 
 public slots:
     /**
