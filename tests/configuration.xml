@@ -1,6 +1,7 @@
 <configuration>
     <dimensions mullionHeight="12" fullscreen="1" numTilesWidth="2" screenHeight="1080" mullionWidth="14" screenWidth="3840" numTilesHeight="3"/>
     <dock directory="/nfs4/bbp.epfl.ch/visualization/DisplayWall/media"/>
+    <webservice port="10000" />
     <process display=":0.2" host="bbplxviz03i">
         <screen x="0" y="0" i="0" j="0"/>
     </process>

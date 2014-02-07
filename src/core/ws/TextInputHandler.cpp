@@ -1,5 +1,5 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
 /*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
@@ -37,42 +37,51 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MASTERCONFIGURATION_H
-#define MASTERCONFIGURATION_H
+#include "TextInputHandler.h"
 
-#include "Configuration.h"
-/**
- * @brief The MasterConfiguration class manages all the parameters needed
- * to setup the Master process.
- */
-class MasterConfiguration : public Configuration
+#include "ws/DisplayGroupManagerAdapter.h"
+#include "dcWebservice/Response.h"
+#include "dcWebservice/Request.h"
+
+#include <sstream>
+
+TextInputHandler::TextInputHandler(DisplayGroupManagerAdapterPtr displayGroupManagerAdapter)
+    : displayGroupManagerAdapter_(displayGroupManagerAdapter)
 {
-public:
-    /**
-     * @brief MasterConfiguration constructor
-     * @param filename \see Configuration
-     * @param options \see Configuration
-     */
-    MasterConfiguration(const QString& filename, OptionsPtr options);
+}
 
-    /**
-     * @brief getDockStartDir Get the Dock startup directory
-     * @return directory path
-     */
-    const QString& getDockStartDir() const;
+TextInputHandler::~TextInputHandler()
+{
+}
 
-    /**
-     * @brief getWebServicePort Get the port where the WebService server
-     * will be listening for incoming requests.
-     * @return port for WebService server
-     */
-    const int getWebServicePort() const;
+dcWebservice::ConstResponsePtr TextInputHandler::handle(const dcWebservice::Request& request) const
+{
+    dcWebservice::ResponsePtr response(new dcWebservice::Response());
 
-private:
-    void loadMasterSettings();
+    if(request.data.size() != 1)
+    {
+        response->statusCode = 400;
+        response->statusMsg = "Bad Request";
+        std::ostringstream body;
+        body << "{\"code\":\"400\", \"msg\":\"Bad Request. Expected one character, ";
+        body << "received " << request.data.size() << " \"}";
+        response->body = body.str();
+    }
+    else if (displayGroupManagerAdapter_->hasWindows())
+    {
+        const char key = request.data.c_str()[0];
+        emit receivedKeyInput(key);
 
-    QString dockStartDir_;
-    int dcWebServicePort_;
-};
+        response->statusCode = 200;
+        response->statusMsg = "OK";
+        response->body = "{\"code\":\"200\", \"msg\":\"OK, char added\"}";
+    }
+    else
+    {
+        response->statusCode = 404;
+        response->statusMsg = "Not Found";
+        response->body = "{\"code\":\"404\", \"msg\":\"No Window Found\"}";
+    }
 
-#endif // MASTERCONFIGURATION_H
+    return response;
+}

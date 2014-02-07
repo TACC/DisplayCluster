@@ -46,6 +46,7 @@
 class Content;
 class ContentWindowManager;
 class DisplayGroupManager;
+class DisplayGroupManagerAdapter;
 class Options;
 class Marker;
 class GLWindow;
@@ -53,6 +54,7 @@ class GLWindow;
 typedef boost::shared_ptr< Content > ContentPtr;
 typedef boost::shared_ptr< ContentWindowManager > ContentWindowManagerPtr;
 typedef boost::shared_ptr< DisplayGroupManager > DisplayGroupManagerPtr;
+typedef boost::shared_ptr< DisplayGroupManagerAdapter > DisplayGroupManagerAdapterPtr;
 typedef boost::shared_ptr< Options > OptionsPtr;
 typedef boost::shared_ptr<Marker> MarkerPtr;
 typedef boost::shared_ptr<GLWindow> GLWindowPtr;

@@ -4,7 +4,7 @@ include_directories(${CMAKE_BINARY_DIR}) ### for config.h ###
 
 # DisplayCluster Main Application
 add_executable(displaycluster main.cpp)
-target_link_libraries(displaycluster DisplayClusterCore)
+target_link_libraries(displaycluster DisplayClusterCore fcgiws)
 
 # install executable
 install(TARGETS displaycluster RUNTIME DESTINATION bin COMPONENT main)

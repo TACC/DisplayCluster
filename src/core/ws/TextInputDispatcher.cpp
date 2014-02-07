@@ -1,5 +1,5 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
 /*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
@@ -37,42 +37,37 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MASTERCONFIGURATION_H
-#define MASTERCONFIGURATION_H
+#include "TextInputDispatcher.h"
 
-#include "Configuration.h"
-/**
- * @brief The MasterConfiguration class manages all the parameters needed
- * to setup the Master process.
- */
-class MasterConfiguration : public Configuration
+#include "DisplayGroupManager.h"
+#include "ContentWindowManager.h"
+
+#include "Event.h"
+using dc::Event;
+
+TextInputDispatcher::TextInputDispatcher(DisplayGroupManagerPtr displayGroupManager,
+                                         QObject *parent)
+    : QObject(parent)
+    , displayGroupManager_(displayGroupManager)
 {
-public:
-    /**
-     * @brief MasterConfiguration constructor
-     * @param filename \see Configuration
-     * @param options \see Configuration
-     */
-    MasterConfiguration(const QString& filename, OptionsPtr options);
+}
 
-    /**
-     * @brief getDockStartDir Get the Dock startup directory
-     * @return directory path
-     */
-    const QString& getDockStartDir() const;
+void TextInputDispatcher::sendKeyEventToActiveWindow(const char key) const
+{
+    ContentWindowManagerPtr window = displayGroupManager_->getActiveWindow();
+    if (!window)
+        return;
 
-    /**
-     * @brief getWebServicePort Get the port where the WebService server
-     * will be listening for incoming requests.
-     * @return port for WebService server
-     */
-    const int getWebServicePort() const;
+    Event event;
+    event.key = keyMapper_.getQtKeyCode(key);
 
-private:
-    void loadMasterSettings();
+    std::string text;
+    text.push_back(key);
+    strncpy(event.text, text.c_str(), sizeof(event.text));
 
-    QString dockStartDir_;
-    int dcWebServicePort_;
-};
+    event.type = Event::EVT_KEY_PRESS;
+    window->setEvent(event);
 
-#endif // MASTERCONFIGURATION_H
+    event.type = Event::EVT_KEY_RELEASE;
+    window->setEvent(event);
+}

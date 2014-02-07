@@ -1,6 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
+/*                     Julio Delgado <julio.delgadomangas@epfl.ch>   */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -37,42 +37,72 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MASTERCONFIGURATION_H
-#define MASTERCONFIGURATION_H
+#ifndef MAPPER_H
+#define MAPPER_H
 
-#include "Configuration.h"
+#include <utility>
+#include <list>
+
+#include <boost/regex.hpp>
+
+#include "types.h"
+
+namespace dcWebservice
+{
+
+typedef boost::shared_ptr<boost::regex> RegexPtr;
+typedef std::pair<RegexPtr, HandlerPtr> MappingPair;
+
 /**
- * @brief The MasterConfiguration class manages all the parameters needed
- * to setup the Master process.
+ * Maps regular expressions to Request Handlers.
+ *
+ * A mapper keeps a map of regular expressions to Handlers. A Handler can be
+ * retrieved by providing a string that matches one of the regexes
+ * present in the map. The handler returned is the first one for which a regex
+ * match is found, therefore attention must be put in the order in which
+ * Handlers are registered, since some regexes may define a subset of other
+ * regexes.
  */
-class MasterConfiguration : public Configuration
+class Mapper
 {
 public:
     /**
-     * @brief MasterConfiguration constructor
-     * @param filename \see Configuration
-     * @param options \see Configuration
+     * Constructor
      */
-    MasterConfiguration(const QString& filename, OptionsPtr options);
+    Mapper();
 
     /**
-     * @brief getDockStartDir Get the Dock startup directory
-     * @return directory path
+     * Register a handler with a regex defined by the pattern string passed
+     * as parameter. If this method is called several times with the same
+     * string pattern, previous mappings will be overwriten.
+     *
+     * @param pattern A string representing a valid regular expression.
+     * @param handler A request handler.
+     * @returns true if the mapper was added succesfuly, false otherwise.
+     *
      */
-    const QString& getDockStartDir() const;
+    bool addHandler(const std::string& pattern, HandlerPtr handler);
 
     /**
-     * @brief getWebServicePort Get the port where the WebService server
-     * will be listening for incoming requests.
-     * @return port for WebService server
+     * Given a string, it returns the first handler for which positive regex
+     * match is found.
+     *
+     * @param url A string that will be matched agains the different regexes
+     * registered with the mapper.
+     *
+     * @returns The first handler whose regex matches the input string, or a
+     * default handler if not match is found. The default handler always
+     * returns a dcWebservice::Response::NotFound response, when its handle method is
+     * invoked.
      */
-    const int getWebServicePort() const;
+    const Handler& getHandler(const std::string& url) const;
 
 private:
-    void loadMasterSettings();
-
-    QString dockStartDir_;
-    int dcWebServicePort_;
+    std::list<MappingPair> mappings;
+    HandlerPtr _defaultHandler;
 };
 
-#endif // MASTERCONFIGURATION_H
+}
+
+#endif // MAPPER_H
+

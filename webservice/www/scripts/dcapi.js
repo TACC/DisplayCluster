@@ -1,6 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
+/*                     Julio Delgado <julio.delgadomangas@epfl.ch>   */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -37,42 +37,28 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MASTERCONFIGURATION_H
-#define MASTERCONFIGURATION_H
+var DEFAULT_MESSAGE = "Press A Key";
+var TEXT_API = "/dcapi/textinput";
 
-#include "Configuration.h"
-/**
- * @brief The MasterConfiguration class manages all the parameters needed
- * to setup the Master process.
- */
-class MasterConfiguration : public Configuration
-{
-public:
-    /**
-     * @brief MasterConfiguration constructor
-     * @param filename \see Configuration
-     * @param options \see Configuration
-     */
-    MasterConfiguration(const QString& filename, OptionsPtr options);
+var KEY_TAB = 9
+var KEY_ENTER = 13 
+var KEY_DEL = 8
+// Creates a new timer for the display of the default message
+function startDefaultMessageTimer(component) {
+    return setTimeout(
+        function() {
+                $(component).text(DEFAULT_MESSAGE);
+        }, 1000
+    );
+}
 
-    /**
-     * @brief getDockStartDir Get the Dock startup directory
-     * @return directory path
-     */
-    const QString& getDockStartDir() const;
+// Cancels the execution of the timer
+function endTimer(timer) {
+    window.clearTimeout(timer);
+}
 
-    /**
-     * @brief getWebServicePort Get the port where the WebService server
-     * will be listening for incoming requests.
-     * @return port for WebService server
-     */
-    const int getWebServicePort() const;
 
-private:
-    void loadMasterSettings();
-
-    QString dockStartDir_;
-    int dcWebServicePort_;
-};
-
-#endif // MASTERCONFIGURATION_H
+// Sends character to server
+function sendCharacter(character) {
+    $.post(TEXT_API, data=character);
+}

@@ -1,6 +1,7 @@
+<!--
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
+/*                     Julio Delgado <julio.delgadomangas@epfl.ch>   */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,43 +37,59 @@
 /* interpreted as representing official policies, either expressed   */
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
+-->
+<!-- Web page used to send keystrokes to application server -->
+<html>
+<head>
+<title>Display Wall Text Capture [Mobile Version]</title>
+<meta name="viewport" content="width = 320" />
+<script src="../scripts/jquery-2.1.0.min.js" type="text/javascript"></script>
+<script src="../scripts/dcapi.js" type="text/javascript"></script>
+<script type="text/javascript">
 
-#ifndef MASTERCONFIGURATION_H
-#define MASTERCONFIGURATION_H
+$(document).ready(
+function(){
+    // Send tab character
+    $("#next").click(
+    function() {
+        sendCharacter(String.fromCharCode(KEY_TAB));
+        $("#text").focus();
+    }
+    );
 
-#include "Configuration.h"
-/**
- * @brief The MasterConfiguration class manages all the parameters needed
- * to setup the Master process.
- */
-class MasterConfiguration : public Configuration
-{
-public:
-    /**
-     * @brief MasterConfiguration constructor
-     * @param filename \see Configuration
-     * @param options \see Configuration
-     */
-    MasterConfiguration(const QString& filename, OptionsPtr options);
+    // Send the text in the textarea
+    $("#send").click(
+    function() {
 
-    /**
-     * @brief getDockStartDir Get the Dock startup directory
-     * @return directory path
-     */
-    const QString& getDockStartDir() const;
+        var text = $("#text").val();
+          for (var i = 0 ; i < text.length ; ++i)
+            sendCharacter(text.charAt(i));
+        $("#text").val("");
+        $("#text").focus();
+    }
+    );
 
-    /**
-     * @brief getWebServicePort Get the port where the WebService server
-     * will be listening for incoming requests.
-     * @return port for WebService server
-     */
-    const int getWebServicePort() const;
+    // Send a "delete character"
+    $("#delete").click(
+    function() {
 
-private:
-    void loadMasterSettings();
+        var text = $("#text").val();
+          sendCharacter(String.fromCharCode(KEY_DEL));
+        $("#text").val("");
+        $("#text").focus();
+    }
+    );
+}
+);
 
-    QString dockStartDir_;
-    int dcWebServicePort_;
-};
-
-#endif // MASTERCONFIGURATION_H
+</script>
+</head>
+<body>
+<b>Introduce text</b><p>
+<textarea id="text" rows="4" cols="30x" placeholder="Press A Key"></textarea>
+<br/>
+<input type="submit" value="Next" id="next">
+<input type="submit" value="Send" id="send">
+<input type="submit" value="del" id="delete">
+</body>
+</html>

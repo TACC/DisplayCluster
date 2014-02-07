@@ -1,6 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
+/*                     Julio Delgado <julio.delgadomangas@epfl.ch>   */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -37,42 +37,82 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MASTERCONFIGURATION_H
-#define MASTERCONFIGURATION_H
 
-#include "Configuration.h"
-/**
- * @brief The MasterConfiguration class manages all the parameters needed
- * to setup the Master process.
- */
-class MasterConfiguration : public Configuration
+#define BOOST_TEST_MODULE RequestBuilderTests
+#include <boost/test/unit_test.hpp>
+#include "dcWebservice/RequestBuilder.h"
+#include "dcWebservice/Request.h"
+
+namespace ut = boost::unit_test;
+
+char ** populateEnv(const std::string& queryString="")
 {
-public:
-    /**
-     * @brief MasterConfiguration constructor
-     * @param filename \see Configuration
-     * @param options \see Configuration
-     */
-    MasterConfiguration(const QString& filename, OptionsPtr options);
+    char ** envp = new char*[8];
+    int i = 0;
+    envp[i++] = const_cast<char *>("REQUEST_METHOD=GET");
+    envp[i++] = const_cast<char *>("REQUEST_URI=/media/index.htm");
+    envp[i++] = const_cast<char *>("DOCUMENT_URI=/media/index.htm");
 
-    /**
-     * @brief getDockStartDir Get the Dock startup directory
-     * @return directory path
-     */
-    const QString& getDockStartDir() const;
+    std::string qs = "QUERY_STRING=" + queryString;
+    envp[i] = new char[qs.length() + 1];
+    strcpy(envp[i++], qs.c_str());
 
-    /**
-     * @brief getWebServicePort Get the port where the WebService server
-     * will be listening for incoming requests.
-     * @return port for WebService server
-     */
-    const int getWebServicePort() const;
+    envp[i++] = const_cast<char *>("CONTENT_LENGTH=");
+    envp[i++]= const_cast<char *>("HTTP_ACCEPT=text/html");
+    envp[i++] = 0;
+    return envp;
+}
 
-private:
-    void loadMasterSettings();
+void freeMemory(char** envp) {
+    delete [] envp[3];
+    delete [] envp;
+}
 
-    QString dockStartDir_;
-    int dcWebServicePort_;
-};
 
-#endif // MASTERCONFIGURATION_H
+void checkEmptyQueryString(const std::string& qs)
+{
+    char ** envp = populateEnv(qs);
+    FCGX_Init();
+    FCGX_Request fcgiRequest;
+
+    fcgiRequest.envp = envp;
+    dcWebservice::RequestBuilder builder;
+    dcWebservice::RequestPtr request = builder.buildRequest(fcgiRequest);
+    BOOST_CHECK_EQUAL(request->queryString, qs);
+    BOOST_CHECK_EQUAL(0, request->parameters.size());
+    freeMemory(envp);
+}
+
+
+BOOST_AUTO_TEST_CASE( testRequestWithoutData )
+{
+    std::string qs = "key1=val1&key2=val2&key3&key4=";
+    char ** envp = populateEnv(qs);
+    FCGX_Request fcgiRequest;
+    fcgiRequest.envp = envp;
+
+    dcWebservice::RequestBuilder builder;
+    dcWebservice::RequestPtr request = builder.buildRequest(fcgiRequest);
+
+    BOOST_CHECK_EQUAL(request->method, "GET");
+    BOOST_CHECK_EQUAL(request->url, "/media/index.htm");
+    BOOST_CHECK_EQUAL(request->resource, "/media/index.htm");
+    BOOST_CHECK_EQUAL(request->queryString, qs);
+    BOOST_CHECK_EQUAL(request->httpHeaders["HTTP_ACCEPT"], "text/html");
+    BOOST_CHECK_EQUAL(4, request->parameters.size());
+    BOOST_CHECK_EQUAL(request->parameters["key1"], "val1");
+    BOOST_CHECK_EQUAL(request->parameters["key2"], "val2");
+    BOOST_CHECK_EQUAL(request->parameters["key3"], "");
+    BOOST_CHECK_EQUAL(request->parameters["key4"], "");
+    freeMemory(envp);
+}
+
+BOOST_AUTO_TEST_CASE( testRequestEmptyQueryString )
+{
+    checkEmptyQueryString("");
+    checkEmptyQueryString("&");
+    checkEmptyQueryString("&&&");
+    checkEmptyQueryString("=");
+    checkEmptyQueryString("=&=");
+    checkEmptyQueryString("=a&=b&&");
+}

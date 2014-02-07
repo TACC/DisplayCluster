@@ -1,5 +1,5 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
 /*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
@@ -37,42 +37,52 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MASTERCONFIGURATION_H
-#define MASTERCONFIGURATION_H
+#ifndef WEBSERVICESERVER_H
+#define WEBSERVICESERVER_H
 
-#include "Configuration.h"
+#include <QThread>
+
+#include "dcWebservice/types.h"
+
 /**
- * @brief The MasterConfiguration class manages all the parameters needed
- * to setup the Master process.
+ * A Qt wrapper to run the dcWebservice::Server in a QThread.
  */
-class MasterConfiguration : public Configuration
+class WebServiceServer : public QThread
 {
+    Q_OBJECT
 public:
-    /**
-     * @brief MasterConfiguration constructor
-     * @param filename \see Configuration
-     * @param options \see Configuration
-     */
-    MasterConfiguration(const QString& filename, OptionsPtr options);
+    /** Constructor */
+    WebServiceServer(const unsigned int port, QObject *parent = 0);
+
+    /** Destructor */
+    ~WebServiceServer();
 
     /**
-     * @brief getDockStartDir Get the Dock startup directory
-     * @return directory path
+     * Registers a request handler with a particular regular expression.
+     *
+     * When the URL of an incoming request matches the regular expression
+     * the handler is invoked.
+     *
+     * @param pattern A regular expression.
+     * @param handler A request handler. If the handler is a QObject, it should be moved
+     *        to this thread before making any signal/slot connections.
+     * @return true if the handler was registered succesfully, false otherwise,
+     *         for instance if the regular expression is not valid.
      */
-    const QString& getDockStartDir() const;
+    bool addHandler(const std::string& pattern, dcWebservice::HandlerPtr handler);
 
     /**
-     * @brief getWebServicePort Get the port where the WebService server
-     * will be listening for incoming requests.
-     * @return port for WebService server
+     * Stop the server. This method is thread-safe.
      */
-    const int getWebServicePort() const;
+    bool stop();
+
+protected:
+    /** @overload Start the server. */
+    virtual void run();
 
 private:
-    void loadMasterSettings();
-
-    QString dockStartDir_;
-    int dcWebServicePort_;
+    dcWebservice::Server* server_;
+    unsigned int port_;
 };
 
-#endif // MASTERCONFIGURATION_H
+#endif // WEBSERVICESERVER_H

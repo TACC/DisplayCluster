@@ -13,6 +13,9 @@ list(APPEND CORE_LIBRARY_LIBS ${Boost_LIBRARIES})
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
+# FastCGI WebService
+list(APPEND CORE_LIBRARY_LIBS fcgiws)
+
 # handle build options
 if(ENABLE_TUIO_TOUCH_LISTENER)
   list(APPEND CORE_LIBRARY_LIBS ${TUIO_LIBRARIES})
@@ -168,6 +171,11 @@ list(APPEND SRCS
     thumbnail/StateThumbnailGenerator.cpp
     thumbnail/ThumbnailGenerator.cpp
     thumbnail/ThumbnailGeneratorFactory.cpp
+    ws/AsciiToQtKeyCodeMapper.cpp
+    ws/DisplayGroupManagerAdapter.cpp
+    ws/TextInputDispatcher.cpp
+    ws/TextInputHandler.cpp
+    ws/WebServiceServer.cpp
 )
 
 list(APPEND MOC_HEADERS
@@ -195,6 +203,9 @@ list(APPEND MOC_HEADERS
     localstreamer/Pictureflow.h
     localstreamer/WebkitAuthenticationHelper.h
     localstreamer/WebkitPixelStreamer.h
+    ws/TextInputDispatcher.h
+    ws/TextInputHandler.h
+    ws/WebServiceServer.h
 )
 
 # Qt resource file

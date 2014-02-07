@@ -1,5 +1,5 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
 /*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
 /* All rights reserved.                                              */
 /*                                                                   */
@@ -37,42 +37,28 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MASTERCONFIGURATION_H
-#define MASTERCONFIGURATION_H
+#include "AsciiToQtKeyCodeMapper.h"
 
-#include "Configuration.h"
-/**
- * @brief The MasterConfiguration class manages all the parameters needed
- * to setup the Master process.
- */
-class MasterConfiguration : public Configuration
+#include <qnamespace.h>
+
+AsciiToQtKeyCodeMapper::AsciiToQtKeyCodeMapper()
 {
-public:
-    /**
-     * @brief MasterConfiguration constructor
-     * @param filename \see Configuration
-     * @param options \see Configuration
-     */
-    MasterConfiguration(const QString& filename, OptionsPtr options);
+    initMapping();
+}
 
-    /**
-     * @brief getDockStartDir Get the Dock startup directory
-     * @return directory path
-     */
-    const QString& getDockStartDir() const;
+void AsciiToQtKeyCodeMapper::initMapping()
+{
+    asciiToQtMapping_[8] = Qt::Key_Backspace;
+    asciiToQtMapping_[9] = Qt::Key_Tab;
+    asciiToQtMapping_[10] = Qt::Key_Return;
+    asciiToQtMapping_[13] = Qt::Key_Enter;
+    asciiToQtMapping_[27] = Qt::Key_Escape;
+}
 
-    /**
-     * @brief getWebServicePort Get the port where the WebService server
-     * will be listening for incoming requests.
-     * @return port for WebService server
-     */
-    const int getWebServicePort() const;
+int AsciiToQtKeyCodeMapper::getQtKeyCode(const char asciiKey) const
+{
+    if(asciiToQtMapping_.count(asciiKey))
+        return asciiToQtMapping_.at(asciiKey);
 
-private:
-    void loadMasterSettings();
-
-    QString dockStartDir_;
-    int dcWebServicePort_;
-};
-
-#endif // MASTERCONFIGURATION_H
+    return asciiKey;
+}

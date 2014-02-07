@@ -1,6 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
+/*                     Julio Delgado <julio.delgadomangas@epfl.ch>   */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -37,42 +37,68 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MASTERCONFIGURATION_H
-#define MASTERCONFIGURATION_H
+#include "Server.h"
 
-#include "Configuration.h"
-/**
- * @brief The MasterConfiguration class manages all the parameters needed
- * to setup the Master process.
- */
-class MasterConfiguration : public Configuration
+#include "Response.h"
+#include "Request.h"
+
+#include <sys/socket.h>
+#include <netdb.h>
+#include <cstdio>
+
+namespace dcWebservice
 {
-public:
-    /**
-     * @brief MasterConfiguration constructor
-     * @param filename \see Configuration
-     * @param options \see Configuration
-     */
-    MasterConfiguration(const QString& filename, OptionsPtr options);
 
-    /**
-     * @brief getDockStartDir Get the Dock startup directory
-     * @return directory path
-     */
-    const QString& getDockStartDir() const;
+Server::Server() : _requestBuilder(new RequestBuilder()),
+    _fcgi(new FastCGIWrapper())
+{}
 
-    /**
-     * @brief getWebServicePort Get the port where the WebService server
-     * will be listening for incoming requests.
-     * @return port for WebService server
-     */
-    const int getWebServicePort() const;
+bool Server::addHandler(const std::string& pattern, HandlerPtr handler)
+{
+    return _mapper.addHandler(pattern, handler);
+}
 
-private:
-    void loadMasterSettings();
+bool Server::run(const unsigned int port)
+{
+    if(!_fcgi->init(port))
+        return false;
 
-    QString dockStartDir_;
-    int dcWebServicePort_;
-};
+    while(_fcgi->accept())
+    {
+        _processRequest();
+    }
+    return true;
+}
 
-#endif // MASTERCONFIGURATION_H
+void Server::_sendResponse(const Response& response)
+{
+    _fcgi->write(response.serialize());
+}
+
+void Server::_processRequest()
+{
+    RequestPtr request = _requestBuilder->buildRequest(*_fcgi->getRequest());
+    if(!request)
+    {
+        _sendResponse(*Response::ServerError());
+        return;
+    }
+
+    const Handler& handler = _mapper.getHandler(request->resource);
+
+    ConstResponsePtr response = handler.handle(*request);
+    if(!response)
+    {
+        _sendResponse(*Response::ServerError());
+        return;
+    }
+
+    _sendResponse(*response);
+}
+
+bool Server::stop()
+{
+    return _fcgi->stop();
+}
+
+}

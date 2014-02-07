@@ -1,6 +1,6 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
+/*                     Julio Delgado <julio.delgadomangas@epfl.ch>   */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -37,42 +37,42 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MASTERCONFIGURATION_H
-#define MASTERCONFIGURATION_H
+#include "Mapper.h"
+#include "Handler.h"
+#include "DefaultHandler.h"
 
-#include "Configuration.h"
-/**
- * @brief The MasterConfiguration class manages all the parameters needed
- * to setup the Master process.
- */
-class MasterConfiguration : public Configuration
+#include <boost/regex/pattern_except.hpp>
+
+namespace dcWebservice
 {
-public:
-    /**
-     * @brief MasterConfiguration constructor
-     * @param filename \see Configuration
-     * @param options \see Configuration
-     */
-    MasterConfiguration(const QString& filename, OptionsPtr options);
 
-    /**
-     * @brief getDockStartDir Get the Dock startup directory
-     * @return directory path
-     */
-    const QString& getDockStartDir() const;
+Mapper::Mapper()
+    : _defaultHandler(new DefaultHandler())
+{}
 
-    /**
-     * @brief getWebServicePort Get the port where the WebService server
-     * will be listening for incoming requests.
-     * @return port for WebService server
-     */
-    const int getWebServicePort() const;
+bool Mapper::addHandler(const std::string& pattern, HandlerPtr handler)
+{
+    try {
+        MappingPair pair = std::make_pair(new boost::regex(pattern), handler);
+        mappings.push_back(pair);
+        return true;
+    } catch (boost::regex_error err) {
+        return false;
+    }
+}
 
-private:
-    void loadMasterSettings();
+const Handler& Mapper::getHandler(const std::string& url) const
+{
+    for(std::list<MappingPair>::const_iterator it = mappings.begin() ;
+        it != mappings.end() ; ++it)
+    {
+        boost::cmatch matchResults;
+        const boost::regex& re = *it->first;
+        if(boost::regex_match(url.c_str(), matchResults, re))
+            return *it->second;
+    }
 
-    QString dockStartDir_;
-    int dcWebServicePort_;
-};
+    return *_defaultHandler;
+}
 
-#endif // MASTERCONFIGURATION_H
+}
