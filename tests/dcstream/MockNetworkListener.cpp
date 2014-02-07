@@ -50,17 +50,14 @@ MockNetworkListener::MockNetworkListener(const unsigned short port, const int32_
 
 MockNetworkListener::~MockNetworkListener()
 {
-    emit finished();
 }
 
 void MockNetworkListener::incomingConnection(int socketDescriptor)
 {
-    QTcpSocket* tcpSocket = new QTcpSocket();
-    tcpSocket->setSocketDescriptor(socketDescriptor);
+    QTcpSocket tcpSocket;
+    tcpSocket.setSocketDescriptor(socketDescriptor);
 
     // Handshake -> send network protocol version
-    tcpSocket->write((char *)&protocolVersion_, sizeof(int32_t));
-    tcpSocket->flush();
-
-    delete tcpSocket;
+    tcpSocket.write((char *)&protocolVersion_, sizeof(int32_t));
+    tcpSocket.flush();
 }

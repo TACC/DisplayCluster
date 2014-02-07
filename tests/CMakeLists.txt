@@ -2,8 +2,8 @@
 # Copyright (c) 2013, EPFL/Blue Brain Project
 #                     Daniel Nachbaur <daniel.nachbaur@epfl.ch>
 #
-# For each *Tests.cpp file, generate an executable with the same name.
-# Defines a "tests" make target which runs all the executables.
+# Generates executables for the unit tests and defines a "tests" make target
+# which runs all of them.
 
 # Change this number when adding tests to force a CMake run: 3
 
