@@ -82,13 +82,11 @@ add_subdirectory(src)
 add_subdirectory(apps)
 
 # Tests
-if(BUILD_CORE_LIBRARY)
-  add_subdirectory(tests)
-  set(CTEST_CUSTOM_WARNING_EXCEPTION ${CTEST_CUSTOM_WARNING_EXCEPTION}
-    # http://public.kitware.com/Bug/view.php?id=10179
-    "ld: warning: duplicate dylib")
-  include(CTest)
-endif()
+add_subdirectory(tests)
+set(CTEST_CUSTOM_WARNING_EXCEPTION ${CTEST_CUSTOM_WARNING_EXCEPTION}
+  # http://public.kitware.com/Bug/view.php?id=10179
+  "ld: warning: duplicate dylib")
+include(CTest)
 
 # install doc files
 include(DoxygenRule)

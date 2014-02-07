@@ -37,31 +37,28 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "MockNetworkListener.h"
+#ifndef MOCKNETWORKLISTENER_H
+#define MOCKNETWORKLISTENER_H
 
-MockNetworkListener::MockNetworkListener(const unsigned short port)
+#include <QtNetwork/QTcpServer>
+#include <QThread>
+
+#include "NetworkProtocol.h"
+
+class MockNetworkListener : public QTcpServer
 {
-    if ( !listen(QHostAddress::Any, port) )
-        qDebug("MockNetworkListener could not start listening!!");
-}
+    Q_OBJECT
 
-MockNetworkListener::~MockNetworkListener()
-{
-    emit finished();
-}
+public:
+    MockNetworkListener(const unsigned short port,
+                        const int32_t protocolVersion = NETWORK_PROTOCOL_VERSION);
+    virtual ~MockNetworkListener();
+signals:
+    void finished();
+protected:
+    virtual void incomingConnection(int socketDescriptor);
+private:
+    int32_t protocolVersion_;
+};
 
-void MockNetworkListener::incomingConnection(int socketDescriptor)
-{
-    QThread * thread = new QThread();
-    NetworkListenerThread * worker = new NetworkListenerThread(socketDescriptor);
-
-    worker->moveToThread(thread);
-
-    worker->connect(thread, SIGNAL(started()), worker, SLOT(initialize()));
-    worker->connect(worker, SIGNAL(finished()), thread, SLOT(quit()));
-    // Make sure the thread gets deleted
-    worker->connect(thread, SIGNAL(finished()), worker, SLOT(deleteLater()));
-    worker->connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
-
-    thread->start();
-}
+#endif // MOCKNETWORKLISTENER_H

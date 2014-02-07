@@ -37,45 +37,52 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#define BOOST_TEST_MODULE PixelStreamSegmentDecoderTests
+#define BOOST_TEST_MODULE Socket
 #include <boost/test/unit_test.hpp>
 namespace ut = boost::unit_test;
 
-#include "dcstream/ImageWrapper.h"
-#include "dcstream/ImageJpegCompressor.h"
-#include "ImageJpegDecompressor.h"
+#include "MinimalGlobalQtApp.h"
+#include "MockNetworkListener.h"
 
-BOOST_AUTO_TEST_CASE( testImageCompressionAndDecompression )
+#include "dcstream/Socket.h"
+
+BOOST_GLOBAL_FIXTURE( MinimalGlobalQtApp );
+
+BOOST_AUTO_TEST_CASE( testSocketConnectionValidWhenReturnedCorrectNetworkProtocolVersion )
 {
-    // Vector of RGBA data
-    std::vector<char> data;
-    data.reserve(8*8*4);
-    for (size_t i = 0; i<8*8; ++i)
-    {
-        data.push_back(192); // R
-        data.push_back(128); // G
-        data.push_back(64);  // B
-        data.push_back(255); // A
-    }
-    dc::ImageWrapper imageWrapper(data.data(), 8, 8, dc::RGBA);
+    QThread* thread = new QThread();
+    MockNetworkListener server(dc::Socket::defaultPortNumber_);
+    server.moveToThread(thread);
+    server.connect(&server, SIGNAL(finished()), thread, SLOT(deleteLater()));
+    thread->start();
 
-    // Compress image
-    dc::ImageJpegCompressor compressor;
-    QByteArray jpegData = compressor.computeJpeg(imageWrapper, QRect(0,0,8,8));
+    dc::Socket socket( "localhost", dc::Socket::defaultPortNumber_);
 
-    BOOST_REQUIRE( jpegData.size() > 0 );
-    BOOST_REQUIRE( jpegData.size() != (int)data.size() );
-
-    // Decompress image
-    ImageJpegDecompressor decompressor;
-    QByteArray decodedData = decompressor.decompress(jpegData);
-
-    // Check decoded image in format RGBA
-    BOOST_REQUIRE( !decodedData.isEmpty() );
-    BOOST_REQUIRE_EQUAL( decodedData.size(), data.size() );
-
-    const char* dataOut = decodedData.constData();
-    BOOST_CHECK_EQUAL_COLLECTIONS( data.data(), data.data()+data.size(),
-                                   dataOut, dataOut+data.size() );
+    BOOST_CHECK( socket.isConnected() );
 }
 
+BOOST_AUTO_TEST_CASE( testSocketConnectionInvalidWhenReturnedLowerNetworkProtocolVersion )
+{
+    QThread* thread = new QThread();
+    MockNetworkListener server(dc::Socket::defaultPortNumber_, NETWORK_PROTOCOL_VERSION-1);
+    server.moveToThread(thread);
+    server.connect(&server, SIGNAL(finished()), thread, SLOT(deleteLater()));
+    thread->start();
+
+    dc::Socket socket( "localhost", dc::Socket::defaultPortNumber_);
+
+    BOOST_CHECK( !socket.isConnected() );
+}
+
+BOOST_AUTO_TEST_CASE( testSocketConnectionInvalidWhenReturnedHigherNetworkProtocolVersion )
+{
+    QThread* thread = new QThread();
+    MockNetworkListener server(dc::Socket::defaultPortNumber_, NETWORK_PROTOCOL_VERSION+1);
+    server.moveToThread(thread);
+    server.connect(&server, SIGNAL(finished()), thread, SLOT(deleteLater()));
+    thread->start();
+
+    dc::Socket socket( "localhost", dc::Socket::defaultPortNumber_);
+
+    BOOST_CHECK( !socket.isConnected() );
+}

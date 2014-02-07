@@ -17,7 +17,7 @@ qt4_wrap_cpp(LOCAL_STREAMER_MOC_OUTFILES ${LOCAL_STREAMER_MOC_HEADERS})
 
 # DisplayCluster Main Application
 add_executable(localstreamer ${LOCAL_STREAMER_MOC_OUTFILES} ${LOCAL_STREAMER_SRCS})
-target_link_libraries(localstreamer DisplayClusterCore dcstream)
+target_link_libraries(localstreamer dccore dcstream)
 
 # install executable
 install(TARGETS localstreamer RUNTIME DESTINATION bin)
