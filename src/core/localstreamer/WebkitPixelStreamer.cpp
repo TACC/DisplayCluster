@@ -171,18 +171,18 @@ void WebkitPixelStreamer::processPressEvent(const Event &event)
 {
     const QWebHitTestResult& hitResult = performHitTest(event);
 
-    if(!hitResult.isNull())
+    if(hitResult.isNull() || isWebGLElement(hitResult.element()))
     {
-        interactionModeActive_ = isWebGLElement(hitResult.element());
-
-        const QPoint& pointerPos = getPointerPosition(event);
-
-        QMouseEvent myEvent(QEvent::MouseButtonPress, pointerPos,
-                            Qt::LeftButton, Qt::LeftButton,
-                            (Qt::KeyboardModifiers)event.modifiers);
-
-        webView_->page()->event(&myEvent);
+        interactionModeActive_ = true;
     }
+
+    const QPoint& pointerPos = getPointerPosition(event);
+
+    QMouseEvent myEvent(QEvent::MouseButtonPress, pointerPos,
+                        Qt::LeftButton, Qt::LeftButton,
+                        (Qt::KeyboardModifiers)event.modifiers);
+
+    webView_->page()->event(&myEvent);
 }
 
 
@@ -190,7 +190,7 @@ void WebkitPixelStreamer::processMoveEvent(const Event &event)
 {
     const QPoint& pointerPos = getPointerPosition(event);
 
-    if(interactionModeActive_)
+    if( interactionModeActive_ )
     {
         QMouseEvent myEvent(QEvent::MouseMove, pointerPos,
                             Qt::LeftButton, Qt::LeftButton,
@@ -201,6 +201,8 @@ void WebkitPixelStreamer::processMoveEvent(const Event &event)
     else
     {
         QWebFrame *pFrame = webView_->page()->frameAt(pointerPos);
+        if (!pFrame)
+            return;
 
         int dx = event.dx * webView_->page()->viewportSize().width();
         int dy = event.dy * webView_->page()->viewportSize().height();
@@ -299,7 +301,7 @@ QWebHitTestResult WebkitPixelStreamer::performHitTest(const Event &event) const
 {
     const QPoint& pointerPos = getPointerPosition(event);
     QWebFrame *pFrame = webView_->page()->frameAt(pointerPos);
-    return pFrame->hitTestContent(pointerPos);
+    return pFrame ? pFrame->hitTestContent(pointerPos) : QWebHitTestResult();
 }
 
 QPoint WebkitPixelStreamer::getPointerPosition(const Event &event) const
