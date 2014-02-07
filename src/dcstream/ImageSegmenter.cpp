@@ -70,16 +70,18 @@ PixelStreamSegments ImageSegmenter::generateSegments(const ImageWrapper &image) 
 }
 
 /**
- * The DcSegmentCompressionWrapper struct is used to pass additional parameters to the
- * JpegCompression function. It is required because QtConcurrent::blockingMapped only
- * allows one parameter to be passed to the function being called.
+ * The DcSegmentCompressionWrapper struct is used to pass additional parameters
+ * to the JpegCompression function. It is required because
+ * QtConcurrent::blockingMapped only allows one parameter to be passed to the
+ * function being called.
  */
 struct SegmentCompressionWrapper
 {
     PixelStreamSegment* segment;
     const ImageWrapper* image;
 
-    SegmentCompressionWrapper(PixelStreamSegment& segment, const ImageWrapper& image)
+    SegmentCompressionWrapper( PixelStreamSegment& segment,
+                               const ImageWrapper& image )
         : segment(&segment)
         , image(&image)
     {}
@@ -98,13 +100,15 @@ void computeJpegMapped(SegmentCompressionWrapper& segmentWrapper)
 
 }
 
-PixelStreamSegments ImageSegmenter::generateJpegSegments(const ImageWrapper &image) const
+PixelStreamSegments ImageSegmenter::generateJpegSegments(
+    const ImageWrapper& image ) const
 {
-    SegmentParameters segmentParams = generateSegmentParameters(image);
+    const SegmentParameters& segmentParams = generateSegmentParameters(image);
 
     // The resulting Jpeg segments
     PixelStreamSegments segments;
-    for (SegmentParameters::const_iterator it = segmentParams.begin(); it != segmentParams.end(); it++)
+    for( SegmentParameters::const_iterator it = segmentParams.begin();
+         it != segmentParams.end(); ++it )
     {
         PixelStreamSegment segment;
         segment.parameters = *it;
@@ -128,7 +132,7 @@ PixelStreamSegments ImageSegmenter::generateJpegSegments(const ImageWrapper &ima
 
 PixelStreamSegments ImageSegmenter::generateRawSegments(const ImageWrapper &image) const
 {
-    const SegmentParameters segmentParams = generateSegmentParameters(image);
+    const SegmentParameters& segmentParams = generateSegmentParameters(image);
 
     // The resulting Raw segments
     PixelStreamSegments segments;

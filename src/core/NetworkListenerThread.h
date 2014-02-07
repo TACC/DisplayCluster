@@ -64,7 +64,7 @@ public slots:
     void processEvent(Event event);
     void pixelStreamerClosed(QString uri);
 
-    void eventRegistrationRepy(QString uri, bool success);
+    void eventRegistrationReply(QString uri, bool success);
 
 signals:
 

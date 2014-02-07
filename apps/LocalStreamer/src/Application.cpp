@@ -75,16 +75,18 @@ bool Application::initialize(const CommandLineOptions& options)
     connect(pixelStreamer_, SIGNAL(sendCommand(QString)), this, SLOT(sendCommand(QString)));
 
     // Connect to DisplayCluster
-    dcStream_ = new dc::Stream(options.getName().toStdString(), DC_STREAM_HOST_ADDRESS);
-    if (!dcStream_->isConnected())
+    dcStream_ = new dc::Stream( options.getName().toStdString(),
+                                DC_STREAM_HOST_ADDRESS );
+    if( !dcStream_->isConnected( ))
     {
         std::cerr << "Could not connect to host!" << std::endl;
         delete dcStream_;
         dcStream_ = 0;
         return false;
     }
+
     // Make sure to quit the application if the connection is closed.
-    connect(dcStream_->impl_->dcSocket_, SIGNAL(disconnected()), QApplication::instance(), SLOT(quit()));
+    connect(&dcStream_->impl_->dcSocket_, SIGNAL(disconnected()), QApplication::instance(), SLOT(quit()));
 
     // Use a timer to process Event received from the dc::Stream
     QTimer* timer = new QTimer(this);

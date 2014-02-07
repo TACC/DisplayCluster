@@ -1,6 +1,7 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/* Copyright (c) 2013-2014, EPFL/Blue Brain Project                  */
+/*                          Raphael Dumusc <raphael.dumusc@epfl.ch>  */
+/*                          Stefan.Eilemann@epfl.ch                  */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -53,44 +54,38 @@ namespace dc
 {
 
 Stream::Stream(const std::string& name, const std::string& address)
-    : impl_(new StreamPrivate(name))
+    : impl_( new StreamPrivate( name, address ))
 {
-    if(name.empty())
-    {
-        put_flog(LOG_ERROR, "Invalid Stream name");
-    }
-
-    if (!impl_->open(address))
-    {
-        put_flog(LOG_ERROR, "Stream could not connect to host: %s", address.c_str());
-    }
 }
 
 Stream::~Stream()
 {
-    impl_->close();
     delete impl_;
 }
 
 bool Stream::isConnected() const
 {
-    return impl_->dcSocket_ && impl_->dcSocket_->isConnected();
+    return impl_->dcSocket_.isConnected();
 }
 
 bool Stream::send(const ImageWrapper& image)
 {
-    if ( !(image.compressionPolicy == COMPRESSION_ON) && !( image.pixelFormat == dc::RGBA ))
+    if( image.compressionPolicy != COMPRESSION_ON &&
+        image.pixelFormat != dc::RGBA )
     {
         put_flog(LOG_ERROR, "Currently, RAW images can only be sent in RGBA format. Other formats support remain to be implemented.");
         return false;
     }
 
-    const PixelStreamSegments segments = impl_->imageSegmenter_.generateSegments(image);
+    const PixelStreamSegments segments =
+    impl_->imageSegmenter_.generateSegments( image );
 
     bool allSuccess = true;
-    for(PixelStreamSegments::const_iterator it = segments.begin(); it!=segments.end(); it++)
+    for( PixelStreamSegments::const_iterator it = segments.begin();
+         it!=segments.end(); it++)
     {
-        allSuccess = allSuccess && impl_->sendPixelStreamSegment(*it);
+        if( !impl_->sendPixelStreamSegment( *it ))
+            allSuccess = false;
     }
     return allSuccess;
 }
@@ -99,7 +94,7 @@ bool Stream::finishFrame()
 {
     // Open a window for the PixelStream
     MessageHeader mh(MESSAGE_TYPE_PIXELSTREAM_FINISH_FRAME, 0, impl_->name_);
-    return impl_->dcSocket_->send(mh, QByteArray());
+    return impl_->dcSocket_.send(mh, QByteArray());
 }
 
 bool Stream::registerForEvents(const bool exclusive)
@@ -118,7 +113,7 @@ bool Stream::registerForEvents(const bool exclusive)
     MessageHeader mh(type, 0, impl_->name_);
 
     // Send the bind message
-    if( !impl_->dcSocket_->send(mh, QByteArray()) )
+    if( !impl_->dcSocket_.send(mh, QByteArray()) )
     {
         put_flog(LOG_ERROR, "Could not send bind message");
         return false;
@@ -126,7 +121,7 @@ bool Stream::registerForEvents(const bool exclusive)
 
     // Wait for bind reply
     QByteArray message;
-    bool success = impl_->dcSocket_->receive(mh, message);
+    bool success = impl_->dcSocket_.receive(mh, message);
     if(!success || mh.type != MESSAGE_TYPE_BIND_EVENTS_REPLY)
     {
         put_flog(LOG_ERROR, "Invalid reply from host");
@@ -145,12 +140,12 @@ bool Stream::isRegisteredForEvents() const
 
 int Stream::getDescriptor() const
 {
-    return impl_->dcSocket_->getFileDescriptor();
+    return impl_->dcSocket_.getFileDescriptor();
 }
 
 bool Stream::hasEvent() const
 {
-    return impl_->dcSocket_->hasMessage(Event::serializedSize);
+    return impl_->dcSocket_.hasMessage(Event::serializedSize);
 }
 
 Event Stream::getEvent()
@@ -158,7 +153,7 @@ Event Stream::getEvent()
     MessageHeader mh;
     QByteArray message;
 
-    bool success = impl_->dcSocket_->receive(mh, message);
+    bool success = impl_->dcSocket_.receive(mh, message);
 
     if(!success || mh.type != MESSAGE_TYPE_EVENT)
     {

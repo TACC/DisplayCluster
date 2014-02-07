@@ -254,7 +254,7 @@ void NetworkListenerThread::pixelStreamerClosed(QString uri)
     }
 }
 
-void NetworkListenerThread::eventRegistrationRepy(QString uri, bool success)
+void NetworkListenerThread::eventRegistrationReply(QString uri, bool success)
 {
     if (uri == pixelStreamUri_)
     {

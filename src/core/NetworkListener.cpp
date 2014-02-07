@@ -92,12 +92,14 @@ void NetworkListener::incomingConnection(int socketDescriptor)
             commandHandler_, SLOT(process(QString,QString)));
 
     // DisplayGroupManager
-    connect(&displayGroupManager_, SIGNAL(pixelStreamViewClosed(QString)),
-            worker, SLOT(pixelStreamerClosed(QString)));
-    connect(&displayGroupManager_, SIGNAL(eventRegistrationReply(QString,bool)),
-            worker, SLOT(eventRegistrationRepy(QString,bool)));
-    connect(worker, SIGNAL(registerToEvents(QString,bool,EventReceiver*)),
-            &displayGroupManager_, SLOT(registerEventReceiver(QString,bool,EventReceiver*)));
+    connect( &displayGroupManager_, SIGNAL( pixelStreamViewClosed( QString )),
+             worker, SLOT(pixelStreamerClosed( QString )));
+    connect( &displayGroupManager_,
+             SIGNAL( eventRegistrationReply( QString, bool )),
+             worker, SLOT( eventRegistrationReply( QString, bool )));
+    connect( worker, SIGNAL( registerToEvents( QString, bool, EventReceiver* )),
+             &displayGroupManager_,
+             SLOT( registerEventReceiver( QString, bool, EventReceiver* )));
 
     // PixelStreamDispatcher
     connect(worker, SIGNAL(receivedAddPixelStreamSource(QString,size_t)),

@@ -1,6 +1,7 @@
 /*********************************************************************/
-/* Copyright (c) 2013, EPFL/Blue Brain Project                       */
-/*                     Raphael Dumusc <raphael.dumusc@epfl.ch>       */
+/* Copyright (c) 2013-2014, EPFL/Blue Brain Project                  */
+/*                          Raphael Dumusc <raphael.dumusc@epfl.ch>  */
+/*                          Stefan.Eilemann@epfl.ch                  */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -39,57 +40,45 @@
 
 #include "StreamPrivate.h"
 
-#include "Stream.h" // For defaultCompressionQuality
+#include "log.h"
 
-#include "Socket.h"
 #include "PixelStreamSegment.h"
 #include "PixelStreamSegmentParameters.h"
+#include "Stream.h" // For defaultCompressionQuality
 
 #define SEGMENT_SIZE 512
 
 namespace dc
 {
 
-StreamPrivate::StreamPrivate(const std::string &name)
+StreamPrivate::StreamPrivate( const std::string &name,
+                              const std::string& address )
     : name_(name)
-    , dcSocket_(0)
+    , dcSocket_( address )
     , registeredForEvents_(false)
 {
     imageSegmenter_.setNominalSegmentDimensions(SEGMENT_SIZE, SEGMENT_SIZE);
-}
 
-bool StreamPrivate::open(const std::string& address)
-{
-    // Connect to DisplayCluster application
-    dcSocket_ = new Socket(address);
+    if( name.empty( ))
+        put_flog( LOG_ERROR, "Invalid Stream name ");
 
-    if(!dcSocket_->isConnected())
+    if( dcSocket_.isConnected( ))
     {
-        delete dcSocket_;
-        dcSocket_ = 0;
-
-        return false;
+        // Open a window for the PixelStream
+        MessageHeader mh( MESSAGE_TYPE_PIXELSTREAM_OPEN, 0, name_ );
+        dcSocket_.send( mh, QByteArray( ));
     }
-
-    // Open a window for the PixelStream
-    MessageHeader mh(MESSAGE_TYPE_PIXELSTREAM_OPEN, 0, name_);
-    return dcSocket_->send(mh, QByteArray());
 }
 
-bool StreamPrivate::close()
+StreamPrivate::~StreamPrivate()
 {
-    if( !dcSocket_ || !dcSocket_->isConnected( ))
-        return true;
+    if( !dcSocket_.isConnected( ))
+        return;
 
     MessageHeader mh(MESSAGE_TYPE_QUIT, 0, name_);
-    dcSocket_->send(mh, QByteArray());
-
-    delete dcSocket_;
-    dcSocket_ = 0;
+    dcSocket_.send(mh, QByteArray());
 
     registeredForEvents_ = false;
-
-    return true;
 }
 
 bool StreamPrivate::sendPixelStreamSegment(const PixelStreamSegment &segment)
@@ -107,7 +96,7 @@ bool StreamPrivate::sendPixelStreamSegment(const PixelStreamSegment &segment)
     // Message payload part 2: image data
     message.append(segment.imageData);
 
-    return dcSocket_->send(mh, message);
+    return dcSocket_.send(mh, message);
 }
 
 bool StreamPrivate::sendCommand(const QString& command)
@@ -117,7 +106,7 @@ bool StreamPrivate::sendCommand(const QString& command)
 
     MessageHeader mh(MESSAGE_TYPE_COMMAND, message.size(), name_);
 
-    return dcSocket_->send(mh, message);
+    return dcSocket_.send(mh, message);
 }
 
 }
