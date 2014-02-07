@@ -56,6 +56,7 @@ namespace ut = boost::unit_test;
 #define NPIXELS (WIDTH * HEIGHT)
 #define NBYTES  (NPIXELS * 4u)
 #define NIMAGES (100u)
+// #define NTHREADS 20 // QT default if not defined
 
 BOOST_GLOBAL_FIXTURE( MinimalGlobalQtApp );
 
@@ -127,6 +128,9 @@ BOOST_AUTO_TEST_CASE( testSocketConnection )
         new MasterConfiguration( "configuration.xml",
                                  g_displayGroupManager->getOptions( ));
     NetworkListener listener( *g_displayGroupManager );
+#ifdef NTHREADS
+    QThreadPool::globalInstance()->setMaxThreadCount( NTHREADS );
+#endif
 
     DCThread thread;
     thread.start();
