@@ -37,31 +37,58 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
+#define BOOST_TEST_MODULE Socket
+#include <boost/test/unit_test.hpp>
+namespace ut = boost::unit_test;
+
+#include "MinimalGlobalQtApp.h"
 #include "MockNetworkListener.h"
 
-MockNetworkListener::MockNetworkListener(const unsigned short port)
+#include "dcstream/Socket.h"
+
+BOOST_GLOBAL_FIXTURE( MinimalGlobalQtApp );
+
+BOOST_AUTO_TEST_CASE( testSocketConnectionValidWhenReturnedCorrectNetworkProtocolVersion )
 {
-    if ( !listen(QHostAddress::Any, port) )
-        qDebug("MockNetworkListener could not start listening!!");
+    QThread thread;
+    MockNetworkListener server(dc::Socket::defaultPortNumber_);
+    server.moveToThread(&thread);
+    thread.start();
+
+    dc::Socket socket( "localhost", dc::Socket::defaultPortNumber_);
+
+    BOOST_CHECK( socket.isConnected() );
+
+    thread.quit();
+    thread.wait();
 }
 
-MockNetworkListener::~MockNetworkListener()
+BOOST_AUTO_TEST_CASE( testSocketConnectionInvalidWhenReturnedLowerNetworkProtocolVersion )
 {
-    emit finished();
+    QThread thread;
+    MockNetworkListener server(dc::Socket::defaultPortNumber_, NETWORK_PROTOCOL_VERSION-1);
+    server.moveToThread(&thread);
+    thread.start();
+
+    dc::Socket socket( "localhost", dc::Socket::defaultPortNumber_);
+
+    BOOST_CHECK( !socket.isConnected() );
+
+    thread.quit();
+    thread.wait();
 }
 
-void MockNetworkListener::incomingConnection(int socketDescriptor)
+BOOST_AUTO_TEST_CASE( testSocketConnectionInvalidWhenReturnedHigherNetworkProtocolVersion )
 {
-    QThread * thread = new QThread();
-    NetworkListenerThread * worker = new NetworkListenerThread(socketDescriptor);
+    QThread thread;
+    MockNetworkListener server(dc::Socket::defaultPortNumber_, NETWORK_PROTOCOL_VERSION+1);
+    server.moveToThread(&thread);
+    thread.start();
 
-    worker->moveToThread(thread);
+    dc::Socket socket( "localhost", dc::Socket::defaultPortNumber_);
 
-    worker->connect(thread, SIGNAL(started()), worker, SLOT(initialize()));
-    worker->connect(worker, SIGNAL(finished()), thread, SLOT(quit()));
-    // Make sure the thread gets deleted
-    worker->connect(thread, SIGNAL(finished()), worker, SLOT(deleteLater()));
-    worker->connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
+    BOOST_CHECK( !socket.isConnected() );
 
-    thread->start();
+    thread.quit();
+    thread.wait();
 }

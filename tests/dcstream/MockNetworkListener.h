@@ -40,22 +40,25 @@
 #ifndef MOCKNETWORKLISTENER_H
 #define MOCKNETWORKLISTENER_H
 
-#include "NetworkListenerThread.h"
-
 #include <QtNetwork/QTcpServer>
 #include <QThread>
+
+#include "NetworkProtocol.h"
 
 class MockNetworkListener : public QTcpServer
 {
     Q_OBJECT
 
 public:
-    MockNetworkListener(const unsigned short port);
+    MockNetworkListener(const unsigned short port,
+                        const int32_t protocolVersion = NETWORK_PROTOCOL_VERSION);
     virtual ~MockNetworkListener();
-signals:
-    void finished();
+
 protected:
     virtual void incomingConnection(int socketDescriptor);
+
+private:
+    int32_t protocolVersion_;
 };
 
 #endif // MOCKNETWORKLISTENER_H

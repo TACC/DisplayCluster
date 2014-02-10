@@ -21,11 +21,11 @@ list(APPEND HEADERS
 
 list(APPEND PUBLIC_HEADERS)
 
-add_library(fcgiws SHARED ${SOURCES} ${HEADERS})
-target_link_libraries(fcgiws ${Boost_LIBRARIES}  ${FCGI_LIBRARIES})
+add_library(dcwebservice SHARED ${SOURCES} ${HEADERS})
+target_link_libraries(dcwebservice ${Boost_LIBRARIES}  ${FCGI_LIBRARIES})
 
 # install library
-install(TARGETS fcgiws
+install(TARGETS dcwebservice
     ARCHIVE DESTINATION lib COMPONENT dev
     RUNTIME DESTINATION bin COMPONENT lib
     LIBRARY DESTINATION lib COMPONENT lib)

@@ -37,26 +37,27 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#define BOOST_TEST_MODULE Socket
-#include <boost/test/unit_test.hpp>
-namespace ut = boost::unit_test;
-
-#include "MinimalGlobalQtApp.h"
 #include "MockNetworkListener.h"
 
-#include "dcstream/Socket.h"
+#include <QTcpSocket>
 
-BOOST_GLOBAL_FIXTURE( MinimalGlobalQtApp );
-
-BOOST_AUTO_TEST_CASE( testSocketConnection )
+MockNetworkListener::MockNetworkListener(const unsigned short port, const int32_t protocolVersion)
+    : protocolVersion_(protocolVersion)
 {
-    QThread* thread = new QThread();
-    MockNetworkListener server(dc::Socket::defaultPortNumber_);
-    server.moveToThread(thread);
-    server.connect(&server, SIGNAL(finished()), thread, SLOT(deleteLater()));
-    thread->start();
+    if ( !listen(QHostAddress::Any, port) )
+        qDebug("MockNetworkListener could not start listening!!");
+}
 
-    dc::Socket socket( "localhost", dc::Socket::defaultPortNumber_);
+MockNetworkListener::~MockNetworkListener()
+{
+}
 
-    BOOST_CHECK( socket.isConnected() );
+void MockNetworkListener::incomingConnection(int socketDescriptor)
+{
+    QTcpSocket tcpSocket;
+    tcpSocket.setSocketDescriptor(socketDescriptor);
+
+    // Handshake -> send network protocol version
+    tcpSocket.write((char *)&protocolVersion_, sizeof(int32_t));
+    tcpSocket.flush();
 }

@@ -44,7 +44,6 @@ namespace ut = boost::unit_test;
 #include "dcstream/ImageWrapper.h"
 #include "dcstream/ImageSegmenter.h"
 #include "PixelStreamSegment.h"
-#include "PixelStreamSegmentDecoder.h"
 
 BOOST_AUTO_TEST_CASE( testImageSegmenterSegmentParameters )
 {
@@ -288,55 +287,5 @@ BOOST_AUTO_TEST_CASE( testImageSegmenterNonUniformSegmentationData )
         BOOST_CHECK_EQUAL_COLLECTIONS( dataSegmented[i], dataSegmented[i]+segment.imageData.size(),
                                        dataOut, dataOut+segment.imageData.size() );
     }
-}
-
-BOOST_AUTO_TEST_CASE( testImageSegmenterWithImageCompression )
-{
-    // Vector of rgba data
-    std::vector<char> data;
-    data.reserve(8*8*4);
-    for (size_t i = 0; i<8*8; ++i)
-    {
-        data.push_back(192); // R
-        data.push_back(128); // G
-        data.push_back(64);  // B
-        data.push_back(255); // A
-    }
-
-    // Compress image
-    dc::ImageWrapper imageWrapper(data.data(), 8, 8, dc::RGBA);
-    imageWrapper.compressionPolicy = dc::COMPRESSION_ON;
-
-    dc::PixelStreamSegments segments;
-    {
-        dc::ImageSegmenter segmenter;
-        segments = segmenter.generateSegments(imageWrapper);
-    }
-    BOOST_REQUIRE_EQUAL( segments.size(), 1 );
-
-    dc::PixelStreamSegment& segment = segments.front();
-    BOOST_REQUIRE( segment.parameters.compressed );
-    BOOST_REQUIRE( segment.imageData.size() != (int)data.size() );
-
-    // Decompress image
-    PixelStreamSegmentDecoder decoder;
-    decoder.startDecoding(segment);
-
-    size_t timeout = 0;
-    while(decoder.isRunning())
-    {
-        usleep(10);
-        if (++timeout >= 10)
-            break;
-    }
-    BOOST_REQUIRE( timeout < 10 );
-
-    // Check decoded image in format RGBA
-    BOOST_REQUIRE( !segment.parameters.compressed );
-    BOOST_REQUIRE_EQUAL( segment.imageData.size(), data.size() );
-
-    const char* dataOut = segment.imageData.constData();
-    BOOST_CHECK_EQUAL_COLLECTIONS( data.data(), data.data()+segment.imageData.size(),
-                                   dataOut, dataOut+segment.imageData.size() );
 }
 
