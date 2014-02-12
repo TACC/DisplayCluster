@@ -1,0 +1,12 @@
+<RCC>
+    <qresource prefix="/html">
+        <file>login-form.htm</file>
+        <file>login-form.css</file>
+    </qresource>
+    <qresource prefix="/img">
+        <file>error.png</file>
+        <file>marker.png</file>
+        <file>browser-icon.png</file>
+        <file>clearall-icon.png</file>
+    </qresource>
+</RCC>

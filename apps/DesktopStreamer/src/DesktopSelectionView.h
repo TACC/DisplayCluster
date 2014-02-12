@@ -43,21 +43,19 @@
 
 class DesktopSelectionRectangle;
 
-class DesktopSelectionView : public QGraphicsView {
+class DesktopSelectionView : public QGraphicsView
+{
+public:
+    DesktopSelectionView(QWidget* parent);
+    ~DesktopSelectionView();
 
-    public:
+    DesktopSelectionRectangle* getDesktopSelectionRectangle();
 
-        DesktopSelectionView();
+protected:
+    void resizeEvent(QResizeEvent * event);
 
-        DesktopSelectionRectangle * getDesktopSelectionRectangle();
-
-    protected:
-
-        void resizeEvent(QResizeEvent * event);
-
-    private:
-
-        DesktopSelectionRectangle * desktopSelectionRectangle_;
+private:
+    DesktopSelectionRectangle* desktopSelectionRectangle_;
 };
 
 #endif

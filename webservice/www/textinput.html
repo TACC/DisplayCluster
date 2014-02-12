@@ -1,0 +1,107 @@
+<!--
+/*********************************************************************/
+/* Copyright (c) 2014, EPFL/Blue Brain Project                       */
+/*                     Julio Delgado <julio.delgadomangas@epfl.ch>   */
+/* All rights reserved.                                              */
+/*                                                                   */
+/* Redistribution and use in source and binary forms, with or        */
+/* without modification, are permitted provided that the following   */
+/* conditions are met:                                               */
+/*                                                                   */
+/*   1. Redistributions of source code must retain the above         */
+/*      copyright notice, this list of conditions and the following  */
+/*      disclaimer.                                                  */
+/*                                                                   */
+/*   2. Redistributions in binary form must reproduce the above      */
+/*      copyright notice, this list of conditions and the following  */
+/*      disclaimer in the documentation and/or other materials       */
+/*      provided with the distribution.                              */
+/*                                                                   */
+/*    THIS  SOFTWARE IS PROVIDED  BY THE  UNIVERSITY OF  TEXAS AT    */
+/*    AUSTIN  ``AS IS''  AND ANY  EXPRESS OR  IMPLIED WARRANTIES,    */
+/*    INCLUDING, BUT  NOT LIMITED  TO, THE IMPLIED  WARRANTIES OF    */
+/*    MERCHANTABILITY  AND FITNESS FOR  A PARTICULAR  PURPOSE ARE    */
+/*    DISCLAIMED.  IN  NO EVENT SHALL THE UNIVERSITY  OF TEXAS AT    */
+/*    AUSTIN OR CONTRIBUTORS BE  LIABLE FOR ANY DIRECT, INDIRECT,    */
+/*    INCIDENTAL,  SPECIAL, EXEMPLARY,  OR  CONSEQUENTIAL DAMAGES    */
+/*    (INCLUDING, BUT  NOT LIMITED TO,  PROCUREMENT OF SUBSTITUTE    */
+/*    GOODS  OR  SERVICES; LOSS  OF  USE,  DATA,  OR PROFITS;  OR    */
+/*    BUSINESS INTERRUPTION) HOWEVER CAUSED  AND ON ANY THEORY OF    */
+/*    LIABILITY, WHETHER  IN CONTRACT, STRICT  LIABILITY, OR TORT    */
+/*    (INCLUDING NEGLIGENCE OR OTHERWISE)  ARISING IN ANY WAY OUT    */
+/*    OF  THE  USE OF  THIS  SOFTWARE,  EVEN  IF ADVISED  OF  THE    */
+/*    POSSIBILITY OF SUCH DAMAGE.                                    */
+/*                                                                   */
+/* The views and conclusions contained in the software and           */
+/* documentation are those of the authors and should not be          */
+/* interpreted as representing official policies, either expressed   */
+/* or implied, of The University of Texas at Austin.                 */
+/*********************************************************************/
+-->
+<!-- Web page used to send keystrokes to application server -->
+<html>
+<head>
+<title>Display Wall Text Capture</title>
+<script src="scripts/jquery-2.1.0.min.js" type="text/javascript"></script>
+<script src="scripts/dcapi.js" type="text/javascript"></script>
+<script type="text/javascript">
+
+var defaultMessageTimer;
+
+// Creates a new timer for the display of the default message
+function startDefaultMsgTimer(component) {
+    defaultMessageTimer = startDefaultMessageTimer(component);
+}
+
+function clearTimer() {
+    endTimer(defaultMessageTimer);
+}
+
+function clearTextIfNecessary(component) {
+    var text = $(component).text()
+    if (text == DEFAULT_MESSAGE)
+        $(component).text("");
+
+}
+
+$(document).keypress(
+function(e) {
+     // Something has been typed, reset the default message timer
+     clearTimer();
+ 
+    // For tab and enter, do not execute default browser behavior.
+    // Then sending of this keys is done in keydown.
+    if (e.keyCode == KEY_TAB || e.keyCode == KEY_DEL) {
+        e.preventDefault();
+        return
+    }
+    clearTextIfNecessary("#text");
+    sendCharacter(String.fromCharCode(e.which));
+    $("#text").append(String.fromCharCode(e.which));
+    startDefaultMsgTimer("#text");
+}
+);
+
+// Chrome does not generate keypress for tab and enter, so we chose to 
+// handle this keys for ALL browsers in this method.
+$(document).keydown(
+function(e){
+    if(e.keyCode == KEY_TAB || e.keyCode == KEY_DEL) {
+        // Something has been typed, reset the default message timer
+        clearTimer();
+        e.preventDefault();
+        sendCharacter(String.fromCharCode(e.keyCode));
+        clearTextIfNecessary("#text");
+        $("#text").append(String.fromCharCode(e.keyCode));
+        startDefaultMsgTimer("#text");
+    }
+}
+);
+
+</script>
+</head>
+<body>
+<b>Introduce text</b><p>
+<h1 id="text">Press A Key</h1>
+</body>
+</html>

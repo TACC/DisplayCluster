@@ -37,16 +37,18 @@
 /*********************************************************************/
 
 #include "DesktopSelectionRectangle.h"
-#include "main.h"
+
+#define PEN_WIDTH 10 // should be even
+#define CORNER_RESIZE_THRESHHOLD 50
+#define DEFAULT_SIZE 100
 
 DesktopSelectionRectangle::DesktopSelectionRectangle()
+    : resizing_(false)
+    , x_(0)
+    , y_(0)
+    , width_(DEFAULT_SIZE)
+    , height_(DEFAULT_SIZE)
 {
-    // defaults
-    resizing_ = false;
-
-    // current coordinates from MainWindow
-    g_mainWindow->getCoordinates(x_, y_, width_, height_);
-
     // graphics items are movable
     setFlag(QGraphicsItem::ItemIsMovable, true);
 
@@ -74,9 +76,9 @@ void DesktopSelectionRectangle::setCoordinates(int x, int y, int width, int heig
 
 void DesktopSelectionRectangle::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
 {
-    if(event->buttons().testFlag(Qt::LeftButton) == true)
+    if(event->buttons().testFlag(Qt::LeftButton))
     {
-        if(resizing_ == true)
+        if(resizing_)
         {
             QRectF r = rect();
             QPointF eventPos = event->pos();
@@ -93,6 +95,7 @@ void DesktopSelectionRectangle::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
         }
 
         updateCoordinates();
+        emit coordinatesChanged(x_, y_, width_, height_);
     }
 }
 
@@ -126,6 +129,4 @@ void DesktopSelectionRectangle::updateCoordinates()
     y_ = (int)sceneRect.y() + PEN_WIDTH/2;
     width_ = (int)sceneRect.width() - PEN_WIDTH;
     height_ = (int)sceneRect.height() - PEN_WIDTH;
-
-    g_mainWindow->setCoordinates(x_, y_, width_, height_);
 }

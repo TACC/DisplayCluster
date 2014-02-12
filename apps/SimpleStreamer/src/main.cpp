@@ -10,21 +10,51 @@
 #endif
 
 // DisplayCluster streaming
-#include <dcStream.h>
+#include "dcstream/Stream.h"
 
-std::string dcStreamName = "SimpleStreamer";
-bool dcParallelStreaming = false;
-int dcSegmentSize = 512;
+bool dcInteraction = false;
+bool dcCompressImage = true;
+unsigned int dcCompressionQuality = 75;
 char * dcHostname = NULL;
-DcSocket * dcSocket = NULL;
+std::string dcStreamName = "SimpleStreamer";
+dc::Stream* dcStream = NULL;
 
 void syntax(char * app);
+void readCommandLineArguments(int argc, char **argv);
+void initGLWindow(int argc, char **argv);
+void initDCStream();
 void display();
 void reshape(int width, int height);
 
+
+void cleanup()
+{
+    delete dcStream;
+}
+
 int main(int argc, char **argv)
 {
-    // read command-line arguments
+    readCommandLineArguments(argc, argv);
+
+    if(dcHostname == NULL)
+    {
+        syntax(argv[0]);
+    }
+
+    initGLWindow(argc, argv);
+
+    initDCStream();
+
+    atexit( cleanup );
+
+    // enter the main loop
+    glutMainLoop();
+
+    return 0;
+}
+
+void readCommandLineArguments(int argc, char **argv)
+{
     for(int i=1; i<argc; i++)
     {
         if(argv[i][0] == '-')
@@ -38,15 +68,11 @@ int main(int argc, char **argv)
                         i++;
                     }
                     break;
-                case 'p':
-                    dcParallelStreaming = true;
+                case 'i':
+                    dcInteraction = true;
                     break;
-                case 's':
-                    if(i+1 < argc)
-                    {
-                        dcSegmentSize = atoi(argv[i+1]);
-                        i++;
-                    }
+                case 'u':
+                    dcCompressImage = false;
                     break;
                 default:
                     syntax(argv[0]);
@@ -57,12 +83,11 @@ int main(int argc, char **argv)
             dcHostname = argv[i];
         }
     }
+}
 
-    if(dcHostname == NULL)
-    {
-        syntax(argv[0]);
-    }
 
+void initGLWindow(int argc, char **argv)
+{
     // setup GLUT / OpenGL
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
@@ -83,20 +108,19 @@ int main(int argc, char **argv)
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
+}
 
+
+void initDCStream()
+{
     // connect to DisplayCluster
-    dcSocket = dcStreamConnect(dcHostname);
-
-    if(dcSocket == NULL)
+    dcStream = new dc::Stream(dcStreamName, dcHostname);
+    if (!dcStream->isConnected())
     {
-        std::cerr << "could not connect to DisplayCluster host: " << dcHostname << std::endl;
-        return 1;
+        std::cerr << "Could not connect to host!" << std::endl;
+        delete dcStream;
+        exit(1);
     }
-
-    // enter the main loop
-    glutMainLoop();
-
-    return 0;
 }
 
 
@@ -105,16 +129,20 @@ void syntax(char * app)
     std::cerr << "syntax: " << app << " [options] <hostname>" << std::endl;
     std::cerr << "options:" << std::endl;
     std::cerr << " -n <stream name>     set stream name (default SimpleStreamer)" << std::endl;
-    std::cerr << " -p                   enable parallel streaming (default disabled)" << std::endl;
-    std::cerr << " -s <segment size>    set parallel streaming segment size (default 512)" << std::endl;
+    std::cerr << " -i                   enable interaction events (default disabled)" << std::endl;
+    std::cerr << " -u                   enable uncompressed streaming (default disabled)" << std::endl;
 
     exit(1);
 }
 
 void display()
 {
-    // angle of camera rotation
-    static float angle = 0;
+    // angles of camera rotation
+    static float angleX = 0.;
+    static float angleY = 0.;
+
+    // zoom factor
+    static float zoom = 1.;
 
     // clear color / depth buffers and setup view
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -128,7 +156,10 @@ void display()
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    glRotatef(angle, 0.0, 1.0, 1.0);
+    glRotatef(angleX, 0.0, 1.0, 0.0);
+    glRotatef(angleY, -1.0, 0.0, 0.0);
+
+    glScalef(zoom, zoom, zoom);
 
     // render the teapot
     glutSolidTeapot(1.);
@@ -140,50 +171,83 @@ void display()
     int windowHeight = glutGet(GLUT_WINDOW_HEIGHT);
 
     // grab the image data from OpenGL
-    unsigned char * imageData = (unsigned char *)malloc(windowWidth * windowHeight * 4);
-    glReadPixels(0,0,windowWidth,windowHeight, GL_RGBA, GL_UNSIGNED_BYTE, (void *)imageData);
+    const size_t imageSize = windowWidth * windowHeight * 4;
+    unsigned char* imageData = new unsigned char[imageSize];
+    glReadPixels(0,0,windowWidth,windowHeight, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)imageData);
 
-    bool success;
-
-    if(dcParallelStreaming == true)
-    {
-        // use a streaming segment size of roughly <dcSegmentSize> x <dcSegmentSize> pixels
-        std::vector<DcStreamParameters> parameters = dcStreamGenerateParameters(dcStreamName, 0, dcSegmentSize,dcSegmentSize, 0,0,windowWidth,windowHeight, windowWidth,windowHeight);
-
-        // finally, send it to DisplayCluster
-        success = dcStreamSend(dcSocket, imageData, 0,0,windowWidth,0,windowHeight, RGBA, parameters);
-    }
-    else
-    {
-        // use a single streaming segment for the full window
-        DcStreamParameters parameters = dcStreamGenerateParameters(dcStreamName, 0, 0,0,windowWidth,windowHeight, windowWidth,windowHeight);
-
-        // finally, send it to DisplayCluster
-        success = dcStreamSend(dcSocket, imageData, 0,0,windowWidth,0,windowHeight, RGBA, parameters);
-    }
-
-    if(success == false)
-    {
-        std::cerr << "failure in dcStreamSend()" << std::endl;
-        exit(1);
-    }
-
-    dcStreamIncrementFrameIndex();
+    dc::ImageWrapper dcImage((const void*)imageData, windowWidth, windowHeight, dc::RGBA);
+    dcImage.compressionPolicy = dcCompressImage ? dc::COMPRESSION_ON : dc::COMPRESSION_OFF;
+    dcImage.compressionQuality = dcCompressionQuality;
+    dc::ImageWrapper::swapYAxis((void*)imageData, windowWidth, windowHeight, 4);
+    bool success = dcStream->send(dcImage);
+    dcStream->finishFrame();
 
     // and free the allocated image data
-    free(imageData);
+    delete [] imageData;
 
     glutSwapBuffers();
 
-    // increment rotation angle
-    angle += 1.;
+    // increment rotation angle according to interaction, or by a constant rate if interaction is not enabled
+    // note that mouse position is in normalized window coordinates: (0,0) to (1,1)
+    if(dcInteraction)
+    {
+        if (dcStream->isRegisteredForEvents() || dcStream->registerForEvents())
+        {
+            static float mouseX = 0.;
+            static float mouseY = 0.;
+
+            // Note: there is a risk of missing events since we only process the latest state available.
+            // For more advanced applications, event processing should be done in a separate thread.
+            while (dcStream->hasEvent())
+            {
+                const dc::Event& event = dcStream->getEvent();
+
+                if (event.type == dc::Event::EVT_CLOSE)
+                {
+                    std::cout << "Received close..." << std::endl;
+                    exit(0);
+                }
+
+                const float newMouseX = event.mouseX;
+                const float newMouseY = event.mouseY;
+
+                if(event.mouseLeft)
+                {
+                    angleX += (newMouseX - mouseX) * 360.;
+                    angleY += (newMouseY - mouseY) * 360.;
+                }
+                else if(event.mouseRight)
+                {
+                    zoom += (newMouseY - mouseY);
+                }
+
+                mouseX = newMouseX;
+                mouseY = newMouseY;
+            }
+        }
+    }
+    else
+    {
+        angleX += 1.;
+        angleY += 1.;
+    }
+    if(!success)
+    {
+        if (!dcStream->isConnected())
+        {
+            std::cout << "Stream closed, exiting." << std::endl;
+            exit(0);
+        }
+        else
+        {
+            std::cerr << "failure in dcStreamSend()" << std::endl;
+            exit(1);
+        }
+    }
 }
 
 void reshape(int width, int height)
 {
     // reset the viewport
     glViewport(0, 0, width, height);
-
-    // reset the stream since we may have a different number of segments now
-    dcStreamReset(dcSocket);
 }

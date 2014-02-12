@@ -39,37 +39,33 @@
 #ifndef DESKTOP_SELECTION_RECTANGLE_H
 #define DESKTOP_SELECTION_RECTANGLE_H
 
-#define PEN_WIDTH 10 // should be even
-#define CORNER_RESIZE_THRESHHOLD 50
-
 #include <QtGui>
 
-class DesktopSelectionRectangle : public QGraphicsRectItem {
+class DesktopSelectionRectangle : public QObject, public QGraphicsRectItem
+{
+    Q_OBJECT
 
-    public:
+public:
+    DesktopSelectionRectangle();
 
-        DesktopSelectionRectangle();
+    virtual void paint(QPainter * painter, const QStyleOptionGraphicsItem * option, QWidget * widget=0);
 
-        // QGraphicsRectItem painting
-        void paint(QPainter * painter, const QStyleOptionGraphicsItem * option, QWidget * widget=0);
+    void setCoordinates(int x, int y, int width, int height);
 
-        void setCoordinates(int x, int y, int width, int height);
+signals:
+    void coordinatesChanged(int x, int y, int width, int height);
 
-    protected:
+protected:
+    virtual void mouseMoveEvent(QGraphicsSceneMouseEvent * event);
+    virtual void mousePressEvent(QGraphicsSceneMouseEvent * event);
+    virtual void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
 
-        // QGraphicsRectItem events
-        void mouseMoveEvent(QGraphicsSceneMouseEvent * event);
-        void mousePressEvent(QGraphicsSceneMouseEvent * event);
-        void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
+private:
+    void updateCoordinates();
 
-    private:
+    bool resizing_;
 
-        void updateCoordinates();
-
-        // resizing state
-        bool resizing_;
-
-        int x_, y_, width_, height_;
+    int x_, y_, width_, height_;
 };
 
 #endif

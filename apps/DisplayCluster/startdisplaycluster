@@ -1,0 +1,83 @@
+#!/usr/bin/python
+
+# example launcher for DisplayCluster
+# this should work for most cases, but can be modified for a particular
+# installation if necessary
+
+import os
+import sys
+import xml.etree.ElementTree as ET
+import subprocess
+import shlex
+import distutils.spawn
+
+# DisplayCluster directory; this is the parent directory of this script
+dcPath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# set an environment variable for the base DisplayCluster directory
+os.environ['DISPLAYCLUSTER_DIR'] = dcPath
+
+# set the Python path so the pydc module can be found
+if 'PYTHONPATH' not in os.environ:
+    os.environ['PYTHONPATH'] = dcPath + '/python'
+else:
+    os.environ['PYTHONPATH'] += os.pathsep + dcPath + '/python'
+
+# for example scripts
+os.environ['PYTHONPATH'] += os.pathsep + dcPath + '/examples'
+
+# add in the default Python path provided by the Python interpreter since it
+# is not provided in our GUI Python console
+os.environ['PYTHONPATH'] += os.pathsep + os.pathsep.join(sys.path)
+
+# add our own lib folder
+if 'LD_LIBRARY_PATH' not in os.environ:
+    os.environ['LD_LIBRARY_PATH'] = dcPath + '/lib'
+else:
+    os.environ['LD_LIBRARY_PATH'] += os.pathsep + dcPath + '/lib'
+
+# form the MPI host list
+
+# rank 0 is always on localhost
+hostList = ['bbplxviz03i']
+
+# configuration.xml gives the rest of the hosts
+try:
+    doc = ET.parse(dcPath + "/configuration.xml")
+
+    for elem in doc.findall('.//process'):
+        host = elem.get("host")
+
+        if host is None:
+            print 'Error, no host attribute in <process> tag.'
+            exit(-1)
+
+        hostList.append(host)
+except:
+    print 'Error processing configuration.xml. Make sure you have created a configuration.xml and put it in ' + dcPath + '/. An example is provided in the examples/ directory.'
+    exit(-2)
+
+hostListString = ",".join(hostList)
+
+# find full path to mpirun; if MPI is installed in a non-standard location the
+# full path may be necessary to launch correctly across the cluster.
+mpirunCommand = distutils.spawn.find_executable('mpirun')
+
+if mpirunCommand is None:
+    print 'Error, could not find mpirun executable in PATH'
+    exit(-3)
+
+params = ' '
+if len(sys.argv) == 2 :
+    params += sys.argv[1]
+
+# check if MVAPICH is used; mpirun has a different commandline syntax than OpenMPI
+mpinameCommand = distutils.spawn.find_executable('mpiname')
+if mpinameCommand:
+    startCommand = mpirunCommand + ' -env MV2_ENABLE_AFFINITY 0 -env IPATH_NO_CPUAFFINITY 1 -genvlist DISPLAYCLUSTER_DIR,PYTHONPATH,LD_LIBRARY_PATH -hosts ' + hostListString + ' ' + dcPath + '/bin/displaycluster.py' + params
+else:
+    startCommand = mpirunCommand + ' -x DISPLAYCLUSTER_DIR -x PYTHONPATH -x LD_LIBRARY_PATH -host ' + hostListString + ' ' + dcPath + '/bin/displaycluster.py' + params
+
+print 'launching with command: ' + startCommand
+
+subprocess.call(shlex.split(startCommand))
