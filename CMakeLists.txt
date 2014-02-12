@@ -59,6 +59,7 @@ include(${QT_USE_FILE})
 
 # build options
 if(OPENGL_FOUND AND MPI_FOUND AND FFMPEG_FOUND AND FCGI_FOUND)
+  include_directories(SYSTEM ${MPI_INCLUDE_PATH})
   set(BUILD_CORE_LIBRARY ON)
 endif()
 
