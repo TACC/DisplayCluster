@@ -88,6 +88,11 @@ if(BUILD_CORE_LIBRARY)
     dcWebservice/ResponseTests.cpp
     dcWebservice/ServerTests.cpp
   )
+
+  # Performance tests
+  list(APPEND PERF_TEST_FILES
+    perf/dcStreamTests.cpp
+  )
 endif()
 list(SORT TEST_FILES)
 
@@ -126,11 +131,6 @@ set(TEST_RESOURCES webgl_interaction.html configuration.xml)
 foreach(FILE ${TEST_RESOURCES})
   file(COPY ${FILE} DESTINATION ${CMAKE_BINARY_DIR}/tests)
 endforeach()
-
-# Performance tests
-list(APPEND PERF_TEST_FILES
-  perf/dcStreamTests.cpp
-)
 
 # Create executables but do not add them to the tests target
 foreach(FILE ${PERF_TEST_FILES})
