@@ -6,8 +6,8 @@ cmake_minimum_required(VERSION 2.4.0)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMake")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
-if(NOT BUILDYARD)
-  include(Buildyard)
+include(Buildyard)
+if(BUILDYARD_STOP)
   return()
 endif()
 
