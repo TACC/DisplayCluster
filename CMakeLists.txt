@@ -168,6 +168,7 @@ if(BUILD_DISPLAYCLUSTER)
         src/PixelStreamContent.cpp
         src/PixelStreamSource.cpp
         src/SVG.cpp
+        src/SSaver.cpp
         src/SVGContent.cpp
         src/SVGStreamSource.cpp
         src/Texture.cpp
@@ -186,6 +187,7 @@ if(BUILD_DISPLAYCLUSTER)
         src/NetworkListener.h
         src/NetworkListenerThread.h
         src/Options.h
+				src/SSaver.h
     )
 
     # add OPTIONS hacks for Qt's MOC processing of Boost headers, for compiler errors with some versions of Boost

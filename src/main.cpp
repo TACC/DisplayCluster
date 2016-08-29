@@ -41,6 +41,7 @@
 #include "log.h"
 #include <mpi.h>
 #include <unistd.h>
+#include "SSaver.h"
 
 #if ENABLE_TUIO_TOUCH_LISTENER
     #include "TouchListener.h"
@@ -88,12 +89,31 @@ int main(int argc, char * argv[])
     XInitThreads();
 #endif
 
-    g_app = new QApplication(argc, argv);
-
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &g_mpiRank);
     MPI_Comm_size(MPI_COMM_WORLD, &g_mpiSize);
     MPI_Comm_split(MPI_COMM_WORLD, g_mpiRank != 0, g_mpiRank, &g_mpiRenderComm);
+
+#if 1
+    if (g_mpiRank == 0)
+    {
+      std::stringstream s;
+      pid_t pid = getpid();
+      s << "~/dbg_script " << (const char *)argv[0] << " " << pid << " " << g_mpiRank << " &";
+      std::cerr << "running " << s.str().c_str() << "\n";
+      system(s.str().c_str());
+
+      int dbg = 1;
+      while(dbg)
+        sleep(1);
+    }
+#endif
+
+		if (g_mpiRank == 0)
+			g_app = (QApplication *) new QSSApplication(argc, argv);
+		else
+			g_app = new QApplication(argc, argv);
+
 
     g_configuration = new Configuration((std::string(g_displayClusterDir) + std::string("/configuration.xml")).c_str());
 

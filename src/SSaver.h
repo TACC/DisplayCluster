@@ -36,73 +36,73 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MAIN_H
-#define MAIN_H
+#ifndef SSAVER_H
+#define SSAVER_H
 
-#include "Configuration.h"
-#include "MainWindow.h"
-#include "DisplayGroupManager.h"
-#include "NetworkListener.h"
-#include "config.h"
-#include <boost/shared_ptr.hpp>
-#include <mpi.h>
-
-#if 0
+#include <iostream>
+#include <math.h>
 #include <QtGui>
 
-class QDCApplication : public QApplication
+class QSSApplication : public QApplication
 {
+	enum {sleeping, going_to_sleep, waking_up, awake};
+
 	Q_OBJECT
 
 public:
 	QTimer m_timer;
 
-	QDCApplication(int& argc, char **argv) : QApplication(argc, argv)
+	QSSApplication(int& argc, char **argv) : QApplication(argc, argv)
 	{
-		m_timer.setInterval(5000);
-		connect(&m_timer, SIGNAL(timeout()), this, SLOT(idle_reset()));
+		interval = (getenv("DISPLAYCLUSTER_TIMEOUT") == NULL) ? 5000 : 1000*60*atoi(getenv("DISPLAYCLUSTER_TIMEOUT"));
+		sleepState = awake;
+
+		m_timer.setInterval(interval);
+		connect(&m_timer, SIGNAL(timeout()), this, SLOT(go_to_sleep()));
 		m_timer.start();
 	}
 
 public slots:
 
-	void idle_reset()
+	void go_to_sleep()
 	{
-		m_timer.stop();
-		std::cerr << ".\n";
-		m_timer.start();
+		if (sleepState == awake)
+		{
+			sleepState = going_to_sleep;
+			sleep_start();
+			sleepState = sleeping;
+			m_timer.stop();
+		}
 	}
 
 public:
 
 	bool notify(QObject *r, QEvent *e)
 	{
-		if (e->type() == QEvent::MouseMove || e->type() == QEvent::KeyPress)
+		if (e->type() == QEvent::MouseMove || e->type() == QEvent::MouseButtonPress || e->type() == QEvent::KeyPress)
 		{
-			m_timer.stop();
+			if (sleepState == sleeping)
+			{
+				sleepState = waking_up;
+				sleep_end();
+				sleepState = awake;
+			}
+			else 
+				m_timer.stop();
 			m_timer.start();
 		}
 		return QApplication::notify(r, e);
 	}
+
+public:
+
+	virtual void sleep_start();
+	virtual void sleep_end();
+
+private:
+	int sleepState;
+	int interval;
+	
 };
-
-#endif
-
-extern std::string g_displayClusterDir;
-extern QApplication * g_app;
-extern int g_mpiRank;
-extern int g_mpiSize;
-extern MPI_Comm g_mpiRenderComm;
-extern Configuration * g_configuration;
-extern boost::shared_ptr<DisplayGroupManager> g_displayGroupManager;
-extern MainWindow * g_mainWindow;
-extern NetworkListener * g_networkListener;
-extern long g_frameCount;
-
-#if ENABLE_SKELETON_SUPPORT
-    class SkeletonThread;
-
-    extern SkeletonThread * g_skeletonThread;
-#endif
 
 #endif

@@ -36,73 +36,23 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MAIN_H
-#define MAIN_H
+#include <iostream>
+#include "main.h"
+#include "SSaver.h"
 
-#include "Configuration.h"
-#include "MainWindow.h"
-#include "DisplayGroupManager.h"
-#include "NetworkListener.h"
-#include "config.h"
-#include <boost/shared_ptr.hpp>
-#include <mpi.h>
+static QString state;
 
-#if 0
-#include <QtGui>
-
-class QDCApplication : public QApplication
+void
+QSSApplication::sleep_start()
 {
-	Q_OBJECT
+	g_displayGroupManager->saveStateXML(state);
+	g_displayGroupManager->setContentWindowManagers(std::vector<boost::shared_ptr<ContentWindowManager> >());
+	std::cout << "going to sleep\n";
+}
 
-public:
-	QTimer m_timer;
-
-	QDCApplication(int& argc, char **argv) : QApplication(argc, argv)
-	{
-		m_timer.setInterval(5000);
-		connect(&m_timer, SIGNAL(timeout()), this, SLOT(idle_reset()));
-		m_timer.start();
-	}
-
-public slots:
-
-	void idle_reset()
-	{
-		m_timer.stop();
-		std::cerr << ".\n";
-		m_timer.start();
-	}
-
-public:
-
-	bool notify(QObject *r, QEvent *e)
-	{
-		if (e->type() == QEvent::MouseMove || e->type() == QEvent::KeyPress)
-		{
-			m_timer.stop();
-			m_timer.start();
-		}
-		return QApplication::notify(r, e);
-	}
-};
-
-#endif
-
-extern std::string g_displayClusterDir;
-extern QApplication * g_app;
-extern int g_mpiRank;
-extern int g_mpiSize;
-extern MPI_Comm g_mpiRenderComm;
-extern Configuration * g_configuration;
-extern boost::shared_ptr<DisplayGroupManager> g_displayGroupManager;
-extern MainWindow * g_mainWindow;
-extern NetworkListener * g_networkListener;
-extern long g_frameCount;
-
-#if ENABLE_SKELETON_SUPPORT
-    class SkeletonThread;
-
-    extern SkeletonThread * g_skeletonThread;
-#endif
-
-#endif
+void 
+QSSApplication::sleep_end()
+{
+	g_displayGroupManager->loadStateXML(state);
+	std::cout << "waking up\n";
+}

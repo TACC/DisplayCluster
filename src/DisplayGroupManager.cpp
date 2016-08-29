@@ -48,6 +48,8 @@
 #include "SVGStreamSource.h"
 #include "SVGContent.h"
 #include <sstream>
+#include <boost/iostreams/device/array.hpp>
+#include <boost/iostreams/stream.hpp>
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/shared_ptr.hpp>
 #include <boost/serialization/utility.hpp>
@@ -181,16 +183,17 @@ void DisplayGroupManager::calibrateTimestampOffset()
     if(g_mpiRank == 1)
     {
         // serialize state
-        std::ostringstream oss(std::ostringstream::binary);
+        std::string serializedString;
 
         // brace this so destructor is called on archive before we use the stream
         {
+						std::ostringstream oss(std::ostringstream::binary);
             boost::archive::binary_oarchive oa(oss);
             oa << timestamp;
+						serializedString = oss.str();
         }
 
         // serialized data to string
-        std::string serializedString = oss.str();
         int size = serializedString.size();
 
         // send the header and the message
@@ -215,13 +218,9 @@ void DisplayGroupManager::calibrateTimestampOffset()
         MPI_Recv((void *)buf, messageHeader.size, MPI_BYTE, 1, 0, MPI_COMM_WORLD, &status);
 
         // de-serialize...
-        std::istringstream iss(std::istringstream::binary);
 
-        if(iss.rdbuf()->pubsetbuf(buf, messageHeader.size) == NULL)
-        {
-            put_flog(LOG_FATAL, "rank %i: error setting stream buffer", g_mpiRank);
-            exit(-1);
-        }
+				boost::iostreams::basic_array_source<char> device(buf, messageHeader.size);
+				boost::iostreams::stream<boost::iostreams::basic_array_source<char> > iss(device);
 
         // read to a new timestamp
         boost::posix_time::ptime rank1Timestamp;
@@ -239,7 +238,7 @@ void DisplayGroupManager::calibrateTimestampOffset()
     }
 }
 
-bool DisplayGroupManager::saveStateXMLFile(std::string filename)
+bool DisplayGroupManager::saveStateXML(QString& xml)
 {
     // get contents vector
     std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers = getContentWindowManagers();
@@ -312,10 +311,17 @@ bool DisplayGroupManager::saveStateXMLFile(std::string filename)
         cwmNode.appendChild(n);
     }
 
-    QString xml = doc.toString();
+    xml = doc.toString();
+		return true;
+}
+
+bool DisplayGroupManager::saveStateXMLFile(std::string filename)
+{
+		QString xml;
+
+		saveStateXML(xml);
 
     std::ofstream ofs(filename.c_str());
-
     if(ofs.good() == true)
     {
         ofs << xml.toStdString();
@@ -328,22 +334,21 @@ bool DisplayGroupManager::saveStateXMLFile(std::string filename)
     }
 }
 
-bool DisplayGroupManager::loadStateXMLFile(std::string filename)
+bool DisplayGroupManager::loadStateXML(QString xml)
 {
-    QXmlQuery query;
+		QBuffer buffer;
+		buffer.setData(xml.toUtf8().constData(), xml.length());
+		buffer.open(QIODevice::ReadOnly);
 
-    if(query.setFocus(QUrl(filename.c_str())) == false)
-    {
-        put_flog(LOG_ERROR, "failed to load %s", filename.c_str());
-        return false;
-    }
+    QXmlQuery query;
+		query.bindVariable("DOC", &buffer);
 
     // temp
     QString qstring;
 
     // get version; we don't do anything with it now but may in the future
     int version = -1;
-    query.setQuery("string(/state/version)");
+    query.setQuery("doc($DOC)/state/version/text()");
 
     if(query.evaluateTo(&qstring) == true)
     {
@@ -352,7 +357,7 @@ bool DisplayGroupManager::loadStateXMLFile(std::string filename)
 
     // get number of content windows
     int numContentWindows = 0;
-    query.setQuery("string(count(//state/ContentWindow))");
+    query.setQuery("count(doc($DOC)//state/ContentWindow)");
 
     if(query.evaluateTo(&qstring) == true)
     {
@@ -369,7 +374,7 @@ bool DisplayGroupManager::loadStateXMLFile(std::string filename)
         char string[1024];
 
         std::string uri;
-        sprintf(string, "string(//state/ContentWindow[%i]/URI)", i);
+        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/URI/text()", i);
         query.setQuery(string);
 
         if(query.evaluateTo(&qstring) == true)
@@ -387,7 +392,7 @@ bool DisplayGroupManager::loadStateXMLFile(std::string filename)
 
         bool selected = false;
 
-        sprintf(string, "string(//state/ContentWindow[%i]/x)", i);
+        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/x/text()", i);
         query.setQuery(string);
 
         if(query.evaluateTo(&qstring) == true)
@@ -395,7 +400,7 @@ bool DisplayGroupManager::loadStateXMLFile(std::string filename)
             x = qstring.toDouble();
         }
 
-        sprintf(string, "string(//state/ContentWindow[%i]/y)", i);
+        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/y/text()", i);
         query.setQuery(string);
 
         if(query.evaluateTo(&qstring) == true)
@@ -403,7 +408,7 @@ bool DisplayGroupManager::loadStateXMLFile(std::string filename)
             y = qstring.toDouble();
         }
 
-        sprintf(string, "string(//state/ContentWindow[%i]/w)", i);
+        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/w/text()", i);
         query.setQuery(string);
 
         if(query.evaluateTo(&qstring) == true)
@@ -411,7 +416,7 @@ bool DisplayGroupManager::loadStateXMLFile(std::string filename)
             w = qstring.toDouble();
         }
 
-        sprintf(string, "string(//state/ContentWindow[%i]/h)", i);
+        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/h/text()", i);
         query.setQuery(string);
 
         if(query.evaluateTo(&qstring) == true)
@@ -419,7 +424,7 @@ bool DisplayGroupManager::loadStateXMLFile(std::string filename)
             h = qstring.toDouble();
         }
 
-        sprintf(string, "string(//state/ContentWindow[%i]/centerX)", i);
+        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/centerX/text()", i);
         query.setQuery(string);
 
         if(query.evaluateTo(&qstring) == true)
@@ -427,7 +432,7 @@ bool DisplayGroupManager::loadStateXMLFile(std::string filename)
             centerX = qstring.toDouble();
         }
 
-        sprintf(string, "string(//state/ContentWindow[%i]/centerY)", i);
+        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/centerY/text()", i);
         query.setQuery(string);
 
         if(query.evaluateTo(&qstring) == true)
@@ -435,7 +440,7 @@ bool DisplayGroupManager::loadStateXMLFile(std::string filename)
             centerY = qstring.toDouble();
         }
 
-        sprintf(string, "string(//state/ContentWindow[%i]/zoom)", i);
+        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/zoom/text()", i);
         query.setQuery(string);
 
         if(query.evaluateTo(&qstring) == true)
@@ -443,7 +448,7 @@ bool DisplayGroupManager::loadStateXMLFile(std::string filename)
             zoom = qstring.toDouble();
         }
 
-        sprintf(string, "string(//state/ContentWindow[%i]/selected)", i);
+        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/selected/text()", i);
         query.setQuery(string);
 
         if(query.evaluateTo(&qstring) == true)
@@ -498,6 +503,23 @@ bool DisplayGroupManager::loadStateXMLFile(std::string filename)
     {
         put_flog(LOG_WARN, "no content windows specified in the state file");
     }
+
+    return true;
+}
+
+bool DisplayGroupManager::loadStateXMLFile(std::string filename)
+{
+		QFile file(filename.c_str());
+		if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+		{
+				std::cerr << "error\n";
+				exit(1);
+		}
+
+		QByteArray barray = file.readAll();
+		QString str(barray);
+
+		loadStateXML(str);
 
     return true;
 }
@@ -630,13 +652,9 @@ void DisplayGroupManager::sendContentsDimensionsRequest()
     MPI_Recv((void *)buf, mh.size, MPI_BYTE, 1, 0, MPI_COMM_WORLD, &status);
 
     // de-serialize...
-    std::istringstream iss(std::istringstream::binary);
 
-    if(iss.rdbuf()->pubsetbuf(buf, mh.size) == NULL)
-    {
-        put_flog(LOG_FATAL, "rank %i: error setting stream buffer", g_mpiRank);
-        exit(-1);
-    }
+		boost::iostreams::basic_array_source<char> device(buf, mh.size);
+		boost::iostreams::stream<boost::iostreams::basic_array_source<char> > iss(device);
 
     // read to a new vector
     std::vector<std::pair<int, int> > dimensions;
@@ -964,13 +982,9 @@ void DisplayGroupManager::receiveFrameClockUpdate()
     MPI_Bcast((void *)buf, messageHeader.size, MPI_BYTE, 0, g_mpiRenderComm);
 
     // de-serialize...
-    std::istringstream iss(std::istringstream::binary);
 
-    if(iss.rdbuf()->pubsetbuf(buf, messageHeader.size) == NULL)
-    {
-        put_flog(LOG_FATAL, "rank %i: error setting stream buffer", g_mpiRank);
-        exit(-1);
-    }
+		boost::iostreams::basic_array_source<char> device(buf, messageHeader.size);
+		boost::iostreams::stream<boost::iostreams::basic_array_source<char> > iss(device);
 
     // read to a new timestamp
     boost::shared_ptr<boost::posix_time::ptime> timestamp;
@@ -1026,13 +1040,9 @@ void DisplayGroupManager::receiveDisplayGroup(MessageHeader messageHeader)
     MPI_Bcast((void *)buf, messageHeader.size, MPI_BYTE, 0, MPI_COMM_WORLD);
 
     // de-serialize...
-    std::istringstream iss(std::istringstream::binary);
 
-    if(iss.rdbuf()->pubsetbuf(buf, messageHeader.size) == NULL)
-    {
-        put_flog(LOG_FATAL, "rank %i: error setting stream buffer", g_mpiRank);
-        exit(-1);
-    }
+		boost::iostreams::basic_array_source<char> device(buf, messageHeader.size);
+		boost::iostreams::stream<boost::iostreams::basic_array_source<char> > iss(device);
 
     // read to a new display group
     boost::shared_ptr<DisplayGroupManager> displayGroupManager;
@@ -1117,13 +1127,9 @@ void DisplayGroupManager::receiveParallelPixelStreams(MessageHeader messageHeade
     std::string uri = std::string(messageHeader.uri);
 
     // de-serialize...
-    std::istringstream iss(std::istringstream::binary);
 
-    if(iss.rdbuf()->pubsetbuf(buf, messageHeader.size) == NULL)
-    {
-        put_flog(LOG_FATAL, "rank %i: error setting stream buffer", g_mpiRank);
-        exit(-1);
-    }
+		boost::iostreams::basic_array_source<char> device(buf, messageHeader.size);
+		boost::iostreams::stream<boost::iostreams::basic_array_source<char> > iss(device);
 
     // read to a new segments vector
     std::vector<ParallelPixelStreamSegment> segments;

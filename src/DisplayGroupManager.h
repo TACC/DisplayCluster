@@ -89,6 +89,9 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         bool saveStateXMLFile(std::string filename);
         bool loadStateXMLFile(std::string filename);
 
+				bool loadStateXML(QString);
+				bool saveStateXML(QString&);
+
         void receiveMessages();
 
         void sendDisplayGroup();
