@@ -102,6 +102,16 @@ class pyDisplayGroupPython
             get()->loadState(filenameString);
         }
 
+        void pushState()
+        {
+            get()->pushState();
+        }
+
+        void popState()
+        {
+            get()->popState();
+        }
+
         int getNumContentWindowManagers()
         {
             return get()->getContentWindowManagers().size();

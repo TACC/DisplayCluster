@@ -5,3 +5,4 @@
 %Include Content.sip
 %Include ContentWindowManager.sip
 %Include DisplayGroupPython.sip
+%Include pyScreenSaver.sip

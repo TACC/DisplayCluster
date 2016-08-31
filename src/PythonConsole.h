@@ -47,6 +47,12 @@ class MyPythonQt : public QObject
 {
     Q_OBJECT
 
+		public:
+        static MyPythonQt * self();
+		
+		private:
+				bool idle;
+
     signals:
 
         void evalDone();
@@ -58,11 +64,17 @@ class MyPythonQt : public QObject
 
         void evalString(QString * str);
         void loadFile(QString * str);
+				void screen_saver(bool i);
 
     private slots:
 
         void pythonStdOut(const QString&);
         void pythonStdErr(const QString&);
+
+		public:
+				bool get_idle() { return idle; }
+				void run_screen_saver();
+				void stop_screen_saver();
 };
 
 class PythonTypeIn : public QTextEdit
@@ -112,6 +124,7 @@ class PythonConsole : public QMainWindow
     public:
 
         static PythonConsole * self();
+        static MyPythonQt * pyqt();
         static void init();
 
     protected:
@@ -143,6 +156,13 @@ class PythonConsole : public QMainWindow
         QThread * pythonThread_;
         PythonTypeIn * typeIn_;
         QTextEdit * output_;
+};
+
+class pyMyPythonQt
+{
+public:
+	pyMyPythonQt();
+	bool get_idle();
 };
 
 #endif

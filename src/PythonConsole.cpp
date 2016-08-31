@@ -36,7 +36,10 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
+#include "main.h"
 #include "PythonConsole.h"
+#include "SSaver.h"
+#include "pthread.h"
 
 void MyPythonQt::evalString(QString * code)
 {
@@ -47,6 +50,37 @@ void MyPythonQt::evalString(QString * code)
     delete code;
 
     emit(evalDone());
+}
+
+void MyPythonQt::screen_saver(bool onOff)
+{
+		// std::cerr << "MyPythonQt SS slot: " << (onOff ? "ON" : "OFF") << "\n";
+		if (onOff) run_screen_saver();
+		else stop_screen_saver();
+}
+
+void MyPythonQt::stop_screen_saver()
+{
+		idle = false;
+}
+
+void
+MyPythonQt::run_screen_saver()
+{
+		idle = true;
+
+		char *ssfile = getenv("DISPLAYCLUSTER_SCREENSAVER");
+		if (ssfile)
+		{
+			QString cmd;
+			if (ssfile[0] == '/')
+				cmd = QString("execfile('") + ssfile + QString("')");
+			else
+				cmd = QString("execfile('") + getenv("DISPLAYCLUSTER_DIR") + "/" + ssfile + QString("')");
+			PythonQtObjectPtr context = PythonQt::self()->getMainModule();
+			PyObject * dict = PyModule_GetDict(context);
+			PyRun_String(cmd.toLatin1().data(), Py_single_input, dict, dict);
+		}
 }
 
 void MyPythonQt::loadFile(QString * str)
@@ -84,6 +118,7 @@ PythonTypeIn::PythonTypeIn()
     completer_ = new QCompleter(this);
     completer_->setWidget(this);
 
+    QObject::connect(completer_, SIGNAL(activated(const QString &)), this, SLOT(insertCompletion(const QString &)));
     QObject::connect(completer_, SIGNAL(activated(const QString &)), this, SLOT(insertCompletion(const QString &)));
 }
 
@@ -491,20 +526,37 @@ void PythonTypeIn::changeHistory()
 MyPythonQt * PythonConsole::thePythonQt_;
 PythonConsole * PythonConsole::thePythonConsole_;
 
+pyMyPythonQt::pyMyPythonQt(){}
+
+bool
+pyMyPythonQt::get_idle()
+{
+	return MyPythonQt::self()->get_idle();
+}
+
 PythonConsole * PythonConsole::self()
 {
-    return thePythonConsole_;
+    return PythonConsole::thePythonConsole_;
+}
+
+MyPythonQt * PythonConsole::pyqt()
+{
+    return PythonConsole::thePythonQt_;
+}
+
+MyPythonQt * MyPythonQt::self()
+{
+    return PythonConsole::pyqt();
 }
 
 void PythonConsole::init()
 {
     PythonQt::init(PythonQt::IgnoreSiteModule | PythonQt::RedirectStdOut);
-
     thePythonQt_ = new MyPythonQt();
     thePythonConsole_ = new PythonConsole();
 
     connect(PythonQt::self(), SIGNAL(pythonStdOut(const QString &)), thePythonQt_, SLOT(pythonStdOut(const QString &)));
-    connect(PythonQt::self(), SIGNAL(pythonStdErr(const QString &)), thePythonQt_, SLOT(pythonStdErr(const QString &)));
+    connect(((QSSApplication *)g_app), SIGNAL(idling(bool)), thePythonQt_, SLOT(screen_saver(bool)));
 }
 
 PythonConsole::PythonConsole()
@@ -513,7 +565,6 @@ PythonConsole::PythonConsole()
 
     pythonThread_ = new QThread;
     pythonThread_->start();
-
     thePythonQt_->moveToThread(pythonThread_);
 
     QGridLayout * layout = new QGridLayout;
@@ -615,3 +666,4 @@ void PythonConsole::clear()
     clearInput();
     clearOutput();
 }
+

@@ -36,92 +36,32 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef CONTENT_H
-#define CONTENT_H
+#include <iostream>
+#include "main.h"
+#include "SSaver.h"
+#include "PythonConsole.h"
 
-#define ERROR_IMAGE_FILENAME "error.png"
+static QString state;
 
-#include <string>
-#include <QtGui>
-#include <boost/shared_ptr.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/serialization/assume_abstract.hpp>
+QSSApplication::QSSApplication(int& argc, char **argv) : QApplication(argc, argv)
+{
+	interval = (getenv("DISPLAYCLUSTER_TIMEOUT") == NULL) ? 5000 : 1000*atoi(getenv("DISPLAYCLUSTER_TIMEOUT"));
+	sleepState = awake;
+	m_timer.setInterval(interval);
+	connect(&m_timer, SIGNAL(timeout()), this, SLOT(go_to_sleep()));
+	m_timer.start();
+}
 
-enum CONTENT_TYPE { CONTENT_TYPE_ANY, CONTENT_TYPE_DYNAMIC_TEXTURE, CONTENT_TYPE_MOVIE, CONTENT_TYPE_PIXEL_STREAM, CONTENT_TYPE_PARALLEL_PIXEL_STREAM, CONTENT_TYPE_SVG, CONTENT_TYPE_TEXTURE };
 
-class ContentWindowManager;
+void
+QSSApplication::sleep_start()
+{
+	// std::cout << "going to sleep\n";
+}
 
-class Content : public QObject {
-    Q_OBJECT
-
-    public:
-
-        Content(std::string uri = "");
-
-        std::string getURI();
-
-        virtual CONTENT_TYPE getType() = 0;
-
-        void getDimensions(int &width, int &height);
-        void setDimensions(int width, int height);
-        virtual void getFactoryObjectDimensions(int &width, int &height) = 0;
-        void render(boost::shared_ptr<ContentWindowManager> window);
-
-        // virtual method for implementing actions on advancing to a new frame
-        // useful when a process has multiple GLWindows
-        virtual void advance(boost::shared_ptr<ContentWindowManager>) { }
-
-        // get a Content object of the appropriate derived type based on the URI given
-        static boost::shared_ptr<Content> getContent(std::string uri);
-
-    signals:
-
-        void dimensionsChanged(int width, int height);
-
-    protected:
-        friend class boost::serialization::access;
-
-        template<class Archive>
-        void serialize(Archive & ar, const unsigned int)
-        {
-            ar & uri_;
-            ar & width_;
-            ar & height_;
-        }
-
-        std::string uri_;
-        int width_;
-        int height_;
-
-        virtual void renderFactoryObject(float tX, float tY, float tW, float tH) = 0;
-};
-
-BOOST_SERIALIZATION_ASSUME_ABSTRACT(Content)
-
-// typedef needed for SIP
-typedef boost::shared_ptr<Content> pContent;
-
-class pyContent {
-
-    public:
-
-        pyContent(const char * str);
-        pyContent(boost::shared_ptr<Content> c);
-
-        boost::shared_ptr<Content> get()
-        {
-            return ptr_;
-        }
-
-        const char * getURI()
-        {
-            return (const char *)ptr_->getURI().c_str();
-        }
-
-    protected:
-
-        boost::shared_ptr<Content> ptr_;
-};
-
-#endif
+void 
+QSSApplication::sleep_end()
+{
+	PythonConsole::pyqt()->stop_screen_saver();
+	// std::cout << "waking up\n";
+}

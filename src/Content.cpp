@@ -235,3 +235,15 @@ boost::shared_ptr<Content> Content::getContent(std::string uri)
     // otherwise, return NULL
     return boost::shared_ptr<Content>();
 }
+
+pyContent::pyContent(const char * str)
+{
+		boost::shared_ptr<Content> c(Content::getContent(std::string(str)));
+		ptr_ = c;
+}
+
+pyContent::pyContent(boost::shared_ptr<Content> c)
+{
+		ptr_ = c;
+}
+

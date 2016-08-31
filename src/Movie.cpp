@@ -175,7 +175,7 @@ Movie::~Movie()
     }
 
     // close the format context
-    av_close_input_file(avFormatContext_);
+    avformat_close_input(&avFormatContext_);
 
     // free scaler context
     sws_freeContext(swsContext_);

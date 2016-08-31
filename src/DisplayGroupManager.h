@@ -46,6 +46,7 @@
 #include "config.h"
 #include <QtGui>
 #include <vector>
+#include <stack>
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/archive/binary_oarchive.hpp>
@@ -84,10 +85,18 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         // find the offset between the rank 0 clock and the rank 1 clock. recall the rank 1 clock is used across rank 1 - n.
         void calibrateTimestampOffset();
 
+				std::stack<QString> state_stack;
+
+				void pushState();
+				void popState();
+
     public slots:
 
         bool saveStateXMLFile(std::string filename);
         bool loadStateXMLFile(std::string filename);
+
+				bool loadStateXML(QString);
+				bool saveStateXML(QString&);
 
         void receiveMessages();
 
