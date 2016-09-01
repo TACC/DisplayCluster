@@ -37,9 +37,21 @@ while pydc.pyMyPythonQt().get_idle():
 	if (pongimage != None) and ((time() - t0) < pongtime):
 		x,y,w,h = pongimage.getCoordinates()
 		x = x + dx
-		if (x + w) > 1.0: x = 2.0 - x
+		if (x + w) > 1.0: 
+			x = 2.0 - (x+w) - w
+			dx = -dx
+		elif x < 0.0:
+			x = -x
+			dx = -dx
+			
 		y = y + dy
-		if (y + h) > 1.0: y = 2.0 - y
+		if (y + h) > 1.0: 
+			y = 2.0 - (y+h) - h
+			dy = -dy
+		elif y < 0.0:
+			y = -y
+			dy = -dy
+
 		pongimage.setPosition(x, y)
 	else:
 		if pongimage != None:

@@ -1,4 +1,3 @@
-print "hello!"
 from time import sleep
 
 dgm = pydc.pyDisplayGroupPython()
@@ -10,22 +9,16 @@ dy = 1.0/500.0
 orig = []
 deltas = []
 
-print 'aaaa'
-
 for i in range(dgm.getNumContentWindowManagers()):
-	# print 'bbbb'
 	cw = dgm.getPyContentWindowManager(i)
-	# print 'cccc'
 	x,y,w,h = cw.getCoordinates()
 	deltas.append([x,y,w,h,dx,dy])
-	# print 'dddd'
 	orig.append(deltas[-1][:2])
-	# print 'eeee'
 
-print "ffff"
+
+print dir(dgm)
 
 while pydc.pyMyPythonQt().get_idle():
-	print "sleep"
 
 	for i in range(dgm.getNumContentWindowManagers()):
 		cw = dgm.getPyContentWindowManager(i)
@@ -67,11 +60,8 @@ while pydc.pyMyPythonQt().get_idle():
 
 		cw.setPosition(x,y)
 
-	print "sleep"
 	sleep(0.02)
 
 for i in range(dgm.getNumContentWindowManagers()):
 	cw = dgm.getPyContentWindowManager(i)
 	cw.setPosition(orig[i][0], orig[i][1])
-
-print "bye!"
