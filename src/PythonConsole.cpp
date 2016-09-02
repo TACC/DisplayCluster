@@ -551,6 +551,8 @@ MyPythonQt * MyPythonQt::self()
 
 void PythonConsole::init()
 {
+	std::cerr << "Python startng\n";
+
     PythonQt::init(PythonQt::IgnoreSiteModule | PythonQt::RedirectStdOut);
     thePythonQt_ = new MyPythonQt();
     thePythonConsole_ = new PythonConsole();
