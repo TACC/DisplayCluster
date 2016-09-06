@@ -1,3 +1,4 @@
+print "MoveOff screen saver entry"
 import os
 from time import time
 from time import sleep
@@ -12,18 +13,28 @@ if 'DISPLAYCLUSTER_SCREENSAVER_IMAGE' in os.environ:
 else:
 	pongtime = 0
 
+print "A"
+
 for i in range(dgm.getNumContentWindowManagers()):
 	cw = dgm.getPyContentWindowManager(i)
 	x,y,w,h = cw.getCoordinates()
 	deltas.append([x,y,w,h,dx,dy])
 	orig.append(deltas[-1][:2])
 	cw.setPosition(1,1)
+	print i
 
 dx = 1.0/500.0
 dy = 1.0/500.0
 
+for i in os.environ:
+	print i, os.environ[i]
+
+print "B" os.environ['DISPLAYCLUSTER_SCREENSAVER_IMAGE']
+
+
 pongimage = None
 if 'DISPLAYCLUSTER_SCREENSAVER_IMAGE' in os.environ:
+	print i
 	fname = os.environ['DISPLAYCLUSTER_SCREENSAVER_IMAGE']
 	if fname[0] != '/':
 		fname = os.environ['DISPLAYCLUSTER_DIR'] + '/' + fname
@@ -32,8 +43,11 @@ if 'DISPLAYCLUSTER_SCREENSAVER_IMAGE' in os.environ:
 		pongimage = pydc.pyContentWindowManager(pydc.pyContent(fname))
 		dgm.addContentWindowManager(pongimage)
 
+print "C"
+
 t0 = time()
 while pydc.pyMyPythonQt().get_idle():
+	print '.'
 	if (pongimage != None) and ((time() - t0) < pongtime):
 		x,y,w,h = pongimage.getCoordinates()
 		x = x + dx
@@ -59,10 +73,17 @@ while pydc.pyMyPythonQt().get_idle():
 			pongimage = None
 	sleep(0.03333)
 
+print "D"
+
 if pongimage != None:
 	dgm.removeContentWindowManager(pongimage)
 	pongimage = None
 
+print "E"
+
 for i in range(dgm.getNumContentWindowManagers()):
+	print i
 	cw = dgm.getPyContentWindowManager(i)
 	cw.setPosition(orig[i][0], orig[i][1])
+
+print "MoveOff screen saver exit"

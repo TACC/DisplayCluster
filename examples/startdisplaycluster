@@ -11,6 +11,11 @@ import subprocess
 import shlex
 import distutils.spawn
 
+os.environ['DISPLAYCLUSTER_TIMEOUT'] = '900'
+os.environ['DISPLAYCLUSTER_SCREENSAVER'] = 'examples/screensaver_moveOff.py'
+os.environ['DISPLAYCLUSTER_SCREENSAVER_PONGTIME'] = '300'
+os.environ['DISPLAYCLUSTER_SCREENSAVER_IMAGE'] = 'examples/tacc-logo.png'
+
 # DisplayCluster directory; this is the parent directory of this script
 dcPath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
