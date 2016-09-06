@@ -18,7 +18,7 @@ print "A"
 for i in range(dgm.getNumContentWindowManagers()):
 	cw = dgm.getPyContentWindowManager(i)
 	x,y,w,h = cw.getCoordinates()
-	deltas.append([x,y,w,h,dx,dy])
+	deltas.append([x,y,w,h])
 	orig.append(deltas[-1][:2])
 	cw.setPosition(1,1)
 	print i

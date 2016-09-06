@@ -46,6 +46,7 @@ static QString state;
 QSSApplication::QSSApplication(int& argc, char **argv) : QApplication(argc, argv)
 {
 	interval = (getenv("DISPLAYCLUSTER_TIMEOUT") == NULL) ? 5000 : 1000*atoi(getenv("DISPLAYCLUSTER_TIMEOUT"));
+	std::cerr << "QSSApplication::QSSApplication interval " << interval << "\n";
 	sleepState = awake;
 	m_timer.setInterval(interval);
 	connect(&m_timer, SIGNAL(timeout()), this, SLOT(go_to_sleep()));
@@ -56,12 +57,12 @@ QSSApplication::QSSApplication(int& argc, char **argv) : QApplication(argc, argv
 void
 QSSApplication::sleep_start()
 {
-	// std::cout << "going to sleep\n";
+	std::cout << "going to sleep\n";
 }
 
 void 
 QSSApplication::sleep_end()
 {
 	PythonConsole::pyqt()->stop_screen_saver();
-	// std::cout << "waking up\n";
+	std::cout << "waking up\n";
 }
