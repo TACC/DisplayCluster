@@ -83,6 +83,7 @@ public:
 				sleep_end();
 				emit(idling(false));
 				sleepState = awake;
+				std::cerr << ".";
 			}
 			else 
 				m_timer.stop();

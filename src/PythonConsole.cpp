@@ -551,12 +551,11 @@ MyPythonQt * MyPythonQt::self()
 
 void PythonConsole::init()
 {
-	std::cerr << "Python startng\n";
-
     PythonQt::init(PythonQt::IgnoreSiteModule | PythonQt::RedirectStdOut);
     thePythonQt_ = new MyPythonQt();
     thePythonConsole_ = new PythonConsole();
 
+    connect(PythonQt::self(), SIGNAL(pythonStdErr(const QString &)), thePythonQt_, SLOT(pythonStdErr(const QString &)));
     connect(PythonQt::self(), SIGNAL(pythonStdOut(const QString &)), thePythonQt_, SLOT(pythonStdOut(const QString &)));
     connect(((QSSApplication *)g_app), SIGNAL(idling(bool)), thePythonQt_, SLOT(screen_saver(bool)));
 }
