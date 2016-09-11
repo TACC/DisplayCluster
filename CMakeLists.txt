@@ -167,6 +167,7 @@ if(BUILD_DISPLAYCLUSTER)
         src/PixelStream.cpp
         src/PixelStreamContent.cpp
         src/PixelStreamSource.cpp
+        src/Remote.cpp
         src/SVG.cpp
         src/SVGContent.cpp
         src/SVGStreamSource.cpp
@@ -187,6 +188,7 @@ if(BUILD_DISPLAYCLUSTER)
         src/NetworkListener.h
         src/NetworkListenerThread.h
         src/Options.h
+        src/Remote.h
         src/SSaver.h
     )
 
@@ -215,6 +217,9 @@ if(BUILD_DISPLAYCLUSTER)
     # install launchers
     INSTALL(PROGRAMS examples/startdisplaycluster DESTINATION bin)
     INSTALL(PROGRAMS examples/displaycluster.py DESTINATION bin)
+
+		# install remote controller
+    INSTALL(DIRECTORY remote DESTINATION .)
 
     # install data files
     INSTALL(DIRECTORY data DESTINATION .)

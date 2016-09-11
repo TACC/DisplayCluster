@@ -78,19 +78,26 @@ public:
 		if (e->type() == QEvent::MouseMove || e->type() == QEvent::MouseButtonPress || e->type() == QEvent::KeyPress)
 		{
 			if (sleepState == sleeping)
-			{
-				sleepState = waking_up;
-				sleep_end();
-				emit(idling(false));
-				sleepState = awake;
-				std::cerr << ".";
-			}
+				wakeup();
 			else 
+			{
 				m_timer.stop();
-			m_timer.start();
+				m_timer.start();
+			}
 		}
 		return QApplication::notify(r, e);
 	}
+
+	void wakeup()
+	{
+		sleepState = waking_up;
+		sleep_end();
+		emit(idling(false));
+		sleepState = awake;
+		m_timer.stop();
+		m_timer.start();
+	}
+		
 
 public:
 

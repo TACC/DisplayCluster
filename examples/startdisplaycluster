@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # example launcher for DisplayCluster
 # this should work for most cases, but can be modified for a particular
@@ -8,10 +8,18 @@ import os
 import sys
 import xml.etree.ElementTree as ET
 import subprocess
-import shlex
 import distutils.spawn
+import signal
+import shlex
 
-os.environ['DISPLAYCLUSTER_TIMEOUT'] = '900'
+def signalhandler(signum, a):
+	print "signalhandler"
+	os.system("kill -- -%s" % os.getpid())
+	sys.exit(1)
+
+signal.signal(signal.SIGINT, signalhandler)
+
+os.environ['DISPLAYCLUSTER_TIMEOUT'] = '1800'
 os.environ['DISPLAYCLUSTER_SCREENSAVER'] = 'examples/screensaver_moveOff.py'
 os.environ['DISPLAYCLUSTER_SCREENSAVER_PONGTIME'] = '300'
 os.environ['DISPLAYCLUSTER_SCREENSAVER_IMAGE'] = 'examples/tacc-logo.png'
@@ -66,8 +74,11 @@ if mpirunCommand is None:
     print 'Error, could not find mpirun executable in PATH'
     exit(-3)
 
-startCommand = mpirunCommand + ' -x DISPLAYCLUSTER_DIR -x PYTHONPATH -host ' + hostListString + ' ' + dcPath + '/bin/displaycluster.py'
+# startCommand = mpirunCommand + ' -x DISPLAYCLUSTER_DIR -x PYTHONPATH -host ' + hostListString + ' ' + dcPath + '/bin/displaycluster.py'
+startCommand = mpirunCommand + ' -host ' + hostListString + " " + dcPath + '/bin/displaycluster'
 
 print 'launching with command: ' + startCommand
 
+subprocess.Popen(['python', '%s/remote/app.py' % dcPath])
 subprocess.call(shlex.split(startCommand))
+os.system("kill -- -%s" % os.getpid())
