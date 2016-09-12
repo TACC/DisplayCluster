@@ -10,6 +10,7 @@ Remote::Remote(QObject* parent): QObject(parent)
   connect(&server, SIGNAL(newConnection()), this, SLOT(acceptConnection()));
 
   server.listen(QHostAddress::Any, 1900);
+  cerr << "XXXXXXXXXXXXXXXXXXXXX listening on 1900 XXXXXXXXXXXXXXXXXXXXXXXX\n";
 }
 
 Remote::~Remote()
@@ -25,10 +26,12 @@ void Remote::acceptConnection()
 
 void Remote::startRead()
 {
-  char buffer[1024] = {0};
-  client->read(buffer, client->bytesAvailable());
-  cout << buffer << endl;
-  client->close();
+	char buffer[1024] = {0};
+	client->read(buffer, client->bytesAvailable());
+	cout << buffer << endl;
+	client->close();
+
+	cerr << "RECEIVED " << buffer << "\n";
 
 	((QSSApplication *)g_app)->wakeup();
 
