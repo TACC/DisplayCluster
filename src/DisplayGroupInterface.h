@@ -63,6 +63,8 @@ class DisplayGroupInterface : public QObject {
         // remove all current ContentWindowManagers and add the vector of provided ContentWindowManagers
         void setContentWindowManagers(std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers);
 
+				void suspendSynchronization();
+				void resumeSynchronization();
 				void pushState();
 				void popState();
 

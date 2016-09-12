@@ -61,6 +61,8 @@
 
 DisplayGroupManager::DisplayGroupManager()
 {
+		synchronization_suspended = false;
+
     // create new Options object
     boost::shared_ptr<Options> options(new Options());
     options_ = options;
@@ -591,6 +593,9 @@ void DisplayGroupManager::receiveMessages()
 
 void DisplayGroupManager::sendDisplayGroup()
 {
+		if (synchronization_suspended)
+			return;
+
     // serialize state
     std::ostringstream oss(std::ostringstream::binary);
 
@@ -1182,4 +1187,23 @@ void DisplayGroupManager::popState()
 	state_stack.pop();
 }
 
+void DisplayGroupManager::suspendSynchronization()
+{
+	if (synchronization_suspended)
+		put_flog(LOG_DEBUG, "DisplayGroupManager::suspendSynchronization() while synchronization is suspended\n");
+	else
+		synchronization_suspended = true;
+}
+	
 
+void DisplayGroupManager::resumeSynchronization()
+{
+	if (! synchronization_suspended)
+		put_flog(LOG_DEBUG, "DisplayGroupManager::resumeSynchronization() while synchronization is NOT suspended\n");
+	else
+	{
+		synchronization_suspended = false;
+		sendDisplayGroup();
+	}
+}
+	

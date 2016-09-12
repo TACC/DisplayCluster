@@ -112,6 +112,16 @@ class pyDisplayGroupPython
             get()->popState();
         }
 
+        void suspendSynchronization()
+        {
+            get()->suspendSynchronization();
+        }
+
+        void resumeSynchronization()
+        {
+            get()->resumeSynchronization();
+        }
+
         int getNumContentWindowManagers()
         {
             return get()->getContentWindowManagers().size();

@@ -23,6 +23,8 @@ class pyDisplayGroupPython
     void loadState(const char * filename);
     void pushState();
     void popState();
+    void suspendSynchronization();
+    void resumeSynchronization();
 
     int getNumContentWindowManagers();
     pyContentWindowManager getPyContentWindowManager(int);

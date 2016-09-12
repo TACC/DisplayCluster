@@ -109,6 +109,9 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         void receiveFrameClockUpdate();
         void sendQuit();
 
+				void suspendSynchronization();
+				void resumeSynchronization();
+
         void advanceContents();
 
 #if ENABLE_SKELETON_SUPPORT
@@ -116,6 +119,8 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
 #endif
 
     private:
+				bool synchronization_suspended;
+
         friend class boost::serialization::access;
 
         template<class Archive>
