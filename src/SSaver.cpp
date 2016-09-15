@@ -39,6 +39,7 @@
 #include <iostream>
 #include "main.h"
 #include "SSaver.h"
+<<<<<<< HEAD
 
 static QString state;
 
@@ -47,12 +48,36 @@ QSSApplication::sleep_start()
 {
 	g_displayGroupManager->saveStateXML(state);
 	g_displayGroupManager->setContentWindowManagers(std::vector<boost::shared_ptr<ContentWindowManager> >());
+=======
+#include "PythonConsole.h"
+
+static QString state;
+
+QSSApplication::QSSApplication(int& argc, char **argv) : QApplication(argc, argv)
+{
+	interval = (getenv("DISPLAYCLUSTER_TIMEOUT") == NULL) ? 5000 : 1000*atoi(getenv("DISPLAYCLUSTER_TIMEOUT"));
+	std::cerr << "QSSApplication::QSSApplication interval " << interval << "\n";
+	sleepState = awake;
+	m_timer.setInterval(interval);
+	connect(&m_timer, SIGNAL(timeout()), this, SLOT(go_to_sleep()));
+	m_timer.start();
+}
+
+
+void
+QSSApplication::sleep_start()
+{
+>>>>>>> screensaver
 	std::cout << "going to sleep\n";
 }
 
 void 
 QSSApplication::sleep_end()
 {
+<<<<<<< HEAD
 	g_displayGroupManager->loadStateXML(state);
+=======
+	PythonConsole::pyqt()->stop_screen_saver();
+>>>>>>> screensaver
 	std::cout << "waking up\n";
 }

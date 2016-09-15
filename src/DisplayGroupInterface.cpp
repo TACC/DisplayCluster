@@ -85,6 +85,11 @@ std::vector<boost::shared_ptr<ContentWindowManager> > DisplayGroupInterface::get
     return contentWindowManagers_;
 }
 
+void DisplayGroupInterface::suspendSynchronization() { getDisplayGroupManager()->suspendSynchronization(); }
+void DisplayGroupInterface::resumeSynchronization() { getDisplayGroupManager()->resumeSynchronization(); }
+void DisplayGroupInterface::pushState() { getDisplayGroupManager()->pushState(); }
+void DisplayGroupInterface::popState() { getDisplayGroupManager()->popState(); }
+
 boost::shared_ptr<ContentWindowManager> DisplayGroupInterface::getContentWindowManager(std::string uri, CONTENT_TYPE contentType)
 {
     for(unsigned int i=0; i<contentWindowManagers_.size(); i++)

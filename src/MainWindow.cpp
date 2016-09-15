@@ -444,19 +444,19 @@ void MainWindow::saveState()
     }
 }
 
+void MainWindow::loadState(QString *filename)
+{
+        bool success = g_displayGroupManager->loadStateXMLFile(filename->toStdString());
+        if(success != true)
+            QMessageBox::warning(this, "Error", "Could not load state file.", QMessageBox::Ok, QMessageBox::Ok);
+}
+
 void MainWindow::loadState()
 {
-    QString filename = QFileDialog::getOpenFileName(this, "Load State", "", "State files (*.dcx)");
+				QString filename = QFileDialog::getOpenFileName(this, "Load State", "", "State files (*.dcx)");
 
-    if(!filename.isEmpty())
-    {
-        bool success = g_displayGroupManager->loadStateXMLFile(filename.toStdString());
-
-        if(success != true)
-        {
-            QMessageBox::warning(this, "Error", "Could not load state file.", QMessageBox::Ok, QMessageBox::Ok);
-        }
-    }
+				if(!filename.isEmpty())
+						loadState(&filename);
 }
 
 void MainWindow::computeImagePyramid()

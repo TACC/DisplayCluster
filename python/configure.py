@@ -75,7 +75,8 @@ makefile = pyqtconfig.QtGuiModuleMakefile(
 )
 
 makefile.extra_include_dirs.append("../src")
-makefile.extra_include_dirs.append(includeDirs)
+for i in includeDirs.split(';'):
+	makefile.extra_include_dirs.append(i)
 
 # Add the library we are wrapping.  The name doesn't include any platform
 # specific prefixes or extensions (e.g. the "lib" prefix on UNIX, or the

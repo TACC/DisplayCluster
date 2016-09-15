@@ -59,8 +59,19 @@
 #include <QDomDocument>
 #include <fstream>
 
+#include <pthread.h>
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+
+int 
+ptid()
+{
+	return (pthread_self() & 0xfffffff);
+}
+
 DisplayGroupManager::DisplayGroupManager()
 {
+		synchronization_suspended = false;
+
     // create new Options object
     boost::shared_ptr<Options> options(new Options());
     options_ = options;
@@ -317,9 +328,8 @@ bool DisplayGroupManager::saveStateXML(QString& xml)
 
 bool DisplayGroupManager::saveStateXMLFile(std::string filename)
 {
-		QString xml;
-
-		saveStateXML(xml);
+    QString xml;
+    saveStateXML(xml);
 
     std::ofstream ofs(filename.c_str());
     if(ofs.good() == true)
@@ -591,6 +601,13 @@ void DisplayGroupManager::receiveMessages()
 
 void DisplayGroupManager::sendDisplayGroup()
 {
+		if (synchronization_suspended)
+			return;
+
+// std::cerr << "SDG going for lock " << ptid() << "\n";
+		pthread_mutex_lock(&lock);
+// std::cerr << "SDG got lock " << ptid() << "\n";
+
     // serialize state
     std::ostringstream oss(std::ostringstream::binary);
 
@@ -621,6 +638,10 @@ void DisplayGroupManager::sendDisplayGroup()
 
     // broadcast the message
     MPI_Bcast((void *)serializedString.data(), size, MPI_BYTE, 0, MPI_COMM_WORLD);
+		MPI_Barrier(MPI_COMM_WORLD);
+
+		pthread_mutex_unlock(&lock);
+// std::cerr << "SDG released lock " << ptid() << "\n";
 }
 
 void DisplayGroupManager::sendContentsDimensionsRequest()
@@ -1033,6 +1054,10 @@ void DisplayGroupManager::setSkeletons(std::vector< boost::shared_ptr<SkeletonSt
 
 void DisplayGroupManager::receiveDisplayGroup(MessageHeader messageHeader)
 {
+// std::cerr << "RDG going for lock\n";
+		pthread_mutex_lock(&lock);
+// std::cerr << "RDG got lock\n";
+
     // receive serialized data
     char * buf = new char[messageHeader.size];
 
@@ -1053,8 +1078,13 @@ void DisplayGroupManager::receiveDisplayGroup(MessageHeader messageHeader)
     // overwrite old display group
     g_displayGroupManager = displayGroupManager;
 
+		MPI_Barrier(MPI_COMM_WORLD);
+
     // free mpi buffer
     delete [] buf;
+
+		pthread_mutex_unlock(&lock);
+// std::cerr << "RDG released lock\n";
 }
 
 void DisplayGroupManager::receiveContentsDimensionsRequest(MessageHeader messageHeader)
@@ -1167,3 +1197,40 @@ void DisplayGroupManager::receiveSVGStreams(MessageHeader messageHeader)
     // free mpi buffer
     delete [] buf;
 }
+
+
+void DisplayGroupManager::pushState()
+{
+	QString s;
+	saveStateXML(s);
+	state_stack.push(s);
+}
+
+void DisplayGroupManager::popState()
+{
+	loadStateXML(state_stack.top());
+	state_stack.pop();
+}
+
+void DisplayGroupManager::suspendSynchronization()
+{
+	// std::cerr << "SUSPEND\n";
+	if (synchronization_suspended)
+		put_flog(LOG_DEBUG, "DisplayGroupManager::suspendSynchronization() while synchronization is suspended\n");
+	else
+		synchronization_suspended = true;
+}
+	
+
+void DisplayGroupManager::resumeSynchronization()
+{
+	// std::cerr << "RESUME\n";
+	if (! synchronization_suspended)
+		put_flog(LOG_DEBUG, "DisplayGroupManager::resumeSynchronization() while synchronization is NOT suspended\n");
+	else
+	{
+		synchronization_suspended = false;
+		sendDisplayGroup();
+	}
+}
+	

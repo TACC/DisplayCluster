@@ -46,6 +46,7 @@
 #include "config.h"
 #include <QtGui>
 #include <vector>
+#include <stack>
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/archive/binary_oarchive.hpp>
@@ -84,6 +85,11 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         // find the offset between the rank 0 clock and the rank 1 clock. recall the rank 1 clock is used across rank 1 - n.
         void calibrateTimestampOffset();
 
+				std::stack<QString> state_stack;
+
+				void pushState();
+				void popState();
+
     public slots:
 
         bool saveStateXMLFile(std::string filename);
@@ -103,6 +109,9 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         void receiveFrameClockUpdate();
         void sendQuit();
 
+				void suspendSynchronization();
+				void resumeSynchronization();
+
         void advanceContents();
 
 #if ENABLE_SKELETON_SUPPORT
@@ -110,6 +119,8 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
 #endif
 
     private:
+				bool synchronization_suspended;
+
         friend class boost::serialization::access;
 
         template<class Archive>

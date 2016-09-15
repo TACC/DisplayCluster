@@ -61,6 +61,8 @@ class MainWindow : public QMainWindow {
         boost::shared_ptr<GLWindow> getActiveGLWindow();
         std::vector<boost::shared_ptr<GLWindow> > getGLWindows();
 
+        void loadState(QString *);
+
     public slots:
 
         void openContent();

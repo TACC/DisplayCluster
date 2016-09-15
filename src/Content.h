@@ -106,16 +106,8 @@ class pyContent {
 
     public:
 
-        pyContent(const char * str)
-        {
-            boost::shared_ptr<Content> c(Content::getContent(std::string(str)));
-            ptr_ = c;
-        }
-
-        pyContent(boost::shared_ptr<Content> c)
-        {
-            ptr_ = c;
-        }
+        pyContent(const char * str);
+        pyContent(boost::shared_ptr<Content> c);
 
         boost::shared_ptr<Content> get()
         {

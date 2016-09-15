@@ -167,10 +167,12 @@ if(BUILD_DISPLAYCLUSTER)
         src/PixelStream.cpp
         src/PixelStreamContent.cpp
         src/PixelStreamSource.cpp
+        src/Remote.cpp
         src/SVG.cpp
         src/SSaver.cpp
         src/SVGContent.cpp
         src/SVGStreamSource.cpp
+        src/SSaver.cpp
         src/Texture.cpp
         src/TextureContent.cpp
     )
@@ -187,7 +189,12 @@ if(BUILD_DISPLAYCLUSTER)
         src/NetworkListener.h
         src/NetworkListenerThread.h
         src/Options.h
+<<<<<<< HEAD
 				src/SSaver.h
+=======
+        src/Remote.h
+        src/SSaver.h
+>>>>>>> screensaver
     )
 
     # add OPTIONS hacks for Qt's MOC processing of Boost headers, for compiler errors with some versions of Boost
@@ -202,7 +209,7 @@ if(BUILD_DISPLAYCLUSTER)
         add_custom_command(TARGET displaycluster POST_BUILD
             COMMENT "Building Python module"
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/python
-            COMMAND python configure.py -I ${Boost_INCLUDE_DIRS}
+            COMMAND python configure.py -I ${Boost_INCLUDE_DIRS} -I ${PythonQt_INCLUDE_DIRS}
             COMMAND make
             COMMAND mv pydc.so ${CMAKE_BINARY_DIR})
     endif()
@@ -215,6 +222,9 @@ if(BUILD_DISPLAYCLUSTER)
     # install launchers
     INSTALL(PROGRAMS examples/startdisplaycluster DESTINATION bin)
     INSTALL(PROGRAMS examples/displaycluster.py DESTINATION bin)
+
+		# install remote controller
+    INSTALL(DIRECTORY remote DESTINATION .)
 
     # install data files
     INSTALL(DIRECTORY data DESTINATION .)

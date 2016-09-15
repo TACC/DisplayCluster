@@ -21,6 +21,10 @@ class pyDisplayGroupPython
     void moveContentWindowManagerToFront(const pyContentWindowManager &);
     void saveState(const char * filename);
     void loadState(const char * filename);
+    void pushState();
+    void popState();
+    void suspendSynchronization();
+    void resumeSynchronization();
 
     int getNumContentWindowManagers();
     pyContentWindowManager getPyContentWindowManager(int);

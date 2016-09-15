@@ -41,7 +41,14 @@
 #include "log.h"
 #include <mpi.h>
 #include <unistd.h>
+<<<<<<< HEAD
 #include "SSaver.h"
+=======
+#include <stdlib.h>
+#include "SSaver.h"
+
+#include "Remote.h"
+>>>>>>> screensaver
 
 #if ENABLE_TUIO_TOUCH_LISTENER
     #include "TouchListener.h"
@@ -60,13 +67,14 @@
 
 std::string g_displayClusterDir;
 QApplication * g_app = NULL;
-int g_mpiRank = -1;
-int g_mpiSize = -1;
+int g_mpiRank = 0;
+int g_mpiSize = 1;
 MPI_Comm g_mpiRenderComm;
 Configuration * g_configuration = NULL;
 boost::shared_ptr<DisplayGroupManager> g_displayGroupManager;
 MainWindow * g_mainWindow = NULL;
 NetworkListener * g_networkListener = NULL;
+Remote * g_Remote = NULL;
 long g_frameCount = 0;
 
 int main(int argc, char * argv[])
@@ -94,7 +102,11 @@ int main(int argc, char * argv[])
     MPI_Comm_size(MPI_COMM_WORLD, &g_mpiSize);
     MPI_Comm_split(MPI_COMM_WORLD, g_mpiRank != 0, g_mpiRank, &g_mpiRenderComm);
 
+<<<<<<< HEAD
 #if 1
+=======
+#if 0
+>>>>>>> screensaver
     if (g_mpiRank == 0)
     {
       std::stringstream s;
@@ -116,6 +128,7 @@ int main(int argc, char * argv[])
 
 
     g_configuration = new Configuration((std::string(g_displayClusterDir) + std::string("/configuration.xml")).c_str());
+		setenv("DISPLAY", g_configuration->getMyDisplay().c_str(), 1);
 
     boost::shared_ptr<DisplayGroupManager> dgm(new DisplayGroupManager);
     g_displayGroupManager = dgm;
@@ -170,6 +183,7 @@ int main(int argc, char * argv[])
     if(g_mpiRank == 0)
     {
         g_networkListener = new NetworkListener();
+        g_Remote = new Remote();
     }
 
     g_mainWindow = new MainWindow();
