@@ -41,14 +41,9 @@
 #include "log.h"
 #include <mpi.h>
 #include <unistd.h>
-<<<<<<< HEAD
-#include "SSaver.h"
-=======
 #include <stdlib.h>
 #include "SSaver.h"
-
 #include "Remote.h"
->>>>>>> screensaver
 
 #if ENABLE_TUIO_TOUCH_LISTENER
     #include "TouchListener.h"
@@ -102,11 +97,7 @@ int main(int argc, char * argv[])
     MPI_Comm_size(MPI_COMM_WORLD, &g_mpiSize);
     MPI_Comm_split(MPI_COMM_WORLD, g_mpiRank != 0, g_mpiRank, &g_mpiRenderComm);
 
-<<<<<<< HEAD
-#if 1
-=======
 #if 0
->>>>>>> screensaver
     if (g_mpiRank == 0)
     {
       std::stringstream s;

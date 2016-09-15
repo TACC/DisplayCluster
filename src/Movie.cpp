@@ -175,11 +175,7 @@ Movie::~Movie()
     }
 
     // close the format context
-<<<<<<< HEAD
-		avformat_close_input(&avFormatContext_);
-=======
     avformat_close_input(&avFormatContext_);
->>>>>>> screensaver
 
     // free scaler context
     sws_freeContext(swsContext_);

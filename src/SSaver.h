@@ -51,23 +51,10 @@ class QSSApplication : public QApplication
 
 public:
 	QTimer m_timer;
-
-<<<<<<< HEAD
-	QSSApplication(int& argc, char **argv) : QApplication(argc, argv)
-	{
-		interval = (getenv("DISPLAYCLUSTER_TIMEOUT") == NULL) ? 5000 : 1000*60*atoi(getenv("DISPLAYCLUSTER_TIMEOUT"));
-		sleepState = awake;
-
-		m_timer.setInterval(interval);
-		connect(&m_timer, SIGNAL(timeout()), this, SLOT(go_to_sleep()));
-		m_timer.start();
-	}
-=======
 	QSSApplication(int& argc, char **argv);
 
 signals:
 	void idling(bool);
->>>>>>> screensaver
 
 public slots:
 
@@ -79,10 +66,7 @@ public slots:
 			sleep_start();
 			sleepState = sleeping;
 			m_timer.stop();
-<<<<<<< HEAD
-=======
 			emit(idling(true));
->>>>>>> screensaver
 		}
 	}
 
@@ -93,29 +77,16 @@ public:
 		if (e->type() == QEvent::MouseMove || e->type() == QEvent::MouseButtonPress || e->type() == QEvent::KeyPress)
 		{
 			if (sleepState == sleeping)
-<<<<<<< HEAD
-			{
-				sleepState = waking_up;
-				sleep_end();
-				sleepState = awake;
-			}
-			else 
-				m_timer.stop();
-			m_timer.start();
-=======
 				wakeup();
 			else 
 			{
 				m_timer.stop();
 				m_timer.start();
 			}
->>>>>>> screensaver
 		}
 		return QApplication::notify(r, e);
 	}
 
-<<<<<<< HEAD
-=======
 	void wakeup()
 	{
 		sleepState = waking_up;
@@ -126,8 +97,6 @@ public:
 		m_timer.start();
 	}
 		
-
->>>>>>> screensaver
 public:
 
 	virtual void sleep_start();

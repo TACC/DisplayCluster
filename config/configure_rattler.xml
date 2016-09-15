@@ -1,0 +1,97 @@
+<configuration>
+    <dimensions numTilesWidth="7" numTilesHeight="3" screenWidth="3840" screenHeight="2160" mullionWidth="75" mullionHeight="75" fullscreen="0"/>
+ 
+    <process host="r19" display=":0">
+        <screen x="0" y="0"    i="0" j="0"/>
+    </process>
+
+    <process host="r20" display=":0">
+        <screen x="-7" y="0"    i="0" j="1"/>
+    </process>
+
+    <process host="r21" display=":0">
+        <screen x="0" y="0"    i="0" j="2"/>
+    </process>
+
+
+
+    <process host="r16" display=":0">
+        <screen x="0" y="0"    i="1" j="0"/>
+    </process>
+
+    <process host="r17" display=":0">
+        <screen x="-7" y="0"    i="1" j="1"/>
+    </process>
+
+    <process host="r18" display=":0">
+        <screen x="0" y="0"    i="1" j="2"/>
+    </process>
+
+
+
+    <process host="r01" display=":0">
+        <screen x="0" y="-10"    i="2" j="0"/>
+    </process>
+
+    <process host="r02" display=":0">
+        <screen x="0" y="-10"    i="2" j="1"/>
+    </process>
+
+    <process host="r03" display=":0">
+        <screen x="0" y="-10"    i="2" j="2"/>
+    </process>
+
+    <process host="r04" display=":0">
+        <screen x="0" y="0"    i="3" j="0"/>
+    </process>
+
+    <process host="r05" display=":0">
+        <screen x="0" y="0"    i="3" j="1"/>
+    </process>
+
+    <process host="r06" display=":0">
+        <screen x="0" y="0"    i="3" j="2"/>
+    </process>
+
+    <process host="r07" display=":0">
+        <screen x="0" y="0"    i="4" j="0"/>
+    </process>
+
+    <process host="r08" display=":0">
+        <screen x="0" y="0"    i="4" j="1"/>
+    </process>
+
+    <process host="r09" display=":0">
+        <screen x="0" y="0"    i="4" j="2"/>
+    </process>
+
+    <process host="r10" display=":0">
+        <screen x="0" y="-10"    i="5" j="0"/>
+    </process>
+
+    <process host="r11" display=":0">
+        <screen x="7" y="-10"    i="5" j="1"/>
+    </process>
+
+    <process host="r12" display=":0">
+        <screen x="0" y="-10"    i="5" j="2"/>
+    </process>
+
+   <process host="r13" display=":0">
+        <screen x="0" y="0"    i="6" j="0"/>
+    </process>
+
+    <process host="r14" display=":0">
+        <screen x="0" y="0"    i="6" j="1"/>
+    </process>
+
+    <process host="r15" display=":0">
+        <screen x="0" y="0"    i="6" j="2"/>
+    </process>
+
+<!--    
+    <process host="bronco" display=":0">
+    	<screen x="0" y="0" i="16" j="0"/>
+    </process>
+-->
+</configuration>

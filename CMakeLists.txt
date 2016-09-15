@@ -189,12 +189,8 @@ if(BUILD_DISPLAYCLUSTER)
         src/NetworkListener.h
         src/NetworkListenerThread.h
         src/Options.h
-<<<<<<< HEAD
-				src/SSaver.h
-=======
+	src/SSaver.h
         src/Remote.h
-        src/SSaver.h
->>>>>>> screensaver
     )
 
     # add OPTIONS hacks for Qt's MOC processing of Boost headers, for compiler errors with some versions of Boost
