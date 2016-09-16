@@ -65,7 +65,7 @@ pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 int 
 ptid()
 {
-	return (pthread_self() & 0xfffffff);
+	return (((long long)pthread_self()) & 0xfffffff);
 }
 
 DisplayGroupManager::DisplayGroupManager()
