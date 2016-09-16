@@ -15,7 +15,7 @@ class Remote(object):
 				contents = open(os.path.join(MEDIA_DIR, u'contents'))
 				for content in contents:
 					content = content.strip()
-					html = html + "<input type=button value='%s' onclick=foo('%s')>" % (content, content)
+					html = html + "<input type=button value='%s' onclick=foo('%s')>" % (content.split('/')[-1], content)
 					html = html + "<br>\n"
 				contents.close()
 				f = open(os.path.join(MEDIA_DIR, u'bottom'))
