@@ -98,8 +98,8 @@ int main(int argc, char * argv[])
     MPI_Comm_split(MPI_COMM_WORLD, g_mpiRank != 0, g_mpiRank, &g_mpiRenderComm);
 
 #if 0
-    if (g_mpiRank == 0)
-    {
+    //if (g_mpiRank == 0)
+    //{
       std::stringstream s;
       pid_t pid = getpid();
       s << "~/dbg_script " << (const char *)argv[0] << " " << pid << " " << g_mpiRank << " &";
@@ -109,7 +109,7 @@ int main(int argc, char * argv[])
       int dbg = 1;
       while(dbg)
         sleep(1);
-    }
+   // }
 #endif
 
 		if (g_mpiRank == 0)

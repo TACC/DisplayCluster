@@ -64,6 +64,20 @@ public:
 		m_timer.start();
 	}
 
+	bool notify(QObject *receiver, QEvent *event)
+	{
+		bool r = false;
+
+		try:
+			r = QApplication::notify(receiver, event);
+		except:
+			std::cerr << "Caught the problem\n";
+		
+		return r;
+	}
+
+	
+
 public slots:
 
 	void idle_reset()

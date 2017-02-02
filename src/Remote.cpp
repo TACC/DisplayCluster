@@ -2,6 +2,7 @@
 #include "string.h"
 #include "SSaver.h"
 #include "Remote.h"
+#include "log.h"
 #include <iostream>
 using namespace std;
 
@@ -9,8 +10,17 @@ Remote::Remote(QObject* parent): QObject(parent)
 {
   connect(&server, SIGNAL(newConnection()), this, SLOT(acceptConnection()));
 
-  server.listen(QHostAddress::Any, 1900);
-  cerr << "XXXXXXXXXXXXXXXXXXXXX listening on 1900 XXXXXXXXXXXXXXXXXXXXXXXX\n";
+  // get port to listen on
+  if(getenv("DISPLAYCLUSTER_PORT") == NULL)
+  {
+      cerr << "DISPLAYCLUSTER_PORT environment variable must be set for listening";
+      exit(-1);
+  }
+
+  int displaycluster_port = atoi(std::string(getenv("DISPLAYCLUSTER_PORT")).c_str());
+
+  server.listen(QHostAddress::Any, displaycluster_port);
+  cerr << "XXXXXXXXXXXXXXXXXXXXX listening on " << displaycluster_port << " XXXXXXXXXXXXXXXXXXXXXXXX\n";
 }
 
 Remote::~Remote()
