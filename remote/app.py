@@ -5,6 +5,14 @@ import sys
 from socket import *
 
 MEDIA_DIR = os.path.join(os.getenv("DISPLAYCLUSTER_DIR"), u"remote/media")
+DISPLAYCLUSTER_PORT = os.getenv("DISPLAYCLUSTER_PORT")
+DISPLAYCLUSTER_CHERRYPY_PORT = os.getenv("DISPLAYCLUSTER_CHERRYPY_PORT")
+
+if DISPLAYCLUSTER_CHERRYPY_PORT is None:
+	raise OSError('Environment variable DISPLAYCLUSTER_CHERRYPY_PORT is not set')
+
+if DISPLAYCLUSTER_PORT is None:
+	raise OSError('Environment variable DISPLAYCLUSTER_PORT is not set')
 
 class Remote(object):
 		@cherrypy.expose
@@ -27,7 +35,7 @@ class Remote(object):
 		@cherrypy.expose
 		def select(self, name):
 			s = socket(AF_INET, SOCK_STREAM)
-			s.connect(("localhost", 1900))
+			s.connect(("localhost", int(DISPLAYCLUSTER_PORT)))
 			s.send(name)
 			s.close()
 			# cherrypy.response.headers['Content-Type'] = 'application/json'
@@ -43,4 +51,5 @@ config = {'/media':
 
 cherrypy.config.update({'server.socket_host': '0.0.0.0'})
 cherrypy.tree.mount(Remote(), '/', config=config)
+cherrypy.config.update({'server.socket_port': int(DISPLAYCLUSTER_CHERRYPY_PORT)})
 cherrypy.engine.start()
