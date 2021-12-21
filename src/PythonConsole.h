@@ -39,7 +39,7 @@
 #ifndef PYTHON_CONSOLE_H
 #define PYTHON_CONSOLE_H
 
-#include <Python.h>
+#include <python2.7/Python.h>
 #include <PythonQt.h>
 #include <QtGui>
 

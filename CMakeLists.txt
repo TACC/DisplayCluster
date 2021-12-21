@@ -13,7 +13,8 @@ if(COMMAND cmake_policy)
 endif(COMMAND cmake_policy)
 
 # show all warnings
-set(CMAKE_CXX_FLAGS "-Wall")
+# set(CMAKE_CXX_FLAGS "-Wall")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
 # keep the library path in installed executables
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
@@ -198,7 +199,7 @@ if(BUILD_DISPLAYCLUSTER)
 
     add_executable(displaycluster ${SRCS} ${MOC_OUTFILES})
 
-    target_link_libraries(displaycluster ${LIBS})
+    target_link_libraries(displaycluster ${LIBS} pthread)
 
     # build Python module if Python support is enabled
     if(ENABLE_PYTHON_SUPPORT)
@@ -262,7 +263,7 @@ if(BUILD_DISPLAYCLUSTER_LIBRARY)
 
     set_target_properties(DisplayClusterLibrary PROPERTIES OUTPUT_NAME DisplayCluster)
 
-    target_link_libraries(DisplayClusterLibrary ${DISPLAYCLUSTER_LIBRARY_LIBS})
+    target_link_libraries(DisplayClusterLibrary ${DISPLAYCLUSTER_LIBRARY_LIBS} pthread)
 
     # install library
     INSTALL(TARGETS DisplayClusterLibrary

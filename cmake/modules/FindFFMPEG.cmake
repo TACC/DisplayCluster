@@ -123,8 +123,8 @@ IF(FFMPEG_INCLUDE_DIR)
       IF(FFMPEG_avutil_LIBRARY)
         SET( FFMPEG_FOUND "YES" )
         SET( FFMPEG_BASIC_LIBRARIES 
-          ${FFMPEG_avcodec_LIBRARY} 
           ${FFMPEG_avformat_LIBRARY}
+          ${FFMPEG_avcodec_LIBRARY} 
           ${FFMPEG_avutil_LIBRARY} 
           )
 
