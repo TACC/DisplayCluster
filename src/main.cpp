@@ -119,7 +119,6 @@ int main(int argc, char * argv[])
 
 
     g_configuration = new Configuration(getenv("DISPLAYCLUSTER_CONFIG"));
-    g_configuration = new Configuration((std::string(g_displayClusterDir) + std::string("/configuration.xml")).c_str());
 
 		setenv("DISPLAY", g_configuration->getMyDisplay().c_str(), 1);
 
