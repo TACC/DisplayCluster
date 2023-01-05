@@ -29,6 +29,8 @@ dcPath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # set an environment variable for the base DisplayCluster directory
 os.environ['DISPLAYCLUSTER_DIR'] = dcPath
+if 'DISPLAYCLUSTER_CONFIG' not in os.environ:
+  os.environ['DISPLAYCLUSTER_CONFIG'] = dcPath + '/configuration.xml'
 
 # set the Python path so the pydc module can be found
 if 'PYTHONPATH' not in os.environ:
