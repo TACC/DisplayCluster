@@ -11,16 +11,15 @@ Remote::Remote(QObject* parent): QObject(parent)
   connect(&server, SIGNAL(newConnection()), this, SLOT(acceptConnection()));
 
   // get port to listen on
-  if(getenv("DISPLAYCLUSTER_PORT") == NULL)
+  if(getenv("DISPLAYCLUSTER_REMOTEPORT") == NULL)
   {
-      cerr << "DISPLAYCLUSTER_PORT environment variable must be set for listening";
+      cerr << "DISPLAYCLUSTER_REMOTEPORT environment variable must be set for listening";
       exit(-1);
   }
 
-  int displaycluster_port = atoi(std::string(getenv("DISPLAYCLUSTER_PORT")).c_str());
+  int displaycluster_port = atoi(std::string(getenv("DISPLAYCLUSTER_REMOTEPORT")).c_str());
 
   server.listen(QHostAddress::Any, displaycluster_port);
-  cerr << "XXXXXXXXXXXXXXXXXXXXX listening on " << displaycluster_port << " XXXXXXXXXXXXXXXXXXXXXXXX\n";
 }
 
 Remote::~Remote()

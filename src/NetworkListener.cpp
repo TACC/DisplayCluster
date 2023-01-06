@@ -36,20 +36,19 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
+#include <iostream>
 #include "NetworkListener.h"
 #include "NetworkListenerThread.h"
 #include "log.h"
 
 NetworkListener::NetworkListener(int port)
 {
-    // assign values
+  if(getenv("DISPLAYCLUSTER_NETWORKPORT"))
+    port_ = atoi(std::string(getenv("DISPLAYCLUSTER_NETWORKPORT")).c_str());
+  else
     port_ = port;
-
-    if(listen(QHostAddress::Any, port_) != true)
-    {
-        put_flog(LOG_FATAL, "could not listen on port %i", port_);
-        exit(-1);
-    }
+ 
+  listen(QHostAddress::Any, port_);
 }
 
 void NetworkListener::incomingConnection(int socketDescriptor)

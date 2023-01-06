@@ -156,7 +156,7 @@ int main(int argc, char * argv[])
             usleep(1000);
         }
     }
-#endif
+#endif 
 
 #if ENABLE_SKELETON_SUPPORT
     if(g_mpiRank == 0)
@@ -174,6 +174,11 @@ int main(int argc, char * argv[])
 
     if(g_mpiRank == 0)
     {
+        // std::cerr << " rank 0 waiting at pid " << getpid() << "\n";
+		// int dbg = 1;
+        // while (dbg)
+			// sleep(1);
+     
         g_networkListener = new NetworkListener();
         g_Remote = new Remote();
     }
