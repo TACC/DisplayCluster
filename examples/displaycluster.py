@@ -9,6 +9,8 @@ import xml.etree.ElementTree as ET
 import subprocess
 import shlex
 
+print("PYTHON WRAPPER", os.environ['DISPLAYCLUSTER_CONFIG'])
+
 # get environment variable for the base DisplayCluster directory, set by
 # startdisplaycluster
 dcPath = None
@@ -35,6 +37,7 @@ else:
     exit(-4)
 
 if myRank == 0:
+
     # don't manipulate DISPLAY, just launch
     startCommand = dcPath + '/bin/displaycluster'
     subprocess.call(shlex.split(startCommand))
@@ -43,7 +46,10 @@ else:
     display = None
 
     try:
-        doc = ET.parse(dcPath + '/configuration.xml')
+        if 'DISPLAYCLUSTER_CONFIG' in os.environ:
+            doc = ET.parse(os.environ['DISPLAYCLUSTER_CONFIG'])
+        else:
+            doc = ET.parse(dcPath + '/configuration.xml')
 
         elems = doc.findall('.//process')
 
@@ -65,6 +71,9 @@ else:
         print 'Error processing configuration.xml. Make sure you have created a configuration.xml and put it in ' + dcPath + '/. An example is provided in the examples/ directory.'
         exit(-6)
 
-    startCommand = dcPath + '/bin/displaycluster'
+    startCommand = 'sh /home/gda/DC/displaycluster.sh ' +  dcPath + '/bin/displaycluster'
 
+    print(shlex.split(startCommand))
+    print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
     subprocess.call(shlex.split(startCommand))
+    print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
