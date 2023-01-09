@@ -219,6 +219,7 @@ if(BUILD_DISPLAYCLUSTER)
     # install launchers
     INSTALL(PROGRAMS examples/startdisplaycluster DESTINATION bin)
     INSTALL(PROGRAMS examples/displaycluster.py DESTINATION bin)
+    INSTALL(PROGRAMS examples/displaycluster.sh DESTINATION bin)
 
 		# install remote controller
     INSTALL(DIRECTORY remote DESTINATION .)
