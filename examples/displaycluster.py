@@ -1,6 +1,3 @@
-$HOME/XXXX.py $*
-exit
-
 #!/usr/bin/python
 
 # example launch script for DisplayCluster, executed by startdisplaycluster
