@@ -7,6 +7,7 @@ git checkout docker
 
 cd /usr/local/src/DisplayCluster/dependencies
 tar xzf sip-4.19.25.tar.gz
+rm sip-4.19.25.tar.gz
 cd sip-4.19.25
 python configure.py
 make 
@@ -14,6 +15,7 @@ make install
 
 cd /usr/local/src/DisplayCluster/dependencies
 tar xzf PyQt4_gpl_x11-4.12.3.tar.gz
+rm PyQt4_gpl_x11-4.12.3.tar.gz
 cd PyQt4_gpl_x11-4.12.3
 python configure.py --confirm-license
 make -j 4 
@@ -21,20 +23,27 @@ make install
 
 cd /usr/local/src/DisplayCluster/dependencies
 unzip PythonQt2.0.1.DC.zip 
+rm PythonQt2.0.1.DC.zip 
 cd PythonQt2.0.1
 sed -i -e "s/python2.6/python2.7/" -e "s/python26/python27/" build/python.prf
 sed -i -e "s?ast.h?parser/ast.h?" generator/abstractmetabuilder.cpp
 qmake QMAKE_CXXFLAGS=-I/usr/include/python2.7
 make -j 4
+cp lib/libPythonQt.so.1.0.0 /usr/local/lib
+ln -s /usr/local/lib/libPythonQt.so.1.0.0 /usr/local/lib/libPythonQt.so
+ln -s /usr/local/lib/libPythonQt.so.1.0.0 /usr/local/lib/libPythonQt.so.1
+ln -s /usr/local/lib/libPythonQt.so.1.0.0 /usr/local/lib/libPythonQt.so.1.0
 
 cd /usr/local/src/DisplayCluster/dependencies
 tar xzf boost_1_53_0.tar.gz
+rm boost_1_53_0.tar.gz
 cd boost_1_53_0
 ./bootstrap.sh
 ./b2 -j 4 install
 
 cd /usr/local/src/DisplayCluster/dependencies
 tar xzf ffmpeg-1.1.2.tar.gz
+rm ffmpeg-1.1.2.tar.gz
 cd ffmpeg-1.1.2
 ./configure --prefix=/usr/local --disable-doc
 make -j 4 install
