@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#! /bin/env python
 
 # example launch script for DisplayCluster, executed by startdisplaycluster
 # this should work for most cases, but can be modified for a particular
