@@ -206,7 +206,7 @@ if(BUILD_DISPLAYCLUSTER)
         add_custom_command(TARGET displaycluster POST_BUILD
             COMMENT "Building Python module"
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/python
-            COMMAND python configure.py -I ${Boost_INCLUDE_DIRS} -I ${PythonQt_INCLUDE_DIRS}
+            COMMAND python2 configure.py -I ${Boost_INCLUDE_DIRS} -I ${PythonQt_INCLUDE_DIRS}
             COMMAND make
             COMMAND mv pydc.so ${CMAKE_BINARY_DIR})
     endif()
