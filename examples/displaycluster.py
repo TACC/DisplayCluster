@@ -71,9 +71,5 @@ else:
         print 'Error processing configuration.xml. Make sure you have created a configuration.xml and put it in ' + dcPath + '/. An example is provided in the examples/ directory.'
         exit(-6)
 
-    startCommand = dcPath + '/bin/displaycluster'
-
-    print(shlex.split(startCommand))
-    print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+    startCommand = os.environ['DISPLAYCLUSTER_EXEC']
     subprocess.call(shlex.split(startCommand))
-    print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
