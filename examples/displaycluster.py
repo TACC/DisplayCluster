@@ -11,10 +11,6 @@ import shlex
 
 print("PYTHON WRAPPER", os.environ['DISPLAYCLUSTER_CONFIG'])
 
-# get environment variable for the base DisplayCluster directory, set by
-# startdisplaycluster
-dcPath = None
-
 if 'DISPLAYCLUSTER_DIR' in os.environ:
     dcPath = os.environ['DISPLAYCLUSTER_DIR']
 else:
@@ -36,10 +32,12 @@ else:
     print 'could not determine MPI rank!'
     exit(-4)
 
+if 'DISPLAYCLUSTER_EXEC' not in os.environ:
+    startCommand = 'displaycluster'
+else:
+    startCommand = os.environ['DISPLAYCLUSTER_EXEC']
+    
 if myRank == 0:
-
-    # don't manipulate DISPLAY, just launch
-    startCommand = dcPath + '/bin/displaycluster'
     subprocess.call(shlex.split(startCommand))
 else:
     # configuration.xml gives the display
@@ -71,5 +69,4 @@ else:
         print 'Error processing configuration.xml. Make sure you have created a configuration.xml and put it in ' + dcPath + '/. An example is provided in the examples/ directory.'
         exit(-6)
 
-    startCommand = os.environ['DISPLAYCLUSTER_EXEC']
     subprocess.call(shlex.split(startCommand))
