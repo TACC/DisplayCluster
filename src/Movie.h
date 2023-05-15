@@ -64,6 +64,12 @@ extern "C" {
     #include <libavutil/mathematics.h>
 }
 
+#if LIBAVCODEC_VERSION_INT > AV_VERSION_INT(55,28,1)
+#define avcodec_alloc_frame av_frame_alloc
+#define avcodec_free_frame av_frame_free
+#define PIX_FMT_RGBA AV_PIX_FMT_RGBA
+#endif
+
 class Movie : public FactoryObject {
 
     public:
