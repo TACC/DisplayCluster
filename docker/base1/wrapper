@@ -1,0 +1,4 @@
+echo WRAPPER START > /tmp/log
+sh base1-recipe >> /tmp/log
+echo WRAPPER END >> /tmp/log
+

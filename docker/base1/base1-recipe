@@ -1,0 +1,8 @@
+
+cd /usr/local/src/DisplayCluster/dependencies
+tar xzf boost_1_53_0.tar.gz
+rm boost_1_53_0.tar.gz
+cd boost_1_53_0
+./bootstrap.sh
+./b2 -j 4 install
+
