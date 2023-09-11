@@ -18,27 +18,6 @@ RUN python2 get-pip.py
 RUN add-apt-repository ppa:rock-core/qt4
 
 RUN apt-get -y install \
-  ffmpeg  \
-  libavcodec-dev \
-  libavcodec58 \
-  libavdevice-dev \
-  libavdevice58 \
-  libavfilter-dev \
-  libavfilter7 \
-  libavformat-dev \
-  libavformat58 \
-  libavresample-dev \
-  libavresample4 \
-  libavutil-dev \
-  libavutil56 \
-  libpostproc-dev \
-  libpostproc55 \
-  libswresample-dev \
-  libswresample3 \
-  libswscale-dev \
-  libswscale5
-
-RUN apt-get -y install \
   xterm \
   qt4-default \
   libturbojpeg0-dev \
