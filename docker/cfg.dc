@@ -1,0 +1,14 @@
+cmake .. \
+-DBUILD_DESKTOPSTREAMER=ON  \
+-DBUILD_DISPLAYCLUSTER=ON  \
+-DENABLE_PYTHON_SUPPORT=ON  \
+-DPythonQt_INCLUDE_DIR=/usr/local/src/DisplayCluster/dependencies/PythonQt2.0.1/src  \
+-DPythonQt_LIBRARY=/usr/local/src/DisplayCluster/dependencies/PythonQt2.0.1/lib/libPythonQt.so  \
+-DPYTHON_INCLUDE_DIR=/usr/include/python2.7  \
+-DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython2.7.so  \
+-DFFMPEG_INCLUDE_DIR:PATH=/usr/local/ffmpeg/include  \
+-DFFMPEG_avcodec_LIBRARY:FILEPATH=/usr/local/ffmpeg/lib/libavcodec.a  \
+-DFFMPEG_avformat_LIBRARY:FILEPATH=/usr/local/ffmpeg/lib/libavformat.a  \
+-DFFMPEG_avutil_LIBRARY:FILEPATH=/usr/local/ffmpeg/lib/libavutil.a  \
+-DFFMPEG_swscale_LIBRARY:FILEPATH=/usr/local/ffmpeg/lib/libswscale.a
+

@@ -62,18 +62,6 @@ RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 8 && update-al
 
 RUN apt-get update && apt-get -y install openssl libssl-dev
 
-RUN apt-get -y install \
-  ffmpeg  \
-  libavcodec-dev \
-  libavdevice-dev \
-  libavfilter-dev \
-  libavformat-dev \
-  libavresample-dev \
-  libavutil-dev \
-  libpostproc-dev \
-  libswresample-dev \
-  libswscale-dev 
-
 RUN apt-get update
 RUN apt-get install -y python2 python2-dev
 
@@ -152,14 +140,20 @@ RUN cd /usr/local/src/DisplayCluster/dependencies \
 	&& ./bootstrap.sh --with-libraries=serialization,date_time \
 	&& ./b2 -j 4 install 
 
+RUN cd /usr/local/src/DisplayCluster/dependencies \
+	&& tar xzf ffmpeg-1.1.2.tar.gz \
+	&& cd ffmpeg-1.1.2 \
+	&& ./configure --prefix=/usr/local/ffmpeg --disable-doc --disable-htmlpages --disable-manpages --disable-podpages --disable-txtpages \
+ 	&& make -j 4 install 
+
 ENV LD_LIBRARY_PATH=/usr/local/lib
+ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
+
+RUN apt-get update && apt-get install -y net-tools liblzma-dev
+
+COPY cfg.dc /usr/local/src/DisplayCluster
 
 RUN cd /usr/local/src/DisplayCluster \
- 	&& mkdir build \
- 	&& cd build \
- 	&& cmake .. -DBUILD_DESKTOPSTREAMER=ON -DBUILD_DISPLAYCLUSTER=ON -DENABLE_PYTHON_SUPPORT=ON -DPythonQt_INCLUDE_DIR=/usr/local/src/DisplayCluster/dependencies/PythonQt2.0.1/src -DPythonQt_LIBRARY=/usr/local/src/DisplayCluster/dependencies/PythonQt2.0.1/lib/libPythonQt.so -DPYTHON_INCLUDE_DIR=/usr/include/python2.7 -DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython2.7.so \
- 	&& make -j 4 install \
-  && cd / \
-  && rm -rf /usr/local/src/DisplayCluster
-
-RUN apt-get update && apt-get install -y net-tools
+  && mkdir build && cd build \
+  && sh ../cfg.dc \
+	&& make -j 5 install
