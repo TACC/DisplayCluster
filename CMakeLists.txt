@@ -126,11 +126,18 @@ if(BUILD_DISPLAYCLUSTER)
         include_directories(${PythonQt_INCLUDE_DIRS})
         set(LIBS ${LIBS} ${PythonQt_LIBRARIES})
 
-        set(SRCS ${SRCS} src/DisplayGroupPython.cpp)
-        set(SRCS ${SRCS} src/PythonConsole.cpp)
+        set(SRCS ${SRCS} 
+	    src/DisplayGroupPython.cpp
+	    src/PythonConsole.cpp
+	    src/SSaver.cpp
+            src/Remote.cpp)
 
-        set(MOC_HEADERS ${MOC_HEADERS} src/DisplayGroupPython.h)
-        set(MOC_HEADERS ${MOC_HEADERS} src/PythonConsole.h)
+        set(MOC_HEADERS ${MOC_HEADERS}
+            src/DisplayGroupPython.h
+            src/PythonConsole.h
+            src/SSaver.h
+            src/Remote.h)
+
     endif()
 
     # process config file
@@ -168,12 +175,9 @@ if(BUILD_DISPLAYCLUSTER)
         src/PixelStream.cpp
         src/PixelStreamContent.cpp
         src/PixelStreamSource.cpp
-        src/Remote.cpp
         src/SVG.cpp
-        src/SSaver.cpp
         src/SVGContent.cpp
         src/SVGStreamSource.cpp
-        src/SSaver.cpp
         src/Texture.cpp
         src/TextureContent.cpp
     )
@@ -190,8 +194,6 @@ if(BUILD_DISPLAYCLUSTER)
         src/NetworkListener.h
         src/NetworkListenerThread.h
         src/Options.h
-	src/SSaver.h
-        src/Remote.h
     )
 
     # add OPTIONS hacks for Qt's MOC processing of Boost headers, for compiler errors with some versions of Boost

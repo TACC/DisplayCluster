@@ -112,10 +112,14 @@ int main(int argc, char * argv[])
    // }
 #endif
 
+#if ENABLE_PYTHON_SUPPORT
 		if (g_mpiRank == 0)
 			g_app = (QApplication *) new QSSApplication(argc, argv);
 		else
 			g_app = new QApplication(argc, argv);
+#else
+			g_app = new QApplication(argc, argv);
+#endif
 
 
     g_configuration = new Configuration(getenv("DISPLAYCLUSTER_CONFIG"));
@@ -180,7 +184,9 @@ int main(int argc, char * argv[])
 			// sleep(1);
      
         g_networkListener = new NetworkListener();
+#if ENABLE_PYTHON_SUPPORT
         g_Remote = new Remote();
+#endif
     }
 
     g_mainWindow = new MainWindow();
