@@ -71,6 +71,7 @@ RUN apt-get update \
 		qt4-default \
 		libturbojpeg0-dev \
 		zip \
+    unzip \
 		sudo \
 		yasm \
 		x11-apps
@@ -120,8 +121,6 @@ RUN cd /usr/local/src/DisplayCluster/dependencies \
 	&& python2 configure.py --confirm-license \
 	&& make -j 4 \
 	&& make install 
-
-RUN apt-get update && apt-get install -y -qq --no-install-recommends unzip
 
 RUN cd /usr/local/src/DisplayCluster/dependencies \
 	&& unzip PythonQt2.0.1.DC.zip \
