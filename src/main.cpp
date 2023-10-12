@@ -71,10 +71,14 @@ MainWindow * g_mainWindow = NULL;
 NetworkListener * g_networkListener = NULL;
 Remote * g_Remote = NULL;
 long g_frameCount = 0;
+uint64_t g_dc_flags = 0;
 
 int main(int argc, char * argv[])
 {
     put_flog(LOG_INFO, "");
+
+    if(getenv("DISPLAYCLUSTER_FLAGS") != NULL)
+			g_dc_flags = atoi(getenv("DISPLAYCLUSTER_FLAGS"));
 
     // get base directory
     if(getenv("DISPLAYCLUSTER_DIR") == NULL)

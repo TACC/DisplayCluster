@@ -334,14 +334,13 @@ void Movie::nextFrame(bool skip)
         av_free_packet(&packet);
     }
 
-#if 0
     auto now = high_resolution_clock::now();
     if (++decode_count_ % 100 == 0)
     {
         duration<double, std::ratio<1>> tTot = now - tFirst;
-        std::cerr << decode_count_ << " " << (decode_count_ / tTot.count()) << " FPS Reset\n";
-	decode_count_ = 0;
-	tFirst = now;
+				if (g_dc_flags & 0x1)
+					std::cerr << decode_count_ << " " << (decode_count_ / tTot.count()) << " FPS Reset\n";
+				decode_count_ = 0;
+				tFirst = now;
     }
-#endif
 }
