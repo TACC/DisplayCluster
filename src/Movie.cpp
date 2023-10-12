@@ -271,6 +271,9 @@ void Movie::nextFrame(bool skip)
 	if (skip)
 		return;
 
+    if (frame_index_ == num_frames_)
+	frame_index_ = 0;
+
     duration<double, std::ratio<1>> tElapsed = high_resolution_clock::now() - tStart;
     int calculated_frame_index_ = (int)(tElapsed.count() * FPS_);
 
@@ -288,15 +291,9 @@ void Movie::nextFrame(bool skip)
     auto stream = avFormatContext_->streams[videoStream_];
     int64_t dts = start_time_ + av_rescale(tElapsed.count(), stream->time_base.den, stream->time_base.num);
 
-    if (frame_index_ < (calculated_frame_index_ - 5) || frame_index_ > calculated_frame_index_)
+    if (frame_index_ == 0)
     {
-        // seek to the nearest keyframe before desiredTimestamp and flush buffers
-        if(avformat_seek_file(avFormatContext_, videoStream_, 0, dts, dts, 0) != 0)
-        {
-            std::cerr << "seeking error\n";
-            return;
-        }
-
+        avformat_seek_file(avFormatContext_, videoStream_, 0, dts, dts, 0);
         avcodec_flush_buffers(avCodecContext_);
     }
 
@@ -341,6 +338,8 @@ void Movie::nextFrame(bool skip)
     if (++decode_count_ % 100 == 0)
     {
         duration<double, std::ratio<1>> tTot = now - tFirst;
-        std::cerr << decode_count_ << " " << (decode_count_ / tTot.count()) << " FPS\n";
+        std::cerr << decode_count_ << " " << (decode_count_ / tTot.count()) << " FPS Reset\n";
+	decode_count_ = 0;
+	tFirst = now;
     }
 }
