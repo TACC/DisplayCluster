@@ -43,6 +43,11 @@
 #include <QGLWidget>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
+#include <chrono>
+#include <iostream>
+using namespace std::chrono;
+
+
 // required for FFMPEG includes below, specifically for the Linux build
 #ifdef __cplusplus
     #ifndef __STDC_CONSTANT_MACROS
@@ -79,7 +84,7 @@ class Movie : public FactoryObject {
 
         void getDimensions(int &width, int &height);
         void render(float tX, float tY, float tW, float tH);
-        void nextFrame(bool skip);
+        void nextFrame(bool);
 
     private:
 
@@ -109,8 +114,12 @@ class Movie : public FactoryObject {
         int64_t frame_index_;
         int64_t skipped_frames_;
 
+		double FPS_;
+
         // frame timing
-        boost::shared_ptr<boost::posix_time::ptime> nextTimestamp_;
+		time_point<high_resolution_clock> tFirst;
+		time_point<high_resolution_clock> tStart;
+		int64_t decode_count_;
 };
 
 #endif

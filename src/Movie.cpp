@@ -40,9 +40,15 @@
 #include "main.h"
 #include "log.h"
 
+#include <chrono>
+#include <iostream>
+using namespace std::chrono;
+
+
 Movie::Movie(std::string uri)
 {
     initialized_ = false;
+	decode_count_ = 0;
 
     // defaults
     textureId_ = 0;
@@ -57,7 +63,7 @@ Movie::Movie(std::string uri)
     start_time_ = 0;
     duration_ = 0;
     num_frames_ = 0;
-    frame_index_ = 0;
+    frame_index_ = -1;
     skipped_frames_ = 0;
 
     // assign values
@@ -126,18 +132,14 @@ Movie::Movie(std::string uri)
     }
 
     // generate seeking parameters
-    start_time_ = avFormatContext_->streams[videoStream_]->start_time;
-    duration_ = avFormatContext_->streams[videoStream_]->duration;
-    num_frames_ = av_rescale(duration_, avFormatContext_->streams[videoStream_]->time_base.num * avFormatContext_->streams[videoStream_]->r_frame_rate.num, avFormatContext_->streams[videoStream_]->time_base.den * avFormatContext_->streams[videoStream_]->r_frame_rate.den);
+    auto stream = avFormatContext_->streams[videoStream_];
+
+    start_time_ = stream->start_time;
+    duration_ = stream->duration;
+    num_frames_ = av_rescale(duration_, stream->time_base.num * stream->r_frame_rate.num, stream->time_base.den * stream->r_frame_rate.den);
+    FPS_ = (double)stream->r_frame_rate.num / (double)stream->r_frame_rate.den;
 
     put_flog(LOG_DEBUG, "seeking parameters: start_time = %i, duration_ = %i, num frames = %i", start_time_, duration_, num_frames_);
-
-    // create texture for movie
-    QImage image(avCodecContext_->width, avCodecContext_->height, QImage::Format_RGB32);
-    image.fill(0);
-
-    textureId_ = g_mainWindow->getGLWindow()->bindTexture(image, GL_TEXTURE_2D, GL_RGBA, QGLContext::LinearFilteringBindOption);
-    textureBound_ = true;
 
     // allocate video frame for video decoding
     avFrame_ = avcodec_alloc_frame();
@@ -161,8 +163,6 @@ Movie::Movie(std::string uri)
 
     // create sws scaler context
     swsContext_ = sws_getContext(avCodecContext_->width, avCodecContext_->height, avCodecContext_->pix_fmt, avCodecContext_->width, avCodecContext_->height, PIX_FMT_RGBA, SWS_FAST_BILINEAR, NULL, NULL, NULL);
-
-    initialized_ = true;
 }
 
 Movie::~Movie()
@@ -195,20 +195,49 @@ void Movie::render(float tX, float tY, float tW, float tH)
 {
     updateRenderedFrameCount();
 
+    // draw the texture
+
+    glPushAttrib(GL_ENABLE_BIT | GL_TEXTURE_BIT);
+    glEnable(GL_TEXTURE_2D);
+
     if(initialized_ != true)
     {
-        return;
+    	std::cerr << "GL VERSION: " << glGetString(GL_VERSION) << " " << glGetString(GL_VENDOR) << "\n";
+
+        glClearColor(0.0, 0.0, 0.0, 0.0);
+        glShadeModel(GL_FLAT);
+        glEnable(GL_DEPTH_TEST);
+
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+        glGenTextures(1, &textureId_);
+        glBindTexture(GL_TEXTURE_2D, textureId_);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, avCodecContext_->width, avCodecContext_->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+
+        initialized_ = true;
     }
+    else
+        glBindTexture(GL_TEXTURE_2D, textureId_);
 
-    // draw the texture
-    glPushAttrib(GL_ENABLE_BIT | GL_TEXTURE_BIT);
-
-    glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, textureId_);
 
     // on zoom-out, clamp to edge (instead of showing the texture tiled / repeated)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+#if 0
+	static int ll = 0;
+	auto r = (ll & 0x1) ? 1.0 : 0.0;
+	auto g = (ll & 0x2) ? 1.0 : 0.0;
+	auto b = (ll & 0x4) ? 1.0 : 0.0;
+	ll = ll + 1;
+	glColor3f(r, g, b);
+#endif
 
     glBegin(GL_QUADS);
 
@@ -231,113 +260,87 @@ void Movie::render(float tX, float tY, float tW, float tH)
 
 void Movie::nextFrame(bool skip)
 {
-    double frameDuration = (double)avFormatContext_->streams[videoStream_]->r_frame_rate.den / (double)avFormatContext_->streams[videoStream_]->r_frame_rate.num;
 
-    // rate limiting
-    double elapsedSeconds = 999999.;
-
-    if(nextTimestamp_ != NULL && nextTimestamp_->is_not_a_date_time() == false)
+    if (frame_index_ == -1)
     {
-        elapsedSeconds = (double)(*(g_displayGroupManager->getTimestamp()) - *nextTimestamp_).total_microseconds() / 1000000.;
+        frame_index_ = 0;
+        tStart = high_resolution_clock::now();
+        tFirst = tStart;
     }
 
-    if(elapsedSeconds < frameDuration)
+	if (skip)
+		return;
+
+    duration<double, std::ratio<1>> tElapsed = high_resolution_clock::now() - tStart;
+    int calculated_frame_index_ = (int)(tElapsed.count() * FPS_);
+
+
+    if (calculated_frame_index_ >= num_frames_)
     {
+        calculated_frame_index_ = 0;
+        tStart = high_resolution_clock::now();
+		tElapsed = high_resolution_clock::now() - tStart;
+    }
+
+    if (frame_index_ == calculated_frame_index_)
         return;
-    }
 
-    // update timestamp of last frame
-    nextTimestamp_ = g_displayGroupManager->getTimestamp();
+    auto stream = avFormatContext_->streams[videoStream_];
+    int64_t dts = start_time_ + av_rescale(tElapsed.count(), stream->time_base.den, stream->time_base.num);
 
-    if(initialized_ != true)
+    if (frame_index_ < (calculated_frame_index_ - 5) || frame_index_ > calculated_frame_index_)
     {
-        return;
-    }
-
-    // seeking
-
-    // keep track of a desired timestamp if we seek in this frame
-    int64_t desiredTimestamp = 0;
-
-    // where we should be after we read a frame in this function
-    frame_index_++;
-
-    // if we're skipping this frame, increment the skipped frame counter and return
-    // otherwise, make sure we're in the correct position in the stream and decode
-    if(skip == true)
-    {
-        skipped_frames_++;
-        return;
-    }
-    else
-    {
-        if(skipped_frames_ > 0)
+        // seek to the nearest keyframe before desiredTimestamp and flush buffers
+        if(avformat_seek_file(avFormatContext_, videoStream_, 0, dts, dts, 0) != 0)
         {
-            // need to seek
-
-            // frame number we want
-            int64_t index = (frame_index_) % (num_frames_ + 1);
-
-            // timestamp we want
-            desiredTimestamp = start_time_ + av_rescale(index, avFormatContext_->streams[videoStream_]->time_base.den * avFormatContext_->streams[videoStream_]->r_frame_rate.den, avFormatContext_->streams[videoStream_]->time_base.num * avFormatContext_->streams[videoStream_]->r_frame_rate.num);
-
-            // seek to the nearest keyframe before desiredTimestamp and flush buffers
-            if(avformat_seek_file(avFormatContext_, videoStream_, 0, desiredTimestamp, desiredTimestamp, 0) != 0)
-            {
-                put_flog(LOG_ERROR, "seeking error");
-                return;
-            }
-
-            avcodec_flush_buffers(avCodecContext_);
-
-            skipped_frames_ = 0;
+            std::cerr << "seeking error\n";
+            return;
         }
+
+        avcodec_flush_buffers(avCodecContext_);
     }
 
-    int avReadStatus = 0;
+   frame_index_  = calculated_frame_index_;
 
     AVPacket packet;
     int frameFinished;
-
-    while((avReadStatus = av_read_frame(avFormatContext_, &packet)) >= 0)
+    while(av_read_frame(avFormatContext_, &packet) >= 0)
     {
         // make sure packet is from video stream
         if(packet.stream_index == videoStream_)
         {
             // decode video frame
             avcodec_decode_video2(avCodecContext_, avFrame_, &frameFinished, &packet);
-                                     
+
             // make sure we got a full video frame
             if(frameFinished)
             {
                 // note that the last packet decoded will have a DTS corresponding to this frame's PTS
                 // hence the use of avFrame_->pkt_dts as the timestamp. also, we'll keep reading frames
                 // until we get to the desired timestamp (in the case that we seeked)
-                if(desiredTimestamp == 0 || (avFrame_->pkt_dts >= desiredTimestamp))
+                if(dts == 0 || (avFrame_->pkt_dts >= dts))
                 {
-                    // convert the frame from its native format to RGB
+                    // convert the frame from its native format to RGB and copy it to the texture
                     sws_scale(swsContext_, avFrame_->data, avFrame_->linesize, 0, avCodecContext_->height, avFrameRGB_->data, avFrameRGB_->linesize);
-
-                    // put the RGB image to the already-created texture
-                    // glTexSubImage2D uses the existing texture and is more efficient than other means
-                    glBindTexture(GL_TEXTURE_2D, textureId_);
-                    glTexSubImage2D(GL_TEXTURE_2D, 0, 0,0, avCodecContext_->width, avCodecContext_->height, GL_RGBA, GL_UNSIGNED_BYTE, avFrameRGB_->data[0]);
+					glBindTexture(GL_TEXTURE_2D, textureId_);
+                    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, avCodecContext_->width, avCodecContext_->height, GL_RGBA, GL_UNSIGNED_BYTE, avFrameRGB_->data[0]);
 
                     // free the packet that was allocated by av_read_frame
                     av_free_packet(&packet);
 
                     break;
                 }
-            }
+        }
         }
 
         // free the packet that was allocated by av_read_frame
         av_free_packet(&packet);
     }
 
-    // see if we need to loop
-    if(avReadStatus < 0)
+    auto now = high_resolution_clock::now();
+    if (++decode_count_ % 100 == 0)
     {
-        av_seek_frame(avFormatContext_, videoStream_, 0, AVSEEK_FLAG_BACKWARD);
+        duration<double, std::ratio<1>> tTot = now - tFirst;
+        std::cerr << decode_count_ << " " << (decode_count_ / tTot.count()) << " FPS\n";
     }
 }
