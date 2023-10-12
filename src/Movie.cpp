@@ -334,6 +334,7 @@ void Movie::nextFrame(bool skip)
         av_free_packet(&packet);
     }
 
+#if 0
     auto now = high_resolution_clock::now();
     if (++decode_count_ % 100 == 0)
     {
@@ -342,4 +343,5 @@ void Movie::nextFrame(bool skip)
 	decode_count_ = 0;
 	tFirst = now;
     }
+#endif
 }
