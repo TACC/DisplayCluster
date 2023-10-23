@@ -27,54 +27,54 @@ RUN apt-get update \
     xterm \
     telnet \
     vim \
-		bzip2 \
-		cpio \
-		curl \
-		g++-8 \
-		gcc-8 \
-		gfortran \
-		git \
-		gosu \
-		libblas-dev \
-		liblapack-dev \
-		python3-dev \
-		python3-pip \
-		virtualenv \
-		wget \
-		zlib1g-dev \
-		vim       \
-		tzdata \
-		libpulse-dev \
-		xterm \
-		freeglut3-dev \
-		libnss3 \
-		libxcursor1  \
-		libxcursor-dev  \
-		libxi-dev  \
-		libxkbcommon0 \
-		libxrandr-dev \
-		libxinerama-dev \
-		libasound2 \
-		libgssapi-krb5-2 \
-		libqt5gui5 \
-		htop \
-		libglew-dev \
-		libncurses5-dev \
-		gdb \
-		net-tools \
-		liblzma-dev \
-		openssl \
-		libssl-dev \
-		python2 \
-		python2-dev  \
-		xterm \
-		qt4-default \
-		libturbojpeg0-dev \
-		zip \
+    bzip2 \
+    cpio \
+    curl \
+    g++-8 \
+    gcc-8 \
+    gfortran \
+    git \
+    gosu \
+    libblas-dev \
+    liblapack-dev \
+    python3-dev \
+    python3-pip \
+    virtualenv \
+    wget \
+    zlib1g-dev \
+    vim       \
+    tzdata \
+    libpulse-dev \
+    xterm \
+    freeglut3-dev \
+    libnss3 \
+    libxcursor1  \
+    libxcursor-dev  \
+    libxi-dev  \
+    libxkbcommon0 \
+    libxrandr-dev \
+    libxinerama-dev \
+    libasound2 \
+    libgssapi-krb5-2 \
+    libqt5gui5 \
+    htop \
+    libglew-dev \
+    libncurses5-dev \
+    gdb \
+    net-tools \
+    liblzma-dev \
+    openssl \
+    libssl-dev \
+    python2 \
+    python2-dev  \
+    xterm \
+    qt4-default \
+    libturbojpeg0-dev \
+    zip \
     unzip \
-		sudo \
-		yasm \
-		x11-apps
+    sudo \
+    yasm \
+    x11-apps
 
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 8 && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 8
 
@@ -98,47 +98,48 @@ RUN wget https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.1.tar.g
   && make -j 5 install
 
 RUN mkdir -p /usr/local/src \
-	&& cd /usr/local/src \
-	&& git clone https://github.com/TACC/DisplayCluster.git \
-	&& cd DisplayCluster \
-	&& git checkout docker
+    && cd /usr/local/src \
+    && git clone https://github.com/TACC/DisplayCluster.git \
+    && cd DisplayCluster \
+    && git checkout docker
 
 RUN cd /usr/local/src/DisplayCluster/dependencies \
-	&& tar xzf ffmpeg-1.1.2.tar.gz \
-	&& cd ffmpeg-1.1.2 \
-	&& ./configure --prefix=/usr/local/ffmpeg --disable-doc --disable-htmlpages --disable-manpages --disable-podpages --disable-txtpages \
- 	&& make -j 4 install 
+    && tar xzf ffmpeg-1.1.2.tar.gz \
+    && cd ffmpeg-1.1.2 \
+    && ./configure --prefix=/usr/local/ffmpeg --disable-doc --disable-htmlpages --disable-manpages --disable-podpages --disable-txtpages \
+    && make -j 4 install 
 
 RUN cd /usr/local/src/DisplayCluster/dependencies \
-	&& tar xzf sip-4.19.25.tar.gz \
-	&& cd sip-4.19.25 \
-	&& python2 configure.py \
-	&& make -j 5 install 
+    && tar xzf sip-4.19.25.tar.gz \
+    && cd sip-4.19.25 \
+    && python2 configure.py \
+    && make -j 5 install 
 
 RUN cd /usr/local/src/DisplayCluster/dependencies \
-	&& tar xzf PyQt4_gpl_x11-4.12.3.tar.gz \
-	&& cd PyQt4_gpl_x11-4.12.3 \
-	&& python2 configure.py --confirm-license \
-	&& make -j 4 \
-	&& make install 
+    && tar xzf PyQt4_gpl_x11-4.12.3.tar.gz \
+    && cd PyQt4_gpl_x11-4.12.3 \
+    && python2 configure.py --confirm-license \
+    && make -j 4 \
+    && make install 
 
 RUN cd /usr/local/src/DisplayCluster/dependencies \
-	&& unzip PythonQt2.0.1.DC.zip \
-	&& cd PythonQt2.0.1 \
-	&& sed -i -e "s/python2.6/python2.7/" -e "s/python26/python27/" build/python.prf \
-	&& sed -i -e "s?ast.h?parser/ast.h?" generator/abstractmetabuilder.cpp \
-	&& qmake QMAKE_CXXFLAGS=-I/usr/include/python2.7 \
-	&& sed -i -e "s/python2.6/python2.7/" -e "s/python26/python27/" build/python.prf \
-	&& make -j 4 \
-	&& cp lib/libPythonQt.so.1.0.0 /usr/local/lib \
-	&& ln -s /usr/local/lib/libPythonQt.so.1.0.0 /usr/local/lib/libPythonQt.so \
-	&& ln -s /usr/local/lib/libPythonQt.so.1.0.0 /usr/local/lib/libPythonQt.so.1 \
-	&& ln -s /usr/local/lib/libPythonQt.so.1.0.0 /usr/local/lib/libPythonQt.so.1.0 
+    && unzip PythonQt2.0.1.DC.zip \
+    && cd PythonQt2.0.1 \
+    && sed -i -e "s/python2.6/python2.7/" -e "s/python26/python27/" build/python.prf \
+    && sed -i -e "s?ast.h?parser/ast.h?" generator/abstractmetabuilder.cpp \
+    && qmake QMAKE_CXXFLAGS=-I/usr/include/python2.7 \
+    && sed -i -e "s/python2.6/python2.7/" -e "s/python26/python27/" build/python.prf \
+    && make -j 4 \
+    && cp lib/libPythonQt.so.1.0.0 /usr/local/lib \
+    && ln -s /usr/local/lib/libPythonQt.so.1.0.0 /usr/local/lib/libPythonQt.so \
+    && ln -s /usr/local/lib/libPythonQt.so.1.0.0 /usr/local/lib/libPythonQt.so.1 \
+    && ln -s /usr/local/lib/libPythonQt.so.1.0.0 /usr/local/lib/libPythonQt.so.1.0 
+
 RUN cd /usr/local/src/DisplayCluster/dependencies \
-	&& tar xzf boost_1_53_0.tar.gz \
-	&& cd boost_1_53_0 \
-	&& ./bootstrap.sh --with-libraries=serialization,date_time \
-	&& ./b2 -j 4 install 
+    && tar xzf boost_1_53_0.tar.gz \
+    && cd boost_1_53_0 \
+    && ./bootstrap.sh --with-libraries=serialization,date_time \
+    && ./b2 -j 4 install 
 
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
@@ -148,4 +149,4 @@ COPY cfg.dc /usr/local/src/DisplayCluster
 RUN cd /usr/local/src/DisplayCluster \
   && mkdir build && cd build \
   && sh ../cfg.dc \
-	&& make -j 5 install
+    && make -j 5 install
