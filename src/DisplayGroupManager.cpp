@@ -356,15 +356,6 @@ bool DisplayGroupManager::loadStateXML(QString xml)
     // temp
     QString qstring;
 
-    // get version; we don't do anything with it now but may in the future
-    int version = -1;
-    query.setQuery("doc($DOC)/state/version/text()");
-
-    if(query.evaluateTo(&qstring) == true)
-    {
-        version = qstring.toInt();
-    }
-
     // get number of content windows
     int numContentWindows = 0;
     query.setQuery("count(doc($DOC)//state/ContentWindow)");
