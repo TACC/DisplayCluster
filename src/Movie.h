@@ -111,15 +111,20 @@ class Movie : public FactoryObject {
         int64_t duration_;
         int64_t num_frames_;
 
-        int64_t frame_index_;
+        int64_t last_frame_index_;
         int64_t skipped_frames_;
 
 		double FPS_;
 
         // frame timing
-		time_point<high_resolution_clock> tFirst;
-		time_point<high_resolution_clock> tStart;
+		time_point<high_resolution_clock> tCreation;
+		time_point<high_resolution_clock> tBegin;
+		time_point<high_resolution_clock> tTiming;
+		time_point<high_resolution_clock> tOut;
+
 		int64_t decode_count_;
+
+        // boost::shared_ptr<boost::posix_time::ptime> tBegin;
 };
 
 #endif

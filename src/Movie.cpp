@@ -47,8 +47,11 @@ using namespace std::chrono;
 
 Movie::Movie(std::string uri)
 {
+    tCreation = high_resolution_clock::now();
+
+    std::cerr << "movie ctor " << uri << "\n";
     initialized_ = false;
-	decode_count_ = 0;
+    decode_count_ = 0;
 
     // defaults
     textureId_ = 0;
@@ -63,7 +66,7 @@ Movie::Movie(std::string uri)
     start_time_ = 0;
     duration_ = 0;
     num_frames_ = 0;
-    frame_index_ = -1;
+    last_frame_index_ = -2;
     skipped_frames_ = 0;
 
     // assign values
@@ -163,6 +166,7 @@ Movie::Movie(std::string uri)
 
     // create sws scaler context
     swsContext_ = sws_getContext(avCodecContext_->width, avCodecContext_->height, avCodecContext_->pix_fmt, avCodecContext_->width, avCodecContext_->height, PIX_FMT_RGBA, SWS_FAST_BILINEAR, NULL, NULL, NULL);
+
 }
 
 Movie::~Movie()
@@ -202,7 +206,7 @@ void Movie::render(float tX, float tY, float tW, float tH)
 
     if(initialized_ != true)
     {
-    	std::cerr << "GL VERSION: " << glGetString(GL_VERSION) << " " << glGetString(GL_VENDOR) << "\n";
+        std::cerr << "GL VERSION: " << glGetString(GL_VERSION) << " " << glGetString(GL_VENDOR) << "\n";
 
         glClearColor(0.0, 0.0, 0.0, 0.0);
         glShadeModel(GL_FLAT);
@@ -230,15 +234,6 @@ void Movie::render(float tX, float tY, float tW, float tH)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-#if 0
-	static int ll = 0;
-	auto r = (ll & 0x1) ? 1.0 : 0.0;
-	auto g = (ll & 0x2) ? 1.0 : 0.0;
-	auto b = (ll & 0x4) ? 1.0 : 0.0;
-	ll = ll + 1;
-	glColor3f(r, g, b);
-#endif
-
     glBegin(GL_QUADS);
 
     glTexCoord2f(tX,tY);
@@ -260,51 +255,69 @@ void Movie::render(float tX, float tY, float tW, float tH)
 
 void Movie::nextFrame(bool skip)
 {
+    auto now = high_resolution_clock::now();
+    duration<double, std::ratio<1>> tInterval = now - tOut;
 
-    if (frame_index_ == -1)
+    if (last_frame_index_ == -2)
     {
-        frame_index_ = 0;
-        tStart = high_resolution_clock::now();
-        tFirst = tStart;
+        last_frame_index_ = -1;
+        tTiming = now;
     }
 
-	if (skip)
-		return;
-
-    if (frame_index_ == num_frames_)
-	frame_index_ = 0;
-
-    duration<double, std::ratio<1>> tElapsed = high_resolution_clock::now() - tStart;
+    duration<double, std::ratio<1>> tElapsed = now - tCreation;
     int calculated_frame_index_ = (int)(tElapsed.count() * FPS_);
+    auto stream = avFormatContext_->streams[videoStream_];
 
-
-    if (calculated_frame_index_ >= num_frames_)
+    if (last_frame_index_ > calculated_frame_index_)
     {
+        tElapsed = duration<double, std::ratio<1>>::zero();
+        tCreation = now;
         calculated_frame_index_ = 0;
-        tStart = high_resolution_clock::now();
-		tElapsed = high_resolution_clock::now() - tStart;
+        last_frame_index_ = -1;
     }
 
-    if (frame_index_ == calculated_frame_index_)
+    if (last_frame_index_ == calculated_frame_index_)
         return;
 
-    auto stream = avFormatContext_->streams[videoStream_];
-    int64_t dts = start_time_ + av_rescale(tElapsed.count(), stream->time_base.den, stream->time_base.num);
+    // std::cerr << "l: " << last_frame_index_ << "  c: " << calculated_frame_index_ << "\n";
 
-    if (frame_index_ == 0)
+
+    // int64_t dts = start_time_ + av_rescale(tElapsed.count(), stream->time_base.den, stream->time_base.num);
+    int64_t dts = (int64_t)((tElapsed.count() * stream->time_base.den) /  stream->time_base.num);
+
+
+    // The number in the next statement is a guestimate about the relative cost of decoding extra vs seeking.
+    if ((last_frame_index_ < 0) || (last_frame_index_ < calculated_frame_index_ - 99999) || (last_frame_index_ > calculated_frame_index_))
     {
+#if 0
+        if (last_frame_index_ == -1)
+            std::cerr << g_mpiRank << ": rewind at " << tElapsed.count() << "\n";
+        else if (last_frame_index_ < calculated_frame_index_ - 5) 
+            std::cerr << g_mpiRank << ": catch up " << (calculated_frame_index_ - last_frame_index_) << "\n";
+        else 
+            std::cerr << g_mpiRank << ": seek back... why? " << last_frame_index_ << " " << calculated_frame_index_ << "\n";
+#endif
         avformat_seek_file(avFormatContext_, videoStream_, 0, dts, dts, 0);
         avcodec_flush_buffers(avCodecContext_);
     }
 
-   frame_index_  = calculated_frame_index_;
+    last_frame_index_  = calculated_frame_index_;
 
     AVPacket packet;
     int frameFinished;
-    while(av_read_frame(avFormatContext_, &packet) >= 0)
+    int avr;
+
+    for (bool done = false; !done; )
     {
-        // make sure packet is from video stream
-        if(packet.stream_index == videoStream_)
+        avr = av_read_frame(avFormatContext_, &packet);
+        if (avr < 0)
+        {
+            calculated_frame_index_ = num_frames_;
+            last_frame_index_ = -1;
+            tCreation = now;
+            done = true;
+        }
+        else if (packet.stream_index == videoStream_)
         {
             // decode video frame
             avcodec_decode_video2(avCodecContext_, avFrame_, &frameFinished, &packet);
@@ -315,32 +328,29 @@ void Movie::nextFrame(bool skip)
                 // note that the last packet decoded will have a DTS corresponding to this frame's PTS
                 // hence the use of avFrame_->pkt_dts as the timestamp. also, we'll keep reading frames
                 // until we get to the desired timestamp (in the case that we seeked)
-                if(dts == 0 || (avFrame_->pkt_dts >= dts))
+                if((avr == AVERROR_EOF) || (dts == 0) || (avFrame_->pkt_dts >= dts))
                 {
                     // convert the frame from its native format to RGB and copy it to the texture
                     sws_scale(swsContext_, avFrame_->data, avFrame_->linesize, 0, avCodecContext_->height, avFrameRGB_->data, avFrameRGB_->linesize);
-					glBindTexture(GL_TEXTURE_2D, textureId_);
+                    glBindTexture(GL_TEXTURE_2D, textureId_);
                     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, avCodecContext_->width, avCodecContext_->height, GL_RGBA, GL_UNSIGNED_BYTE, avFrameRGB_->data[0]);
-
-                    // free the packet that was allocated by av_read_frame
-                    av_free_packet(&packet);
-
-                    break;
+                    done = true;
                 }
-        }
+            }
         }
 
         // free the packet that was allocated by av_read_frame
         av_free_packet(&packet);
     }
 
-    auto now = high_resolution_clock::now();
     if (++decode_count_ % 100 == 0)
     {
-        duration<double, std::ratio<1>> tTot = now - tFirst;
-				if (g_dc_flags & 0x1)
-					std::cerr << decode_count_ << " " << (decode_count_ / tTot.count()) << " FPS Reset\n";
-				decode_count_ = 0;
-				tFirst = now;
+        duration<double, std::ratio<1>> tTot = now - tTiming;
+        if (g_dc_flags & 0x1)
+            std::cerr << decode_count_ << " " << (decode_count_ / tTot.count()) << " FPS Reset\n";
+        decode_count_ = 0;
+        tTiming = now;
     }
+
+    tOut = high_resolution_clock::now();
 }
