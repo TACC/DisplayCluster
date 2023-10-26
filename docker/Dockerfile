@@ -76,6 +76,18 @@ RUN apt-get update \
     yasm \
     x11-apps
 
+RUN apt-get -y install \
+  ffmpeg  \
+  libavcodec-dev \
+  libavdevice-dev \
+  libavfilter-dev \
+  libavformat-dev \
+  libavresample-dev \
+  libavutil-dev \
+  libpostproc-dev \
+  libswresample-dev \
+  libswscale-dev
+
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 8 && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 8
 
 RUN curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py
@@ -102,12 +114,6 @@ RUN mkdir -p /usr/local/src \
     && git clone https://github.com/TACC/DisplayCluster.git \
     && cd DisplayCluster \
     && git checkout docker
-
-RUN cd /usr/local/src/DisplayCluster/dependencies \
-    && tar xzf ffmpeg-1.1.2.tar.gz \
-    && cd ffmpeg-1.1.2 \
-    && ./configure --prefix=/usr/local/ffmpeg --disable-doc --disable-htmlpages --disable-manpages --disable-podpages --disable-txtpages \
-    && make -j 4 install 
 
 RUN cd /usr/local/src/DisplayCluster/dependencies \
     && tar xzf sip-4.19.25.tar.gz \
