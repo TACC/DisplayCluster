@@ -40,45 +40,18 @@
 #define MOVIE_H
 
 #include "FactoryObject.h"
+#include "Decoder.h"
+
 #include <QGLWidget>
 #include <boost/date_time/posix_time/posix_time.hpp>
-
 #include <chrono>
 #include <iostream>
+
 using namespace std::chrono;
-
-
-// required for FFMPEG includes below, specifically for the Linux build
-#ifdef __cplusplus
-    #ifndef __STDC_CONSTANT_MACROS
-        #define __STDC_CONSTANT_MACROS
-    #endif
-
-    #ifdef _STDINT_H
-        #undef _STDINT_H
-    #endif
-
-    #include <stdint.h>
-#endif
-
-extern "C" {
-    #include <libavcodec/avcodec.h>
-    #include <libavformat/avformat.h>
-    #include <libswscale/swscale.h>
-    #include <libavutil/error.h>
-    #include <libavutil/mathematics.h>
-}
-
-#if LIBAVCODEC_VERSION_INT > AV_VERSION_INT(55,28,1)
-#define avcodec_alloc_frame av_frame_alloc
-#define avcodec_free_frame av_frame_free
-#define PIX_FMT_RGBA AV_PIX_FMT_RGBA
-#endif
 
 class Movie : public FactoryObject {
 
     public:
-
         Movie(std::string uri);
         ~Movie();
 
@@ -87,44 +60,14 @@ class Movie : public FactoryObject {
         void nextFrame(bool);
 
     private:
-
-        // true if all the movie initializations were successful
-        bool initialized_;
-
-        // image location
-        std::string uri_;
+        Decoder decoder;
 
         // texture
         GLuint textureId_;
         bool textureBound_;
+        bool initialized_;
 
-        // FFMPEG
-        AVFormatContext * avFormatContext_;
-        AVCodecContext * avCodecContext_; // this is a member of AVFormatContext, saved for convenience; no need to free
-        SwsContext * swsContext_;
-        AVFrame * avFrame_;
-        AVFrame * avFrameRGB_;
-        int videoStream_;
-
-        // used for seeking
-        int64_t start_time_;
-        int64_t duration_;
-        int64_t num_frames_;
-
-        int64_t last_frame_index_;
-        int64_t skipped_frames_;
-
-		double FPS_;
-
-        // frame timing
-		time_point<high_resolution_clock> tCreation;
-		time_point<high_resolution_clock> tBegin;
-		time_point<high_resolution_clock> tTiming;
-		time_point<high_resolution_clock> tOut;
-
-		int64_t decode_count_;
-
-        // boost::shared_ptr<boost::posix_time::ptime> tBegin;
+        bool paused_;
 };
 
 #endif
