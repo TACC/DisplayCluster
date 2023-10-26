@@ -152,6 +152,7 @@ if(BUILD_DISPLAYCLUSTER)
         src/ContentWindowGraphicsItem.cpp
         src/ContentWindowListWidgetItem.cpp
         src/Marker.cpp
+        src/Decoder.cpp
         src/DisplayGroupManager.cpp
         src/DisplayGroupInterface.cpp
         src/DisplayGroupGraphicsScene.cpp
