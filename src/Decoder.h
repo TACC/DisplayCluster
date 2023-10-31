@@ -6,7 +6,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-
 using namespace std::chrono;
 
 extern "C" {
@@ -65,18 +64,13 @@ private:
     }
 
 public:
-    Decoder(bool paused = false)
-    {
-        quit_   = false;
-        pause_  = paused;
-    }
+    Decoder(bool paused = false);
+    ~Decoder();
 
-    ~Decoder()
-    {
-        quit_ = true;
-        Signal();
-        pthread_join(tid_, NULL);
-    }
+    std::string 
+    getURI() { return uri_; }
+
+    bool isPaused() { return pause_; }
 
     void Pause()
     { 
@@ -161,7 +155,7 @@ private:
     int width_, height_;
     uint8_t **data_;
     int *linesize_;
-    int current_frame = -1;
+    int current_frame_ = -1;
     bool newFrame_;
 
     SwsContext * swsContext_;
@@ -173,7 +167,6 @@ private:
     double fps_;
     AVRational tb_;
     AVRational fr_;
-    int current_frame_;
 
     enum ThreadState { START, RUNNING, ERROR } tState_ = START;
 

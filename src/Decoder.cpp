@@ -1,5 +1,18 @@
 #include "Decoder.h"
 
+Decoder::Decoder(bool paused)
+{
+    quit_   = false;
+    pause_  = paused;
+}
+
+Decoder::~Decoder()
+{
+    quit_ = true;
+    Signal();
+    pthread_join(tid_, NULL);
+}
+
 bool
 Decoder::_setup()
 {
@@ -55,6 +68,9 @@ Decoder::_setup()
         return false;
     }
 
+
+
+#if 0
     // set codec to automatically determine how many threads suits best for the decoding job
     avCodecContext_->thread_count = 0;
 
@@ -64,6 +80,7 @@ Decoder::_setup()
        avCodecContext_->thread_type = FF_THREAD_SLICE;
     else
        avCodecContext_->thread_count = 1; //don't use multithreading
+#endif
 
     if (avcodec_open2(avCodecContext_, codec, NULL) < 0)
     {
@@ -168,4 +185,5 @@ Decoder::_cleanup()
     av_free(avFrame_);
     av_free(avFrameRGB_);
 }
+
 
