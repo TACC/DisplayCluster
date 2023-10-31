@@ -50,6 +50,7 @@
 #define MAX_LOG_LENGTH 1024
 
 extern void put_log(int level, const char *format, ...);
+void mylog(const char *format, ...);
 
 #ifdef _WIN32
     #define put_flog(l, fmt, ...) put_log(l, "%s: " fmt, __FUNCTION__, ##__VA_ARGS__)

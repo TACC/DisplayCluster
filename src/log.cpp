@@ -57,3 +57,30 @@ void put_log(int level, const char *format, ...)
 
     return;
 }
+
+#include "main.h"
+
+static FILE *mylog_fd = NULL;
+
+void mylog(const char *format, ...)
+{
+    if (! mylog_fd)
+    {
+        char name[1024];
+        sprintf(name, "/home/vislab/logs/log-%03d", g_mpiRank);
+        mylog_fd = fopen(name, "w");
+    }
+
+    char log_string[MAX_LOG_LENGTH];
+
+    // actual log message
+    va_list ap;
+    va_start(ap, format);
+    vsnprintf(log_string, MAX_LOG_LENGTH, format, ap);
+    va_end(ap);
+
+    fprintf(mylog_fd, "%s", log_string);
+    fflush(mylog_fd);
+}
+    
+
