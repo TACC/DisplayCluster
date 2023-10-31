@@ -42,6 +42,8 @@
 MainWindow * g_mainWindow = NULL;
 DesktopSelectionWindow * g_desktopSelectionWindow = NULL;
 
+int g_mpiRank = 0; // For log
+
 int main(int argc, char * argv[])
 {
     put_flog(LOG_INFO, "");
