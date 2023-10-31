@@ -149,16 +149,28 @@ void Movie::render(float tX, float tY, float tW, float tH)
 void
 Movie::nextFrame(bool skip)
 {
+#if 1
+    if (! skip)
+      last_rendered_frame_ = g_frameCount;
+#else
+    char s = skip ? 'S' : 's';
+    char p = paused_ ? 'P' : 'p';
+    
+    mylog("%c%c-", s, p);
     if (skip && !paused_)
     {
-      // std::cerr << "pause on " << g_mpiRank << "\n";
+      mylog("pausing %s\n", decoder.getURI().c_str());
+
       decoder.Pause();
       paused_ = true;
     }
     else if (!skip && paused_)
     {
-      // std::cerr << "resume on " << g_mpiRank << "\n";
+      mylog("resuming %s\n", decoder.getURI().c_str());
+
       decoder.Resume();
       paused_ = false;
     }
+    mylog("\n");
+#endif
 }
