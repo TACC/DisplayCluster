@@ -546,6 +546,14 @@ void MainWindow::updateGLWindows()
     // advance all contents
     g_displayGroupManager->advanceContents();
 
+    // The above will identify the movies that need to be decoding...
+
+    for (auto& item : glWindows_[0]->getMovieFactory())
+        if (item.second->getLastRenderedFrame() == g_frameCount && item.second->isPaused())
+            item.second->Resume();
+        else if (item.second->getLastRenderedFrame() < g_frameCount && !item.second->isPaused())
+            item.second->Pause();
+
     // clear old factory objects and purge any textures
     if(glWindows_.size() > 0)
     {
