@@ -56,7 +56,7 @@ class Factory {
             QMutexLocker locker(&mapMutex_);
 
             // see if we need to create the object
-            if(map_.count(uri) == 0)
+            if(map_.count(uri) == 0) 
             {
                 boost::shared_ptr<T> t(new T(uri));
 
@@ -98,6 +98,9 @@ class Factory {
                 }
             }
         }
+
+        typename std::map<std::string, boost::shared_ptr<T>>::iterator begin() { return map_.begin(); }
+        typename std::map<std::string, boost::shared_ptr<T>>::iterator end()   { return map_.end(); }
 
     private:
 
