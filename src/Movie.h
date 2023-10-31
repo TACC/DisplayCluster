@@ -59,6 +59,11 @@ class Movie : public FactoryObject {
         void render(float tX, float tY, float tW, float tH);
         void nextFrame(bool);
 
+        int getLastRenderedFrame() { return last_rendered_frame_; }
+        void Pause() { decoder.Pause(); paused_ = true; }
+        void Resume() { decoder.Resume(); paused_ = false; }
+        bool isPaused() { return paused_; }
+
     private:
         Decoder decoder;
 
@@ -66,8 +71,9 @@ class Movie : public FactoryObject {
         GLuint textureId_;
         bool textureBound_;
         bool initialized_;
-
         bool paused_;
+
+        int last_rendered_frame_ = -1;
 };
 
 #endif
