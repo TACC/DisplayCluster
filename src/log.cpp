@@ -36,10 +36,11 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "main.h"
 #include "log.h"
 #include <stdarg.h>
 #include <stdio.h>
+
+extern int g_mpiRank;
 
 void put_log(int level, const char *format, ...)
 {
@@ -58,8 +59,6 @@ void put_log(int level, const char *format, ...)
 
     return;
 }
-
-#include "main.h"
 
 static FILE *mylog_fd = NULL;
 
