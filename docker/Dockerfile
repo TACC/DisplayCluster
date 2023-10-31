@@ -111,6 +111,7 @@ RUN wget https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.1.tar.g
 
 RUN mkdir -p /usr/local/src \
     && cd /usr/local/src \
+    && echo 1 \
     && git clone https://github.com/TACC/DisplayCluster.git \
     && cd DisplayCluster \
     && git checkout docker
@@ -137,15 +138,16 @@ RUN cd /usr/local/src/DisplayCluster/dependencies \
     && sed -i -e "s/python2.6/python2.7/" -e "s/python26/python27/" build/python.prf \
     && make -j 4 \
     && cp lib/libPythonQt.so.1.0.0 /usr/local/lib \
+    && cp src/PythonQt.h /usr/local/include \
     && ln -s /usr/local/lib/libPythonQt.so.1.0.0 /usr/local/lib/libPythonQt.so \
     && ln -s /usr/local/lib/libPythonQt.so.1.0.0 /usr/local/lib/libPythonQt.so.1 \
     && ln -s /usr/local/lib/libPythonQt.so.1.0.0 /usr/local/lib/libPythonQt.so.1.0 
 
 RUN cd /usr/local/src/DisplayCluster/dependencies \
-    && tar xzf boost_1_53_0.tar.gz \
-    && cd boost_1_53_0 \
-    && ./bootstrap.sh --with-libraries=serialization,date_time \
-    && ./b2 -j 4 install 
+   && tar xzf boost_1_53_0.tar.gz \
+   && cd boost_1_53_0 \
+   && ./bootstrap.sh --with-libraries=serialization,date_time \
+   && ./b2 -j 4 install 
 
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
@@ -153,6 +155,7 @@ ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
 COPY cfg.dc /usr/local/src/DisplayCluster
 
 RUN cd /usr/local/src/DisplayCluster \
-  && mkdir build && cd build \
-  && sh ../cfg.dc \
-    && make -j 5 install
+   && mkdir build && cd build \
+   && sh ../cfg.dc  \
+   && make -j 5 install \
+   && echo done
