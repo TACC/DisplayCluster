@@ -36,6 +36,7 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
+#include "main.h"
 #include "log.h"
 #include <stdarg.h>
 #include <stdio.h>
