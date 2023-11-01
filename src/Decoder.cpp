@@ -70,7 +70,7 @@ Decoder::_setup()
 
 
 
-#if 0
+#if 1
     // set codec to automatically determine how many threads suits best for the decoding job
     avCodecContext_->thread_count = 0;
 
