@@ -99,8 +99,6 @@ void Movie::render(float tX, float tY, float tW, float tH)
 
     glBegin(GL_QUADS);
 
-#if 1
-
     glTexCoord2f(tX,tY);
     glVertex2f(0.,0.);
 
@@ -113,34 +111,6 @@ void Movie::render(float tX, float tY, float tW, float tH)
     glTexCoord2f(tX,tY+tH);
     glVertex2f(0.,1.);
 
-
-#if 0
-    glTexCoord2f(tX+tW, tY+tH); glVertex2f( 1., -1.);
-    glTexCoord2f(tX+tW, tY); glVertex2f( 1.,  1.);
-    glTexCoord2f(tX, tY); glVertex2f(-1.,  1.);
-    glTexCoord2f(tX, tY+tH); glVertex2f(-1., -1.);
-    glTexCoord2f(tX, tY+tH); glVertex2f(-1., -1.);
-    glTexCoord2f(tX, tY); glVertex2f(-1.,  1.);
-    glTexCoord2f(tX+tW, tY); glVertex2f( 1.,  1.);
-    glTexCoord2f(tX+tW, tY+tH); glVertex2f( 1., -1.);
-#endif
-
-#else
-
-    static int i = 0;
-    float r = (i & 0x1) ? 1. : 0.;
-    float g = (i & 0x2) ? 1. : 0.;
-    float b = (i & 0x4) ? 1. : 0.;
-    i ++;
-
-    glColor4f(r, g, b, 1);
-
-    glVertex2f( 1., -1.);
-    glVertex2f( 1.,  1.);
-    glVertex2f(-1.,  1.);
-    glVertex2f(-1., -1.);
-#endif
-
     glEnd();
 
     glPopAttrib();
@@ -149,28 +119,6 @@ void Movie::render(float tX, float tY, float tW, float tH)
 void
 Movie::nextFrame(bool skip)
 {
-#if 1
     if (! skip)
       last_rendered_frame_ = g_frameCount;
-#else
-    char s = skip ? 'S' : 's';
-    char p = paused_ ? 'P' : 'p';
-    
-    mylog("%c%c-", s, p);
-    if (skip && !paused_)
-    {
-      mylog("pausing %s\n", decoder.getURI().c_str());
-
-      decoder.Pause();
-      paused_ = true;
-    }
-    else if (!skip && paused_)
-    {
-      mylog("resuming %s\n", decoder.getURI().c_str());
-
-      decoder.Resume();
-      paused_ = false;
-    }
-    mylog("\n");
-#endif
 }
