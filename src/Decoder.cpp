@@ -17,7 +17,7 @@ bool
 Decoder::_setup()
 {
     avformat_network_init();
-    av_register_all();
+    // av_register_all();
 
     swsContext_ = NULL;
     avFormatContext_ = NULL;
@@ -31,21 +31,22 @@ Decoder::_setup()
 
     if (avformat_open_input(&avFormatContext_, uri_.c_str(), NULL, NULL) != 0)
     {
-        std::cerr << "could not open movie file";
+        std::cerr << "could not open movie file\n";
         return false;
     }
 
-    // get stream information
     if (avformat_find_stream_info(avFormatContext_, NULL) < 0)
     {
-        std::cerr << "could not find stream information";
+        std::cerr << "could not find stream information\n";
         return false;
     }
 
     videoStream_ = -1;
+    AVStream *stream  = NULL;
     for (unsigned int i=0; i<avFormatContext_->nb_streams; i++)
     {
-        if(avFormatContext_->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
+        stream = avFormatContext_->streams[i];
+        if (stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
         {
             videoStream_ = i;
             break;
@@ -54,21 +55,26 @@ Decoder::_setup()
 
     if (videoStream_ == -1)
     {
-        std::cerr << "could not find video stream";
+        std::cerr << "could not find video stream\n";
         return false;
     }
 
-    auto stream = avFormatContext_->streams[videoStream_];
-    avCodecContext_ = stream->codec;
 
-    AVCodec * codec = avcodec_find_decoder(avCodecContext_->codec_id);
-    if(codec == NULL)
+    AVCodec *codec = avcodec_find_decoder(stream->codecpar->codec_id);
+    if (!codec)
     {
-        std::cerr << "unsupported codec";
+        std::cerr << "unsupported codec\n";
         return false;
     }
 
+    avCodecContext_ = avcodec_alloc_context3(codec);
 
+    if (avcodec_parameters_to_context(avCodecContext_, stream->codecpar) < 0)
+    if (!codec)
+    {
+        std::cerr << "unable to copy codec params\n";
+        return false;
+    }
 
 #if 1
     // set codec to automatically determine how many threads suits best for the decoding job
@@ -91,11 +97,11 @@ Decoder::_setup()
     avFrame_ = avcodec_alloc_frame();
     avFrameRGB_ = avcodec_alloc_frame();
 
-    int numBytes = avpicture_get_size(PIX_FMT_RGBA, avCodecContext_->width, avCodecContext_->height);
+    int numBytes = av_image_get_buffer_size(PIX_FMT_RGBA, avCodecContext_->width, avCodecContext_->height, 32);
 
     uint8_t *buffer = (uint8_t *)av_malloc(numBytes*sizeof(uint8_t));
 
-    avpicture_fill((AVPicture *)avFrameRGB_, buffer, PIX_FMT_RGBA, avCodecContext_->width, avCodecContext_->height);
+    av_image_fill_arrays(avFrameRGB_->data, avFrameRGB_->linesize, buffer, AV_PIX_FMT_RGBA, avCodecContext_->width, avCodecContext_->height, 1);
 
     duration_ = stream->duration;
     num_frames_ = av_rescale(duration_, stream->time_base.num * stream->r_frame_rate.num, stream->time_base.den * stream->r_frame_rate.den);
@@ -137,41 +143,38 @@ Decoder::_decode()
 
     current_frame_ = target;
 
-    int avReadStatus;
     AVPacket packet;
-    int frameFinished;
     while (1 == 1)
     {
-        avReadStatus = av_read_frame(avFormatContext_, &packet);
+        av_read_frame(avFormatContext_, &packet);
 
         // make sure packet is from video stream
         if(packet.stream_index == videoStream_)
         {
             // decode video frame
-            avcodec_decode_video2(avCodecContext_, avFrame_, &frameFinished, &packet);
-                                     
-            // make sure we got a full video frame
-            if(frameFinished)
-            {
-                // note that the last packet decoded will have a DTS corresponding to this frame's PTS
-                // hence the use of avFrame_->pkt_dts as the timestamp. also, we'll keep reading frames
-                // until we get to the desired timestamp (in the case that we seeked)
-                if(dts == 0 || (avFrame_->pkt_dts >= dts))
-                {
-                    Lock();
-                    // std::cerr << "d\n";
-                    sws_scale(swsContext_, avFrame_->data, avFrame_->linesize, 0, avCodecContext_->height, avFrameRGB_->data, avFrameRGB_->linesize);
-                    newFrame_ = true;
-                    Unlock();
-          
+            
+            avcodec_send_packet(avCodecContext_, &packet);
 
-                    av_free_packet(&packet);
-                    break;
-                }
+            if (avcodec_receive_frame(avCodecContext_, avFrame_))
+                return false;
+
+            if ((avFrame_->data[0] == NULL) && (avFrame_->data[1] == NULL) && (avFrame_->data[2] == NULL))
+                continue;
+
+            if(dts == 0 || (avFrame_->pkt_dts >= dts))
+            {
+                Lock();
+                sws_scale(swsContext_, avFrame_->data, avFrame_->linesize, 0, avCodecContext_->height, avFrameRGB_->data, avFrameRGB_->linesize);
+                newFrame_ = true;
+                Unlock();
+          
+                av_packet_unref(&packet);
+
+                break;
             }
         }
 
-        av_free_packet(&packet);
+        av_packet_unref(&packet);
     }
     
     return true;

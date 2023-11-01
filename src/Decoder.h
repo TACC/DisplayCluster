@@ -14,6 +14,8 @@ extern "C" {
     #include "libswscale/swscale.h"
     #include "libavutil/error.h"
     #include "libavutil/mathematics.h"
+    #include "libavutil/avutil.h"
+    #include "libavutil/imgutils.h"
 }
 
 #if LIBAVUTIL_VERSION_MAJOR == 56
