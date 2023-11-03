@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # example launcher for DisplayCluster
 # this should work for most cases, but can be modified for a particular
@@ -13,25 +13,44 @@ import signal
 import shlex
 
 def signalhandler(signum, a):
-	print "signalhandler"
-	os.system("kill -- -%s" % os.getpid())
-	sys.exit(1)
+    print( "signalhandler")
+    os.system("kill -- -%s" % os.getpid())
+    sys.exit(1)
 
 signal.signal(signal.SIGINT, signalhandler)
 
-os.environ['DISPLAYCLUSTER_TIMEOUT'] = '1800'
+if 'DISPLAYCLUSTER_SIF' not in os.environ:
+    print("DISPLAYCLUSTER_SIF not set")
+    sys.exit(1)
+
+if 'DISPLAYCLUSTER_DIR' not in os.environ:
+    os.environ['DISPLAYCLUSTER_DIR'] = os.path.dirname(os.path.abspath(__file__))
+
+dcPath = os.environ['DISPLAYCLUSTER_DIR']
+sif = os.environ['DISPLAYCLUSTER_SIF']
+
+if 'DISPLAYCLUSTER_EXEC' not in os.environ:
+    os.environ['DISPLAYCLUSTER_EXEC'] = 'displaycluster'
+
+os.environ['DISPLAYCLUSTER_REMOTEPORT'] = '1910'
+os.environ['DISPLAYCLUSTER_NETWORKPORT'] = '1701'
+os.environ['DISPLAYCLUSTER_TIMEOUT'] = '18000'
 os.environ['DISPLAYCLUSTER_SCREENSAVER'] = 'examples/screensaver_moveOff.py'
-os.environ['DISPLAYCLUSTER_SCREENSAVER_PONGTIME'] = '300'
+os.environ['DISPLAYCLUSTER_SCREENSAVER_PONGTIME'] = '30000'
 os.environ['DISPLAYCLUSTER_SCREENSAVER_IMAGE'] = 'examples/tacc-logo.png'
 
-# DisplayCluster directory; this is the parent directory of this script
-dcPath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if 'DISPLAYCLUSTER_SCREENSAVER_IMAGE' not in os.environ:
+    os.environ['DISPLAYCLUSTER_LOG_THRESHOLD'] = 4
 
-# set an environment variable for the base DisplayCluster directory
-os.environ['DISPLAYCLUSTER_DIR'] = dcPath
+
+if 'LD_LIBRARY_PATH' in os.environ:
+	os.environ['LD_LIBRARY_PATH'] = os.environ['LD_LIBRARY_PATH'] + ':/usr/local/lib'
+else:
+	os.environ['LD_LIBRARY_PATH'] = '/usr/local/lib'
+
 if 'DISPLAYCLUSTER_CONFIG' not in os.environ:
-  	os.environ['DISPLAYCLUSTER_CONFIG'] = dcPath + '/configuration.xml'
-	
+    os.environ['DISPLAYCLUSTER_CONFIG'] = dcPath + '/configuration.xml'
+
 # set the Python path so the pydc module can be found
 if 'PYTHONPATH' not in os.environ:
     os.environ['PYTHONPATH'] = dcPath + '/python'
@@ -52,35 +71,40 @@ hostList = ['localhost']
 
 # configuration.xml gives the rest of the hosts
 try:
-    doc = ET.parse(dcPath + "/configuration.xml")
+    if 'DISPLAYCLUSTER_CONFIG' in os.environ:
+        print("yes")
+        doc = ET.parse(os.environ['DISPLAYCLUSTER_CONFIG'])
+        print(doc)
+    else:
+        print("no")
+        doc = ET.parse(dcPath + "/configuration.xml")
 
     for elem in doc.findall('.//process'):
         host = elem.get("host")
 
         if host is None:
-            print 'Error, no host attribute in <process> tag.'
+            print( 'Error, no host attribute in <process> tag.')
             exit(-1)
 
         hostList.append(host)
 except:
-    print 'Error processing configuration.xml. Make sure you have created a configuration.xml and put it in ' + dcPath + '/. An example is provided in the examples/ directory.'
+    print( 'Error processing configuration.xml. Make sure you have created a configuration.xml and put it in ' + dcPath + '/. An example is provided in the examples/ directory.')
     exit(-2)
 
 hostListString = ",".join(hostList)
+print((hostListString))
 
 # find full path to mpirun; if MPI is installed in a non-standard location the
 # full path may be necessary to launch correctly across the cluster.
 mpirunCommand = distutils.spawn.find_executable('mpirun')
 
 if mpirunCommand is None:
-    print 'Error, could not find mpirun executable in PATH'
+    print( 'Error, could not find mpirun executable in PATH')
     exit(-3)
 
-startCommand = mpirunCommand + ' -x DISPLAYCLUSTER_DIR -x PYTHONPATH -host ' + hostListString + ' ' + dcPath + '/bin/displaycluster.py'
-# startCommand = mpirunCommand + ' -host ' + hostListString + " " + dcPath + '/bin/displaycluster'
+startCommand = '%s --mca btl_tcp_if_include enp0s25 -bind-to none -x LD_LIBRARY_PATH -x DISPLAYCLUSTER_EXEC -x DISPLAYCLUSTER_DIR -x DISPLAYCLUSTER_CONFIG -x DISPLAYCLUSTER_LOG_THRESHOLD -x PYTHONPATH -host %s apptainer run --nv  %s sh /usr/local/bin/displaycluster.sh /usr/local/bin/displaycluster.py' % (mpirunCommand, hostListString, sif)
 
-print 'launching with command: ' + startCommand
+print( 'launching with command: ' + startCommand)
 
-subprocess.Popen(['python', '%s/remote/app.py' % dcPath])
 subprocess.call(shlex.split(startCommand))
 os.system("kill -- -%s" % os.getpid())
