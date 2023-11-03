@@ -12,15 +12,6 @@ The DisplayCluster manual is included in the distribution in the doc/ directory,
 
 # Containers
 
-DisplayCluster can be run using containers.  This is primarily intended for use with Stallion/Rattler, and is built on top of the standard image for Stallion/Rattler images.   This is build from the https://github.com/GregAbram/TACC_ClusterBase project, and is available from the docker hub at docker://gregabram/tacc_clusterbase.   For non-Linux hosts your mileage will vary.
-
-You can access the docker container at docker://gregabram/displaycluster. To run it under Apptainer on an appropriate Linux cluster you will need to pull your own  .sif file: on the destination host:
-
-apptainer pull docker://gregabram/displaycluster
-
-THis will create displaycluster_latest.sif, which you can run under apptainer
-
-To create your own image, you can check out the docker branch.   In the docker folder you'll see the Dockerfile and the recipe for building all the dependencies and DC itself.   To use a different base image, change the FROM line; you can look at https://github.com/GregAbram/TACC_ClusterBase to see what your base image will need.
-
+The preferred way to run DisplayCluster now is using containers.   For more info, please check out the **docker** branch and consult the README there.
 
 
