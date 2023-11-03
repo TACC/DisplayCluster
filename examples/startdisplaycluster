@@ -39,9 +39,8 @@ os.environ['DISPLAYCLUSTER_SCREENSAVER'] = 'examples/screensaver_moveOff.py'
 os.environ['DISPLAYCLUSTER_SCREENSAVER_PONGTIME'] = '30000'
 os.environ['DISPLAYCLUSTER_SCREENSAVER_IMAGE'] = 'examples/tacc-logo.png'
 
-if 'DISPLAYCLUSTER_SCREENSAVER_IMAGE' not in os.environ:
-    os.environ['DISPLAYCLUSTER_LOG_THRESHOLD'] = 4
-
+if 'DISPLAYCLUSTER_LOG_THRESHOLD' not in os.environ:
+    os.environ['DISPLAYCLUSTER_LOG_THRESHOLD'] = '4'
 
 if 'LD_LIBRARY_PATH' in os.environ:
 	os.environ['LD_LIBRARY_PATH'] = os.environ['LD_LIBRARY_PATH'] + ':/usr/local/lib'
