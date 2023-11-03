@@ -111,7 +111,7 @@ RUN wget https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.1.tar.g
 
 RUN mkdir -p /usr/local/src \
     && cd /usr/local/src \
-    && echo 1 \
+    && echo 2 \
     && git clone https://github.com/TACC/DisplayCluster.git \
     && cd DisplayCluster \
     && git checkout docker
