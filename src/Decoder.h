@@ -189,6 +189,9 @@ public:
 
     int
     getNumberOfFrames() { return num_frames_; };
+    
+    int
+    getNumBytes() { return numBytes_; }
 
 private:
 
@@ -202,6 +205,7 @@ private:
     int *linesize_;
     int current_frame_ = -1;
     bool newFrame_;
+    int numBytes_;
 
     SwsContext * swsContext_;
     AVFormatContext *avFormatContext_;

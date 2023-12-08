@@ -49,6 +49,9 @@ Movie::Movie(std::string uri)
 
 Movie::~Movie()
 {
+    if (bytes_)
+        free(bytes_);
+
     if(textureBound_ == true)
         glDeleteTextures(1, &textureId_);
 }
@@ -92,8 +95,16 @@ void Movie::render(float tX, float tY, float tW, float tH)
 
     if (decoder.ready())
     {
-      uint8_t *data = decoder.getFrame();
-      glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
+      if (numBytes_ != decoder.getNumBytes())
+      {
+        if (bytes_) free(bytes_);
+        numBytes_ = decoder.getNumBytes();
+        bytes_ = malloc(numBytes_);
+      }
+
+      memcpy((void *)bytes_, (void *)decoder.getFrame(), numBytes_);
+        
+      glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, bytes_);
       decoder.releaseFrame();
     }
 

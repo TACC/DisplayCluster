@@ -151,9 +151,8 @@ Decoder::_setup()
     avFrame_ = avcodec_alloc_frame();
     avFrameRGB_ = avcodec_alloc_frame();
 
-    int numBytes = av_image_get_buffer_size(PIX_FMT_RGBA, avCodecContext_->width, avCodecContext_->height, 32);
-
-    uint8_t *buffer = (uint8_t *)av_malloc(numBytes*sizeof(uint8_t));
+    numBytes_ = av_image_get_buffer_size(PIX_FMT_RGBA, avCodecContext_->width, avCodecContext_->height, 32);
+    uint8_t *buffer = (uint8_t *)av_malloc(numBytes_*sizeof(uint8_t));
 
     av_image_fill_arrays(avFrameRGB_->data, avFrameRGB_->linesize, buffer, AV_PIX_FMT_RGBA, avCodecContext_->width, avCodecContext_->height, 1);
 

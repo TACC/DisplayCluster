@@ -73,6 +73,9 @@ class Movie : public FactoryObject {
         bool initialized_;
         bool paused_;
 
+        int numBytes_ = -1;
+        void *bytes_ = NULL;
+
         int last_rendered_frame_ = -1;
 };
 
