@@ -1,9 +1,47 @@
-DisplayCluster is a software environment for interactively driving large-scale tiled displays. The software allows users to interactively view media such as high-resolution imagery and video, as well as stream content from remote sources such as laptops / desktops or high-performance remote visualization machines. Many users can simultaneously interact with DisplayCluster with devices such as joysticks or touch-enabled devices such as the iPhone / iPad / iTouch or Android devices. Additionally, a Python scripting interface is provided to automate interaction with DisplayCluster.
+This branch DisplayCluster can be run using containers.  This is primarily intended for use with systems with Nvidia graphcs cards, and is  built on top of the Nvidia opengl image: nvidia/opengl:1.0-glvnd-devel-ubuntu20.04.   I believe you can build the image using a standard ubuntu 20.04 image (by changing the **FROM** line in the Dockerfile, but it will use Mesa for rendering, which can have performance issues when the displays are high resolution.  
 
-DisplayCluster is hosted on GitHub at https://github.com/TACC/DisplayCluster. The recommended way to download DisplayCluster is via Git. This will allow you to easily pull updates to the code as they are made. You can download the code with Git by executing the command:
+To build the DC image, change to the **docker** branch and copy **{root}/docker/Dockerfile** and **{root}/docker/cfg.dc** to a local directory.   In that directory run:
 
-git clone git://github.com/TACC/DisplayCluster.git
+    docker build -t displaycluster .
 
-You may also download specific versions and packages at the Tags and Downloads link on the GitHub page.
+This will create an image on your local system.  You can then push this to Docker Hub to make it generally available.
 
-The DisplayCluster manual is included in the distribution in the doc/ directory, and covers installation and usage.
+At TACC we use Apptainer to run our containers.   We create our apptainer image from the Docker image described above.  On the system in which the Docker image was created, run:
+
+    apptainer build displaycluster docker-daemon:displaycluster:latest
+
+If you've pushed the image to Docker Hub, you can create the Apptainer image by pulling it:
+
+    apptainer pull displaycluster.sif docker://.../displaycluster:latest
+
+This will create **displaycluster.sif**.
+
+## MPI
+
+To run apptainer containers under MPI the version of MPI on the hosts *outside the container* must match the version of MPI 
+*inside* the container.  
+This Dockerfile installs OpenMPI-4.1.1 off the web.  
+Thus the one requirement of the host environment (other than having apptainer installed) is to have OpenMPI-4.1.1 installed on the hosts.
+Alternatively, the Dockerfile can be modified to install a different version that matches the one on the host.   
+Your mileage may vary if you choose this alternative.
+
+## Installation and Runtime
+
+Create a root directory for DisplayCluster in a shared file system.  
+Add a configuration.xml file to that directory as described elsewhere in the docs.
+Place **displaycluster.sif** therein.  
+Also copy the file **examples/startdisplaycluster** into that file - this python script is where various environment variables are defaulted, and where the actual **mpirun** call is made.
+
+NOTE: in some cases (like Rattler here at TACC) OpenMPI does not seem to find the correct interface for MPI to use.
+You will see this hard-coded in the **mpirunCommand** string that is created near the end of this file.   You may need to change it.
+
+
+
+
+
+
+
+
+
+
+
