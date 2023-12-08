@@ -40,16 +40,29 @@
 #include "main.h"
 #include "Decoder.h"
 
+static bool first = true;
+static void sighandler(int signum)
+{
+    std::cerr << "Decoder kill signal\n";
+    pthread_exit(NULL);
+}
+
 Decoder::Decoder(bool paused)
 {
     quit_   = false;
     pause_  = paused;
+
+    if (first)
+    {
+        first = false;
+        signal(SIGUSR1, sighandler);
+    }
 }
 
 Decoder::~Decoder()
 {
     quit_ = true;
-    Signal();
+    Kill();
     pthread_join(tid_, NULL);
 }
 
@@ -57,7 +70,6 @@ bool
 Decoder::_setup()
 {
     avformat_network_init();
-    // av_register_all();
 
     swsContext_ = NULL;
     avFormatContext_ = NULL;

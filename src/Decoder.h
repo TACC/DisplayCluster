@@ -46,6 +46,7 @@
 
 #include <sys/types.h>
 #include <unistd.h>
+#include <signal.h>
 
 using namespace std::chrono;
 
@@ -159,6 +160,7 @@ public:
     void Lock()   { pthread_mutex_lock(&lock_); }
     void Unlock() { pthread_mutex_unlock(&lock_); }
     void Signal() { pthread_cond_signal(&signal_); }
+    void Kill()   { pthread_kill(tid_, SIGUSR1); }
     void Wait()   { pthread_cond_wait(&signal_, &lock_); }
 
     void
