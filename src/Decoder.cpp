@@ -62,7 +62,7 @@ Decoder::Decoder(bool paused)
 Decoder::~Decoder()
 {
     quit_ = true;
-    Kill();
+    Signal();
     pthread_join(tid_, NULL);
 }
 
@@ -236,6 +236,7 @@ Decoder::_decode()
 void
 Decoder::_cleanup()
 {
+    avcodec_close(avCodecContext_);
     avformat_close_input(&avFormatContext_);
     sws_freeContext(swsContext_);
     av_free(avFrame_);

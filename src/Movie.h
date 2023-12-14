@@ -60,12 +60,12 @@ class Movie : public FactoryObject {
         void nextFrame(bool);
 
         int getLastRenderedFrame() { return last_rendered_frame_; }
-        void Pause() { decoder.Pause(); paused_ = true; }
-        void Resume() { decoder.Resume(); paused_ = false; }
+        void Pause() { decoder->Pause(); paused_ = true; }
+        void Resume() { decoder->Resume(); paused_ = false; }
         bool isPaused() { return paused_; }
 
     private:
-        Decoder decoder;
+        Decoder *decoder = NULL;
 
         // texture
         GLuint textureId_;

@@ -44,7 +44,8 @@ Movie::Movie(std::string uri)
 {
     initialized_ = false;
     paused_ = false;
-    decoder.Setup(uri);
+    decoder = new Decoder();
+    decoder->Setup(uri);
 }
 
 Movie::~Movie()
@@ -54,11 +55,13 @@ Movie::~Movie()
 
     if(textureBound_ == true)
         glDeleteTextures(1, &textureId_);
+
+    delete decoder;
 }
 
 void Movie::getDimensions(int &width, int &height)
 {
-    decoder.getFrameDimensions(width, height);
+    decoder->getFrameDimensions(width, height);
 }
 
 void Movie::render(float tX, float tY, float tW, float tH)
@@ -66,7 +69,7 @@ void Movie::render(float tX, float tY, float tW, float tH)
     updateRenderedFrameCount();
 
     int w, h;
-    decoder.getFrameDimensions(w, h);
+    decoder->getFrameDimensions(w, h);
 
     glPushAttrib(GL_ENABLE_BIT | GL_TEXTURE_BIT);
     glEnable(GL_TEXTURE_2D);
@@ -93,19 +96,19 @@ void Movie::render(float tX, float tY, float tW, float tH)
     else
         glBindTexture(GL_TEXTURE_2D, textureId_);
 
-    if (decoder.ready())
+    if (decoder->ready())
     {
-      if (numBytes_ != decoder.getNumBytes())
+      if (numBytes_ != decoder->getNumBytes())
       {
         if (bytes_) free(bytes_);
-        numBytes_ = decoder.getNumBytes();
+        numBytes_ = decoder->getNumBytes();
         bytes_ = malloc(numBytes_);
       }
 
-      memcpy((void *)bytes_, (void *)decoder.getFrame(), numBytes_);
+      memcpy((void *)bytes_, (void *)decoder->getFrame(), numBytes_);
         
       glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, bytes_);
-      decoder.releaseFrame();
+      decoder->releaseFrame();
     }
 
     glBegin(GL_QUADS);
