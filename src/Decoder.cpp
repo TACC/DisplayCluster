@@ -130,8 +130,7 @@ Decoder::_setup()
         return false;
     }
 
-#if 1
-    // set codec to automatically determine how many threads suits best for the decoding job
+#if 0
     avCodecContext_->thread_count = 0;
 
     if (codec->capabilities & CODEC_CAP_FRAME_THREADS)
@@ -140,6 +139,8 @@ Decoder::_setup()
        avCodecContext_->thread_type = FF_THREAD_SLICE;
     else
        avCodecContext_->thread_count = 1; //don't use multithreading
+#else
+    avCodecContext_->thread_count = 1; //don't use multithreading
 #endif
 
     if (avcodec_open2(avCodecContext_, codec, NULL) < 0)
@@ -242,5 +243,3 @@ Decoder::_cleanup()
     av_free(avFrame_);
     av_free(avFrameRGB_);
 }
-
-
