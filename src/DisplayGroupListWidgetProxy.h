@@ -40,7 +40,7 @@
 #define DISPLAY_GROUP_LIST_WIDGET_PROXY_H
 
 #include "DisplayGroupInterface.h"
-#include <QtGui>
+#include <QtWidgets>
 
 class DisplayGroupListWidgetProxy : public DisplayGroupInterface {
     Q_OBJECT

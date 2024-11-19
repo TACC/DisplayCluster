@@ -41,7 +41,7 @@
 
 #include "DisplayGroupInterface.h"
 #include "ContentWindowManager.h"
-#include <QtGui>
+#include <QtWidgets>
 
 class DisplayGroupPython : public DisplayGroupInterface, public boost::enable_shared_from_this<DisplayGroupPython> {
     Q_OBJECT
@@ -51,6 +51,7 @@ class DisplayGroupPython : public DisplayGroupInterface, public boost::enable_sh
         DisplayGroupPython(boost::shared_ptr<DisplayGroupManager> displayGroupManager);
 };
 
+#if 0
 // needed for SIP
 typedef boost::shared_ptr<DisplayGroupPython> pDisplayGroupPython;
 
@@ -137,4 +138,5 @@ class pyDisplayGroupPython
         boost::shared_ptr<DisplayGroupPython> ptr_;
 };
 
+#endif
 #endif

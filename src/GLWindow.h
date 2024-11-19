@@ -39,6 +39,8 @@
 #ifndef GL_WINDOW_H
 #define GL_WINDOW_H
 
+#include "main.h"
+
 #include "Factory.hpp"
 #include "Texture.h"
 #include "DynamicTexture.h"

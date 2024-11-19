@@ -39,6 +39,8 @@
 #ifndef MOVIE_CONTENT_H
 #define MOVIE_CONTENT_H
 
+#include "main.h"
+
 #include "Content.h"
 #include <boost/serialization/base_object.hpp>
 #include <boost/serialization/export.hpp>

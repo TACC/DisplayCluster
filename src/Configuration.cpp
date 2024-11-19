@@ -37,8 +37,8 @@
 /*********************************************************************/
 
 #include "Configuration.h"
+#include "DisplayGroupManager.h"
 #include "log.h"
-#include "main.h"
 
 Configuration::Configuration(const char * filename)
 {

@@ -39,8 +39,10 @@
 #ifndef CONTENT_WINDOW_GRAPHICS_ITEM_H
 #define CONTENT_WINDOW_GRAPHICS_ITEM_H
 
+#include "main.h"
+
 #include "ContentWindowInterface.h"
-#include <QtGui>
+#include <QtWidgets>
 #include <boost/shared_ptr.hpp>
 
 class ContentWindowManager;

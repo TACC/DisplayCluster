@@ -37,7 +37,7 @@
 /*********************************************************************/
 
 #include "DynamicTexture.h"
-#include "main.h"
+#include "MainWindow.h"
 #include "vector.h"
 #include "log.h"
 #include <algorithm>

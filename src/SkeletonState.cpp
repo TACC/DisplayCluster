@@ -39,7 +39,7 @@
 #include "SkeletonState.h"
 #include "DisplayGroupJoystick.h"
 #include "ContentWindowInterface.h"
-#include "main.h"
+#include "DisplayGroupManager.h"
 #include "log.h"
 #include "vector.h"
 

@@ -37,7 +37,6 @@
 /*********************************************************************/
 
 #include "Movie.h"
-#include "main.h"
 #include "log.h"
 
 Movie::Movie(std::string uri)

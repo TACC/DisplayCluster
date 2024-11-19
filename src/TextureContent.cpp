@@ -37,8 +37,8 @@
 /*********************************************************************/
 
 #include "TextureContent.h"
-#include "main.h"
 #include "Texture.h"
+#include "MainWindow.h"
 
 BOOST_CLASS_EXPORT_GUID(TextureContent, "TextureContent")
 

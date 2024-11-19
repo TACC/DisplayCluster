@@ -42,7 +42,7 @@
 #define ERROR_IMAGE_FILENAME "error.png"
 
 #include <string>
-#include <QtGui>
+#include <QtWidgets>
 #include <boost/shared_ptr.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
@@ -99,6 +99,7 @@ class Content : public QObject {
 
 BOOST_SERIALIZATION_ASSUME_ABSTRACT(Content)
 
+#if 0
 // typedef needed for SIP
 typedef boost::shared_ptr<Content> pContent;
 
@@ -123,5 +124,6 @@ class pyContent {
 
         boost::shared_ptr<Content> ptr_;
 };
+#endif
 
 #endif

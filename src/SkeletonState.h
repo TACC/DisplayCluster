@@ -39,6 +39,8 @@
 #ifndef SKELETON_STATE_H
 #define SKELETON_STATE_H
 
+#include "main.h"
+
 
 // timeout (milliseconds) for a missing marker to cause the window to become inactive
 #define DEAD_MARKER_TIME 500
@@ -59,7 +61,7 @@
 #define WINDOW_SCALE_FACTOR 0.05
 
 #include "SkeletonSensor.h"
-#include <QtGui>
+#include <QtWidgets>
 #include <boost/shared_ptr.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>

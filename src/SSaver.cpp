@@ -37,7 +37,6 @@
 /*********************************************************************/
 
 #include <iostream>
-#include "main.h"
 #include "SSaver.h"
 #include "PythonConsole.h"
 

@@ -39,12 +39,14 @@
 #ifndef DISPLAY_GROUP_MANAGER_H
 #define DISPLAY_GROUP_MANAGER_H
 
+#include "main.h"
+
 #include "MessageHeader.h"
 #include "DisplayGroupInterface.h"
 #include "Options.h"
 #include "Marker.h"
 #include "config.h"
-#include <QtGui>
+#include <QtWidgets>
 #include <vector>
 #include <stack>
 #include <boost/shared_ptr.hpp>

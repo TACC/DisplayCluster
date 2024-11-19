@@ -39,68 +39,15 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-#include "Configuration.h"
-#include "MainWindow.h"
-#include "DisplayGroupManager.h"
-#include "NetworkListener.h"
+class Configuration;
+class MainWindow;
+class DisplayGroupManager;
+class NetworkListener;
+class QApplication;
+
 #include "config.h"
 #include <boost/shared_ptr.hpp>
 #include <mpi.h>
-
-#if 0
-#include <QtGui>
-
-class QDCApplication : public QApplication
-{
-	Q_OBJECT
-
-public:
-	QTimer m_timer;
-
-	QDCApplication(int& argc, char **argv) : QApplication(argc, argv)
-	{
-		m_timer.setInterval(5000);
-		connect(&m_timer, SIGNAL(timeout()), this, SLOT(idle_reset()));
-		m_timer.start();
-	}
-
-	bool notify(QObject *receiver, QEvent *event)
-	{
-		bool r = false;
-
-		try:
-			r = QApplication::notify(receiver, event);
-		except:
-			std::cerr << "Caught the problem\n";
-		
-		return r;
-	}
-
-	
-
-public slots:
-
-	void idle_reset()
-	{
-		m_timer.stop();
-		std::cerr << ".\n";
-		m_timer.start();
-	}
-
-public:
-
-	bool notify(QObject *r, QEvent *e)
-	{
-		if (e->type() == QEvent::MouseMove || e->type() == QEvent::KeyPress)
-		{
-			m_timer.stop();
-			m_timer.start();
-		}
-		return QApplication::notify(r, e);
-	}
-};
-
-#endif
 
 extern std::string g_displayClusterDir;
 extern QApplication * g_app;

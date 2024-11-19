@@ -38,7 +38,9 @@
 
 #include "ContentWindowInterface.h"
 #include "ContentWindowManager.h"
-#include "main.h"
+#include "Configuration.h"
+#include "MainWindow.h"
+#include "DisplayGroupManager.h"
 
 ContentWindowInterface::ContentWindowInterface(boost::shared_ptr<ContentWindowManager> contentWindowManager)
 {

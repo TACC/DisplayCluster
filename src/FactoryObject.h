@@ -39,6 +39,8 @@
 #ifndef FACTORY_OBJECT_H
 #define FACTORY_OBJECT_H
 
+#include "main.h"
+
 class FactoryObject {
 
     public:

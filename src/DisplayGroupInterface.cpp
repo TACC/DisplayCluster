@@ -40,7 +40,6 @@
 #include "DisplayGroupManager.h"
 #include "ContentWindowManager.h"
 #include "Content.h"
-#include "main.h"
 
 DisplayGroupInterface::DisplayGroupInterface(boost::shared_ptr<DisplayGroupManager> displayGroupManager)
 {

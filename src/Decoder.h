@@ -39,6 +39,8 @@
 #ifndef DECODER_H
 #define DECODER_H
 
+#include "main.h"
+
 #include <iostream>
 #include <stdint.h>
 #include <chrono>

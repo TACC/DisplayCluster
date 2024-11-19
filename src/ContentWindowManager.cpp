@@ -39,7 +39,8 @@
 #include "ContentWindowManager.h"
 #include "Content.h"
 #include "DisplayGroupManager.h"
-#include "main.h"
+#include "Configuration.h"
+#include "GLWindow.h"
 
 ContentWindowManager::ContentWindowManager(boost::shared_ptr<Content> content)
 {

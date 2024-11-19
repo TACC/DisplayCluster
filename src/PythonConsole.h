@@ -39,9 +39,16 @@
 #ifndef PYTHON_CONSOLE_H
 #define PYTHON_CONSOLE_H
 
-#include <python2.7/Python.h>
-#include <PythonQt.h>
-#include <QtGui>
+#include "main.h"
+
+// #include <Python.h>
+// #include <PythonQt.h>
+// #include <QtWidgets>
+
+#include <QObject>
+#include <QTextEdit>
+#include <QCompleter>
+#include <QMainWindow>
 
 class MyPythonQt : public QObject
 {

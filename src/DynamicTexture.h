@@ -39,6 +39,8 @@
 #ifndef DYNAMIC_TEXTURE_H
 #define DYNAMIC_TEXTURE_H
 
+#include "main.h"
+
 // todo: get this dynamically
 #define TEXTURE_SIZE 512
 

@@ -37,8 +37,8 @@
 /*********************************************************************/
 
 #include "SVGContent.h"
-#include "main.h"
 #include "SVG.h"
+#include "MainWindow.h"
 
 BOOST_CLASS_EXPORT_GUID(SVGContent, "SVGContent")
 

@@ -37,12 +37,14 @@
 /*********************************************************************/
 
 #include "GLWindow.h"
-#include "main.h"
+#include "MainWindow.h"
 #include "Marker.h"
 #include "ContentWindowManager.h"
+#include "DisplayGroupManager.h"
 #include "log.h"
 #include <QtOpenGL>
 #include <boost/shared_ptr.hpp>
+#include "Configuration.h"
 
 #ifdef __APPLE__
     #include <OpenGL/glu.h>

@@ -38,9 +38,10 @@
 
 #include "JoystickThread.h"
 #include "log.h"
-#include "main.h"
 #include "DisplayGroupJoystick.h"
 #include "ContentWindowInterface.h"
+#include "Configuration.h"
+#include "DisplayGroupManager.h"
 
 JoystickThread::JoystickThread()
 {

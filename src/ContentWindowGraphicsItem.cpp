@@ -41,7 +41,7 @@
 #include "ContentWindowManager.h"
 #include "DisplayGroupManager.h"
 #include "DisplayGroupGraphicsView.h"
-#include "main.h"
+#include "Configuration.h"
 
 qreal ContentWindowGraphicsItem::zCounter_ = 0;
 

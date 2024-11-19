@@ -37,9 +37,9 @@
 /*********************************************************************/
 
 #include "MovieContent.h"
-#include "main.h"
 #include "Movie.h"
 #include "ContentWindowManager.h"
+#include "MainWindow.h"
 
 BOOST_CLASS_EXPORT_GUID(MovieContent, "MovieContent")
 

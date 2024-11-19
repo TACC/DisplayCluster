@@ -39,12 +39,14 @@
 #ifndef MAIN_WINDOW_H
 #define MAIN_WINDOW_H
 
+#include "main.h"
+
 // increment this whenever when serialized state information changes
 #define CONTENTS_FILE_VERSION_NUMBER 1
 
 #include "config.h"
 #include "GLWindow.h"
-#include <QtGui>
+#include <QtWidgets>
 #include <QGLWidget>
 #include <boost/shared_ptr.hpp>
 

@@ -35,22 +35,11 @@ endif()
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
 if(BUILD_DISPLAYCLUSTER OR BUILD_DISPLAYCLUSTER_LIBRARY OR BUILD_DESKTOPSTREAMER)
-    # find and setup Qt4
-    # see http://cmake.org/cmake/help/cmake2.6docs.html#module:FindQt4 for details
-    set(QT_USE_QTOPENGL TRUE)
-    set(QT_USE_QTSVG TRUE)
-    set(QT_USE_QTXMLPATTERNS TRUE)
-    set(QT_USE_QTXML TRUE)
-    set(QT_USE_QTNETWORK TRUE)
 
-    if(WIN32)
-        set(QT_USE_QTMAIN TRUE)
-    endif()
+    find_package(Qt5 COMPONENTS Core Gui Widgets Concurrent OpenGL Network Svg Xml XmlPatterns REQUIRED)
+    #find_package(tinyxml2 REQUIRED)
 
-    find_package(Qt4 REQUIRED)
-
-    include(${QT_USE_FILE})
-    set(LIBS ${LIBS} ${QT_LIBRARIES})
+    set(LIBS ${LIBS} Qt5::Core Qt5::Concurrent Qt5::Network Qt5::Gui Qt5::Svg Qt5::OpenGL Qt5::Xml Qt5::XmlPatterns)
 
     # libjpeg-turbo
     find_package(LibJpegTurbo REQUIRED)
@@ -198,21 +187,35 @@ if(BUILD_DISPLAYCLUSTER)
     )
 
     # add OPTIONS hacks for Qt's MOC processing of Boost headers, for compiler errors with some versions of Boost
-    qt4_wrap_cpp(MOC_OUTFILES ${MOC_HEADERS} OPTIONS -DPOSIX_TIME_HPP___ -DPOSIX_TIME_SERIALIZE_HPP___ -DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED)
+    qt5_wrap_cpp(MOC_OUTFILES ${MOC_HEADERS} OPTIONS -DPOSIX_TIME_HPP___ -DPOSIX_TIME_SERIALIZE_HPP___ -DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED)
 
     add_executable(displaycluster ${SRCS} ${MOC_OUTFILES})
-
     target_link_libraries(displaycluster ${LIBS} pthread)
+    set_target_properties(displaycluster PROPERTIES ENABLE_EXPORTS TRUE)
 
-    # build Python module if Python support is enabled
+    # build Python module if Python support is enabled GDA
+    #  if(ENABLE_PYTHON_SUPPORT)
+    #  add_custom_command(TARGET displaycluster POST_BUILD
+    #  COMMENT "Building Python module"
+    #  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/python
+    #  COMMAND python3 configure.py -I ${Boost_INCLUDE_DIRS} -I ${PythonQt_INCLUDE_DIRS}
+    #  COMMAND make
+    #  COMMAND mv pydc.so ${CMAKE_BINARY_DIR})
+    #  endif( )
+
     if(ENABLE_PYTHON_SUPPORT)
-        add_custom_command(TARGET displaycluster POST_BUILD
-            COMMENT "Building Python module"
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/python
-            COMMAND python2 configure.py -I ${Boost_INCLUDE_DIRS} -I ${PythonQt_INCLUDE_DIRS}
-            COMMAND make
-            COMMAND mv pydc.so ${CMAKE_BINARY_DIR})
-    endif()
+        add_library(pywrapper SHARED src/pyContent.cpp)
+        include_directories(${Qt5Gui_INCLUDE_DIRS})
+        include_directories(${Qt5Widgets_INCLUDE_DIRS})
+        INSTALL(TARGETS pywrapper RUNTIME DESTINATION lib)
+        INSTALL(FILES src/pyContent.h DESTINATION include)
+    endif( )
+
+## get_cmake_property(_variableNames VARIABLES)
+## list (SORT _variableNames)
+## foreach (_variableName ${_variableNames})
+    ## message(STATUS "${_variableName}=${${_variableName}}")
+## endforeach()
 
     # install executable
     INSTALL(TARGETS displaycluster
@@ -236,10 +239,10 @@ if(BUILD_DISPLAYCLUSTER)
     # install doc files
     INSTALL(DIRECTORY doc DESTINATION .)
 
-    # install Python module
-    if(ENABLE_PYTHON_SUPPORT)
-        INSTALL(FILES ${CMAKE_BINARY_DIR}/pydc.so DESTINATION python)
-    endif()
+    # install Python module GDA
+    # if(ENABLE_PYTHON_SUPPORT)
+    # INSTALL(FILES ${CMAKE_BINARY_DIR}/pydc.so DESTINATION python)
+    # endif()
 endif()
 
 

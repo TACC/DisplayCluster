@@ -40,7 +40,7 @@
 #include "SkeletonSensor.h"
 #include "DisplayGroupJoystick.h"
 #include "ContentWindowInterface.h"
-#include "main.h"
+#include "DisplayGroupManager.h"
 #include "log.h"
 
 // an identifier for a UID that is not applicable

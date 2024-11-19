@@ -37,11 +37,11 @@
 /*********************************************************************/
 
 #include "NetworkListenerThread.h"
-#include "main.h"
 #include "log.h"
 #include "PixelStreamSource.h"
 #include "ParallelPixelStream.h"
 #include "SVGStreamSource.h"
+#include "DisplayGroupManager.h"
 #include <stdint.h>
 
 NetworkListenerThread::NetworkListenerThread(int socketDescriptor)

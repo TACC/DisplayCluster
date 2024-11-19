@@ -39,7 +39,9 @@
 #ifndef DISPLAY_GROUP_GRAPHICS_VIEW_H
 #define DISPLAY_GROUP_GRAPHICS_VIEW_H
 
-#include <QtGui>
+#include "main.h"
+
+#include <QtWidgets>
 
 class DisplayGroupGraphicsView : public QGraphicsView {
 

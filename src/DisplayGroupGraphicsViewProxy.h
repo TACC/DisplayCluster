@@ -40,7 +40,7 @@
 #define DISPLAY_GROUP_GRAPHICS_VIEW_PROXY_H
 
 #include "DisplayGroupInterface.h"
-#include <QtGui>
+#include <QtWidgets>
 
 class DisplayGroupGraphicsView;
 

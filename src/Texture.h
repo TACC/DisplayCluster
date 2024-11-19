@@ -39,6 +39,8 @@
 #ifndef TEXTURE_H
 #define TEXTURE_H
 
+#include "main.h"
+
 #include "FactoryObject.h"
 #include <QGLWidget>
 

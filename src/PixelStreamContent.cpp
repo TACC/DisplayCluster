@@ -37,8 +37,8 @@
 /*********************************************************************/
 
 #include "PixelStreamContent.h"
-#include "main.h"
 #include "PixelStream.h"
+#include "MainWindow.h"
 
 BOOST_CLASS_EXPORT_GUID(PixelStreamContent, "PixelStreamContent")
 

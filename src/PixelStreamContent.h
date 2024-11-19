@@ -39,6 +39,8 @@
 #ifndef PIXEL_STREAM_CONTENT_H
 #define PIXEL_STREAM_CONTENT_H
 
+#include "main.h"
+
 #include "Content.h"
 #include <boost/serialization/base_object.hpp>
 #include <boost/serialization/export.hpp>

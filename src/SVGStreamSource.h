@@ -40,7 +40,7 @@
 #define SVG_STREAM_SOURCE_H
 
 #include "Factory.hpp"
-#include <QtGui>
+#include <QtWidgets>
 
 class SVGStreamSource {
 

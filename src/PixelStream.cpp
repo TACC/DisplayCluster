@@ -37,7 +37,7 @@
 /*********************************************************************/
 
 #include "PixelStream.h"
-#include "main.h"
+#include "MainWindow.h"
 #include "log.h"
 
 PixelStream::PixelStream(std::string uri)

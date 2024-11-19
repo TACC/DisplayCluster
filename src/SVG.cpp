@@ -37,7 +37,7 @@
 /*********************************************************************/
 
 #include "SVG.h"
-#include "main.h"
+#include "MainWindow.h"
 #include "log.h"
 
 #ifdef __APPLE__

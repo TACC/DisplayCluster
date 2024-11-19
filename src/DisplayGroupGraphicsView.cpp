@@ -38,7 +38,7 @@
 
 #include "DisplayGroupGraphicsView.h"
 #include "DisplayGroupGraphicsScene.h"
-#include "main.h"
+#include "Configuration.h"
 
 DisplayGroupGraphicsView::DisplayGroupGraphicsView()
 {

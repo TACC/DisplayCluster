@@ -39,6 +39,8 @@
 #ifndef MARKER_H
 #define MARKER_H
 
+#include "main.h"
+
 #define MARKER_IMAGE_FILENAME "marker.png"
 
 // this is a fraction of the tiled display width of 1
@@ -47,7 +49,7 @@
 // number of seconds before a marker stops being rendered
 #define MARKER_TIMEOUT_SECONDS 5
 
-#include <QtGui>
+#include <QtWidgets>
 #include <QGLWidget>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>

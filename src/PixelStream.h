@@ -39,6 +39,8 @@
 #ifndef PIXEL_STREAM_H
 #define PIXEL_STREAM_H
 
+#include "main.h"
+
 #include "FactoryObject.h"
 #include <boost/enable_shared_from_this.hpp>
 #include <QGLWidget>

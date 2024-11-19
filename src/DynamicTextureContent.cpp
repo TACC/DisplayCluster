@@ -37,8 +37,8 @@
 /*********************************************************************/
 
 #include "DynamicTextureContent.h"
-#include "main.h"
 #include "DynamicTexture.h"
+#include "MainWindow.h"
 
 BOOST_CLASS_EXPORT_GUID(DynamicTextureContent, "DynamicTextureContent")
 

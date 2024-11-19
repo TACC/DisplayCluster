@@ -39,6 +39,8 @@
 #ifndef NETWORK_LISTENER_THREAD_H
 #define NETWORK_LISTENER_THREAD_H
 
+#include "main.h"
+
 // increment this every time the network protocol changes in a major way
 #include "NetworkProtocol.h"
 

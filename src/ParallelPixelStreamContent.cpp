@@ -37,8 +37,8 @@
 /*********************************************************************/
 
 #include "ParallelPixelStreamContent.h"
-#include "main.h"
 #include "ParallelPixelStream.h"
+#include "MainWindow.h"
 
 BOOST_CLASS_EXPORT_GUID(ParallelPixelStreamContent, "ParallelPixelStreamContent")
 

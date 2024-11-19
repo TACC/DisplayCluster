@@ -39,8 +39,10 @@
 #ifndef DISPLAY_GROUP_INTERFACE_H
 #define DISPLAY_GROUP_INTERFACE_H
 
+#include "main.h"
+
 #include "Content.h"
-#include <QtGui>
+#include <QtWidgets>
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 

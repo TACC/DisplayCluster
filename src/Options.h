@@ -40,7 +40,7 @@
 #define OPTIONS_H
 
 #include "config.h"
-#include <QtGui>
+#include <QtWidgets>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 

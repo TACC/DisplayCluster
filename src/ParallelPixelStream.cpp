@@ -37,8 +37,9 @@
 /*********************************************************************/
 
 #include "ParallelPixelStream.h"
-#include "main.h"
 #include "ContentWindowManager.h"
+#include "MainWindow.h"
+#include "DisplayGroupManager.h"
 #include "log.h"
 
 ParallelPixelStream::ParallelPixelStream(std::string uri)

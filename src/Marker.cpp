@@ -38,8 +38,10 @@
 
 #include "Marker.h"
 #include "log.h"
-#include "main.h"
 #include <QGLWidget>
+#include "Configuration.h"
+#include "MainWindow.h"
+#include "DisplayGroupManager.h"
 
 GLuint Marker::textureId_ = 0;
 

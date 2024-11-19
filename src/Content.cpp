@@ -42,10 +42,9 @@
 #include "DynamicTextureContent.h"
 #include "SVGContent.h"
 #include "MovieContent.h"
-#include "main.h"
+#include "DisplayGroupManager.h"
 #include "GLWindow.h"
 #include "log.h"
-#include <QGLWidget>
 
 Content::Content(std::string uri)
 {
@@ -236,6 +235,7 @@ boost::shared_ptr<Content> Content::getContent(std::string uri)
     return boost::shared_ptr<Content>();
 }
 
+#if 0
 pyContent::pyContent(const char * str)
 {
 		boost::shared_ptr<Content> c(Content::getContent(std::string(str)));
@@ -246,4 +246,4 @@ pyContent::pyContent(boost::shared_ptr<Content> c)
 {
 		ptr_ = c;
 }
-
+#endif

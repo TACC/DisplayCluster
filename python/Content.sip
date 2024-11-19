@@ -1,20 +1,13 @@
-class pContent
-{
-%TypeHeaderCode
-#include <Content.h>
-%End
-};
-
 class pyContent
 {
 %TypeHeaderCode
-#include <Content.h>
+#include <pyContent.h>
 %End
 
   public:
     pyContent(const char * str);
 
-    pContent get();
+    Content *get();
 
     const char * getURI();
 };

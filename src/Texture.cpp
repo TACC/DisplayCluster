@@ -37,7 +37,7 @@
 /*********************************************************************/
 
 #include "Texture.h"
-#include "main.h"
+#include "MainWindow.h"
 #include "log.h"
 
 Texture::Texture(std::string uri)

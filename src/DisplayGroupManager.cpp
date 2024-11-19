@@ -39,7 +39,6 @@
 #include "DisplayGroupManager.h"
 #include "ContentWindowManager.h"
 #include "Content.h"
-#include "main.h"
 #include "log.h"
 #include "PixelStream.h"
 #include "PixelStreamSource.h"
@@ -47,6 +46,7 @@
 #include "ParallelPixelStreamContent.h"
 #include "SVGStreamSource.h"
 #include "SVGContent.h"
+#include "MainWindow.h"
 #include <sstream>
 #include <boost/iostreams/device/array.hpp>
 #include <boost/iostreams/stream.hpp>
@@ -56,7 +56,8 @@
 #include <boost/date_time/posix_time/time_serialize.hpp>
 #include <boost/algorithm/string.hpp>
 #include <mpi.h>
-#include <QDomDocument>
+#include <QtXml/QDomDocument>
+#include <QXmlQuery>
 #include <fstream>
 
 #include <pthread.h>

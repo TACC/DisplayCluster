@@ -39,7 +39,9 @@
 #ifndef DISPLAY_GROUP_GRAPHICS_SCENE_H
 #define DISPLAY_GROUP_GRAPHICS_SCENE_H
 
-#include <QtGui>
+#include "main.h"
+
+#include <QtWidgets>
 #include <boost/shared_ptr.hpp>
 #include <vector>
 

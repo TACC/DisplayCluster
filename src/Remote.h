@@ -36,6 +36,10 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
+#include "main.h"
+
+#include "MainWindow.h"
+
 #include <QtNetwork>
 #include <QObject>
 #include <QTcpServer>

@@ -39,13 +39,15 @@
 #ifndef JOYSTICK_THREAD_H
 #define JOYSTICK_THREAD_H
 
+#include "main.h"
+
 #define JOYSTICK_AXIS_THRESHHOLD 10000 // of max range 32768
 #define JOYSTICK_AXIS_SCALE (5.0 * 32768.0) // can move across the whole screen (left-right) in 5s
 #define JOYSTICK_ZOOM_FACTOR 0.02
 #define JOYSTICK_SCALE_SIZE_FACTOR 0.02
 #define JOYSTICK_TIMER_INTERVAL 33
 
-#include <QtGui>
+#include <QtWidgets>
 #include <QThread>
 #include <SDL/SDL.h>
 #include <vector>

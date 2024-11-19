@@ -39,6 +39,8 @@
 #ifndef MOVIE_H
 #define MOVIE_H
 
+#include "main.h"
+
 #include "FactoryObject.h"
 #include "Decoder.h"
 

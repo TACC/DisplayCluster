@@ -37,12 +37,13 @@
 /*********************************************************************/
 
 #include "MainWindow.h"
-#include "main.h"
 #include "Content.h"
 #include "ContentWindowManager.h"
 #include "log.h"
 #include "DisplayGroupGraphicsViewProxy.h"
 #include "DisplayGroupListWidgetProxy.h"
+#include "Configuration.h"
+#include "DisplayGroupManager.h"
 
 #if ENABLE_PYTHON_SUPPORT
     #include "PythonConsole.h"

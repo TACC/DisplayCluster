@@ -39,6 +39,8 @@
 #ifndef SVG_H
 #define SVG_H
 
+#include "main.h"
+
 #include "FactoryObject.h"
 #include <QtSvg>
 #include <QGLWidget>

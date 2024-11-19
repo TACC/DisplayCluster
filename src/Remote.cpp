@@ -37,10 +37,10 @@
 /*********************************************************************/
 
 
-#include "main.h"
 #include "string.h"
 #include "SSaver.h"
 #include "Remote.h"
+#include "MainWindow.h"
 #include "log.h"
 #include <iostream>
 using namespace std;

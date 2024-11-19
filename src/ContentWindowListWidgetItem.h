@@ -40,7 +40,7 @@
 #define CONTENT_WINDOW_LIST_WIDGET_ITEM_H
 
 #include "ContentWindowInterface.h"
-#include <QtGui>
+#include <QtWidgets>
 #include <boost/shared_ptr.hpp>
 
 class ContentWindowManager;

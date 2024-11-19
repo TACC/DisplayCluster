@@ -39,13 +39,15 @@
 #ifndef SKELETON_THREAD_H
 #define SKELETON_THREAD_H
 
+#include "main.h"
+
 // set the timer to ping for new sensor data at 30Hz
 #define SKELETON_TIMER_INTERVAL 33
 
 #include "SkeletonState.h"
 #include "SkeletonSensor.h"
 #include <QThread>
-#include <QtGui>
+#include <QtWidgets>
 #include <map>
 #include <boost/shared_ptr.hpp>
 #include <boost/archive/binary_oarchive.hpp>

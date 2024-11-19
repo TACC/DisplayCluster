@@ -36,7 +36,6 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "main.h"
 #include "config.h"
 #include "log.h"
 #include <mpi.h>
@@ -44,6 +43,10 @@
 #include <stdlib.h>
 #include "SSaver.h"
 #include "Remote.h"
+#include "Configuration.h"
+#include "DisplayGroupManager.h"
+#include "MainWindow.h"
+#include "NetworkListener.h"
 
 #if ENABLE_TUIO_TOUCH_LISTENER
     #include "TouchListener.h"
@@ -72,6 +75,7 @@ NetworkListener * g_networkListener = NULL;
 Remote * g_Remote = NULL;
 long g_frameCount = 0;
 uint64_t g_dc_flags = 0;
+
 
 int main(int argc, char * argv[])
 {

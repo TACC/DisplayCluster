@@ -39,9 +39,11 @@
 #ifndef CONTENT_WINDOW_MANAGER_H
 #define CONTENT_WINDOW_MANAGER_H
 
+#include "main.h"
+
 #include "ContentWindowInterface.h"
-#include "Content.h" // need pyContent for pyContentWindowManager
-#include <QtGui>
+#include "Content.h" 
+#include <QtWidgets>
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
@@ -100,6 +102,7 @@ class ContentWindowManager : public ContentWindowInterface, public boost::enable
 };
 
 // typedef needed for SIP
+#if 0
 typedef boost::shared_ptr<ContentWindowManager> pContentWindowManager;
 
 class pyContentWindowManager
@@ -131,5 +134,6 @@ class pyContentWindowManager
 
         boost::shared_ptr<ContentWindowManager> ptr_;
 };
+#endif
 
 #endif

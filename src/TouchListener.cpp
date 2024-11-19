@@ -37,9 +37,9 @@
 /*********************************************************************/
 
 #include "TouchListener.h"
-#include "main.h"
 #include "DisplayGroupGraphicsViewProxy.h"
 #include "DisplayGroupGraphicsView.h"
+#include "DisplayGroupManager.h"
 
 TouchListener::TouchListener()
 {

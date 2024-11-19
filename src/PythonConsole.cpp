@@ -36,8 +36,12 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "main.h"
+#include <Python.h>
+#include <PythonQt.h>
+#include <QtWidgets>
+
 #include "PythonConsole.h"
+
 #include "SSaver.h"
 #include "pthread.h"
 

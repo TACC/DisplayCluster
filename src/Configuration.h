@@ -39,7 +39,9 @@
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 
-#include <QtGui>
+#include "main.h"
+
+#include <QtWidgets>
 #include <QtXmlPatterns>
 
 class Configuration {

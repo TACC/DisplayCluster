@@ -39,9 +39,11 @@
 #ifndef SSAVER_H
 #define SSAVER_H
 
+#include "main.h"
+
 #include <iostream>
 #include <math.h>
-#include <QtGui>
+#include <QtWidgets>
 
 class QSSApplication : public QApplication
 {

@@ -37,8 +37,9 @@
 /*********************************************************************/
 
 #include "DisplayGroupGraphicsScene.h"
-#include "main.h"
 #include "Marker.h"
+#include "Configuration.h"
+#include "DisplayGroupManager.h"
 
 DisplayGroupGraphicsScene::DisplayGroupGraphicsScene()
 {

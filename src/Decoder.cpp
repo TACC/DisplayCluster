@@ -37,7 +37,6 @@
 /*********************************************************************/
 
 
-#include "main.h"
 #include "Decoder.h"
 
 static bool first = true;

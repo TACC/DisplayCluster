@@ -42,7 +42,7 @@
 #include <map>
 #include <string>
 #include <boost/shared_ptr.hpp>
-#include <QtGui>
+#include <QtWidgets>
 
 extern long g_frameCount;
 
