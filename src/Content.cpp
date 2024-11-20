@@ -46,6 +46,18 @@
 #include "GLWindow.h"
 #include "log.h"
 
+#include <boost/shared_ptr.hpp>
+
+void force_pyContent() {}
+
+extern "C"
+{
+    boost::shared_ptr<Content> getContent(std::string uri)
+    {
+       return Content::getContent(uri);
+    }
+}
+
 Content::Content(std::string uri)
 {
     uri_ = uri;

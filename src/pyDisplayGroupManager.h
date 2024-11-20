@@ -36,8 +36,38 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "DisplayGroupPython.h"
+#ifndef PY_DISPLAY_GROUP_MANAGER_H
+#define PY_DISPLAY_GROUP_MANAGER_H
 
-DisplayGroupPython::DisplayGroupPython(boost::shared_ptr<DisplayGroupManager> displayGroupManager) : DisplayGroupInterface(displayGroupManager)
+#include <boost/shared_ptr.hpp>
+
+#include <Python.h>
+
+class pyContentWindowManager;
+class DisplayGroupManager;
+
+typedef boost::shared_ptr<DisplayGroupManager> pDisplayGroupManager;
+
+class pyDisplayGroupManager
 {
-}
+    public:
+
+        pyDisplayGroupManager();
+        void addContentWindowManager(pyContentWindowManager pcwm);
+        void removeContentWindowManager(pyContentWindowManager pcwm);
+        void moveContentWindowManagerToFront(pyContentWindowManager pcwm);
+        void saveState(const char * filename);
+        void loadState(const char * filename);
+        void pushState();
+        void popState();
+        void suspendSynchronization();
+        void resumeSynchronization();
+        int getNumContentWindowManagers();
+        pyContentWindowManager getPyContentWindowManager(int index);
+
+    private:
+
+        boost::shared_ptr<DisplayGroupManager> ptr_;
+};
+
+#endif

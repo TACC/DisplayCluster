@@ -121,12 +121,18 @@ int main(int argc, char * argv[])
 #endif
 
 #if ENABLE_PYTHON_SUPPORT
+
+#include "pywrapper.h"
 		if (g_mpiRank == 0)
+    {
+      // python_wrapper_init();
 			g_app = (QApplication *) new QSSApplication(argc, argv);
+    }
 		else
 			g_app = new QApplication(argc, argv);
 #else
 			g_app = new QApplication(argc, argv);
+
 #endif
 
 

@@ -76,11 +76,12 @@ MyPythonQt::run_screen_saver()
 		char *ssfile = getenv("DISPLAYCLUSTER_SCREENSAVER");
 		if (ssfile)
 		{
-			QString cmd;
+      char s[1024];
 			if (ssfile[0] == '/')
-				cmd = QString("execfile('") + ssfile + QString("')");
+        sprintf(s, "with open('%s', 'r') as f:\n exec(f.read())", ssfile);
 			else
-				cmd = QString("execfile('") + getenv("DISPLAYCLUSTER_DIR") + "/" + ssfile + QString("')");
+        sprintf(s, "with open('%s/%s', 'r') as f:\n exec(f.read())", getenv("DISPLAYCLUSTER_DIR"), ssfile);
+      QString cmd = QString(s);
 			PythonQtObjectPtr context = PythonQt::self()->getMainModule();
 			PyObject * dict = PyModule_GetDict(context);
 			PyRun_String(cmd.toLatin1().data(), Py_single_input, dict, dict);
@@ -89,14 +90,24 @@ MyPythonQt::run_screen_saver()
 
 void MyPythonQt::loadFile(QString * str)
 {
-    QString cmd = QString("execfile('") + *str + QString("')");
-    PythonQtObjectPtr context = PythonQt::self()->getMainModule();
-    PyObject * dict = PyModule_GetDict(context);
-    PyRun_String(cmd.toLatin1().data(), Py_single_input, dict, dict);
+#if 0
+      std::cerr << getpid() << "\n";
+      static int dbg = 1;
+      while (dbg)
+        sleep(1);
+#endif
+      char s[1024];
+      QByteArray b = str->toUtf8();
+      const char* c = b.constData();
+      sprintf(s, "with open('%s', 'r') as f:\n exec(f.read())", c);
+      QString cmd = QString(s);
+      PythonQtObjectPtr context = PythonQt::self()->getMainModule();
+      PyObject * dict = PyModule_GetDict(context);
+      PyRun_String(cmd.toLatin1().data(), Py_single_input, dict, dict);
 
-    delete str;
+      delete str;
 
-    emit(loadDone());
+      emit(loadDone());
 }
 
 void MyPythonQt::pythonStdOut(const QString & str)

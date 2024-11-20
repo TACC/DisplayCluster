@@ -40,6 +40,7 @@
 #include "DynamicTexture.h"
 #include "MainWindow.h"
 
+BOOST_SERIALIZATION_ASSUME_ABSTRACT(Content)
 BOOST_CLASS_EXPORT_GUID(DynamicTextureContent, "DynamicTextureContent")
 
 CONTENT_TYPE DynamicTextureContent::getType()

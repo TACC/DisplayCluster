@@ -48,6 +48,11 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/assume_abstract.hpp>
 
+typedef int aaa;
+
+
+typedef int bbb;
+
 enum CONTENT_TYPE { CONTENT_TYPE_ANY, CONTENT_TYPE_DYNAMIC_TEXTURE, CONTENT_TYPE_MOVIE, CONTENT_TYPE_PIXEL_STREAM, CONTENT_TYPE_PARALLEL_PIXEL_STREAM, CONTENT_TYPE_SVG, CONTENT_TYPE_TEXTURE };
 
 class ContentWindowManager;
@@ -97,7 +102,11 @@ class Content : public QObject {
         virtual void renderFactoryObject(float tX, float tY, float tW, float tH) = 0;
 };
 
+typedef int ccc;
+
 BOOST_SERIALIZATION_ASSUME_ABSTRACT(Content)
+
+typedef int ddd;
 
 #if 0
 // typedef needed for SIP
@@ -127,3 +136,4 @@ class pyContent {
 #endif
 
 #endif
+typedef int www;

@@ -41,9 +41,10 @@
 
 #include "main.h"
 
+#include <QtWidgets>
+
 #include "ContentWindowInterface.h"
 #include "Content.h" 
-#include <QtWidgets>
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
@@ -100,40 +101,5 @@ class ContentWindowManager : public ContentWindowInterface, public boost::enable
 
         boost::weak_ptr<DisplayGroupManager> displayGroupManager_;
 };
-
-// typedef needed for SIP
-#if 0
-typedef boost::shared_ptr<ContentWindowManager> pContentWindowManager;
-
-class pyContentWindowManager
-{
-    public:
-
-        pyContentWindowManager(pyContent content)
-        {
-            boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(content.get()));
-            ptr_ = cwm;
-        }
-
-        pyContentWindowManager(boost::shared_ptr<ContentWindowManager> cwm)
-        {
-            ptr_ = cwm;
-        }
-
-        boost::shared_ptr<ContentWindowManager> get()
-        {
-            return ptr_;
-        }
-
-        pyContent getPyContent()
-        {
-            return pyContent(get()->getContent());
-        }
-
-    private:
-
-        boost::shared_ptr<ContentWindowManager> ptr_;
-};
-#endif
 
 #endif

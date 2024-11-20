@@ -36,107 +36,84 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DISPLAY_GROUP_PYTHON_H
-#define DISPLAY_GROUP_PYTHON_H
+#include "pyDisplayGroupManager.h"
+#include "pyContentWindowManager.h"
+#include "DisplayGroupManager.h"
 
-#include "DisplayGroupInterface.h"
-#include "ContentWindowManager.h"
-#include <QtWidgets>
-
-class DisplayGroupPython : public DisplayGroupInterface, public boost::enable_shared_from_this<DisplayGroupPython> {
-    Q_OBJECT
-
-    public:
-
-        DisplayGroupPython(boost::shared_ptr<DisplayGroupManager> displayGroupManager);
-};
-
-#if 0
-// needed for SIP
-typedef boost::shared_ptr<DisplayGroupPython> pDisplayGroupPython;
-
-class pyDisplayGroupPython
+pyDisplayGroupManager::pyDisplayGroupManager()
 {
-    public:
+    extern boost::shared_ptr<DisplayGroupManager> g_displayGroupManager;
+    // ptr_ = boost::shared_ptr<pyDisplayGroupManager>(new pyDisplayGroupManager(g_displayGroupManager));
+    ptr_ = g_displayGroupManager;
+}
 
-        pyDisplayGroupPython()
-        {
-            // attach to g_displayGroupManager on construction
+void
+pyDisplayGroupManager::addContentWindowManager(pyContentWindowManager pcwm)
+{
+    ptr_->addContentWindowManager(pcwm.get());
+}
 
-            // declared in main.cpp, but we don't want to bring in everything from main.h...
-            extern boost::shared_ptr<DisplayGroupManager> g_displayGroupManager;
+void
+pyDisplayGroupManager::removeContentWindowManager(pyContentWindowManager pcwm)
+{
+    ptr_->removeContentWindowManager(pcwm.get());
+}
 
-            ptr_ = boost::shared_ptr<DisplayGroupPython>(new DisplayGroupPython(g_displayGroupManager));
-        }
+void
+pyDisplayGroupManager::moveContentWindowManagerToFront(pyContentWindowManager pcwm)
+{
+    ptr_->moveContentWindowManagerToFront(pcwm.get());
+}
 
-        boost::shared_ptr<DisplayGroupPython> get()
-        {
-            return ptr_;
-        }
+void
+pyDisplayGroupManager::saveState(const char * filename)
+{
+    std::string filenameString(filename);
 
-        void addContentWindowManager(pyContentWindowManager pcwm)
-        {
-            get()->addContentWindowManager(pcwm.get());
-        }
+    ptr_->saveState(filename);
+}
 
-        void removeContentWindowManager(pyContentWindowManager pcwm)
-        {
-            get()->removeContentWindowManager(pcwm.get());
-        }
+void
+pyDisplayGroupManager::loadState(const char * filename)
+{
+    std::string filenameString(filename);
 
-        void moveContentWindowManagerToFront(pyContentWindowManager pcwm)
-        {
-            get()->moveContentWindowManagerToFront(pcwm.get());
-        }
+    ptr_->loadState(filename);
+}
 
-        void saveState(const char * filename)
-        {
-            std::string filenameString(filename);
+void
+pyDisplayGroupManager::pushState()
+{
+    ptr_->pushState();
+}
 
-            get()->saveState(filenameString);
-        }
+void
+pyDisplayGroupManager::popState()
+{
+    ptr_->popState();
+}
 
-        void loadState(const char * filename)
-        {
-            std::string filenameString(filename);
+void
+pyDisplayGroupManager::suspendSynchronization()
+{
+    ptr_->suspendSynchronization();
+}
 
-            get()->loadState(filenameString);
-        }
+void
+pyDisplayGroupManager::resumeSynchronization()
+{
+    ptr_->resumeSynchronization();
+}
 
-        void pushState()
-        {
-            get()->pushState();
-        }
+int 
+pyDisplayGroupManager::getNumContentWindowManagers()
+{
+    return ptr_->getContentWindowManagers().size();
+}
 
-        void popState()
-        {
-            get()->popState();
-        }
+pyContentWindowManager
+pyDisplayGroupManager::getPyContentWindowManager(int index)
+{
+    return pyContentWindowManager(ptr_->getContentWindowManagers()[index]);
+}
 
-        void suspendSynchronization()
-        {
-            get()->suspendSynchronization();
-        }
-
-        void resumeSynchronization()
-        {
-            get()->resumeSynchronization();
-        }
-
-        int getNumContentWindowManagers()
-        {
-            return get()->getContentWindowManagers().size();
-        }
-
-        pyContentWindowManager getPyContentWindowManager(int index)
-        {
-            return pyContentWindowManager(get()->getContentWindowManagers()[index]);
-        }
-
-    private:
-
-        boost::shared_ptr<DisplayGroupPython> ptr_;
-};
-
-#endif
-#endif
