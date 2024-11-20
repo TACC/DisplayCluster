@@ -116,13 +116,11 @@ if(BUILD_DISPLAYCLUSTER)
         set(LIBS ${LIBS} ${PythonQt_LIBRARIES})
 
         set(SRCS ${SRCS} 
-	    src/DisplayGroupPython.cpp
-	    src/PythonConsole.cpp
-	    src/SSaver.cpp
+            src/PythonConsole.cpp
+            src/SSaver.cpp
             src/Remote.cpp)
 
         set(MOC_HEADERS ${MOC_HEADERS}
-            src/DisplayGroupPython.h
             src/PythonConsole.h
             src/SSaver.h
             src/Remote.h)
@@ -189,10 +187,6 @@ if(BUILD_DISPLAYCLUSTER)
     # add OPTIONS hacks for Qt's MOC processing of Boost headers, for compiler errors with some versions of Boost
     qt5_wrap_cpp(MOC_OUTFILES ${MOC_HEADERS} OPTIONS -DPOSIX_TIME_HPP___ -DPOSIX_TIME_SERIALIZE_HPP___ -DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED)
 
-    add_executable(displaycluster ${SRCS} ${MOC_OUTFILES})
-    target_link_libraries(displaycluster ${LIBS} pthread)
-    set_target_properties(displaycluster PROPERTIES ENABLE_EXPORTS TRUE)
-
     # build Python module if Python support is enabled GDA
     #  if(ENABLE_PYTHON_SUPPORT)
     #  add_custom_command(TARGET displaycluster POST_BUILD
@@ -204,18 +198,30 @@ if(BUILD_DISPLAYCLUSTER)
     #  endif( )
 
     if(ENABLE_PYTHON_SUPPORT)
-        add_library(pywrapper SHARED src/pyContent.cpp)
-        include_directories(${Qt5Gui_INCLUDE_DIRS})
-        include_directories(${Qt5Widgets_INCLUDE_DIRS})
+        add_library(pywrapper SHARED 
+            src/pywrapper.cpp  
+            src/pyContent.cpp 
+            src/pyContentWindowManager.cpp 
+            src/pyDisplayGroupManager.cpp)
+        include_directories(
+            ${Qt5Gui_INCLUDE_DIRS}
+            ${Qt5Widgets_INCLUDE_DIRS}
+            ${Qt5OpenGL_INCLUDE_DIRS}
+            ${Qt5XmlPatterns_INCLUDE_DIRS})
         INSTALL(TARGETS pywrapper RUNTIME DESTINATION lib)
         INSTALL(FILES src/pyContent.h DESTINATION include)
+        set(LIBS ${LIBS} pywrapper)
     endif( )
 
-## get_cmake_property(_variableNames VARIABLES)
-## list (SORT _variableNames)
-## foreach (_variableName ${_variableNames})
-    ## message(STATUS "${_variableName}=${${_variableName}}")
-## endforeach()
+    add_executable(displaycluster ${SRCS} ${MOC_OUTFILES})
+    target_link_libraries(displaycluster ${LIBS} pthread)
+    set_target_properties(displaycluster PROPERTIES ENABLE_EXPORTS TRUE)
+
+# get_cmake_property(_variableNames VARIABLES)
+# list (SORT _variableNames)
+# foreach (_variableName ${_variableNames})
+  # message(STATUS "${_variableName}=${${_variableName}}")
+# endforeach()
 
     # install executable
     INSTALL(TARGETS displaycluster
@@ -238,11 +244,6 @@ if(BUILD_DISPLAYCLUSTER)
 
     # install doc files
     INSTALL(DIRECTORY doc DESTINATION .)
-
-    # install Python module GDA
-    # if(ENABLE_PYTHON_SUPPORT)
-    # INSTALL(FILES ${CMAKE_BINARY_DIR}/pydc.so DESTINATION python)
-    # endif()
 endif()
 
 
