@@ -1,20 +1,18 @@
-class pDisplayGroupPython
+class pDisplayGroupManager
 {
 %TypeHeaderCode
-#include <DisplayGroupPython.h>
+#include <pyDisplayGroupManager.h>
 %End
 };
 
-class pyDisplayGroupPython
+class pyDisplayGroupManager
 {
 %TypeHeaderCode
-#include <DisplayGroupPython.h>
+#include <pyDisplayGroupManager.h>
 %End
 
   public:
-    pyDisplayGroupPython();
-
-    pDisplayGroupPython get();
+    pyDisplayGroupManager();
 
     void addContentWindowManager(const pyContentWindowManager &);
     void removeContentWindowManager(const pyContentWindowManager &);

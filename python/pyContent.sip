@@ -1,3 +1,4 @@
+
 class pyContent
 {
 %TypeHeaderCode
@@ -7,7 +8,9 @@ class pyContent
   public:
     pyContent(const char * str);
 
-    Content *get();
+    char *getURI();
+    int   getWidth();
+    int   getHeight();
 
-    const char * getURI();
+    PyObject *getDimensions();
 };
