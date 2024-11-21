@@ -78,6 +78,8 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
     {
         // default pen
         QPen pen;
+        pen.setColor(Qt::red);
+        pen.setWidth(0.01);
 
         // button dimensions
         float buttonWidth, buttonHeight;
@@ -86,6 +88,7 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
         // draw close button
         QRectF closeRect(rect().x() + rect().width() - buttonWidth, rect().y(), buttonWidth, buttonHeight);
         pen.setColor(QColor(255,0,0));
+        pen.setWidth(0.01);
         painter->setPen(pen);
         painter->drawRect(closeRect);
         painter->drawLine(QPointF(rect().x() + rect().width() - buttonWidth, rect().y()), QPointF(rect().x() + rect().width(), rect().y() + buttonHeight));
@@ -94,6 +97,7 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
         // resize indicator
         QRectF resizeRect(rect().x() + rect().width() - buttonWidth, rect().y() + rect().height() - buttonHeight, buttonWidth, buttonHeight);
         pen.setColor(QColor(128,128,128));
+        pen.setWidth(0.01);
         painter->setPen(pen);
         painter->drawRect(resizeRect);
         painter->drawLine(QPointF(rect().x() + rect().width(), rect().y() + rect().height() - buttonHeight), QPointF(rect().x() + rect().width() - buttonWidth, rect().y() + rect().height()));
@@ -109,6 +113,7 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
 
         // color the text black
         pen.setColor(QColor(0,0,0));
+        pen.setWidth(0.01);
         painter->setPen(pen);
 
         // scale the text size down to the height of the graphics view
@@ -133,6 +138,11 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
         float horizontalTextScale = viewHeight / viewWidth * verticalTextScale;
 
         painter->scale(horizontalTextScale, verticalTextScale);
+
+        std::cerr << rect().x() << " " << \
+                     rect().y() << " " << \
+                     rect().width() << " " << \
+                     rect().height() << "\n";
 
         QRectF textBoundingRect = QRectF(rect().x() / horizontalTextScale, rect().y() / verticalTextScale, rect().width() / horizontalTextScale, rect().height() / verticalTextScale);
 
@@ -230,6 +240,7 @@ void ContentWindowGraphicsItem::setSelected(bool selected, ContentWindowInterfac
             p.setColor(QColor(0,0,0));
         }
 
+        p.setWidth(0.01);
         setPen(p);
 
         // force a redraw

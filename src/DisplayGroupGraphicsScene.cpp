@@ -43,10 +43,16 @@
 
 DisplayGroupGraphicsScene::DisplayGroupGraphicsScene()
 {
-    setSceneRect(0., 0., 1., 1.);
+    setSceneRect(0.0f, 0.0f, 1.0f, 1.0f);
+
+    QPen pen;
+    pen.setColor(Qt::red);
+    pen.setWidth(0.01);
+
+    QBrush brush = QBrush(Qt::lightGray);
 
     // for the tiled display
-    addRect(0., 0., 1., 1.);
+    addRect(0.f, 0.f, 1.f, 1.f, pen, brush);
 
     // add rectangles for the tiles
     refreshTileRects();
@@ -58,7 +64,6 @@ DisplayGroupGraphicsScene::DisplayGroupGraphicsScene()
 void DisplayGroupGraphicsScene::refreshTileRects()
 {
     // add rectangles for tiled display and each monitor
-
     // tiled display parameters
     int numTilesWidth = g_configuration->getNumTilesWidth();
     int screenWidth = g_configuration->getScreenWidth();
@@ -76,9 +81,10 @@ void DisplayGroupGraphicsScene::refreshTileRects()
     // border
     QPen pen;
     pen.setColor(QColor(0,0,0));
+    pen.setWidth(0.01);
 
     // fill color / opacity
-    QBrush brush = QBrush(QColor(0, 0, 0, 32));
+    QBrush brush = QBrush(QColor(128, 0, 255, 32));
 
     // clear existing tile rects
     for(unsigned int i=0; i<tileRects_.size(); i++)
@@ -88,9 +94,9 @@ void DisplayGroupGraphicsScene::refreshTileRects()
 
     tileRects_.clear();
 
-    for(int i=0; i<numTilesWidth; i++)
+    for(int i=0, k=0; i<numTilesWidth; i++)
     {
-        for(int j=0; j<numTilesHeight; j++)
+        for(int j=0; j<numTilesHeight; j++, k++)
         {
             // border calculations
             double left = (double)i / (double)numTilesWidth * ( (double)numTilesWidth * (double)screenWidth ) + (double)i * (double)mullionWidth;
