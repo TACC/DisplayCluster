@@ -139,11 +139,6 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
 
         painter->scale(horizontalTextScale, verticalTextScale);
 
-        std::cerr << rect().x() << " " << \
-                     rect().y() << " " << \
-                     rect().width() << " " << \
-                     rect().height() << "\n";
-
         QRectF textBoundingRect = QRectF(rect().x() / horizontalTextScale, rect().y() / verticalTextScale, rect().width() / horizontalTextScale, rect().height() / verticalTextScale);
 
         // get the label and render it
