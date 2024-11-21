@@ -187,16 +187,6 @@ if(BUILD_DISPLAYCLUSTER)
     # add OPTIONS hacks for Qt's MOC processing of Boost headers, for compiler errors with some versions of Boost
     qt5_wrap_cpp(MOC_OUTFILES ${MOC_HEADERS} OPTIONS -DPOSIX_TIME_HPP___ -DPOSIX_TIME_SERIALIZE_HPP___ -DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED)
 
-    # build Python module if Python support is enabled GDA
-    #  if(ENABLE_PYTHON_SUPPORT)
-    #  add_custom_command(TARGET displaycluster POST_BUILD
-    #  COMMENT "Building Python module"
-    #  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/python
-    #  COMMAND python3 configure.py -I ${Boost_INCLUDE_DIRS} -I ${PythonQt_INCLUDE_DIRS}
-    #  COMMAND make
-    #  COMMAND mv pydc.so ${CMAKE_BINARY_DIR})
-    #  endif( )
-
     if(ENABLE_PYTHON_SUPPORT)
         add_library(pywrapper SHARED 
             src/pywrapper.cpp  
@@ -211,6 +201,24 @@ if(BUILD_DISPLAYCLUSTER)
         INSTALL(TARGETS pywrapper RUNTIME DESTINATION lib)
         INSTALL(FILES src/pyContent.h DESTINATION include)
         set(LIBS ${LIBS} pywrapper)
+
+        add_custom_command(
+          OUTPUT pydc.so pydc-0.1.dist-info
+          DEPENDS pywrapper
+          COMMAND rm -rf ${PROJECT_BINARY_DIR}/python
+            && cp -r ${CMAKE_SOURCE_DIR}/python ${PROJECT_BINARY_DIR}
+            && cd python
+            && sed -e "s?SRCDIR?${CMAKE_SOURCE_DIR}?" -e "s?BUILDDIR?${PROJECT_BINARY_DIR}?" < pyproject.toml.in > pyproject.toml
+            && sip-install --target-dir ${PROJECT_BINARY_DIR}
+            COMMAND mv pydc*so pydc.so
+         )
+
+         add_custom_target(tt ALL DEPENDS pydc.so pydc-0.1.dist-info)
+
+         install(FILES ${PROJECT_BINARY_DIR}/pydc.so DESTINATION python)
+         install(DIRECTORY ${PROJECT_BINARY_DIR}/pydc-0.1.dist-info DESTINATION python)
+
+
     endif( )
 
     add_executable(displaycluster ${SRCS} ${MOC_OUTFILES})
