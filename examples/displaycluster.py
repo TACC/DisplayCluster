@@ -1,4 +1,4 @@
-#! /usr/bin/env python2
+#! /usr/bin/env python3
 
 # example launch script for DisplayCluster, executed by startdisplaycluster
 # this should work for most cases, but can be modified for a particular
@@ -12,7 +12,7 @@ import shlex
 if 'DISPLAYCLUSTER_DIR' in os.environ:
     dcPath = os.environ['DISPLAYCLUSTER_DIR']
 else:
-    print 'could not get DISPLAYCLUSTER_DIR!'
+    print('could not get DISPLAYCLUSTER_DIR!')
     exit(-3)
 
 # get rank from appropriate MPI API environment variable
@@ -27,7 +27,7 @@ elif 'MPIRUN_RANK' in os.environ:
 elif 'PMI_ID' in os.environ:
     myRank = int(os.environ['PMI_ID'])
 else:
-    print 'could not determine MPI rank!'
+    print('could not determine MPI rank!')
     exit(-4)
 
 if 'DISPLAYCLUSTER_EXEC' not in os.environ:
@@ -50,7 +50,7 @@ else:
         elems = doc.findall('.//process')
 
         if len(elems) < myRank:
-            print 'could not find process element for rank ' + str(myRank)
+            print('could not find process element for rank ' + str(myRank))
             exit(-5)
 
         elem = elems[myRank - 1]
@@ -62,7 +62,7 @@ else:
         else:
             os.environ['DISPLAY'] = ':0'
     except:
-        print 'Error processing configuration.xml. Make sure you have created a configuration.xml and put it in ' + dcPath + '/. An example is provided in the examples/ directory.'
+        print('Error processing configuration.xml. Make sure you have created a configuration.xml and put it in ' + dcPath + '/. An example is provided in the examples/ directory.')
         exit(-6)
 
     subprocess.call(shlex.split(startCommand))
