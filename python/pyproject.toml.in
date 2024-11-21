@@ -7,7 +7,7 @@ name = "pydc"
 
 [tool.sip.bindings.pydc]
 headers = ["pyContent.h"]
-include-dirs = ["BUILDDIR", "SRCDIR", "/usr/include/x86_64-linux-gnu/qt5", "/usr/include/x86_64-linux-gnu/qt5/QtWidgets", "/usr/include/x86_64-linux-gnu/qt5/QtXmlPatterns"]
+include-dirs = ["BUILDDIR", "SRCDIR/src", "/usr/include/x86_64-linux-gnu/qt5", "/usr/include/x86_64-linux-gnu/qt5/QtWidgets", "/usr/include/x86_64-linux-gnu/qt5/QtXmlPatterns"]
 libraries = ["pywrapper"]
 library-dirs = ["."]
 
