@@ -4,6 +4,11 @@
 # this should work for most cases, but can be modified for a particular
 # installation if necessary
 
+echo HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+echo os.environ['DISPLAYCLUSTER_DIR']
+echo os.environ['DISPLAYCLUSTER_CONFIG']
+echo ====================================================
+
 import os
 import xml.etree.ElementTree as ET
 import subprocess
