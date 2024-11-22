@@ -1,0 +1,26 @@
+PV=`python3 --version | sed -e "s/.* //" -e "s/.[0-9][0-9]*$//"`
+
+export PYTHON_VERSION=$PV
+export PYTHON_PATH=/usr
+export PYTHON_LIB=/usr/lib/x86_64-linux-gnu
+export PYTHON_DIR=/usr
+export PYTHONQT_INCLUDE=/usr/include/x86_64-linux-gnu/qt5/QtCore
+export QTDIR=/usr
+
+cd pythonqt/src
+sed -i -e "s/PYTHONQT_FULL_THREAD_SUPPORT/GDA_&/" PythonQt.cpp
+qmake CONFIG+=Release src.pro
+make -j 10
+make install
+cd ../generator
+qmake CONFIG+=Release generator.pro
+make -j 10
+make install
+cd ../extensions
+qmake CONFIG+=Release extensions.pro
+make -j 10
+make install
+
+ln /usr/lib/libPythonQt-Qt5-Python${PV}.so  /usr/lib/libPythonQt.so
+
+
