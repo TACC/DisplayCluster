@@ -50,7 +50,9 @@
 #define MARKER_TIMEOUT_SECONDS 5
 
 #include <QtWidgets>
-#include <QGLWidget>
+#include <QOpenGLWidget>
+#include <QOpenGLTexture>
+#include <QtOpenGLWidgets/QOpenGLWidget>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -62,6 +64,7 @@ class Marker : public QObject {
     public:
 
         Marker();
+        ~Marker();
 
         void setPosition(float x, float y);
         void getPosition(float &x, float &y);
@@ -89,6 +92,7 @@ class Marker : public QObject {
         boost::posix_time::ptime updatedTimestamp_;
 
         static GLuint textureId_;
+        QOpenGLTexture *texture_ = NULL;
 };
 
 #endif

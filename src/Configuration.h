@@ -41,8 +41,7 @@
 
 #include "main.h"
 
-#include <QtWidgets>
-#include <QtXmlPatterns>
+#include "XmlConfig.hpp"
 
 class Configuration {
 
@@ -71,24 +70,7 @@ class Configuration {
 
     private:
 
-        QXmlQuery query_;
-
-        int numTilesWidth_;
-        int numTilesHeight_;
-        int screenWidth_;
-        int screenHeight_;
-        int mullionWidth_;
-        int mullionHeight_;
-        int fullscreen_;
-
-        std::string host_;
-        std::string display_;
-
-        int myNumTiles_;
-        std::vector<int> tileX_;
-        std::vector<int> tileY_;
-        std::vector<int> tileI_;
-        std::vector<int> tileJ_;
+        XmlConfig xmlcfg;
 };
 
 #endif

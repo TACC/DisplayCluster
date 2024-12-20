@@ -48,7 +48,8 @@
 #undef DYNAMIC_TEXTURE_SHOW_BORDER
 
 #include "FactoryObject.h"
-#include <QGLWidget>
+#include <QOpenGLWidget>
+#include <QOpenGLTexture>
 #include <QtConcurrentRun>
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
@@ -102,15 +103,14 @@ class DynamicTexture : public boost::enable_shared_from_this<DynamicTexture>, pu
 
         // full scale image and dimensions; image may be deleted, but dimensions are necessary for later use
         QImage image_;
+        QImage scaledImage_;
         int imageWidth_;
         int imageHeight_;
 
-        // scaled image used for texture construction
-        QImage scaledImage_;
-
         // texture information
+        GLuint textureId_ = 0;
+        QOpenGLTexture *texture_ = NULL;
         bool textureBound_;
-        GLuint textureId_;
 
         // children
         std::vector<boost::shared_ptr<DynamicTexture> > children_;
@@ -130,9 +130,11 @@ class DynamicTexture : public boost::enable_shared_from_this<DynamicTexture>, pu
         void incrementThreadCount();
 };
 
+#if 0
 // this wrapper is used by child objects to prevent its ancestors from being destructed during thread execution.
 extern void loadImageThread(boost::shared_ptr<DynamicTexture> dynamicTexture, std::vector<boost::shared_ptr<DynamicTexture> > objects);
 
 extern void loadImageThread(DynamicTexture * dynamicTexture);
+#endif
 
 #endif

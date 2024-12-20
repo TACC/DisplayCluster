@@ -42,7 +42,7 @@
 #include "main.h"
 
 #include "FactoryObject.h"
-#include <QGLWidget>
+#include <QOpenGLWidget>
 
 class Texture : public FactoryObject {
 

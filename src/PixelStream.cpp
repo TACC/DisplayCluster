@@ -179,6 +179,7 @@ void PixelStream::updateTexture(QImage & image)
     {
         // want mipmaps disabled
         textureId_ = g_mainWindow->getGLWindow()->bindTexture(image, GL_TEXTURE_2D, GL_RGBA, QGLContext::LinearFilteringBindOption);
+        textureId_ = g_mainWindow->getGLWindow()->bindTexture(image, GL_TEXTURE_2D, GL_RGBA, QGLContext::LinearFilteringBindOption);
         textureWidth_ = image.width();
         textureHeight_ = image.height();
         textureBound_ = true;
@@ -187,7 +188,7 @@ void PixelStream::updateTexture(QImage & image)
     {
         // update the texture. note that generally we would need to convert the image to an OpenGL supported format
         // however, we're lucky and can use GL_BGRA on the original image...
-        // example conversion to GL format: QImage glImage = QGLWidget::convertToGLFormat(image);
+        // example conversion to GL format: QImage glImage = QOpenGLWidget::convertToGLFormat(image);
 
         // if the size has changed, create a new texture
         if(image.width() != textureWidth_ || image.height() != textureHeight_)

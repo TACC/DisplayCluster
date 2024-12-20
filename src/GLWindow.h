@@ -48,15 +48,16 @@
 #include "Movie.h"
 #include "PixelStream.h"
 #include "ParallelPixelStream.h"
-#include <QGLWidget>
+#include <QOpenGLWidget>
+#include <QOpenGLFunctions>
 
-class GLWindow : public QGLWidget
+class GLWindow : public QOpenGLWidget, protected QOpenGLFunctions
 {
 
     public:
 
         GLWindow(int tileIndex);
-        GLWindow(int tileIndex, QRect windowRect, QGLWidget * shareWidget = 0);
+        GLWindow(int tileIndex, QRect windowRect);
         ~GLWindow();
 
         Factory<Texture> & getTextureFactory();
@@ -77,7 +78,7 @@ class GLWindow : public QGLWidget
 
         bool isScreenRectangleVisible(double x, double y, double w, double h);
 
-        static bool isRectangleVisible(double x, double y, double w, double h);
+        //static bool isRectangleVisible(double x, double y, double w, double h);
         static void drawRectangle(double x, double y, double w, double h);
 
         void finalize();

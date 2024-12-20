@@ -43,6 +43,7 @@
 #include "DisplayGroupManager.h"
 #include "log.h"
 #include <QtOpenGL>
+#include <QPainter>
 #include <boost/shared_ptr.hpp>
 #include "Configuration.h"
 
@@ -52,28 +53,23 @@
     #include <GL/glu.h>
 #endif
 
-GLWindow::GLWindow(int tileIndex)
+GLWindow::GLWindow(int tileIndex) : QOpenGLWidget()
 {
     tileIndex_ = tileIndex;
 
     // disable automatic buffer swapping
-    setAutoBufferSwap(false);
+    // setAutoBufferSwap(false);
 }
 
-GLWindow::GLWindow(int tileIndex, QRect windowRect, QGLWidget * shareWidget) : QGLWidget(0, shareWidget)
+GLWindow::GLWindow(int tileIndex, QRect windowRect)  : QOpenGLWidget()
 {
+    initializeOpenGLFunctions();
+
     tileIndex_ = tileIndex;
     setGeometry(windowRect);
 
-    // make sure sharing succeeded
-    if(shareWidget != 0 && isSharing() != true)
-    {
-        put_flog(LOG_FATAL, "failed to share OpenGL context");
-        exit(-1);
-    }
-
     // disable automatic buffer swapping
-    setAutoBufferSwap(false);
+    // setAutoBufferSwap(false);
 }
 
 GLWindow::~GLWindow()
@@ -120,6 +116,7 @@ void GLWindow::insertPurgeTextureId(GLuint textureId)
 
 void GLWindow::purgeTextures()
 {
+#if 0
     QMutexLocker locker(&purgeTexturesMutex_);
 
     for(unsigned int i=0; i<purgeTextureIds_.size(); i++)
@@ -129,6 +126,7 @@ void GLWindow::purgeTextures()
     }
 
     purgeTextureIds_.clear();
+#endif
 }
 
 void GLWindow::initializeGL()
@@ -384,6 +382,7 @@ bool GLWindow::isScreenRectangleVisible(double x, double y, double w, double h)
     }
 }
 
+#if 0
 bool GLWindow::isRectangleVisible(double x, double y, double w, double h)
 {
     // get four corners in object space
@@ -437,6 +436,7 @@ bool GLWindow::isRectangleVisible(double x, double y, double w, double h)
         return false;
     }
 }
+#endif
 
 void GLWindow::drawRectangle(double x, double y, double w, double h)
 {
@@ -512,12 +512,16 @@ void GLWindow::renderTestPattern()
 
     glColor3f(1.,1.,1.);
 
-    renderText(50, 1*fontSize, label1, font);
-    renderText(50, 2*fontSize, label2, font);
-    renderText(50, 3*fontSize, label3, font);
-    renderText(50, 4*fontSize, label4, font);
-    renderText(50, 5*fontSize, label5, font);
-    renderText(50, 6*fontSize, label6, font);
+
+    QPainter painter(this);
+    painter.drawText(10, 10, "Hello, World!");
+
+    // renderText(50, 1*fontSize, label1, font);
+    // renderText(50, 2*fontSize, label2, font);
+    // renderText(50, 3*fontSize, label3, font);
+    // renderText(50, 4*fontSize, label4, font);
+    // renderText(50, 5*fontSize, label5, font);
+    // renderText(50, 6*fontSize, label6, font);
 
     glPopMatrix();
     glPopAttrib();

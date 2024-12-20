@@ -61,5 +61,5 @@ QSSApplication::sleep_start()
 void 
 QSSApplication::sleep_end()
 {
-	PythonConsole::pyqt()->stop_screen_saver();
+	// PythonConsole::pyqt()->stop_screen_saver();
 }

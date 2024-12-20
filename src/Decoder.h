@@ -40,7 +40,7 @@
 #define DECODER_H
 
 #include "main.h"
-
+#include "log.h"
 #include <iostream>
 #include <stdint.h>
 #include <chrono>
@@ -72,42 +72,7 @@ extern "C" {
 class Decoder 
 {
 private:
-    static void *
-    decoderThread(void *p)
-    {
-        Decoder *decoder = (Decoder *)p;
-        // std::cerr << "Decoder thread pid: " << ((long)gettid()) << "\n";
-       
-        decoder->Lock();
-        if (decoder->_setup())
-          decoder->tState_ = RUNNING;
-        else
-          decoder->tState_ = ERROR;
-        decoder->Signal();
-        decoder->Unlock();
-
-        while (! decoder->quit_)
-        {
-            decoder->Lock();
-            if (decoder->pause_)
-            {
-                while (decoder->pause_  && !decoder->quit_)
-                    decoder->Wait();
-                decoder->Signal();
-            }
-            decoder->Unlock();
-
-            if (decoder->quit_)
-                break;
-
-            decoder->_decode();
-        }
-
-        decoder->_cleanup();
-
-        // std::cerr << "Decoder thread exit\n";
-        pthread_exit(0);
-    }
+    static void *decoderThread(void *p);
 
 public:
     Decoder(bool paused = false);
@@ -130,14 +95,39 @@ public:
         Lock();
         pause_ = false;
         Signal();
-        Wait();
+        while (! pause_)
+          Wait();
         Unlock();
     }
 
+    void Sync()
+    {
+
+        int r, s;
+        MPI_Comm_rank(myComm, &r);
+        MPI_Comm_size(myComm, &s);
+
+        Lock();
+
+        if (tState_ == WAITING)
+        {
+            put_flog(999, "%d of %d - syncing %s", r, s, getURI().c_str());
+            MPI_Barrier(myComm);
+            tState_ = RUNNING;
+            Signal();
+        }
+        //else
+            //put_flog(999, "%d of %d: not syncing %s", r, s, getURI().c_str());
+
+        Signal();
+        Unlock();
+    }
+        
     bool 
     Setup(std::string uri)
     {
         uri_   = uri;
+        put_flog(999, "Decoder setup... uri_ %s", uri_.c_str());
 
         pthread_mutex_init(&lock_, NULL);
         pthread_cond_init(&signal_, NULL);
@@ -153,17 +143,17 @@ public:
         }
 
         while (tState_ == START)
-            Wait();
+          Wait();
         Unlock();
 
         return tState_ == RUNNING;
     }
 
-    void Lock()   { pthread_mutex_lock(&lock_); }
-    void Unlock() { pthread_mutex_unlock(&lock_); }
-    void Signal() { pthread_cond_signal(&signal_); }
-    void Kill()   { pthread_kill(tid_, SIGUSR1); }
-    void Wait()   { pthread_cond_wait(&signal_, &lock_); }
+    void Lock()            { pthread_mutex_lock(&lock_); }
+    void Unlock()          { pthread_mutex_unlock(&lock_); }
+    void Signal()          { pthread_cond_signal(&signal_); }
+    void Kill()            { pthread_kill(tid_, SIGUSR1); }
+    void Wait()            { pthread_cond_wait(&signal_, &lock_); }
 
     void
     getFrameDimensions(int &w, int &h)
@@ -195,10 +185,12 @@ public:
     int
     getNumBytes() { return numBytes_; }
 
+    void getResolution(int& w, int& h) { w = width_; h = height_; }
+
 private:
 
     bool _setup();
-    bool _decode();
+    bool _decode(int);
     void _cleanup();
 
     std::string uri_;
@@ -219,7 +211,7 @@ private:
     AVRational tb_;
     AVRational fr_;
 
-    enum ThreadState { START, RUNNING, ERROR } tState_ = START;
+    enum ThreadState { START, RUNNING, ERROR, WAITING } tState_ = START;
 
     pthread_t tid_;
     bool quit_, pause_;
@@ -228,6 +220,8 @@ private:
     pthread_cond_t  signal_;
 
     time_point<high_resolution_clock> tStart_;
+
+    MPI_Comm myComm;
 };
 
 #endif

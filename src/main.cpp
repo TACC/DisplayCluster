@@ -79,8 +79,6 @@ uint64_t g_dc_flags = 0;
 
 int main(int argc, char * argv[])
 {
-    put_flog(LOG_INFO, "");
-
     if(getenv("DISPLAYCLUSTER_FLAGS") != NULL)
 			g_dc_flags = atoi(getenv("DISPLAYCLUSTER_FLAGS"));
 
@@ -93,17 +91,31 @@ int main(int argc, char * argv[])
 
     g_displayClusterDir = std::string(getenv("DISPLAYCLUSTER_DIR"));
 
-    put_flog(LOG_DEBUG, "base directory is %s", g_displayClusterDir.c_str());
 
 #if ENABLE_TUIO_TOUCH_LISTENER
     // we need X multithreading support if we're running the TouchListener thread and creating X events
     XInitThreads();
 #endif
 
-    MPI_Init(&argc, &argv);
+    int provided;
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+    if (provided != MPI_THREAD_MULTIPLE)
+    {
+        std::cerr << "threading setup error\n";
+        exit(0);
+    }
+
+    // MPI_Init(&argc, &argv);
+
     MPI_Comm_rank(MPI_COMM_WORLD, &g_mpiRank);
     MPI_Comm_size(MPI_COMM_WORLD, &g_mpiSize);
     MPI_Comm_split(MPI_COMM_WORLD, g_mpiRank != 0, g_mpiRank, &g_mpiRenderComm);
+
+    // init_log();
+
+    put_flog(LOG_DEBUG, "base directory is %s", g_displayClusterDir.c_str());
+
+    put_flog(9999, "%d of %d", g_mpiRank, g_mpiSize);
 
 #if 0
     //if (g_mpiRank == 0)
@@ -119,6 +131,8 @@ int main(int argc, char * argv[])
         sleep(1);
    // }
 #endif
+
+     QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
 
 #if ENABLE_PYTHON_SUPPORT
 
@@ -142,9 +156,6 @@ int main(int argc, char * argv[])
 
     boost::shared_ptr<DisplayGroupManager> dgm(new DisplayGroupManager);
     g_displayGroupManager = dgm;
-
-    // calibrate timestamp offset between rank 0 and rank 1 clocks
-    g_displayGroupManager->calibrateTimestampOffset();
 
 #if ENABLE_TUIO_TOUCH_LISTENER
     if(g_mpiRank == 0)
@@ -203,10 +214,12 @@ int main(int argc, char * argv[])
 #endif
     }
 
-    g_mainWindow = new MainWindow();
+    g_mainWindow = new MainWindow(argc, argv);
+    put_flog(999, "glMainWindow %l", ((long)g_mainWindow));
 
     // enter Qt event loop
     g_app->exec();
+    put_flog(999, "app exit");
 
     put_flog(LOG_DEBUG, "quitting");
 

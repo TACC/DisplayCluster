@@ -41,10 +41,13 @@
 
 Movie::Movie(std::string uri)
 {
+    put_flog(999, "Movie ctor: %s", uri.c_str());
+
     initialized_ = false;
     paused_ = false;
     decoder = new Decoder();
     decoder->Setup(uri);
+
 }
 
 Movie::~Movie()

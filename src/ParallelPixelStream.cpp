@@ -42,6 +42,8 @@
 #include "DisplayGroupManager.h"
 #include "log.h"
 
+#include <QPainter>
+
 ParallelPixelStream::ParallelPixelStream(std::string uri)
 {
     // defaults
@@ -128,7 +130,11 @@ void ParallelPixelStream::render(float tX, float tY, float tW, float tH)
 
                 glColor4f(1.,0.,0.,1.);
                 glDisable(GL_DEPTH_TEST);
-                g_mainWindow->getActiveGLWindow()->renderText(0.1, 0.95, 0., QString(statisticsString.c_str()), font);
+
+                QPainter painter(g_mainWindow->getActiveGLWindow().get());
+                painter.drawText(10, 10, "Hello, World!");
+
+                // g_mainWindow->getActiveGLWindow()->renderText(0.1, 0.95, 0., QString(statisticsString.c_str()), font);
             }
 
             glPopMatrix();

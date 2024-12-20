@@ -73,7 +73,10 @@ void MovieContent::advance(boost::shared_ptr<ContentWindowManager> window)
         }
     }
 
-	g_mainWindow->getGLWindow()->getMovieFactory().getObject(getURI())->nextFrame(skip);
+    boost::shared_ptr<Movie> movie = g_mainWindow->getGLWindow()->getMovieFactory().getObject(getURI());
+    movie->nextFrame(skip);
+    // put_flog(999, "checking sync");
+    // movie->Sync();
 }
 
 void MovieContent::renderFactoryObject(float tX, float tY, float tW, float tH)

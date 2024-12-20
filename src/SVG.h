@@ -43,8 +43,8 @@
 
 #include "FactoryObject.h"
 #include <QtSvg>
-#include <QGLWidget>
-#include <QGLFramebufferObject>
+#include <QOpenGLWidget>
+#include <QOpenGLFramebufferObject>
 #include <boost/shared_ptr.hpp>
 #include <map>
 
@@ -70,7 +70,7 @@ class SVG : public FactoryObject {
         QRectF svgExtents_;
         QSvgRenderer svgRenderer_;
 
-        std::map<boost::shared_ptr<GLWindow>, boost::shared_ptr<QGLFramebufferObject> > fbos_;
+        std::map<boost::shared_ptr<GLWindow>, boost::shared_ptr<QOpenGLFramebufferObject> > fbos_;
 
         // current rasterized image dimensions
         int imageWidth_;

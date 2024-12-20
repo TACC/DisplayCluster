@@ -36,10 +36,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
 if(BUILD_DISPLAYCLUSTER OR BUILD_DISPLAYCLUSTER_LIBRARY OR BUILD_DESKTOPSTREAMER)
 
-    find_package(Qt5 COMPONENTS Core Gui Widgets Concurrent OpenGL Network Svg Xml XmlPatterns REQUIRED)
-    #find_package(tinyxml2 REQUIRED)
-
-    set(LIBS ${LIBS} Qt5::Core Qt5::Concurrent Qt5::Network Qt5::Gui Qt5::Svg Qt5::OpenGL Qt5::Xml Qt5::XmlPatterns)
+	find_package(Qt6 COMPONENTS Core Gui Widgets OpenGLWidgets Concurrent OpenGL Network Xml Svg REQUIRED)
+	set(LIBS ${LIBS} Qt6::Core Qt6::Concurrent Qt6::Network Qt6::Widgets Qt6::Gui Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Xml Qt6::Svg)
 
     # libjpeg-turbo
     find_package(LibJpegTurbo REQUIRED)
@@ -111,12 +109,13 @@ if(BUILD_DISPLAYCLUSTER)
         include_directories(${PYTHON_INCLUDE_DIRS})
         set(LIBS ${LIBS} ${PYTHON_LIBRARIES})
 
-        find_package(PythonQt REQUIRED)
-        include_directories(${PythonQt_INCLUDE_DIRS})
-        set(LIBS ${LIBS} ${PythonQt_LIBRARIES})
+        # find_package(PythonQt REQUIRED)
+	# include_directories(${PythonQt_INCLUDE_DIRS})
+	# set(LIBS ${LIBS} ${PythonQt_LIBRARIES})
 
         set(SRCS ${SRCS} 
             src/PythonConsole.cpp
+            src/EmbeddedPython.cpp
             src/SSaver.cpp
             src/Remote.cpp)
 
@@ -185,7 +184,7 @@ if(BUILD_DISPLAYCLUSTER)
     )
 
     # add OPTIONS hacks for Qt's MOC processing of Boost headers, for compiler errors with some versions of Boost
-    qt5_wrap_cpp(MOC_OUTFILES ${MOC_HEADERS} OPTIONS -DPOSIX_TIME_HPP___ -DPOSIX_TIME_SERIALIZE_HPP___ -DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED)
+    qt6_wrap_cpp(MOC_OUTFILES ${MOC_HEADERS} OPTIONS -DPOSIX_TIME_HPP___ -DPOSIX_TIME_SERIALIZE_HPP___ -DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED)
 
     if(ENABLE_PYTHON_SUPPORT)
         add_library(pywrapper SHARED 
@@ -194,10 +193,10 @@ if(BUILD_DISPLAYCLUSTER)
             src/pyContentWindowManager.cpp 
             src/pyDisplayGroupManager.cpp)
         include_directories(
-            ${Qt5Gui_INCLUDE_DIRS}
-            ${Qt5Widgets_INCLUDE_DIRS}
-            ${Qt5OpenGL_INCLUDE_DIRS}
-            ${Qt5XmlPatterns_INCLUDE_DIRS})
+            ${Qt6Gui_INCLUDE_DIRS}
+            ${Qt6Widgets_INCLUDE_DIRS}
+            ${Qt6OpenGL_INCLUDE_DIRS}
+            ${Qt6OpenGLWidgets_INCLUDE_DIRS})
         INSTALL(TARGETS pywrapper RUNTIME DESTINATION lib)
         INSTALL(FILES src/pyContent.h DESTINATION include)
         set(LIBS ${LIBS} pywrapper)
@@ -205,7 +204,7 @@ if(BUILD_DISPLAYCLUSTER)
         add_custom_command(
           OUTPUT pydc.so pydc-0.1.dist-info
           DEPENDS pywrapper
-          COMMAND rm -rf ${PROJECT_BINARY_DIR}/python
+          COMMAND rm -rf ${PROJECT_BINARY_DIR}/python pydc.so
             && cp -r ${CMAKE_SOURCE_DIR}/python ${PROJECT_BINARY_DIR}
             && cd python
             && sed -e "s?SRCDIR?${CMAKE_SOURCE_DIR}?" -e "s?BUILDDIR?${PROJECT_BINARY_DIR}?" < pyproject.toml.in > pyproject.toml

@@ -56,11 +56,12 @@
 #include <boost/date_time/posix_time/time_serialize.hpp>
 #include <boost/algorithm/string.hpp>
 #include <mpi.h>
-#include <QtXml/QDomDocument>
-#include <QXmlQuery>
 #include <fstream>
-
+#include <cstring>
 #include <pthread.h>
+
+#include "XmlState.hpp"
+
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 int 
@@ -68,6 +69,7 @@ ptid()
 {
 	return (((long long)pthread_self()) & 0xfffffff);
 }
+
 
 DisplayGroupManager::DisplayGroupManager()
 {
@@ -126,6 +128,9 @@ boost::shared_ptr<boost::posix_time::ptime> DisplayGroupManager::getTimestamp()
     }
     else
     {
+        boost::posix_time::ptime xx = *timestamp_;
+        std::string stime2 = boost::posix_time::to_simple_string(xx);
+
         return timestamp_;
     }
 }
@@ -176,292 +181,31 @@ void DisplayGroupManager::moveContentWindowManagerToFront(boost::shared_ptr<Cont
     }
 }
 
-void DisplayGroupManager::calibrateTimestampOffset()
-{
-    // can't calibrate timestamps unless we have at least 2 processes
-    if(g_mpiSize < 2)
-    {
-        put_flog(LOG_DEBUG, "cannot calibrate with g_mpiSize == %i", g_mpiSize);
-        return;
-    }
-
-    // synchronize all processes
-    MPI_Barrier(g_mpiRenderComm);
-
-    // get current timestamp immediately after
-    boost::posix_time::ptime timestamp(boost::posix_time::microsec_clock::universal_time());
-
-    // rank 1: send timestamp to rank 0
-    if(g_mpiRank == 1)
-    {
-        // serialize state
-        std::string serializedString;
-
-        // brace this so destructor is called on archive before we use the stream
-        {
-						std::ostringstream oss(std::ostringstream::binary);
-            boost::archive::binary_oarchive oa(oss);
-            oa << timestamp;
-						serializedString = oss.str();
-        }
-
-        // serialized data to string
-        int size = serializedString.size();
-
-        // send the header and the message
-        MessageHeader mh;
-        mh.size = size;
-
-        MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, 0, 0, MPI_COMM_WORLD);
-        MPI_Send((void *)serializedString.data(), size, MPI_BYTE, 0, 0, MPI_COMM_WORLD);
-    }
-    // rank 0: receive timestamp from rank 1
-    else if(g_mpiRank == 0)
-    {
-        MessageHeader messageHeader;
-
-        MPI_Status status;
-        MPI_Recv((void *)&messageHeader, sizeof(MessageHeader), MPI_BYTE, 1, 0, MPI_COMM_WORLD, &status);
-
-        // receive serialized data
-        char * buf = new char[messageHeader.size];
-
-        // read message into the buffer
-        MPI_Recv((void *)buf, messageHeader.size, MPI_BYTE, 1, 0, MPI_COMM_WORLD, &status);
-
-        // de-serialize...
-
-				boost::iostreams::basic_array_source<char> device(buf, messageHeader.size);
-				boost::iostreams::stream<boost::iostreams::basic_array_source<char> > iss(device);
-
-        // read to a new timestamp
-        boost::posix_time::ptime rank1Timestamp;
-
-        boost::archive::binary_iarchive ia(iss);
-        ia >> rank1Timestamp;
-
-        // free mpi buffer
-        delete [] buf;
-
-        // now, calculate and store the timestamp offset
-        timestampOffset_ = rank1Timestamp - timestamp;
-
-        put_flog(LOG_DEBUG, "timestamp offset = %s", (boost::posix_time::to_simple_string(timestampOffset_)).c_str());
-    }
-}
-
 bool DisplayGroupManager::saveStateXML(QString& xml)
 {
-    // get contents vector
-    std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers = getContentWindowManagers();
-
-    // save as XML
-    QDomDocument doc("state");
-    QDomElement root = doc.createElement("state");
-    doc.appendChild(root);
-
-    // version number
-    int version = CONTENTS_FILE_VERSION_NUMBER;
-
-    QDomElement v = doc.createElement("version");
-    v.appendChild(doc.createTextNode(QString::number(version)));
-    root.appendChild(v);
-
-    for(unsigned int i=0; i<contentWindowManagers.size(); i++)
-    {
-        // get values
-        std::string uri = contentWindowManagers[i]->getContent()->getURI();
-
-        double x, y, w, h;
-        contentWindowManagers[i]->getCoordinates(x, y, w, h);
-
-        double centerX, centerY;
-        contentWindowManagers[i]->getCenter(centerX, centerY);
-
-        double zoom = contentWindowManagers[i]->getZoom();
-
-        bool selected = contentWindowManagers[i]->getSelected();
-
-        // add the XML node with these values
-        QDomElement cwmNode = doc.createElement("ContentWindow");
-        root.appendChild(cwmNode);
-
-        QDomElement n = doc.createElement("URI");
-        n.appendChild(doc.createTextNode(QString(uri.c_str())));
-        cwmNode.appendChild(n);
-
-        n = doc.createElement("x");
-        n.appendChild(doc.createTextNode(QString::number(x)));
-        cwmNode.appendChild(n);
-
-        n = doc.createElement("y");
-        n.appendChild(doc.createTextNode(QString::number(y)));
-        cwmNode.appendChild(n);
-
-        n = doc.createElement("w");
-        n.appendChild(doc.createTextNode(QString::number(w)));
-        cwmNode.appendChild(n);
-
-        n = doc.createElement("h");
-        n.appendChild(doc.createTextNode(QString::number(h)));
-        cwmNode.appendChild(n);
-
-        n = doc.createElement("centerX");
-        n.appendChild(doc.createTextNode(QString::number(centerX)));
-        cwmNode.appendChild(n);
-
-        n = doc.createElement("centerY");
-        n.appendChild(doc.createTextNode(QString::number(centerY)));
-        cwmNode.appendChild(n);
-
-        n = doc.createElement("zoom");
-        n.appendChild(doc.createTextNode(QString::number(zoom)));
-        cwmNode.appendChild(n);
-
-        n = doc.createElement("selected");
-        n.appendChild(doc.createTextNode(QString::number(selected)));
-        cwmNode.appendChild(n);
-    }
-
-    xml = doc.toString();
+    XmlState s(this);
+    s.Write(xml);
 		return true;
 }
 
 bool DisplayGroupManager::saveStateXMLFile(std::string filename)
 {
-    QString xml;
-    saveStateXML(xml);
-
-    std::ofstream ofs(filename.c_str());
-    if(ofs.good() == true)
-    {
-        ofs << xml.toStdString();
-        return true;
-    }
-    else
-    {
-        put_flog(LOG_ERROR, "could not write state file");
-        return false;
-    }
+    XmlState s(this);
+    s.Write(filename);
+		return true;
 }
 
 bool DisplayGroupManager::loadStateXML(QString xml)
 {
-		QBuffer buffer;
-		buffer.setData(xml.toUtf8().constData(), xml.length());
-		buffer.open(QIODevice::ReadOnly);
+    XmlState s(xml);
 
-    QXmlQuery query;
-		query.bindVariable("DOC", &buffer);
-
-    // temp
-    QString qstring;
-
-    // get number of content windows
-    int numContentWindows = 0;
-    query.setQuery("count(doc($DOC)//state/ContentWindow)");
-
-    if(query.evaluateTo(&qstring) == true)
-    {
-        numContentWindows = qstring.toInt();
-    }
-
-    put_flog(LOG_INFO, "%i content windows", numContentWindows);
-
-    // new contents vector
     std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers;
 
-    for(int i=1; i<=numContentWindows; i++)
+    for (auto xcw : s.contentWindows)
     {
-        char string[1024];
-
-        std::string uri;
-        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/URI/text()", i);
-        query.setQuery(string);
-
-        if(query.evaluateTo(&qstring) == true)
+        if(xcw->uri.empty() == false)
         {
-            uri = qstring.toStdString();
-
-            // remove any whitespace
-            boost::trim(uri);
-
-            put_flog(LOG_DEBUG, "found content window with URI %s", uri.c_str());
-        }
-
-        double x, y, w, h, centerX, centerY, zoom;
-        x = y = w = h = centerX = centerY = zoom = -1.;
-
-        bool selected = false;
-
-        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/x/text()", i);
-        query.setQuery(string);
-
-        if(query.evaluateTo(&qstring) == true)
-        {
-            x = qstring.toDouble();
-        }
-
-        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/y/text()", i);
-        query.setQuery(string);
-
-        if(query.evaluateTo(&qstring) == true)
-        {
-            y = qstring.toDouble();
-        }
-
-        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/w/text()", i);
-        query.setQuery(string);
-
-        if(query.evaluateTo(&qstring) == true)
-        {
-            w = qstring.toDouble();
-        }
-
-        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/h/text()", i);
-        query.setQuery(string);
-
-        if(query.evaluateTo(&qstring) == true)
-        {
-            h = qstring.toDouble();
-        }
-
-        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/centerX/text()", i);
-        query.setQuery(string);
-
-        if(query.evaluateTo(&qstring) == true)
-        {
-            centerX = qstring.toDouble();
-        }
-
-        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/centerY/text()", i);
-        query.setQuery(string);
-
-        if(query.evaluateTo(&qstring) == true)
-        {
-            centerY = qstring.toDouble();
-        }
-
-        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/zoom/text()", i);
-        query.setQuery(string);
-
-        if(query.evaluateTo(&qstring) == true)
-        {
-            zoom = qstring.toDouble();
-        }
-
-        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/selected/text()", i);
-        query.setQuery(string);
-
-        if(query.evaluateTo(&qstring) == true)
-        {
-            selected = (bool)qstring.toInt();
-        }
-
-        // add the window if we have a valid URI
-        if(uri.empty() == false)
-        {
-            boost::shared_ptr<Content> c = Content::getContent(uri);
+            boost::shared_ptr<Content> c = Content::getContent(xcw->uri);
 
             if(c != NULL)
             {
@@ -469,29 +213,11 @@ bool DisplayGroupManager::loadStateXML(QString xml)
 
                 contentWindowManagers.push_back(cwm);
 
-                // now, apply settings if we got them from the XML file
-                if(x != -1. || y != -1.)
-                {
-                    cwm->setPosition(x, y);
-                }
-
-                if(w != -1. || h != -1.)
-                {
-                    cwm->setSize(w, h);
-                }
-
-                // zoom needs to be set before center because of clamping
-                if(zoom != -1.)
-                {
-                    cwm->setZoom(zoom);
-                }
-
-                if(centerX != -1. || centerY != -1.)
-                {
-                    cwm->setCenter(centerX, centerY);
-                }
-
-                cwm->setSelected(selected);
+                cwm->setPosition(xcw->x, xcw->y);
+                cwm->setSize(xcw->w, xcw->h);
+                cwm->setZoom(xcw->zoom);
+                cwm->setCenter(xcw->centerX, xcw->centerY);
+                cwm->setSelected(xcw->selected);
             }
         }
     }
@@ -526,69 +252,84 @@ bool DisplayGroupManager::loadStateXMLFile(std::string filename)
     return true;
 }
 
-void DisplayGroupManager::receiveMessages()
+void DisplayGroupManager::sendMessage(MESSAGE_TYPE type, std::string uri, char *bytes, int size)
 {
-    if(g_mpiRank == 0)
-    {
-        put_flog(LOG_FATAL, "called on rank 0");
-        exit(-1);
-    }
-
-    // check to see if we have a message (non-blocking)
-    int flag;
-    MPI_Status status;
-    MPI_Iprobe(0, 0, MPI_COMM_WORLD, &flag, &status);
-
-    // check to see if all render processes have a message
-    int allFlag;
-    MPI_Allreduce(&flag, &allFlag, 1, MPI_INT, MPI_LAND, g_mpiRenderComm);
-
-    // message header
     MessageHeader mh;
 
-    // if all render processes have a message...
-    if(allFlag != 0)
+    mh.size = size;
+    mh.type = type;
+
+    size_t len = uri.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
+    mh.uri[len] = '\0';
+
+    mh.time = boost::posix_time::ptime(boost::posix_time::microsec_clock::universal_time());
+    timestamp_ = boost::shared_ptr<boost::posix_time::ptime>(new boost::posix_time::ptime(mh.time));
+    timestampOffset_ = boost::posix_time::microsec_clock::universal_time() - mh.time;
+
+    MPI_Bcast(&mh, sizeof(MessageHeader), MPI_BYTE, 0, MPI_COMM_WORLD);
+
+    if (size > 0)
+        MPI_Bcast(bytes, size, MPI_BYTE, 0, MPI_COMM_WORLD);
+}
+
+static void received_message() {}
+
+void DisplayGroupManager::receiveMessage()
+{
+    MessageHeader mh;
+
+    MPI_Bcast(&mh, sizeof(MessageHeader), MPI_BYTE, 0, MPI_COMM_WORLD);
+    received_message();
+
+    g_mainWindow->Lock();
+
+    std::string stime1 = boost::posix_time::to_simple_string(mh.time);
+
+    timestamp_ = boost::shared_ptr<boost::posix_time::ptime>(new boost::posix_time::ptime(mh.time));
+
+    boost::posix_time::ptime xx = *timestamp_;
+
+    std::string stime2 = boost::posix_time::to_simple_string(xx);
+
+    timestampOffset_ = boost::posix_time::microsec_clock::universal_time() - mh.time;
+
+    put_flog(999, "timestamp %s", boost::posix_time::to_simple_string(*timestamp_.get()));
+
+    char *bytes = NULL;
+    if (mh.size > 0) 
     {
-        // continue receiving messages until we get to the last one which all render processes have
-        // this will "drop frames" and keep all processes synchronized
-        while(allFlag)
-        {
-            // first, get message header
-            MPI_Recv((void *)&mh, sizeof(MessageHeader), MPI_BYTE, 0, 0, MPI_COMM_WORLD, &status);
-
-            if(mh.type == MESSAGE_TYPE_CONTENTS)
-            {
-                receiveDisplayGroup(mh);
-            }
-            else if(mh.type == MESSAGE_TYPE_CONTENTS_DIMENSIONS)
-            {
-                receiveContentsDimensionsRequest(mh);
-            }
-            else if(mh.type == MESSAGE_TYPE_PIXELSTREAM)
-            {
-                receivePixelStreams(mh);
-            }
-            else if(mh.type == MESSAGE_TYPE_PARALLEL_PIXELSTREAM)
-            {
-                receiveParallelPixelStreams(mh);
-            }
-            else if(mh.type == MESSAGE_TYPE_SVG_STREAM)
-            {
-                receiveSVGStreams(mh);
-            }
-            else if(mh.type == MESSAGE_TYPE_QUIT)
-            {
-                g_app->quit();
-                return;
-            }
-
-            // check to see if we have another message waiting, for this process and for all render processes
-            MPI_Iprobe(0, 0, MPI_COMM_WORLD, &flag, &status);
-            MPI_Allreduce(&flag, &allFlag, 1, MPI_INT, MPI_LAND, g_mpiRenderComm);
-        }
-
-        // at this point, we've received the last message available for all render processes
+        bytes = new char[mh.size];
+        MPI_Bcast((void *)bytes, mh.size, MPI_BYTE, 0, MPI_COMM_WORLD);
     }
+
+    if(mh.type == MESSAGE_TYPE_CONTENTS)
+    {
+        receiveDisplayGroup(mh, bytes);
+    }
+    else if(mh.type == MESSAGE_TYPE_CONTENTS_DIMENSIONS)
+    {
+        receiveContentsDimensionsRequest(mh, bytes);
+    }
+    else if(mh.type == MESSAGE_TYPE_PIXELSTREAM)
+    {
+        receivePixelStreams(mh, bytes);
+    }
+    else if(mh.type == MESSAGE_TYPE_PARALLEL_PIXELSTREAM)
+    {
+        receiveParallelPixelStreams(mh, bytes);
+    }
+    else if(mh.type == MESSAGE_TYPE_PING)
+    {
+    }
+    else if(mh.type == MESSAGE_TYPE_QUIT)
+    {
+        g_app->quit();
+        return;
+    }
+
+    g_mainWindow->Unlock();
+
+    if (bytes) delete[] bytes;
 }
 
 void DisplayGroupManager::sendDisplayGroup()
@@ -615,25 +356,10 @@ void DisplayGroupManager::sendDisplayGroup()
 
     // serialized data to string
     std::string serializedString = oss.str();
-    int size = serializedString.size();
 
-    // send the header and the message
-    MessageHeader mh;
-    mh.size = size;
-    mh.type = MESSAGE_TYPE_CONTENTS;
-
-    // the header is sent via a send, so that we can probe it on the render processes
-    for(int i=1; i<g_mpiSize; i++)
-    {
-        MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, i, 0, MPI_COMM_WORLD);
-    }
-
-    // broadcast the message
-    MPI_Bcast((void *)serializedString.data(), size, MPI_BYTE, 0, MPI_COMM_WORLD);
-		MPI_Barrier(MPI_COMM_WORLD);
+    sendMessage(MESSAGE_TYPE_CONTENTS, "", serializedString.data(), serializedString.size());
 
 		pthread_mutex_unlock(&lock);
-// std::cerr << "SDG released lock " << ptid() << "\n";
 }
 
 void DisplayGroupManager::sendContentsDimensionsRequest()
@@ -644,29 +370,18 @@ void DisplayGroupManager::sendContentsDimensionsRequest()
         return;
     }
 
-    // send the header and the message
-    MessageHeader mh;
-    mh.type = MESSAGE_TYPE_CONTENTS_DIMENSIONS;
+    sendMessage(MESSAGE_TYPE_CONTENTS_DIMENSIONS, "", NULL, 0);
 
-    // the header is sent via a send, so that we can probe it on the render processes
-    for(int i=1; i<g_mpiSize; i++)
-    {
-        MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, i, 0, MPI_COMM_WORLD);
-    }
+    int size; MPI_Status status;
 
-    // now, receive response from rank 1
-    MPI_Status status;
-    MPI_Recv((void *)&mh, sizeof(MessageHeader), MPI_BYTE, 1, 0, MPI_COMM_WORLD, &status);
+    MPI_Recv((void *)&size, sizeof(int), MPI_BYTE, 1, 0, MPI_COMM_WORLD, &status);
 
-    // receive serialized data
-    char * buf = new char[mh.size];
-
-    // read message into the buffer
-    MPI_Recv((void *)buf, mh.size, MPI_BYTE, 1, 0, MPI_COMM_WORLD, &status);
+    char *buf = new char[size];
+    MPI_Recv((void *)buf, size, MPI_BYTE, 1, 0, MPI_COMM_WORLD, &status);
 
     // de-serialize...
 
-		boost::iostreams::basic_array_source<char> device(buf, mh.size);
+		boost::iostreams::basic_array_source<char> device(buf, size);
 		boost::iostreams::stream<boost::iostreams::basic_array_source<char> > iss(device);
 
     // read to a new vector
@@ -715,25 +430,7 @@ void DisplayGroupManager::sendPixelStreams()
                 addContentWindowManager(cwm);
             }
 
-            int size = imageData.size();
-
-            // send the header and the message
-            MessageHeader mh;
-            mh.size = size;
-            mh.type = MESSAGE_TYPE_PIXELSTREAM;
-
-            // add the truncated URI to the header
-            size_t len = uri.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
-            mh.uri[len] = '\0';
-
-            // the header is sent via a send, so that we can probe it on the render processes
-            for(int i=1; i<g_mpiSize; i++)
-            {
-                MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, i, 0, MPI_COMM_WORLD);
-            }
-
-            // broadcast the message
-            MPI_Bcast((void *)imageData.data(), size, MPI_BYTE, 0, MPI_COMM_WORLD);
+            sendMessage(MESSAGE_TYPE_PIXELSTREAM, uri, imageData.data(), imageData.size());
         }
 
         // check for updated dimensions
@@ -805,25 +502,8 @@ void DisplayGroupManager::sendParallelPixelStreams()
 
             // serialized data to string
             std::string serializedString = oss.str();
-            int size = serializedString.size();
 
-            // send the header and the message
-            MessageHeader mh;
-            mh.size = size;
-            mh.type = MESSAGE_TYPE_PARALLEL_PIXELSTREAM;
-
-            // add the truncated URI to the header
-            size_t len = uri.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
-            mh.uri[len] = '\0';
-
-            // the header is sent via a send, so that we can probe it on the render processes
-            for(int i=1; i<g_mpiSize; i++)
-            {
-                MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, i, 0, MPI_COMM_WORLD);
-            }
-
-            // broadcast the message
-            MPI_Bcast((void *)serializedString.data(), size, MPI_BYTE, 0, MPI_COMM_WORLD);
+            sendMessage(MESSAGE_TYPE_PARALLEL_PIXELSTREAM, uri, serializedString.data(), serializedString.size());
 
             // check for updated dimensions
             int newWidth = segments[0].parameters.totalWidth;
@@ -904,125 +584,14 @@ void DisplayGroupManager::sendSVGStreams()
                 }
             }
 
-            int size = imageData.size();
-
-            // send the header and the message
-            MessageHeader mh;
-            mh.size = size;
-            mh.type = MESSAGE_TYPE_SVG_STREAM;
-
-            // add the truncated URI to the header
-            size_t len = uri.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
-            mh.uri[len] = '\0';
-
-            // the header is sent via a send, so that we can probe it on the render processes
-            for(int i=1; i<g_mpiSize; i++)
-            {
-                MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, i, 0, MPI_COMM_WORLD);
-            }
-
-            // broadcast the message
-            MPI_Bcast((void *)imageData.data(), size, MPI_BYTE, 0, MPI_COMM_WORLD);
+            sendMessage(MESSAGE_TYPE_SVG_STREAM, uri, imageData.data(), imageData.size());
         }
     }
 }
 
-void DisplayGroupManager::sendFrameClockUpdate()
-{
-    // this should only be called by the rank 1 process
-    if(g_mpiRank != 1)
-    {
-        put_flog(LOG_WARN, "called by rank %i != 1", g_mpiRank);
-        return;
-    }
-
-    boost::shared_ptr<boost::posix_time::ptime> timestamp(new boost::posix_time::ptime(boost::posix_time::microsec_clock::universal_time()));
-
-    // serialize state
-    std::ostringstream oss(std::ostringstream::binary);
-
-    // brace this so destructor is called on archive before we use the stream
-    {
-        boost::archive::binary_oarchive oa(oss);
-        oa << timestamp;
-    }
-
-    // serialized data to string
-    std::string serializedString = oss.str();
-    int size = serializedString.size();
-
-    // send the header and the message
-    MessageHeader mh;
-    mh.size = size;
-    mh.type = MESSAGE_TYPE_FRAME_CLOCK;
-
-    // the header is sent via a send, so that we can probe it on the render processes
-    for(int i=2; i<g_mpiSize; i++)
-    {
-        MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, i, 0, MPI_COMM_WORLD);
-    }
-
-    // broadcast it
-    MPI_Bcast((void *)serializedString.data(), size, MPI_BYTE, 0, g_mpiRenderComm);
-
-    // update timestamp
-    timestamp_ = timestamp;
-}
-
-void DisplayGroupManager::receiveFrameClockUpdate()
-{
-    // we shouldn't run the broadcast if we're rank 1
-    if(g_mpiRank == 1)
-    {
-        return;
-    }
-
-    // receive the message header
-    MessageHeader messageHeader;
-    MPI_Status status;
-    MPI_Recv((void *)&messageHeader, sizeof(MessageHeader), MPI_BYTE, 1, 0, MPI_COMM_WORLD, &status);
-
-    if(messageHeader.type != MESSAGE_TYPE_FRAME_CLOCK)
-    {
-        put_flog(LOG_FATAL, "unexpected message type");
-        exit(-1);
-    }
-
-    // receive serialized data
-    char * buf = new char[messageHeader.size];
-
-    // read message into the buffer
-    MPI_Bcast((void *)buf, messageHeader.size, MPI_BYTE, 0, g_mpiRenderComm);
-
-    // de-serialize...
-
-		boost::iostreams::basic_array_source<char> device(buf, messageHeader.size);
-		boost::iostreams::stream<boost::iostreams::basic_array_source<char> > iss(device);
-
-    // read to a new timestamp
-    boost::shared_ptr<boost::posix_time::ptime> timestamp;
-
-    boost::archive::binary_iarchive ia(iss);
-    ia >> timestamp;
-
-    // free mpi buffer
-    delete [] buf;
-
-    // update timestamp
-    timestamp_ = timestamp;
-}
-
 void DisplayGroupManager::sendQuit()
 {
-    // send the header and the message
-    MessageHeader mh;
-    mh.type = MESSAGE_TYPE_QUIT;
-
-    // the header is sent via a send, so that we can probe it on the render processes
-    for(int i=1; i<g_mpiSize; i++)
-    {
-        MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, i, 0, MPI_COMM_WORLD);
-    }
+    sendMessage(MESSAGE_TYPE_QUIT, "", NULL, 0);
 }
 
 void DisplayGroupManager::advanceContents()
@@ -1044,21 +613,13 @@ void DisplayGroupManager::setSkeletons(std::vector< boost::shared_ptr<SkeletonSt
 }
 #endif
 
-void DisplayGroupManager::receiveDisplayGroup(MessageHeader messageHeader)
+void DisplayGroupManager::receiveDisplayGroup(MessageHeader messageHeader, char *bytes)
 {
-// std::cerr << "RDG going for lock\n";
 		pthread_mutex_lock(&lock);
-// std::cerr << "RDG got lock\n";
-
-    // receive serialized data
-    char * buf = new char[messageHeader.size];
-
-    // read message into the buffer
-    MPI_Bcast((void *)buf, messageHeader.size, MPI_BYTE, 0, MPI_COMM_WORLD);
 
     // de-serialize...
 
-		boost::iostreams::basic_array_source<char> device(buf, messageHeader.size);
+		boost::iostreams::basic_array_source<char> device(bytes, messageHeader.size);
 		boost::iostreams::stream<boost::iostreams::basic_array_source<char> > iss(device);
 
     // read to a new display group
@@ -1068,18 +629,15 @@ void DisplayGroupManager::receiveDisplayGroup(MessageHeader messageHeader)
     ia >> displayGroupManager;
 
     // overwrite old display group
+    displayGroupManager->timestamp_ = g_displayGroupManager->timestamp_;
+    displayGroupManager->timestampOffset_ = g_displayGroupManager->timestampOffset_;
     g_displayGroupManager = displayGroupManager;
-
-		MPI_Barrier(MPI_COMM_WORLD);
-
-    // free mpi buffer
-    delete [] buf;
+  
 
 		pthread_mutex_unlock(&lock);
-// std::cerr << "RDG released lock\n";
 }
 
-void DisplayGroupManager::receiveContentsDimensionsRequest(MessageHeader messageHeader)
+void DisplayGroupManager::receiveContentsDimensionsRequest(MessageHeader messageHeader, char *bytes)
 {
     if(g_mpiRank == 1)
     {
@@ -1109,48 +667,28 @@ void DisplayGroupManager::receiveContentsDimensionsRequest(MessageHeader message
         std::string serializedString = oss.str();
         int size = serializedString.size();
 
-        // send the header and the message
-        MessageHeader mh;
-        mh.size = size;
-        mh.type = MESSAGE_TYPE_CONTENTS_DIMENSIONS;
-
-        MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, 0, 0, MPI_COMM_WORLD);
+        MPI_Send((void *)&size, sizeof(size), MPI_BYTE, 0, 0, MPI_COMM_WORLD);
         MPI_Send((void *)serializedString.data(), size, MPI_BYTE, 0, 0, MPI_COMM_WORLD);
     }
 }
 
-void DisplayGroupManager::receivePixelStreams(MessageHeader messageHeader)
+void DisplayGroupManager::receivePixelStreams(MessageHeader messageHeader, char *bytes)
 {
-    // receive serialized data
-    char * buf = new char[messageHeader.size];
-
-    // read message into the buffer
-    MPI_Bcast((void *)buf, messageHeader.size, MPI_BYTE, 0, MPI_COMM_WORLD);
-
     // URI
     std::string uri = std::string(messageHeader.uri);
 
     // de-serialize...
-    g_mainWindow->getGLWindow()->getPixelStreamFactory().getObject(uri)->setImageData(QByteArray(buf, messageHeader.size));
-
-    // free mpi buffer
-    delete [] buf;
+    g_mainWindow->getGLWindow()->getPixelStreamFactory().getObject(uri)->setImageData(QByteArray(bytes, messageHeader.size));
 }
 
-void DisplayGroupManager::receiveParallelPixelStreams(MessageHeader messageHeader)
+void DisplayGroupManager::receiveParallelPixelStreams(MessageHeader messageHeader, char *bytes)
 {
-    // receive serialized data
-    char * buf = new char[messageHeader.size];
-
-    // read message into the buffer
-    MPI_Bcast((void *)buf, messageHeader.size, MPI_BYTE, 0, MPI_COMM_WORLD);
-
     // URI
     std::string uri = std::string(messageHeader.uri);
 
     // de-serialize...
 
-		boost::iostreams::basic_array_source<char> device(buf, messageHeader.size);
+		boost::iostreams::basic_array_source<char> device(bytes, messageHeader.size);
 		boost::iostreams::stream<boost::iostreams::basic_array_source<char> > iss(device);
 
     // read to a new segments vector
@@ -1167,27 +705,15 @@ void DisplayGroupManager::receiveParallelPixelStreams(MessageHeader messageHeade
 
     // update pixel streams corresponding to new segments
     g_mainWindow->getGLWindow()->getParallelPixelStreamFactory().getObject(uri)->updatePixelStreams();
-
-    // free mpi buffer
-    delete [] buf;
 }
 
-void DisplayGroupManager::receiveSVGStreams(MessageHeader messageHeader)
+void DisplayGroupManager::receiveSVGStreams(MessageHeader messageHeader, char *bytes)
 {
-    // receive serialized data
-    char * buf = new char[messageHeader.size];
-
-    // read message into the buffer
-    MPI_Bcast((void *)buf, messageHeader.size, MPI_BYTE, 0, MPI_COMM_WORLD);
-
     // URI
     std::string uri = std::string(messageHeader.uri);
 
     // de-serialize...
-    g_mainWindow->getGLWindow()->getSVGFactory().getObject(uri)->setImageData(QByteArray(buf, messageHeader.size));
-
-    // free mpi buffer
-    delete [] buf;
+    g_mainWindow->getGLWindow()->getSVGFactory().getObject(uri)->setImageData(QByteArray(bytes, messageHeader.size));
 }
 
 

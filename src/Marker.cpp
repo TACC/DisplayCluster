@@ -38,7 +38,8 @@
 
 #include "Marker.h"
 #include "log.h"
-#include <QGLWidget>
+#include <QOpenGLWidget>
+#include <QOpenGLTexture>
 #include "Configuration.h"
 #include "MainWindow.h"
 #include "DisplayGroupManager.h"
@@ -62,8 +63,19 @@ Marker::Marker()
             return;
         }
 
-        textureId_ = g_mainWindow->getGLWindow()->bindTexture(image, GL_TEXTURE_2D, GL_RGBA, QGLContext::DefaultBindOption);
+        auto w = g_mainWindow->getGLWindow();
+        if (! w)
+            put_flog(LOG_ERROR, "unable to get GL window");
+
+        g_mainWindow->getGLWindow()->makeCurrent();
+
+        texture_ = new QOpenGLTexture(image);
+        texture_->bind();
     }
+}
+
+Marker::~Marker()
+{
 }
 
 void Marker::setPosition(float x, float y)

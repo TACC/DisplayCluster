@@ -47,15 +47,21 @@
 #include "config.h"
 #include "GLWindow.h"
 #include <QtWidgets>
-#include <QGLWidget>
+#include <QTimer>
+#include <QOpenGLWidget>
 #include <boost/shared_ptr.hpp>
+
+#if ENABLE_PYTHON_SUPPORT
+class PythonConsole;
+#endif
+
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
     public:
 
-        MainWindow();
+        MainWindow(int, char**);
 
         bool getConstrainAspectRatio();
 
@@ -74,12 +80,12 @@ class MainWindow : public QMainWindow {
         void loadState();
         void computeImagePyramid();
         void constrainAspectRatio(bool set);
+        void updateGLWindows();
 
 #if ENABLE_SKELETON_SUPPORT
         void setEnableSkeletonTracking(bool enable);
 #endif
 
-        void updateGLWindows();
 
         void finalize();
 
@@ -92,6 +98,34 @@ class MainWindow : public QMainWindow {
         void disableSkeletonTracking();
 #endif
 
+    public:
+        enum THREAD_STATE { RUNNING, QUIT };
+    
+    protected:
+        pthread_mutex_t lock_;
+        pthread_cond_t  wait_;
+        THREAD_STATE threadState_;
+
+        pthread_t updateTID_;
+        pthread_t receiveTID_;
+
+        static void *updateThread(void *);
+        static void *receiveThread(void *);
+
+        QTimer *updateTimer = NULL;
+
+    public:
+
+        void Lock()
+        {
+            pthread_mutex_lock(&lock_);
+        }
+
+        void Unlock()
+        {
+            pthread_mutex_unlock(&lock_);
+        }
+    
     private:
 
         std::vector<boost::shared_ptr<GLWindow> > glWindows_;
@@ -101,6 +135,10 @@ class MainWindow : public QMainWindow {
 
         // polling timer for updating parallel pixel streams
         QTimer parallelPixelStreamTimer_;
+
+#if ENABLE_PYTHON_SUPPORT
+        PythonConsole *pythonConsole;
+#endif
 };
 
 #endif

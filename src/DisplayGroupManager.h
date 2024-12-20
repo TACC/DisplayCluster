@@ -84,13 +84,12 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         void removeContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
         void moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
 
-        // find the offset between the rank 0 clock and the rank 1 clock. recall the rank 1 clock is used across rank 1 - n.
-        void calibrateTimestampOffset();
-
 				std::stack<QString> state_stack;
 
 				void pushState();
 				void popState();
+
+        void receiveMessage();
 
     public slots:
 
@@ -100,15 +99,12 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
 				bool loadStateXML(QString);
 				bool saveStateXML(QString&);
 
-        void receiveMessages();
 
         void sendDisplayGroup();
         void sendContentsDimensionsRequest();
         void sendPixelStreams();
         void sendParallelPixelStreams();
         void sendSVGStreams();
-        void sendFrameClockUpdate();
-        void receiveFrameClockUpdate();
         void sendQuit();
 
 				void suspendSynchronization();
@@ -154,11 +150,14 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         // rank 1 - rank 0 timestamp offset
         boost::posix_time::time_duration timestampOffset_;
 
-        void receiveDisplayGroup(MessageHeader messageHeader);
-        void receiveContentsDimensionsRequest(MessageHeader messageHeader);
-        void receivePixelStreams(MessageHeader messageHeader);
-        void receiveParallelPixelStreams(MessageHeader messageHeader);
-        void receiveSVGStreams(MessageHeader messageHeader);
+        void sendMessage(MESSAGE_TYPE, std::string, char *, int);
+
+        void receiveDisplayGroup(MessageHeader messageHeader, char *);
+        void receiveContentsDimensionsRequest(MessageHeader messageHeader, char *);
+        void receivePixelStreams(MessageHeader messageHeader, char *);
+        void receiveParallelPixelStreams(MessageHeader messageHeader, char *);
+        void receiveSVGStreams(MessageHeader messageHeader, char *);
+        void receiveFrameClockUpdate(MessageHeader messageHeader, char *);
 };
 
 #endif

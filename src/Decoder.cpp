@@ -36,7 +36,7 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-
+#include "log.h"
 #include "Decoder.h"
 
 static bool first = true;
@@ -48,9 +48,13 @@ static void sighandler(int signum)
 
 Decoder::Decoder(bool paused)
 {
+    if (MPI_SUCCESS == MPI_Comm_dup(g_mpiRenderComm, &myComm))
+      put_flog(999, "Duped decoder communicator OK");
+    else
+      put_flog(999, "Duped decoder communicator ERROR");
+
     quit_   = false;
     pause_  = paused;
-
     if (first)
     {
         first = false;
@@ -63,6 +67,54 @@ Decoder::~Decoder()
     quit_ = true;
     Signal();
     pthread_join(tid_, NULL);
+}
+
+void *
+Decoder::decoderThread(void *p)
+{
+    put_flog(999, "Decoder Thread running");
+
+    Decoder *decoder = (Decoder *)p;
+   
+    decoder->Lock();
+
+    if (decoder->_setup())
+      decoder->tState_ = RUNNING;
+    else
+      decoder->tState_ = ERROR;
+
+    decoder->Signal();
+    decoder->Unlock();
+
+    while (! decoder->quit_)
+    {
+      auto now = high_resolution_clock::now();
+      duration<double, std::ratio<1>> t = now - decoder->tStart_;
+      int target = int(t.count() * decoder->fps_) % (decoder->num_frames_ - 2);
+
+      static int last_target = -1;
+
+      if (target < last_target)
+      {
+        int r, s;
+        MPI_Comm_rank(decoder->myComm, &r);
+        MPI_Comm_size(decoder->myComm, &s);
+        put_flog(999, "%d of %d - syncing", r, s);
+        MPI_Barrier(decoder->myComm);
+      }
+
+      last_target = target;
+
+      if (decoder->quit_)
+        break;
+
+      decoder->_decode(target);
+    }
+
+    decoder->_cleanup();
+
+    // std::cerr << "Decoder thread exit\n";
+    pthread_exit(0);
 }
 
 bool
@@ -176,17 +228,12 @@ Decoder::_setup()
 }
 
 bool 
-Decoder::_decode()
+Decoder::_decode(int target)
 {
-    auto now = high_resolution_clock::now();
-    duration<double, std::ratio<1>> t = now - tStart_;
-    int target = int(t.count() * fps_) % (num_frames_ - 2);
-
     if (target == current_frame_)
         return true;
 
     int64_t dts = start_time_ + av_rescale(target, tb_.den * fr_.den, tb_.num * fr_.num);
-    // std::cerr << "fetch " << target << "(" << current_frame_ << ", " << dts << ") at " << t.count() << " sec\n";
 
     if (target < current_frame_ || (target - current_frame_) > 10)
     {

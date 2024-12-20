@@ -44,7 +44,7 @@
 #include "FactoryObject.h"
 #include "Decoder.h"
 
-#include <QGLWidget>
+#include <QOpenGLWidget>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <chrono>
 #include <iostream>
@@ -65,6 +65,8 @@ class Movie : public FactoryObject {
         void Pause() { decoder->Pause(); paused_ = true; }
         void Resume() { decoder->Resume(); paused_ = false; }
         bool isPaused() { return paused_; }
+
+        void Sync() { decoder->Sync(); }
 
     private:
         Decoder *decoder = NULL;

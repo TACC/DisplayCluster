@@ -53,8 +53,10 @@
     #include "SkeletonThread.h"
 #endif
 
-MainWindow::MainWindow()
+MainWindow::MainWindow(int argc, char **argv)
 {
+    g_mainWindow = this;
+
     // defaults
     constrainAspectRatio_ = true;
 
@@ -64,7 +66,7 @@ MainWindow::MainWindow()
     if(g_mpiRank == 0)
     {
 #if ENABLE_PYTHON_SUPPORT
-        PythonConsole::init();
+        pythonConsole = new PythonConsole(argc, argv);
 #endif
 
         // rank 0 window setup
@@ -120,7 +122,7 @@ MainWindow::MainWindow()
         // Python console action
         QAction * pythonConsoleAction = new QAction("Open Python Console", this);
         pythonConsoleAction->setStatusTip("Open Python console");
-        connect(pythonConsoleAction, SIGNAL(triggered()), PythonConsole::self(), SLOT(show()));
+        connect(pythonConsoleAction, SIGNAL(triggered()), pythonConsole, SLOT(show()));
 #endif
 
         // quit action
@@ -297,15 +299,7 @@ MainWindow::MainWindow()
             {
                 QRect windowRect = QRect(g_configuration->getTileX(i), g_configuration->getTileY(i), g_configuration->getScreenWidth(), g_configuration->getScreenHeight());
 
-                // setup shared OpenGL contexts
-                GLWindow * shareWidget = NULL;
-
-                if(i > 0)
-                {
-                    shareWidget = glWindows_[0].get();
-                }
-
-                boost::shared_ptr<GLWindow> glw(new GLWindow(i, windowRect, shareWidget));
+                boost::shared_ptr<GLWindow> glw(new GLWindow(i, windowRect));
                 glWindows_.push_back(glw);
 
                 if(g_configuration->getFullscreen() == true)
@@ -321,11 +315,39 @@ MainWindow::MainWindow()
 
         // setup connection so updateGLWindows() will be called continuously
         // must be queued so we return to the main event loop and avoid infinite recursion
-        connect(this, SIGNAL(updateGLWindowsFinished()), this, SLOT(updateGLWindows()), Qt::QueuedConnection);
+        // GDA connect(this, SIGNAL(updateGLWindowsFinished()), this, SLOT(updateGLWindows()), Qt::QueuedConnection);
 
-        // trigger the first update
-        updateGLWindows();
+        pthread_mutex_init(&lock_, NULL);
+        pthread_cond_init(&wait_, NULL);
+
+        threadState_ = RUNNING;
+
+        pthread_create(&receiveTID_, NULL, receiveThread, this);
+
+        updateTimer = new QTimer(this);
+        connect(updateTimer, SIGNAL(timeout()), this, SLOT(updateGLWindows()));
+        updateTimer->start(10);
+        
     }
+}
+
+void *
+MainWindow::receiveThread(void *d)
+{
+    MainWindow *me = (MainWindow *)d;
+
+    put_flog(999, "receive thread running");
+
+    // Blocks in receiveMessage so it locks
+    // when a message arrives
+    while (me->threadState_ != QUIT)
+    {
+        g_displayGroupManager->receiveMessage();
+    }
+
+    put_flog(999, "receive thread quitting");
+
+    pthread_exit(0);
 }
 
 bool MainWindow::getConstrainAspectRatio()
@@ -514,46 +536,25 @@ void MainWindow::setEnableSkeletonTracking(bool enable)
 
 void MainWindow::updateGLWindows()
 {
-    // receive any waiting messages
-    g_displayGroupManager->receiveMessages();
-
-    // synchronize clock
-    // do this right after receiving messages to ensure we have an accurate clock for rendering, etc. below
-    if(g_mpiRank == 1)
-    {
-        g_displayGroupManager->sendFrameClockUpdate();
-    }
-    else
-    {
-        g_displayGroupManager->receiveFrameClockUpdate();
-    }
+    Lock();
 
     // render all GLWindows
     for(unsigned int i=0; i<glWindows_.size(); i++)
     {
         activeGLWindow_ = glWindows_[i];
-        glWindows_[i]->updateGL();
+        glWindows_[i]->update();
     }
 
-    // all render processes render simultaneously
-    MPI_Barrier(g_mpiRenderComm);
-
+#if 0
     // swap buffers on all windows
     for(unsigned int i=0; i<glWindows_.size(); i++)
     {
         glWindows_[i]->swapBuffers();
     }
+#endif
 
     // advance all contents
     g_displayGroupManager->advanceContents();
-
-    // The above will identify the movies that need to be decoding...
-
-    for (auto& item : glWindows_[0]->getMovieFactory())
-        if (item.second->getLastRenderedFrame() == g_frameCount && item.second->isPaused())
-            item.second->Resume();
-        else if (item.second->getLastRenderedFrame() < g_frameCount && !item.second->isPaused())
-            item.second->Pause();
 
     // clear old factory objects and purge any textures
     if(glWindows_.size() > 0)
@@ -570,11 +571,14 @@ void MainWindow::updateGLWindows()
     // increment frame counter
     g_frameCount = g_frameCount + 1;
 
-    emit(updateGLWindowsFinished());
+    Unlock();
 }
 
 void MainWindow::finalize()
 {
+    threadState_ = QUIT;
+    pthread_join(receiveTID_, NULL);
+
     for(unsigned int i=0; i<glWindows_.size(); i++)
     {
         glWindows_[i]->finalize();

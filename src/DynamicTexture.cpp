@@ -45,11 +45,29 @@
 #include <string>
 #include <boost/tokenizer.hpp>
 
+#include <QtConcurrent>
+
+#include <QOpenGLWidget>
+#include <QOpenGLTexture>
+
 #ifdef __APPLE__
     #include <OpenGL/glu.h>
 #else
     #include <GL/glu.h>
 #endif
+
+void loadImageWrapper(DynamicTexture * dynamicTexture)
+{
+    dynamicTexture->loadImage();
+    dynamicTexture->decrementThreadCount();
+    return;
+}
+
+void loadImageObjectsWrapper(boost::shared_ptr<DynamicTexture> dynamicTexture, std::vector<boost::shared_ptr<DynamicTexture> > objects)
+{
+    loadImageWrapper(dynamicTexture.get());
+    return;
+}
 
 DynamicTexture::DynamicTexture(std::string uri, boost::shared_ptr<DynamicTexture> parent, float parentX, float parentY, float parentW, float parentH, int childIndex)
 {
@@ -69,6 +87,8 @@ DynamicTexture::DynamicTexture(std::string uri, boost::shared_ptr<DynamicTexture
     parentY_ = parentY;
     parentW_ = parentW;
     parentH_ = parentH;
+
+    glGenTextures(1, &textureId_);
 
     // if we're a child...
     if(parent != NULL)
@@ -123,7 +143,7 @@ DynamicTexture::DynamicTexture(std::string uri, boost::shared_ptr<DynamicTexture
 
         // always load image for top-level object
         incrementThreadCount();
-        loadImageThread_ = QtConcurrent::run(loadImageThread, this);
+        loadImageThread_ = QtConcurrent::run(loadImageWrapper, this);
         loadImageThreadStarted_ = true;
     }
 }
@@ -172,7 +192,8 @@ void DynamicTexture::loadImage(bool convertToGLFormat)
 
         filename += ".jpg";
 
-        scaledImage_.load(QString(filename.c_str()), "jpg");
+        image_.load(QString(filename.c_str()), "jpg");
+        texture_ = new QOpenGLTexture(image_);
     }
     else
     {
@@ -202,7 +223,7 @@ void DynamicTexture::loadImage(bool convertToGLFormat)
             imageHeight_ = image_.height();
 
             // compute the scaled image
-            scaledImage_ = image_.scaled(TEXTURE_SIZE, TEXTURE_SIZE);
+            texture_ = new QOpenGLTexture(image_.scaled(TEXTURE_SIZE, TEXTURE_SIZE));
 
             // only the root needs to keep the non-scaled image in this case
             // we only want to keep the top-most valid image_ in the tree for memory efficiency
@@ -244,28 +265,28 @@ void DynamicTexture::loadImage(bool convertToGLFormat)
 
                 if(image_.isNull() != true)
                 {
-                    // successfully loaded clipped image
-                    // compute the scaled image
-                    scaledImage_ = image_.scaled(TEXTURE_SIZE, TEXTURE_SIZE);
-                }
-                else
-                {
                     // failed to load the clipped image
                     put_flog(LOG_DEBUG, "failed to read clipped region of image; attempting to read clipped and scaled region of image");
 
                     QImageReader imageScaledReader(root->uri_.c_str());
                     imageScaledReader.setClipRect(rootRect);
                     imageScaledReader.setScaledSize(QSize(TEXTURE_SIZE, TEXTURE_SIZE));
-                    scaledImage_ = imageScaledReader.read();
+                    image_ = imageScaledReader.read();
                 }
 
-                // this means we couldn't get a scaled image by any means
-                if(scaledImage_.isNull() == true)
+                if(image_.isNull())
                 {
                     put_flog(LOG_ERROR, "failed to read the image. aborting.");
                     exit(-1);
                     return;
                 }
+
+                // successfully loaded clipped image
+                // compute the scaled image
+                g_mainWindow->getGLWindow()->makeCurrent();
+                glBindTexture(GL_TEXTURE_2D, textureId_);
+                texture_ = new QOpenGLTexture(image_);
+                texture_->bind();
             }
             else
             {
@@ -276,13 +297,7 @@ void DynamicTexture::loadImage(bool convertToGLFormat)
         }
     }
 
-    // optionally convert the image to OpenGL format
-    // note that the resulting image can only be used for width(), height(), and bits() calls for OpenGL
-    // save(), etc. won't work.
-    if(convertToGLFormat == true)
-    {
-        scaledImage_ = QGLWidget::convertToGLFormat(scaledImage_);
-    }
+    texture_ = new QOpenGLTexture(image_);
 }
 
 void DynamicTexture::getDimensions(int &width, int &height)
@@ -332,7 +347,7 @@ void DynamicTexture::render(float tX, float tY, float tW, float tH, bool compute
                 std::vector<boost::shared_ptr<DynamicTexture> > objects;
                 getObjectsAscending(objects);
 
-                loadImageThread_ = QtConcurrent::run(loadImageThread, shared_from_this(), objects);
+                loadImageThread_ = QtConcurrent::run(loadImageObjectsWrapper, shared_from_this(), objects);
                 loadImageThreadStarted_ = true;
             }
         }
@@ -474,12 +489,6 @@ void DynamicTexture::computeImagePyramid(std::string imagePyramidPath)
     }
 
     // generate this object's image and write to disk
-
-    // this will give us scaledImage_
-    // don't convert scaledImage_ to the GL format; we need to be able to save it
-    // note that for depth_ == 0 we already have scaledImage_, but it is in the OpenGL format
-    // so, we need to load it again in the non-OpenGL format so we're able to save it
-    // todo: in the future it might be nice not to require the re-loading of the image for depth_ == 0
     loadImage(false);
 
     // form filename
@@ -499,10 +508,10 @@ void DynamicTexture::computeImagePyramid(std::string imagePyramidPath)
 
     put_flog(LOG_DEBUG, "saving %s", filename.c_str());
 
-    scaledImage_.save(QString(filename.c_str()), "jpg");
+    image_.save(QString(filename.c_str()), "jpg");
 
     // no longer need scaled image
-    scaledImage_ = QImage();
+    image_ = QImage();
 
     // if we need to descend further...
     if(getRoot()->imageWidth_ / pow(2,depth_) > TEXTURE_SIZE || getRoot()->imageHeight_ / pow(2,depth_) > TEXTURE_SIZE)
@@ -651,15 +660,9 @@ void DynamicTexture::uploadTexture()
 {
     // generate new texture
     // no need to compute mipmaps
-    // note that scaledImage_ is already in the GL format so we can use glTexImage2D directly
     glGenTextures(1, &textureId_);
     glBindTexture(GL_TEXTURE_2D, textureId_);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, scaledImage_.width(), scaledImage_.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, scaledImage_.bits());
-
     textureBound_ = true;
-
-    // no longer need the scaled image
-    scaledImage_ = QImage();
 }
 
 void DynamicTexture::renderChildren(float tX, float tY, float tW, float tH)
@@ -845,17 +848,4 @@ void DynamicTexture::incrementThreadCount()
     {
         return getRoot()->incrementThreadCount();
     }
-}
-
-void loadImageThread(boost::shared_ptr<DynamicTexture> dynamicTexture, std::vector<boost::shared_ptr<DynamicTexture> > objects)
-{
-    loadImageThread(dynamicTexture.get());
-    return;
-}
-
-void loadImageThread(DynamicTexture * dynamicTexture)
-{
-    dynamicTexture->loadImage();
-    dynamicTexture->decrementThreadCount();
-    return;
 }
