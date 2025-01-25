@@ -562,7 +562,11 @@ void PythonConsole::init()
 
 PythonConsole::PythonConsole()
 {
-    thePythonQt_->evalString(new QString("import pydc"));
+		std::cerr << "PythonConsole ctor\n";
+    // thePythonQt_->evalString(new QString("import sip"));
+    // thePythonQt_->evalString(new QString("import pydc"));
+		// std::cerr << "PythonConsole ctor after import\n";
+		std::cerr << "PythonConsole ctor NO import\n";
 
     pythonThread_ = new QThread;
     pythonThread_->start();

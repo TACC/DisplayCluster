@@ -3,6 +3,8 @@ import sipconfig
 from PyQt4 import pyqtconfig
 import argparse
 
+print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+
 parser = argparse.ArgumentParser(description='Configure DisplayCluster Python module build')
 
 parser.add_argument('-I', metavar='directoryList',

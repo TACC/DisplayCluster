@@ -73,6 +73,9 @@ Remote * g_Remote = NULL;
 long g_frameCount = 0;
 uint64_t g_dc_flags = 0;
 
+#include "DCSocketManager.h"
+DCSocketManager *g_dcSocketManager = NULL;
+
 int main(int argc, char * argv[])
 {
     put_flog(LOG_INFO, "");
@@ -125,6 +128,8 @@ int main(int argc, char * argv[])
 			g_app = new QApplication(argc, argv);
 #endif
 
+		if (g_mpiRank == 0)
+			g_dcSocketManager = new DCSocketManager(1999);
 
     g_configuration = new Configuration(getenv("DISPLAYCLUSTER_CONFIG"));
 
@@ -135,6 +140,8 @@ int main(int argc, char * argv[])
 
     // calibrate timestamp offset between rank 0 and rank 1 clocks
     g_displayGroupManager->calibrateTimestampOffset();
+
+		
 
 #if ENABLE_TUIO_TOUCH_LISTENER
     if(g_mpiRank == 0)

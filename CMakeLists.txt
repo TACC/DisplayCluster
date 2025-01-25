@@ -152,6 +152,7 @@ if(BUILD_DISPLAYCLUSTER)
         src/ContentWindowGraphicsItem.cpp
         src/ContentWindowListWidgetItem.cpp
         src/Marker.cpp
+				src/DCSocketManager.cpp
         src/Decoder.cpp
         src/DisplayGroupManager.cpp
         src/DisplayGroupInterface.cpp
@@ -176,6 +177,7 @@ if(BUILD_DISPLAYCLUSTER)
         src/PixelStream.cpp
         src/PixelStreamContent.cpp
         src/PixelStreamSource.cpp
+				src/SocketInterface.cpp
         src/SVG.cpp
         src/SVGContent.cpp
         src/SVGStreamSource.cpp
@@ -186,6 +188,7 @@ if(BUILD_DISPLAYCLUSTER)
     set(MOC_HEADERS ${MOC_HEADERS}
         src/Content.h
         src/ContentWindowInterface.h
+        src/DCSocketManager.h
         src/DisplayGroupManager.h
         src/DisplayGroupInterface.h
         src/DisplayGroupGraphicsViewProxy.h
@@ -196,6 +199,7 @@ if(BUILD_DISPLAYCLUSTER)
         src/NetworkListenerThread.h
         src/Options.h
     )
+
 
     # add OPTIONS hacks for Qt's MOC processing of Boost headers, for compiler errors with some versions of Boost
     qt4_wrap_cpp(MOC_OUTFILES ${MOC_HEADERS} OPTIONS -DPOSIX_TIME_HPP___ -DPOSIX_TIME_SERIALIZE_HPP___ -DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED)

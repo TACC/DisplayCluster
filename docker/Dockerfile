@@ -135,7 +135,7 @@ RUN cd /usr/local/src/DisplayCluster/dependencies \
     && sed -i -e "s/python2.6/python2.7/" -e "s/python26/python27/" build/python.prf \
     && sed -i -e "s?ast.h?parser/ast.h?" generator/abstractmetabuilder.cpp \
     && qmake QMAKE_CXXFLAGS=-I/usr/include/python2.7 \
-    && sed -i -e "s/python2.6/python2.7/" -e "s/python26/python27/" build/python.prf \
+    && sed -i -e "s/PYTHON=2.6/PYTHON=2.7/" -e "s/python26/python27/" build/python.prf \
     && make -j 4 \
     && cp lib/libPythonQt.so.1.0.0 /usr/local/lib \
     && cp src/PythonQt.h /usr/local/include \
