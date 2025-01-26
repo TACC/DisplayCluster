@@ -289,7 +289,6 @@ MainWindow::MainWindow()
             {
 								int x = g_configuration->getTileI(0) * (g_configuration->getMullionWidth() + g_configuration->getScreenWidth());
 								int y = 200 + g_configuration->getTileJ(0) * (g_configuration->getMullionHeight() + g_configuration->getScreenHeight());
-								std::cerr << "A " << x << " " << y << "\n";
 								setGeometry(x, y, g_configuration->getScreenWidth(), g_configuration->getScreenHeight());
 								setWindowFlags(Qt::FramelessWindowHint);
                 show();
@@ -320,7 +319,6 @@ MainWindow::MainWindow()
                 {
 										int x = g_configuration->getTileI(i) * (g_configuration->getMullionWidth() + g_configuration->getScreenWidth());
 										int y = 200 + g_configuration->getTileJ(i) * (g_configuration->getMullionHeight() + g_configuration->getScreenHeight());
-										std::cerr << "B " << x << " " << y << "\n";
 										glw->setGeometry(x, y, g_configuration->getScreenWidth(), g_configuration->getScreenHeight());
 										glw->setWindowFlags(Qt::FramelessWindowHint);
                     glw->show();
