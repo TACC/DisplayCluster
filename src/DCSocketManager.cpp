@@ -27,7 +27,8 @@ DCSocketManager::update_client(Connection* conn)
 		std::cerr << c->getURI() << "\n";
 		double x, y, w, h;
 		cm->getCoordinates(x, y, w, h);
-		j_out.push_back({x, y, w, h, c->getURI().c_str()});
+		j_out.push_back({x * g_configuration->getNumTilesWidth(), y * g_configuration->getNumTilesHeight(), 
+				w * g_configuration->getNumTilesWidth(), h * g_configuration->getNumTilesHeight(), c->getURI().c_str()});
 	}
 
 	conn->Send(j_out);
@@ -47,10 +48,10 @@ DCSocketManager::handleConnection(int skt)
 	else if (cmd == "reposition")
 	{
 		std::string uri = j_in["uri"];
-		double x = j_in["x"];
-		double y = j_in["y"];
-		double w = j_in["w"];
-		double h = j_in["h"];
+		double x = (double)j_in["x"] / g_configuration->getNumTilesWidth();
+		double y = (double)j_in["y"] / g_configuration->getNumTilesHeight();
+		double w = (double)j_in["w"] / g_configuration->getNumTilesWidth();
+		double h = (double)j_in["h"] / g_configuration->getNumTilesHeight();
 		std::cerr << "reposition " << uri << " to " << x << " " << y << " " << w << " " << h << "\n";
 		
 		std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers = g_displayGroupManager->getContentWindowManagers();
@@ -68,10 +69,10 @@ DCSocketManager::handleConnection(int skt)
 	else if (cmd == "open")
 	{
 		std::string uri = j_in["uri"];
-		double x = j_in["x"];
-		double y = j_in["y"];
-		double w = j_in["w"];
-		double h = j_in["h"];
+		double x = (double)j_in["x"] / g_configuration->getNumTilesWidth();
+		double y = (double)j_in["y"] / g_configuration->getNumTilesHeight();
+		double w = (double)j_in["w"] / g_configuration->getNumTilesWidth();
+		double h = (double)j_in["h"] / g_configuration->getNumTilesHeight();
 		std::cerr << "open  " << uri << " to " << x << " " << y << " " << w << " " << h << "\n";
 
 		boost::shared_ptr<Content> c = Content::getContent(uri);
@@ -112,6 +113,10 @@ DCSocketManager::handleConnection(int skt)
 				break;				
 			}
 		}
+	}
+	else if (cmd == "clear")
+	{
+		g_displayGroupManager->setContentWindowManagers(std::vector<boost::shared_ptr<ContentWindowManager> >());
 	}
 }
 
