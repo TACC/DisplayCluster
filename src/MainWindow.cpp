@@ -287,10 +287,10 @@ MainWindow::MainWindow()
             }
             else
             {
-								int x = g_configuration->getTileI(0) * (g_configuration->getMullionWidth() + g_configuration->getScreenWidth());
-								int y = 200 + g_configuration->getTileJ(0) * (g_configuration->getMullionHeight() + g_configuration->getScreenHeight());
-								setGeometry(x, y, g_configuration->getScreenWidth(), g_configuration->getScreenHeight());
-								setWindowFlags(Qt::FramelessWindowHint);
+                int x = g_configuration->getTileX(0);
+                int y = g_configuration->getTileY(0);
+                setGeometry(x, y, g_configuration->getScreenWidth(), g_configuration->getScreenHeight());
+                setWindowFlags(Qt::FramelessWindowHint);
                 show();
             }
         }
@@ -317,10 +317,10 @@ MainWindow::MainWindow()
                 }
                 else
                 {
-										int x = g_configuration->getTileI(i) * (g_configuration->getMullionWidth() + g_configuration->getScreenWidth());
-										int y = 200 + g_configuration->getTileJ(i) * (g_configuration->getMullionHeight() + g_configuration->getScreenHeight());
-										glw->setGeometry(x, y, g_configuration->getScreenWidth(), g_configuration->getScreenHeight());
-										glw->setWindowFlags(Qt::FramelessWindowHint);
+                    int x = g_configuration->getTileX(i);
+                    int y = g_configuration->getTileY(i);
+                    glw->setGeometry(x, y, g_configuration->getScreenWidth(), g_configuration->getScreenHeight());
+                    glw->setWindowFlags(Qt::FramelessWindowHint);
                     glw->show();
                 }
             }

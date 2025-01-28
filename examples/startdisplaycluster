@@ -26,6 +26,9 @@ if 'DISPLAYCLUSTER_SIF' not in os.environ:
 if 'DISPLAYCLUSTER_DIR' not in os.environ:
     os.environ['DISPLAYCLUSTER_DIR'] = os.path.dirname(os.path.abspath(__file__))
 
+if 'DISPLAYCLUSTER_INSTALL' not in os.environ:
+    os.environ['DISPLAYCLUSTER_INSTALL'] = '/usr/local'
+
 dcPath = os.environ['DISPLAYCLUSTER_DIR']
 sif = os.environ['DISPLAYCLUSTER_SIF']
 
@@ -101,7 +104,7 @@ if mpirunCommand is None:
     print( 'Error, could not find mpirun executable in PATH')
     exit(-3)
 
-startCommand = '%s --mca btl_tcp_if_include enp0s25 -bind-to none -x LD_LIBRARY_PATH -x DISPLAYCLUSTER_EXEC -x DISPLAYCLUSTER_DIR -x DISPLAYCLUSTER_CONFIG -x DISPLAYCLUSTER_LOG_THRESHOLD -x PYTHONPATH -host %s apptainer run --nv  %s sh /usr/local/bin/displaycluster.sh /usr/local/bin/displaycluster.py' % (mpirunCommand, hostListString, sif)
+startCommand = '%s --mca btl_tcp_if_include enp0s25 -bind-to none -x LD_LIBRARY_PATH -x DISPLAYCLUSTER_INSTALL -x DISPLAYCLUSTER_EXEC -x DISPLAYCLUSTER_DIR -x DISPLAYCLUSTER_CONFIG -x DISPLAYCLUSTER_LOG_THRESHOLD -x PYTHONPATH -host %s apptainer run --nv  %s sh %s/bin/displaycluster.sh %s/bin/displaycluster.py' % (mpirunCommand, hostListString, sif, os.environ['DISPLAYCLUSTER_INSTALL'], os.environ['DISPLAYCLUSTER_INSTALL'])
 
 print( 'launching with command: ' + startCommand)
 

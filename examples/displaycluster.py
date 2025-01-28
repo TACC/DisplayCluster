@@ -30,10 +30,17 @@ else:
     print( 'could not determine MPI rank!')
     exit(-4)
 
-if 'DISPLAYCLUSTER_EXEC' not in os.environ:
-    startCommand = 'displaycluster'
+if 'DISPLAYCLUSTER_INSTALL' in os.environ:
+    install_dir = os.environ['DISPLAYCLUSTER_INSTALL']
 else:
-    startCommand = os.environ['DISPLAYCLUSTER_EXEC']
+    install_dir = '/usr/local'
+
+if 'DISPLAYCLUSTER_EXEC' not in os.environ:
+    executable = 'displaycluster'
+else:
+    executable = os.environ['DISPLAYCLUSTER_EXEC']
+
+startCommand = install_dir + "/bin/" + executable
     
 if myRank == 0:
     subprocess.call(shlex.split(startCommand))

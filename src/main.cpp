@@ -104,21 +104,6 @@ int main(int argc, char * argv[])
     MPI_Comm_size(MPI_COMM_WORLD, &g_mpiSize);
     MPI_Comm_split(MPI_COMM_WORLD, g_mpiRank != 0, g_mpiRank, &g_mpiRenderComm);
 
-#if 0
-    //if (g_mpiRank == 0)
-    //{
-      std::stringstream s;
-      pid_t pid = getpid();
-      s << "~/dbg_script " << (const char *)argv[0] << " " << pid << " " << g_mpiRank << " &";
-      std::cerr << "running " << s.str().c_str() << "\n";
-      system(s.str().c_str());
-
-      int dbg = 1;
-      while(dbg)
-        sleep(1);
-   // }
-#endif
-
 #if ENABLE_PYTHON_SUPPORT
 		if (g_mpiRank == 0)
 			g_app = (QApplication *) new QSSApplication(argc, argv);
