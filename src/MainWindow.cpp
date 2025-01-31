@@ -44,9 +44,6 @@
 #include "DisplayGroupGraphicsViewProxy.h"
 #include "DisplayGroupListWidgetProxy.h"
 
-#if ENABLE_PYTHON_SUPPORT
-    #include "PythonConsole.h"
-#endif
 
 #if ENABLE_SKELETON_SUPPORT
     #include "SkeletonThread.h"
@@ -62,10 +59,6 @@ MainWindow::MainWindow()
 
     if(g_mpiRank == 0)
     {
-#if ENABLE_PYTHON_SUPPORT
-        PythonConsole::init();
-#endif
-
         // rank 0 window setup
         resize(800,600);
 
@@ -73,10 +66,6 @@ MainWindow::MainWindow()
         QMenu * fileMenu = menuBar()->addMenu("&File");
         QMenu * viewMenu = menuBar()->addMenu("&View");
         QMenu * viewStreamingMenu = viewMenu->addMenu("&Streaming");
-#if ENABLE_PYTHON_SUPPORT
-        // add Window menu for Python console. if we add any other entries to it we'll need to remove the #if
-        QMenu * windowMenu = menuBar()->addMenu("&Window");
-#endif
 
 #if ENABLE_SKELETON_SUPPORT
         QMenu * skeletonMenu = menuBar()->addMenu("&Skeleton Tracking");
@@ -114,13 +103,6 @@ MainWindow::MainWindow()
         QAction * computeImagePyramidAction = new QAction("Compute Image Pyramid", this);
         computeImagePyramidAction->setStatusTip("Compute image pyramid");
         connect(computeImagePyramidAction, SIGNAL(triggered()), this, SLOT(computeImagePyramid()));
-
-#if ENABLE_PYTHON_SUPPORT
-        // Python console action
-        QAction * pythonConsoleAction = new QAction("Open Python Console", this);
-        pythonConsoleAction->setStatusTip("Open Python console");
-        connect(pythonConsoleAction, SIGNAL(triggered()), PythonConsole::self(), SLOT(show()));
-#endif
 
         // quit action
         QAction * quitAction = new QAction("Quit", this);

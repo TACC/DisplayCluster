@@ -36,76 +36,128 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef SSAVER_H
-#define SSAVER_H
-
 #include <iostream>
-#include <math.h>
-#include <QtGui>
+#include <string>
+#include "main.h"
 
-class QSSApplication : public QApplication
+#include "QSSApp.h"
+
+#include "Content.h"
+#include "ContentWindowManager.h"
+
+QSSApplication::QSSApplication(int& argc, char **argv) : QApplication(argc, argv)
 {
-	enum {sleeping, going_to_sleep, waking_up, awake};
+	interval = (getenv("DISPLAYCLUSTER_TIMEOUT") == NULL) ? 5000 : 1000*atoi(getenv("DISPLAYCLUSTER_TIMEOUT"));
+	m_timer.setInterval(interval);
+	connect(&m_timer, SIGNAL(timeout()), this, SLOT(go_to_sleep()));
+	m_timer.start();
+}
 
-	Q_OBJECT
+void 
+QSSApplication::sleep()
+{
+	if (sleeping)
+		sleep_move();
+	else	
+		sleep_start();
 
-public:
-	QTimer m_timer;
-	QSSApplication(int& argc, char **argv);
+	m_timer.setInterval(33);
+	m_timer.start();
+}
 
-signals:
-	void idling(bool);
+void
+QSSApplication::sleep_start()
+{
+	sleeping = true;
 
-public slots:
+	auto dgm = g_displayGroupManager;
 
-	void go_to_sleep()
+	dgm->pushState();
+
+	while (dgm->getContentWindowManagers().size() > 0)
 	{
-		if (sleepState == awake)
+		auto cw = dgm->getContentWindowManager(0);
+		dgm->removeContentWindowManager(cw);
+	}
+
+	if (! ss_cwm)
+	{
+		std::string ss_image = getenv("DISPLAYCLUSTER_SCREENSAVER_IMAGE");
+		if (ss_image.size() > 0)
 		{
-			sleepState = going_to_sleep;
-			sleep_start();
-			sleepState = sleeping;
-			m_timer.stop();
-			emit(idling(true));
+			if (ss_image.substr(0, 1) != "/")
+				ss_image = g_displayClusterDir + "/" + ss_image;
+
+			auto content = Content::getContent(ss_image);
+			if (content)
+				ss_cwm = boost::shared_ptr<ContentWindowManager>(new ContentWindowManager(content));
 		}
 	}
 
-public:
-
-	bool notify(QObject *r, QEvent *e)
+	if (ss_cwm)
 	{
-		if (e->type() == QEvent::MouseMove || e->type() == QEvent::MouseButtonPress || e->type() == QEvent::KeyPress)
+		dgm->addContentWindowManager(ss_cwm);
+		ss_cwm->getCoordinates(x, y, w, h);		
+	}
+
+}
+
+void 
+QSSApplication::sleep_move()
+{
+	if (ss_cwm)
+	{
+		x = x + dx;
+
+		if ((x+w) > 1.0)
 		{
-			if (sleepState == sleeping)
-				wakeup();
-			else 
-			{
-				m_timer.stop();
-				m_timer.start();
-			}
+				x = 2.0 - (x+w) - w;
+				dx = -dx;		
 		}
-		return QApplication::notify(r, e);
-	}
+		else if (x < 0.0)
+		{
+			x = -x;
+			dx = -dx;
+		}
 
-	void wakeup()
-	{
-		sleepState = waking_up;
-		sleep_end();
-		emit(idling(false));
-		sleepState = awake;
-		m_timer.stop();
-		m_timer.start();
-	}
-		
-public:
+		y = y + dy;
 
-	virtual void sleep_start();
-	virtual void sleep_end();
+		if ((y+h) > 1.0)
+		{
+			y = 2.0 - (y+h) - h;
+			dy = -dy;
+		}
+		else if (y < 0.0)
+		{
+			y = -y;
+			dy = -dy;
+		}
 
-private:
-	int sleepState;
-	int interval;
+		ss_cwm->setPosition(x, y);
+	}	
+
+	m_timer.start();
+}
+
+void 
+QSSApplication::sleep_end()
+{
+	sleeping = false;
 	
-};
+	m_timer.stop();		
+	
+	auto dgm = g_displayGroupManager;
 
-#endif
+	while (dgm->getContentWindowManagers().size() > 0)
+	{
+		auto cw = dgm->getContentWindowManager(0);
+		dgm->removeContentWindowManager(cw);
+	}
+
+	dgm->popState();
+
+	emit(idling(false));
+
+	m_timer.setInterval(interval);
+	m_timer.start();
+}

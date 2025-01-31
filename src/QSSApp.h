@@ -1,5 +1,5 @@
 /*********************************************************************/
-/* Copyright (c) 2011 - 2023, The University of Texas at Austin.     */
+/* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -36,64 +36,60 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
+#ifndef SSAVER_H
+#define SSAVER_H
 
-#include "main.h"
-#include "string.h"
-#include "SSaver.h"
-#include "Remote.h"
-#include "log.h"
 #include <iostream>
-using namespace std;
+#include <math.h>
+#include <boost/shared_ptr.hpp>
+#include <QtGui>
 
-Remote::Remote(QObject* parent): QObject(parent)
+class ContentWindowManager;
+
+class QSSApplication : public QApplication
 {
-  connect(&server, SIGNAL(newConnection()), this, SLOT(acceptConnection()));
+	Q_OBJECT
 
-  // get port to listen on
-  if(getenv("DISPLAYCLUSTER_REMOTEPORT") == NULL)
-  {
-      cerr << "DISPLAYCLUSTER_REMOTEPORT environment variable must be set for listening";
-      exit(-1);
-  }
+public:
+	QTimer m_timer;
+	QSSApplication(int& argc, char **argv);
 
-  int displaycluster_port = atoi(std::string(getenv("DISPLAYCLUSTER_REMOTEPORT")).c_str());
+signals:
+	void idling(bool);
 
-  server.listen(QHostAddress::Any, displaycluster_port);
-}
+public slots:
 
-Remote::~Remote()
-{
-  server.close();
-}
-
-void Remote::acceptConnection()
-{
-  client = server.nextPendingConnection();
-  connect(client, SIGNAL(readyRead()), this, SLOT(startRead()));
-}
-
-void Remote::startRead()
-{
-	char buffer[1024] = {0};
-	client->read(buffer, client->bytesAvailable());
-	cout << buffer << endl;
-	client->close();
-
-	cerr << "RECEIVED " << buffer << "\n";
-
-	((QSSApplication *)g_app)->wakeup();
-
-	if (strcmp(buffer, "None"))
+	void go_to_sleep()
 	{
-		QString *qstr = new QString("");
-		if (buffer[0] != '/') 
-		{
-			qstr->append(getenv("DISPLAYCLUSTER_DIR"));
-			qstr->append("/");
-		}
-		qstr->append(buffer);
-
-		g_mainWindow->loadState(qstr);
-		delete qstr;
+		sleep();
+		emit(idling(true));
 	}
-}
+
+public:
+
+	bool notify(QObject *r, QEvent *e)
+	{
+		if (e->type() == QEvent::MouseMove || e->type() == QEvent::MouseButtonPress || e->type() == QEvent::KeyPress)
+		{
+			if (sleeping)
+				sleep_end();
+		}
+		return QApplication::notify(r, e);
+	}
+		
+public:
+
+	virtual void sleep();
+	virtual void sleep_start();
+	virtual void sleep_end();
+	virtual void sleep_move();
+
+private:
+	int interval;
+	bool sleeping = false;
+	double x, y, w, h, dx = 1.0 / 300.0, dy = 1.0 / 250.0;
+	boost::shared_ptr<ContentWindowManager> ss_cwm;
+	
+};
+
+#endif

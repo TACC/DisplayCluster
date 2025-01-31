@@ -28,6 +28,9 @@ if 'DISPLAYCLUSTER_DIR' not in os.environ:
 
 if 'DISPLAYCLUSTER_INSTALL' not in os.environ:
     os.environ['DISPLAYCLUSTER_INSTALL'] = '/usr/local'
+    
+if 'DISPLAYCLUSTER_TIMEOUT' not in os.environ:
+    os.environ['DISPLAYCLUSTER_TIMEOUT'] = 5
 
 dcPath = os.environ['DISPLAYCLUSTER_DIR']
 sif = os.environ['DISPLAYCLUSTER_SIF']
@@ -37,7 +40,6 @@ if 'DISPLAYCLUSTER_EXEC' not in os.environ:
 
 os.environ['DISPLAYCLUSTER_REMOTEPORT'] = '1910'
 os.environ['DISPLAYCLUSTER_NETWORKPORT'] = '1701'
-os.environ['DISPLAYCLUSTER_TIMEOUT'] = '18000'
 os.environ['DISPLAYCLUSTER_SCREENSAVER'] = 'examples/screensaver_moveOff.py'
 os.environ['DISPLAYCLUSTER_SCREENSAVER_PONGTIME'] = '30000'
 os.environ['DISPLAYCLUSTER_SCREENSAVER_IMAGE'] = 'examples/tacc-logo.png'
@@ -104,7 +106,14 @@ if mpirunCommand is None:
     print( 'Error, could not find mpirun executable in PATH')
     exit(-3)
 
-startCommand = '%s --mca btl_tcp_if_include enp0s25 -bind-to none -x LD_LIBRARY_PATH -x DISPLAYCLUSTER_INSTALL -x DISPLAYCLUSTER_EXEC -x DISPLAYCLUSTER_DIR -x DISPLAYCLUSTER_CONFIG -x DISPLAYCLUSTER_LOG_THRESHOLD -x PYTHONPATH -host %s apptainer run --nv  %s sh %s/bin/displaycluster.sh %s/bin/displaycluster.py' % (mpirunCommand, hostListString, sif, os.environ['DISPLAYCLUSTER_INSTALL'], os.environ['DISPLAYCLUSTER_INSTALL'])
+startCommand = '%s --mca btl_tcp_if_include enp0s25 -bind-to none -x LD_LIBRARY_PATH -x DISPLAYCLUSTER_TIMEOUT -x DISPLAYCLUSTER_INSTALL -x DISPLAYCLUSTER_EXEC -x DISPLAYCLUSTER_DIR -x DISPLAYCLUSTER_CONFIG -x DISPLAYCLUSTER_LOG_THRESHOLD -x PYTHONPATH -host %s apptainer run --nv  %s sh %s/bin/displaycluster.sh %s/bin/displaycluster.py' % (mpirunCommand, hostListString, sif, os.environ['DISPLAYCLUSTER_INSTALL'], os.environ['DISPLAYCLUSTER_INSTALL'])
+startCommand = mpirunCommand + ' -host ' + hostListString
+startCommand = startCommand + ' --mca btl_tcp_if_include enp0s25 -bind-to none'
+startCommand = startCommand + ' -x LD_LIBRARY_PATH -x DISPLAYCLUSTER_TIMEOUT -x DISPLAYCLUSTER_INSTALL'
+startCommand = startCommand + ' -x DISPLAYCLUSTER_EXEC -x DISPLAYCLUSTER_DIR -x DISPLAYCLUSTER_CONFIG '
+startCommand = startCommand + ' -x DISPLAYCLUSTER_LOG_THRESHOLD -x PYTHONPATH -x DISPLAYCLUSTER_SCREENSAVER_IMAGE'
+startCommand = startCommand + ' apptainer run --nv  ' + sif
+startCommand = startCommand + ' sh %s/bin/displaycluster.sh %s/bin/displaycluster.py' % (os.environ['DISPLAYCLUSTER_INSTALL'], os.environ['DISPLAYCLUSTER_INSTALL'])
 
 print( 'launching with command: ' + startCommand)
 

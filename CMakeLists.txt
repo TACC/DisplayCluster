@@ -28,7 +28,6 @@ if(BUILD_DISPLAYCLUSTER)
     option(ENABLE_TUIO_TOUCH_LISTENER "Enable TUIO touch listener for multi-touch events" OFF)
     option(ENABLE_JOYSTICK_SUPPORT "Enable joystick support" OFF)
     option(ENABLE_SKELETON_SUPPORT "EXPERIMENTAL: Enable skeleton tracking interface support" OFF)
-    option(ENABLE_PYTHON_SUPPORT "Enable Python support" OFF)
 endif()
 
 # path for additional modules
@@ -116,30 +115,6 @@ if(BUILD_DISPLAYCLUSTER)
         set(MOC_HEADERS ${MOC_HEADERS} src/SkeletonThread.h)
     endif()
 
-    if(ENABLE_PYTHON_SUPPORT)
-        find_package(PythonLibs REQUIRED)
-        include_directories(${PYTHON_INCLUDE_PATH}) # deprecated, but include for old CMake versions
-        include_directories(${PYTHON_INCLUDE_DIRS})
-        set(LIBS ${LIBS} ${PYTHON_LIBRARIES})
-
-        find_package(PythonQt REQUIRED)
-        include_directories(${PythonQt_INCLUDE_DIRS})
-        set(LIBS ${LIBS} ${PythonQt_LIBRARIES})
-
-        set(SRCS ${SRCS} 
-	    src/DisplayGroupPython.cpp
-	    src/PythonConsole.cpp
-	    src/SSaver.cpp
-            src/Remote.cpp)
-
-        set(MOC_HEADERS ${MOC_HEADERS}
-            src/DisplayGroupPython.h
-            src/PythonConsole.h
-            src/SSaver.h
-            src/Remote.h)
-
-    endif()
-
     # process config file
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
     include_directories(${CMAKE_CURRENT_BINARY_DIR})
@@ -152,7 +127,7 @@ if(BUILD_DISPLAYCLUSTER)
         src/ContentWindowGraphicsItem.cpp
         src/ContentWindowListWidgetItem.cpp
         src/Marker.cpp
-				src/DCSocketManager.cpp
+		src/DCSocketManager.cpp
         src/Decoder.cpp
         src/DisplayGroupManager.cpp
         src/DisplayGroupInterface.cpp
@@ -177,7 +152,8 @@ if(BUILD_DISPLAYCLUSTER)
         src/PixelStream.cpp
         src/PixelStreamContent.cpp
         src/PixelStreamSource.cpp
-				src/SocketInterface.cpp
+        src/QSSApp.cpp
+		src/SocketInterface.cpp
         src/SVG.cpp
         src/SVGContent.cpp
         src/SVGStreamSource.cpp
@@ -198,6 +174,7 @@ if(BUILD_DISPLAYCLUSTER)
         src/NetworkListener.h
         src/NetworkListenerThread.h
         src/Options.h
+        src/QSSApp.h
     )
 
 
@@ -207,16 +184,6 @@ if(BUILD_DISPLAYCLUSTER)
     add_executable(displaycluster ${SRCS} ${MOC_OUTFILES})
 
     target_link_libraries(displaycluster ${LIBS} pthread)
-
-    # build Python module if Python support is enabled
-    if(ENABLE_PYTHON_SUPPORT)
-        add_custom_command(TARGET displaycluster POST_BUILD
-            COMMENT "Building Python module"
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/python
-            COMMAND python2 configure.py -I ${Boost_INCLUDE_DIRS} -I ${PythonQt_INCLUDE_DIRS}
-            COMMAND make
-            COMMAND mv pydc.so ${CMAKE_BINARY_DIR})
-    endif()
 
     # install executable
     INSTALL(TARGETS displaycluster
@@ -239,13 +206,7 @@ if(BUILD_DISPLAYCLUSTER)
 
     # install doc files
     INSTALL(DIRECTORY doc DESTINATION .)
-
-    # install Python module
-    if(ENABLE_PYTHON_SUPPORT)
-        INSTALL(FILES ${CMAKE_BINARY_DIR}/pydc.so DESTINATION python)
-    endif()
 endif()
-
 
 # DisplayCluster library
 if(BUILD_DISPLAYCLUSTER_LIBRARY)

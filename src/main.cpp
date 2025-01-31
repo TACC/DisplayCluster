@@ -42,8 +42,7 @@
 #include <mpi.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include "SSaver.h"
-#include "Remote.h"
+#include "QSSApp.h"
 
 #if ENABLE_TUIO_TOUCH_LISTENER
     #include "TouchListener.h"
@@ -69,7 +68,6 @@ Configuration * g_configuration = NULL;
 boost::shared_ptr<DisplayGroupManager> g_displayGroupManager;
 MainWindow * g_mainWindow = NULL;
 NetworkListener * g_networkListener = NULL;
-Remote * g_Remote = NULL;
 long g_frameCount = 0;
 uint64_t g_dc_flags = 0;
 
@@ -92,8 +90,6 @@ int main(int argc, char * argv[])
 
     g_displayClusterDir = std::string(getenv("DISPLAYCLUSTER_DIR"));
 
-    put_flog(LOG_DEBUG, "base directory is %s", g_displayClusterDir.c_str());
-
 #if ENABLE_TUIO_TOUCH_LISTENER
     // we need X multithreading support if we're running the TouchListener thread and creating X events
     XInitThreads();
@@ -104,17 +100,21 @@ int main(int argc, char * argv[])
     MPI_Comm_size(MPI_COMM_WORLD, &g_mpiSize);
     MPI_Comm_split(MPI_COMM_WORLD, g_mpiRank != 0, g_mpiRank, &g_mpiRenderComm);
 
-#if ENABLE_PYTHON_SUPPORT
-		if (g_mpiRank == 0)
-			g_app = (QApplication *) new QSSApplication(argc, argv);
-		else
-			g_app = new QApplication(argc, argv);
-#else
-			g_app = new QApplication(argc, argv);
-#endif
+    if (g_mpiRank == 0)
+    {
+#if 0
+        int dbg = 1;
+        std::cerr << "PID " << getpid() << "\n";
+        while(dbg)
+            sleep(1);     
+#endif   
+        g_app = (QApplication *) new QSSApplication(argc, argv);
+    }
+    else
+        g_app = new QApplication(argc, argv);
 
-		if (g_mpiRank == 0)
-			g_dcSocketManager = new DCSocketManager(1999);
+    if (g_mpiRank == 0)
+        g_dcSocketManager = new DCSocketManager(1999);
 
     g_configuration = new Configuration(getenv("DISPLAYCLUSTER_CONFIG"));
 
@@ -125,8 +125,6 @@ int main(int argc, char * argv[])
 
     // calibrate timestamp offset between rank 0 and rank 1 clocks
     g_displayGroupManager->calibrateTimestampOffset();
-
-		
 
 #if ENABLE_TUIO_TOUCH_LISTENER
     if(g_mpiRank == 0)
@@ -174,15 +172,7 @@ int main(int argc, char * argv[])
 
     if(g_mpiRank == 0)
     {
-        // std::cerr << " rank 0 waiting at pid " << getpid() << "\n";
-		// int dbg = 1;
-        // while (dbg)
-			// sleep(1);
-     
-        g_networkListener = new NetworkListener();
-#if ENABLE_PYTHON_SUPPORT
-        g_Remote = new Remote();
-#endif
+         g_networkListener = new NetworkListener();
     }
 
     g_mainWindow = new MainWindow();
