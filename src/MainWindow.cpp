@@ -201,10 +201,6 @@ MainWindow::MainWindow()
         viewStreamingMenu->addAction(showStreamingSegmentsAction);
         viewStreamingMenu->addAction(showStreamingStatisticsAction);
 
-#if ENABLE_PYTHON_SUPPORT
-        windowMenu->addAction(pythonConsoleAction);
-#endif
-
 #if ENABLE_SKELETON_SUPPORT
         skeletonMenu->addAction(enableSkeletonTrackingAction);
         skeletonMenu->addAction(showSkeletonsAction);

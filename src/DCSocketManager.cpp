@@ -118,6 +118,15 @@ DCSocketManager::handleConnection(int skt)
 	{
 		g_displayGroupManager->setContentWindowManagers(std::vector<boost::shared_ptr<ContentWindowManager> >());
 	}
+	else if (cmd == "constrain aspect ratio")
+	{
+		g_mainWindow->constrainAspectRatio(j_in["state"] == "on");
+	}
+	else if (cmd == "show window borders")
+	{
+		g_displayGroupManager->getOptions()->setShowWindowBorders(j_in["state"] == "on");
+	}
+	
 }
 
 DCSocketInterface::DCSocketInterface(int port)
