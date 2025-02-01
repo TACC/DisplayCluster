@@ -1,10 +1,4 @@
 cmake .. \
--DCMAKE_INSTALL_PREFIX=/home/gda/DC/install \
--DBUILD_DESKTOPSTREAMER=ON  \
--DBUILD_DISPLAYCLUSTER=ON  \
--DENABLE_PYTHON_SUPPORT=ON  \
--DPythonQt_INCLUDE_DIR=/usr/local/src/DisplayCluster/dependencies/PythonQt2.0.1/src  \
--DPythonQt_LIBRARY=/usr/local/src/DisplayCluster/dependencies/PythonQt2.0.1/lib/libPythonQt.so  \
--DPYTHON_INCLUDE_DIR=/usr/include/python2.7  \
--DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython2.7.so  
+-DCMAKE_INSTALL_PREFIX=/usr/local \
+-DBUILD_DISPLAYCLUSTER=ON  
 
