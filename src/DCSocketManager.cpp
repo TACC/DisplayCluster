@@ -2,6 +2,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include "QSSApp.h"
 #include "DCSocketManager.h"
 #include "ContentWindowManager.h"
 
@@ -36,9 +37,14 @@ DCSocketManager::update_client(Connection* conn)
 void
 DCSocketManager::handleConnection(int skt)
 {
-	Connection conn(skt);
+	QSSApplication *q_app = (QSSApplication *)g_app;
 
+	q_app->pause_screensaver();
+
+	Connection conn(skt);
     json j_in = conn.Receive();
+
+
 
 	std::string cmd = j_in["cmd"];
 	if (cmd == "update")
@@ -127,6 +133,7 @@ DCSocketManager::handleConnection(int skt)
 		g_displayGroupManager->getOptions()->setShowWindowBorders(j_in["state"] == "on");
 	}
 	
+	q_app->resume_screensaver();
 }
 
 DCSocketInterface::DCSocketInterface(int port)

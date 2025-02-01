@@ -48,8 +48,8 @@
 QSSApplication::QSSApplication(int& argc, char **argv) : QApplication(argc, argv)
 {
 	interval = (getenv("DISPLAYCLUSTER_TIMEOUT") == NULL) ? 5000 : 1000*atoi(getenv("DISPLAYCLUSTER_TIMEOUT"));
+	connect(&m_timer, SIGNAL(timeout()), this, SLOT(go_to_sleep()));	
 	m_timer.setInterval(interval);
-	connect(&m_timer, SIGNAL(timeout()), this, SLOT(go_to_sleep()));
 	m_timer.start();
 }
 
@@ -160,4 +160,20 @@ QSSApplication::sleep_end()
 
 	m_timer.setInterval(interval);
 	m_timer.start();
+}
+
+void
+QSSApplication::resume_screensaver()
+{
+	m_timer.setInterval(interval);
+	m_timer.start();
+}
+
+void
+QSSApplication::pause_screensaver()
+{
+	if (sleeping)
+		sleep_end();
+	
+	m_timer.stop();
 }

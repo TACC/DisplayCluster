@@ -64,6 +64,13 @@ public slots:
 		sleep();
 		emit(idling(true));
 	}
+	
+
+	
+	void resume_screensaver();
+	void pause_screensaver();
+
+
 
 public:
 

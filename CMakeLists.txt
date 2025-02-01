@@ -206,6 +206,9 @@ if(BUILD_DISPLAYCLUSTER)
 
     # install doc files
     INSTALL(DIRECTORY doc DESTINATION .)
+
+    # install doc files
+    INSTALL(DIRECTORY python DESTINATION .)
 endif()
 
 # DisplayCluster library
