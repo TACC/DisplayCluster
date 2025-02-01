@@ -65,8 +65,6 @@ RUN apt-get update \
     liblzma-dev \
     openssl \
     libssl-dev \
-    python2 \
-    python2-dev  \
     xterm \
     qt4-default \
     libturbojpeg0-dev \
@@ -88,14 +86,6 @@ RUN apt-get -y install \
   libswresample-dev \
   libswscale-dev
 
-RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 8 && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 8
-
-RUN curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py
-RUN python2 get-pip.py
-
-RUN pip2 install setuptools
-RUN pip2 install cherrypy
-
 RUN wget https://github.com/Kitware/CMake/releases/download/v3.24.3/cmake-3.24.3.tar.gz \
   && tar xzf cmake-3.24.3.tar.gz \
   && cd cmake-3.24.3 \
@@ -111,37 +101,11 @@ RUN wget https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.1.tar.g
 
 RUN mkdir -p /usr/local/src \
     && cd /usr/local/src \
-    && echo 2 \
     && git clone https://github.com/TACC/DisplayCluster.git \
     && cd DisplayCluster \
     && git checkout docker
 
-RUN cd /usr/local/src/DisplayCluster/dependencies \
-    && tar xzf sip-4.19.25.tar.gz \
-    && cd sip-4.19.25 \
-    && python2 configure.py \
-    && make -j 5 install 
-
-RUN cd /usr/local/src/DisplayCluster/dependencies \
-    && tar xzf PyQt4_gpl_x11-4.12.3.tar.gz \
-    && cd PyQt4_gpl_x11-4.12.3 \
-    && python2 configure.py --confirm-license \
-    && make -j 4 \
-    && make install 
-
-RUN cd /usr/local/src/DisplayCluster/dependencies \
-    && unzip PythonQt2.0.1.DC.zip \
-    && cd PythonQt2.0.1 \
-    && sed -i -e "s/python2.6/python2.7/" -e "s/python26/python27/" build/python.prf \
-    && sed -i -e "s?ast.h?parser/ast.h?" generator/abstractmetabuilder.cpp \
-    && qmake QMAKE_CXXFLAGS=-I/usr/include/python2.7 \
-    && sed -i -e "s/PYTHON=2.6/PYTHON=2.7/" -e "s/python26/python27/" build/python.prf \
-    && make -j 4 \
-    && cp lib/libPythonQt.so.1.0.0 /usr/local/lib \
-    && cp src/PythonQt.h /usr/local/include \
-    && ln -s /usr/local/lib/libPythonQt.so.1.0.0 /usr/local/lib/libPythonQt.so \
-    && ln -s /usr/local/lib/libPythonQt.so.1.0.0 /usr/local/lib/libPythonQt.so.1 \
-    && ln -s /usr/local/lib/libPythonQt.so.1.0.0 /usr/local/lib/libPythonQt.so.1.0 
+RUN echo 1
 
 RUN cd /usr/local/src/DisplayCluster/dependencies \
    && tar xzf boost_1_53_0.tar.gz \
