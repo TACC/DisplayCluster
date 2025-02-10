@@ -118,7 +118,7 @@ int main(int argc, char * argv[])
         int pport = 1999;  
         char *p = getenv("DISPLAYCLUSTER_PYTHONPORT");
         if (p)
-            pport = int(p);
+            pport = atoi(p);
         g_dcSocketManager = new DCSocketManager(pport);
     }
 
