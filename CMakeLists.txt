@@ -21,6 +21,14 @@ SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # build options
 option(INSTALL_LAUNCHER "Install DisplayCluster launch script" OFF)
+if (INSTALL_LAUNCHER)
+    INSTALL(PROGRAMS scripts/startdisplaycluster DESTINATION bin)
+endif()
+
+option(INSTALL_PYTHON "Install Python package" OFF)
+if (INSTALL_PYTHON)
+    INSTALL(PROGRAMS python/DC.py DESTINATION python)
+endif()
 
 option(BUILD_DISPLAYCLUSTER "Build main DisplayCluster application" OFF)
 option(BUILD_DISPLAYCLUSTER_LIBRARY "Build DisplayCluster library" OFF)
@@ -60,7 +68,7 @@ if(BUILD_DISPLAYCLUSTER OR BUILD_DISPLAYCLUSTER_LIBRARY OR BUILD_DESKTOPSTREAMER
 endif()
 
 if (INSTALL_LAUNCHER)
-    INSTALL(PROGRAMS examples/startdisplaycluster DESTINATION bin)
+    INSTALL(PROGRAMS scripts/startdisplaycluster DESTINATION bin)
 endif()
 
 if(BUILD_DISPLAYCLUSTER)
