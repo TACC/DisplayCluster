@@ -14,14 +14,14 @@ This will create **displaycluster.sif** with the worker-side bits installed in t
 
 To run DisplayCluster, you will need to install a few bits onto the host system.   In the original DisplayCluster source directory, make a 'build' subdirectory, and in there, run:
 
-    cmake -DINSTALL_CLIENT=On [-DCMAKE_INSTALL_PREFIX={host-installdir, default to /usr/local}]
+    cmake .. -DINSTALL_CLIENT=On [-DCMAKE_INSTALL_PREFIX={host-installdir, default to /usr/local}]
     make install
 
 THis will install the startup command in {host-installdir}/bin, the python package in {host-installdir}/python and some example code in {host-installdir}/examples.
 
 Now copy the sif file into the host-installdir:
 
-    mkdor {host-installdir}/sif}
+    mkdir {host-installdir}/sif
     cp {source directory}/docker/displaycluster.sif {host-installdir}/sif
 
 ## Starting DisplayCluster
