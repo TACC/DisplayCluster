@@ -114,7 +114,13 @@ int main(int argc, char * argv[])
         g_app = new QApplication(argc, argv);
 
     if (g_mpiRank == 0)
-        g_dcSocketManager = new DCSocketManager(1999);
+    {
+        int pport = 1999;  
+        char *p = getenv("DISPLAYCLUSTER_PYTHONPORT");
+        if (p)
+            pport = int(p);
+        g_dcSocketManager = new DCSocketManager(pport);
+    }
 
     g_configuration = new Configuration(getenv("DISPLAYCLUSTER_CONFIG"));
 

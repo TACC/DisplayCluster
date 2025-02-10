@@ -20,6 +20,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # build options
+option(INSTALL_LAUNCHER "Install DisplayCluster launch script" OFF)
+
 option(BUILD_DISPLAYCLUSTER "Build main DisplayCluster application" OFF)
 option(BUILD_DISPLAYCLUSTER_LIBRARY "Build DisplayCluster library" OFF)
 option(BUILD_DESKTOPSTREAMER "Build DesktopStreamer application" OFF)
@@ -55,6 +57,10 @@ if(BUILD_DISPLAYCLUSTER OR BUILD_DISPLAYCLUSTER_LIBRARY OR BUILD_DESKTOPSTREAMER
     find_package(LibJpegTurbo REQUIRED)
     include_directories(${LibJpegTurbo_INCLUDE_DIRS})
     set(LIBS ${LIBS} ${LibJpegTurbo_LIBRARIES})
+endif()
+
+if (INSTALL_LAUNCHER)
+    INSTALL(PROGRAMS examples/startdisplaycluster DESTINATION bin)
 endif()
 
 if(BUILD_DISPLAYCLUSTER)
@@ -191,11 +197,10 @@ if(BUILD_DISPLAYCLUSTER)
     )
 
     # install launchers
-    INSTALL(PROGRAMS examples/startdisplaycluster DESTINATION bin)
-    INSTALL(PROGRAMS examples/displaycluster.py DESTINATION bin)
-    INSTALL(PROGRAMS examples/displaycluster.sh DESTINATION bin)
+    INSTALL(PROGRAMS scripts/displaycluster.py DESTINATION bin)
+    INSTALL(PROGRAMS scripts/displaycluster.sh DESTINATION bin)
 
-		# install remote controller
+    # install remote controller
     INSTALL(DIRECTORY remote DESTINATION .)
 
     # install data files

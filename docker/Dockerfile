@@ -99,7 +99,7 @@ RUN wget https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.1.tar.g
   && ./configure \
   && make -j 5 install
 
-RUN echo 3
+RUN echo 5
 
 RUN mkdir -p /usr/local/src \
     && cd /usr/local/src \
