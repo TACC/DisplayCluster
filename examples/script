@@ -1,0 +1,30 @@
+[
+    {
+        "uri": "/usr/local/examples/Image1.png",
+        "open": 0,
+        "close": 10,
+        "x": 0,
+        "y": 0.5,
+        "w": 2,
+        "h": 2
+    },
+    {
+        "uri": /usr/local/examples/Image1.png",
+        "open": 2,
+        "close": 8,
+        "x": 2,
+        "y": 0.5,
+        "w": 2,
+        "h": 2
+    },
+    {
+        "uri": /usr/local/examples/Image1.png",
+        "open": 4,
+        "close": 6,
+        "x": 4,
+        "y": 0.5,
+        "w": 2,
+        "h": 2
+    }
+]
+

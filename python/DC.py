@@ -101,8 +101,8 @@ class DC:
     def create_event_list(self, script):
         events = []
         for content in script:
-            events.append(["open", content[5], content])
-            events.append(["close", content[6], content])
+            events.append(["open", content['open'], content])
+            events.append(["close", content['close'], content])
         return sorted(events, key=lambda a: a[1])
 
     def run_events(self, event_list):
@@ -114,7 +114,7 @@ class DC:
                 sleep(delay)
                 now = now + delay
             if e[0] == "open":
-                self.open(e[2][0], e[2][1], e[2][2], e[2][3], e[2][4])
+                self.open(e[2]['uri'], e[2]['x'], e[2]['y'], e[2]['w'], e[2]['h'])
             else:
-                self.close(e[2][0])
+                self.close(e[2]['uri'])
             
