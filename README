@@ -1,20 +1,56 @@
-This branch DisplayCluster can be run using containers.  This is primarily intended for use with systems with Nvidia graphcs cards, and is  built on top of the Nvidia opengl image: nvidia/opengl:1.0-glvnd-devel-ubuntu20.04.   I believe you can build the image using a standard ubuntu 20.04 image (by changing the **FROM** line in the Dockerfile, but it will use Mesa for rendering, which can have performance issues when the displays are high resolution.  
+This branch DisplayCluster can be run using apptainer containers.  This is primarily intended for use with systems with Nvidia graphcs cards, and is  built on top of the Nvidia opengl image: nvidia/opengl:1.0-glvnd-devel-ubuntu20.04.   I believe you can build the image using a standard ubuntu 20.04 image (by changing the **FROM** line in the Dockerfile, but it will use Mesa for rendering, which can have performance issues when the displays are high resolution.  
 
-To build the DC image, change to the **docker** branch and copy **{root}/docker/Dockerfile** and **{root}/docker/cfg.dc** to a local directory.   In that directory run:
+In the following we will refer to the host, e.g. *outside* the container, as the host.   Workers, which run both the GUI and the display nodes, are referred to as workers.
+
+Clone the repo somewhere - we'll refer to this as the source directory
+To build the DC image, enter the source directory, change to the **docker** branch and enter the 'docker' subdirectory.   In that directory run:
 
     docker build -t displaycluster .
-
-This will create an image on your local system.  You can then push this to Docker Hub to make it generally available.
-
-At TACC we use Apptainer to run our containers.   We create our apptainer image from the Docker image described above.  On the system in which the Docker image was created, run:
-
     apptainer build displaycluster docker-daemon:displaycluster:latest
 
-If you've pushed the image to Docker Hub, you can create the Apptainer image by pulling it:
+This will create **displaycluster.sif** with the worker-side bits installed in the /usr/local area of the container.
 
-    apptainer pull displaycluster.sif docker://.../displaycluster:latest
+## Host-side code
 
-This will create **displaycluster.sif**.
+To run DisplayCluster, you will need to install a few bits onto the host system.   In the original DisplayCluster source directory, make a 'build' subdirectory, and in there, run:
+
+    cmake -DINSTALL_CLIENT=On [-DCMAKE_INSTALL_PREFIX={host-installdir, default to /usr/local}]
+    make install
+
+THis will install the startup command in {host-installdir}/bin, the python package in {host-installdir}/python and some example code in {host-installdir}/examples.
+
+Now copy the sif file into the host-installdir:
+
+    mkdor {host-installdir}/sif}
+    cp {source directory}/docker/displaycluster.sif {host-installdir}/sif
+
+## Starting DisplayCluster
+
+You can start DisplayCluster using the *startdisplaycluster* command in {host-installdir}/bin.   It requires some environment setup; I'm using a shell file:
+
+    #! /bin/bash
+
+    ## Location of configuration.xml ... installed on the client system in {worker-installdir}/examples
+    export DISPLAYCLUSTER_HOME={worker-installdir}
+    export DISPLAYCLUSTER_DIR=${DISPLAYCLUSTER_HOME}   # not side if both HOME and DIR are needed
+    export DISPLAYCLUSTER_CONFIG=${DISPLAYCLUSTER_HOME}/examples/configuration.xml
+
+    ## tell it where to get the sif file. 
+    export DISPLAYCLUSTER_SIF=${DISPLAYCLUSTER_HOME}/sif/displaycluster.sif
+
+    export DISPLAYCLUSTER_PYTHONPORT=1900
+    export DISPLAYCLUSTER_TIMEOUT=3600                 # screensaver timeout in seconds
+    export DISPLAYCLUSTER_EXEC=/displaycluster
+
+    cd {content directory}
+    startdisplaycluster
+
+
+This will install the startup command in {worker-installdir}/bin, the python package in {worker-installdir}/python and some example code in {worker-installdir}/examples.  In 
+{worker-installdir}/examples, run:
+
+    export PYTHONPATH={worker-installdir}/python
+    python3 ./run_script.py
 
 ## MPI
 
@@ -34,6 +70,8 @@ Also copy the file **examples/startdisplaycluster** into that file - this python
 
 NOTE: in some cases (like Rattler here at TACC) OpenMPI does not seem to find the correct interface for MPI to use.
 You will see this hard-coded in the **mpirunCommand** string that is created near the end of this file.   You may need to change it.
+
+
 
 
 
