@@ -99,8 +99,10 @@ class DC:
             print(c, self.content[c])
 
     def create_event_list(self, script):
+        with open(script) as f:
+            j = json.load(f)
         events = []
-        for content in script:
+        for content in j:
             events.append(["open", content['open'], content])
             events.append(["close", content['close'], content])
         return sorted(events, key=lambda a: a[1])
