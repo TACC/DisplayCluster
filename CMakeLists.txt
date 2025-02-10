@@ -20,14 +20,12 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # build options
-option(INSTALL_LAUNCHER "Install DisplayCluster launch script" OFF)
-if (INSTALL_LAUNCHER)
-    INSTALL(PROGRAMS scripts/startdisplaycluster DESTINATION bin)
-endif()
 
-option(INSTALL_PYTHON "Install Python package" OFF)
-if (INSTALL_PYTHON)
+option(INSTALL_CLIENT "Install client-side bits package" OFF)
+if (INSTALL_CLIENT)
+    INSTALL(PROGRAMS scripts/startdisplaycluster DESTINATION bin)
     INSTALL(PROGRAMS python/DC.py DESTINATION python)
+    INSTALL(PROGRAMS examples/run_script.py examples/script examples/configuration.xml DESTINATION examples)
 endif()
 
 option(BUILD_DISPLAYCLUSTER "Build main DisplayCluster application" OFF)
