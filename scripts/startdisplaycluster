@@ -55,6 +55,9 @@ else:
 if 'DISPLAYCLUSTER_CONFIG' not in os.environ:
     os.environ['DISPLAYCLUSTER_CONFIG'] = dcPath + '/configuration.xml'
 
+if 'DISPLAYCLUSTER_MPIARGS' not in os.environ:
+    os.environ['DISPLAYCLUSTER_MPIARGS'] = ' '
+
 # set the Python path so the pydc module can be found
 if 'PYTHONPATH' not in os.environ:
     os.environ['PYTHONPATH'] = dcPath + '/python'
@@ -106,8 +109,7 @@ if mpirunCommand is None:
     print( 'Error, could not find mpirun executable in PATH')
     exit(-3)
 
-startCommand = mpirunCommand + ' -host ' + hostListString
-startCommand = startCommand + ' --mca btl_tcp_if_include enp0s25 -bind-to none'
+startCommand = mpirunCommand + ' -host ' + hostListString + ' ' + os.environ['DISPLAYCLUSTER_MPIARGS']
 startCommand = startCommand + ' -x LD_LIBRARY_PATH -x DISPLAYCLUSTER_TIMEOUT -x DISPLAYCLUSTER_INSTALL'
 startCommand = startCommand + ' -x DISPLAYCLUSTER_EXEC -x DISPLAYCLUSTER_DIR -x DISPLAYCLUSTER_CONFIG '
 startCommand = startCommand + ' -x DISPLAYCLUSTER_LOG_THRESHOLD -x PYTHONPATH -x DISPLAYCLUSTER_SCREENSAVER_IMAGE'
