@@ -25,7 +25,6 @@ DCSocketManager::update_client(Connection* conn)
 	{
 		boost::shared_ptr<ContentWindowManager> cm = contentWindowManagers[i];
 		boost::shared_ptr<Content> c = cm->getContent();
-		std::cerr << c->getURI() << "\n";
 		double x, y, w, h;
 		cm->getCoordinates(x, y, w, h);
 		j_out.push_back({x * g_configuration->getNumTilesWidth(), y * g_configuration->getNumTilesHeight(), 
@@ -44,8 +43,6 @@ DCSocketManager::handleConnection(int skt)
 	Connection conn(skt);
     json j_in = conn.Receive();
 
-
-
 	std::string cmd = j_in["cmd"];
 	if (cmd == "update")
 	{
@@ -58,7 +55,6 @@ DCSocketManager::handleConnection(int skt)
 		double y = (double)j_in["y"] / g_configuration->getNumTilesHeight();
 		double w = (double)j_in["w"] / g_configuration->getNumTilesWidth();
 		double h = (double)j_in["h"] / g_configuration->getNumTilesHeight();
-		std::cerr << "reposition " << uri << " to " << x << " " << y << " " << w << " " << h << "\n";
 		
 		std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers = g_displayGroupManager->getContentWindowManagers();
 		for (unsigned int i = 0; i < contentWindowManagers.size(); i++)
@@ -79,7 +75,6 @@ DCSocketManager::handleConnection(int skt)
 		double y = (double)j_in["y"] / g_configuration->getNumTilesHeight();
 		double w = (double)j_in["w"] / g_configuration->getNumTilesWidth();
 		double h = (double)j_in["h"] / g_configuration->getNumTilesHeight();
-		std::cerr << "open  " << uri << " to " << x << " " << y << " " << w << " " << h << "\n";
 
 		boost::shared_ptr<Content> c = Content::getContent(uri);
 		boost::shared_ptr<ContentWindowManager> cm = boost::shared_ptr<ContentWindowManager>(new ContentWindowManager(c));
@@ -131,6 +126,13 @@ DCSocketManager::handleConnection(int skt)
 	else if (cmd == "show window borders")
 	{
 		g_displayGroupManager->getOptions()->setShowWindowBorders(j_in["state"] == "on");
+	}
+	else if (cmd == "get configuration")
+	{
+        json j_out = json::array();
+        j_out.push_back(g_configuration->getNumTilesWidth());
+        j_out.push_back(g_configuration->getNumTilesHeight());
+        conn.Send(j_out);
 	}
 	
 	q_app->resume_screensaver();

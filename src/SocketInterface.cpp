@@ -32,7 +32,6 @@ Connection::Receive()
     char *buf = new char[sz + 1];
     recv(m_skt, (void *)buf, sz, 0);
     buf[sz] = '\0';
-    std::cerr << "Received " << sz << " bytes: " << buf << "X\n";
     json j = json::parse(buf);
     delete[] buf;
     return j;
@@ -44,7 +43,6 @@ Connection::Send(json j)
     std::string msg = j.dump(); 
 
     int sz = msg.length();       
-    std::cerr << "Sending " << sz << " bytes: " << msg.c_str() << "X\n";
     send(m_skt, (const void*)&sz, sizeof(sz), 0);
     send(m_skt, (const void*)msg.c_str(), (size_t)(msg.length()), 0);
 }  
@@ -58,6 +56,8 @@ SocketInterface::SocketInterface(int port)
     serverAddress.sin_family = AF_INET;
     serverAddress.sin_port = htons(port);
     serverAddress.sin_addr.s_addr = INADDR_ANY;
+
+    std::cerr << "Opening Python access on port " << port << "\n";
 
     int b = bind(m_srvr, (struct sockaddr*)&serverAddress, sizeof(serverAddress));
     while (b)

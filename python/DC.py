@@ -55,6 +55,12 @@ class DC:
         for i in j_in:
             self.content[i[4]] = i[:4]
 
+    def getConfiguration(self):
+        c = Connection(self.port, self.host)
+        c.Send({ "cmd": "get configuration" })
+        j_in = c.Receive()
+        return j_in[0], j_in[1]
+
     def reposition(self, uri, x, y, w, h):
         if uri not in self.content.keys():
             print('uri ', uri, ' not open')
