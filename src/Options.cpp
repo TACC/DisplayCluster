@@ -40,7 +40,7 @@
 
 Options::Options()
 {
-    showWindowBorders_ = true;
+    showWindowBorders_ = false;
     showTestPattern_ = false;
     enableMullionCompensation_ = true;
     showZoomContext_ = true;
