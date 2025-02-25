@@ -48,8 +48,6 @@ Options::Options()
     showStreamingSegments_ = false;
     showStreamingStatistics_ = false;
 
-    std::cerr << "OPTIONS: showWindowBorders = " << ((showWindowBorders_) ? "True" : "False") << "\n";
-
 #if ENABLE_SKELETON_SUPPORT
     showSkeletons_ = true;
 #endif
