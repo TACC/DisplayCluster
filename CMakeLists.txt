@@ -24,7 +24,7 @@ SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 option(INSTALL_CLIENT "Install client-side bits package" OFF)
 if (INSTALL_CLIENT)
     INSTALL(PROGRAMS scripts/startdisplaycluster DESTINATION bin)
-    INSTALL(PROGRAMS python/DC.py DESTINATION python)
+    INSTALL(PROGRAMS python/DC.py python/Bounce.ipynb DESTINATION python)
     INSTALL(PROGRAMS examples/run_script.py examples/script examples/configuration.xml DESTINATION examples)
 endif()
 
