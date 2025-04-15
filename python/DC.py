@@ -104,6 +104,16 @@ class DC:
         for c in self.content:
             print(c, self.content[c])
 
+    def clearState(self):
+        c = Connection(self.port, self.host)
+        c.Send({'cmd': 'clear state'})
+        self.upfdteContent()
+
+    def loadState(self, state):
+        c = Connection(self.port, self.host)
+        c.Send({'cmd': 'load state', 'state': state})
+        self.updateContent()
+        
     def create_event_list(self, script):
         with open(script) as f:
             j = json.load(f)

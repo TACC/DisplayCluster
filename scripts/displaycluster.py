@@ -16,7 +16,7 @@ else:
     exit(-3)
 
 # get rank from appropriate MPI API environment variable
-myRank = None
+myRank = 0
 
 if 'OMPI_COMM_WORLD_RANK' in os.environ:
     myRank = int(os.environ['OMPI_COMM_WORLD_RANK'])
@@ -27,8 +27,7 @@ elif 'MPIRUN_RANK' in os.environ:
 elif 'PMI_ID' in os.environ:
     myRank = int(os.environ['PMI_ID'])
 else:
-    print( 'could not determine MPI rank!')
-    exit(-4)
+    print( 'could not determine MPI rank! Assuming testing with myRank = 0')
 
 if 'DISPLAYCLUSTER_INSTALL' in os.environ:
     install_dir = os.environ['DISPLAYCLUSTER_INSTALL']
