@@ -107,7 +107,7 @@ class DC:
     def clearState(self):
         c = Connection(self.port, self.host)
         c.Send({'cmd': 'clear state'})
-        self.upfdteContent()
+        self.updateContent()
 
     def loadState(self, state):
         c = Connection(self.port, self.host)
