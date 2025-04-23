@@ -45,7 +45,7 @@ class Server:
         return Connection(skt)
 
 class DC:
-    def __init__(self, host, port, nx = 1, ny = 1):
+    def __init__(self, host = 'localhost', port = 1910, nx = 1, ny = 1):
         self.host = host
         self.port = port
         self.nx   = nx
