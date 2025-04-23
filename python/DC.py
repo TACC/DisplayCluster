@@ -3,6 +3,8 @@ import socket
 import json
 from time import sleep
 
+last_msg = "none"
+
 class Connection:
 
     def __init__(self, k, host = None):
@@ -15,9 +17,14 @@ class Connection:
     def Receive(self):
         b = self.skt.recv(4)
         sz = int.from_bytes(b, 'little')
-        b = self.skt.recv(sz)
-        #print("Received ", sz, " bytes: ", b)
-        msg = b.decode();
+        buf = b''
+        while sz  > 0:
+            b = self.skt.recv(sz)
+            buf += b
+            sz -= len(b)
+        msg = buf.decode();
+        print(len(buf))
+        last_msg = msg
         return json.loads(msg);
 
     def Send(self, j):
