@@ -23,7 +23,6 @@ class Connection:
             buf += b
             sz -= len(b)
         msg = buf.decode();
-        print(len(buf))
         last_msg = msg
         return json.loads(msg);
 
@@ -31,7 +30,6 @@ class Connection:
         msg = json.dumps(j).encode('ascii')
         sz = len(msg)
         b = sz.to_bytes(4, 'little')
-        #print("Sending ", sz, " bytes: ", msg)
         self.skt.send(b)
         self.skt.send(msg)
         
