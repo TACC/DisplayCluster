@@ -7,6 +7,7 @@
 #include "ContentWindowManager.h"
 
 #include "main.h"
+#include "log.h"
 
 DCSocketManager::DCSocketManager(int port)
 {
@@ -46,6 +47,7 @@ DCSocketManager::handleConnection(int skt)
 	std::string cmd = j_in["cmd"];
 	if (cmd == "update")
 	{
+		put_flog(LOG_WARN, "UPDATE\n");
 		update_client(&conn);
 	}
 	else if (cmd == "reposition")
@@ -71,10 +73,21 @@ DCSocketManager::handleConnection(int skt)
 	else if (cmd == "open")
 	{
 		std::string uri = j_in["uri"];
-		double x = (double)j_in["x"] / g_configuration->getNumTilesWidth();
-		double y = (double)j_in["y"] / g_configuration->getNumTilesHeight();
-		double w = (double)j_in["w"] / g_configuration->getNumTilesWidth();
-		double h = (double)j_in["h"] / g_configuration->getNumTilesHeight();
+
+		double x = (double)j_in["x"];
+		double y = (double)j_in["y"];
+		double w = (double)j_in["w"];
+		double h = (double)j_in["h"];
+
+		if (g_configuration->getNumTilesWidth() != 0 && g_configuration->getNumTilesHeight() != 0)
+		{
+			x = x / g_configuration->getNumTilesWidth();
+			y = y / g_configuration->getNumTilesHeight();
+			w = w / g_configuration->getNumTilesWidth();
+			h = h / g_configuration->getNumTilesHeight();
+		}
+
+		put_flog(LOG_WARN, "Opening %s at (%g %g %g %g)\n", uri.c_str(), x, y, w, h);
 
 		boost::shared_ptr<Content> c = Content::getContent(uri);
 		boost::shared_ptr<ContentWindowManager> cm = boost::shared_ptr<ContentWindowManager>(new ContentWindowManager(c));
@@ -133,6 +146,15 @@ DCSocketManager::handleConnection(int skt)
         j_out.push_back(g_configuration->getNumTilesWidth());
         j_out.push_back(g_configuration->getNumTilesHeight());
         conn.Send(j_out);
+	}
+	else if (cmd == "clear state")
+	{
+		g_mainWindow->clearContents();
+	}
+	else if (cmd == "load state")
+	{
+		std::string state = j_in["state"];
+		g_displayGroupManager->loadStateXMLFile(state);
 	}
 	
 	q_app->resume_screensaver();
