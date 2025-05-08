@@ -37,12 +37,13 @@
 /*********************************************************************/
 
 #include "dcStream.h"
-#include "../NetworkProtocol.h"
-#include "../MessageHeader.h"
-#include "../ParallelPixelStreamSegmentParameters.h"
-#include "../log.h"
+#include "NetworkProtocol.h"
+#include "MessageHeader.h"
+#include "ParallelPixelStreamSegmentParameters.h"
+#include "log.h"
 #include <QtNetwork/QTcpSocket>
-#include <QtCore>
+#include <QtConcurrent/QtConcurrent>
+#include <QtCore/QtCore>
 #include <cmath>
 #include <turbojpeg.h>
 #include <algorithm>

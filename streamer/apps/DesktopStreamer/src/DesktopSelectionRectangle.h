@@ -36,87 +36,43 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef MAIN_WINDOW_H
-#define MAIN_WINDOW_H
+#ifndef DESKTOP_SELECTION_RECTANGLE_H
+#define DESKTOP_SELECTION_RECTANGLE_H
 
-#define SUPPORTED_NETWORK_PROTOCOL_VERSION 3
+#define PEN_WIDTH 10 // should be even
+#define CORNER_RESIZE_THRESHHOLD 50
 
-#define SHARE_DESKTOP_UPDATE_DELAY 1
-
-#define FRAME_RATE_AVERAGE_NUM_FRAMES 10
-
-#define JPEG_QUALITY 75
-
-#include "../../../src/ParallelPixelStream.h"
 #include <QtGui>
-#include <QtNetwork/QTcpSocket>
-#include <string>
 
-ParallelPixelStreamSegment computeSegmentJpeg(const ParallelPixelStreamSegment & segment);
+#include "QtIncludes.h"
 
-class MainWindow : public QMainWindow {
-    Q_OBJECT
+
+class DesktopSelectionRectangle : public QGraphicsRectItem {
 
     public:
 
-        MainWindow();
+        DesktopSelectionRectangle();
 
-        void getCoordinates(int &x, int &y, int &width, int &height);
+        // QGraphicsRectItem painting
+        void paint(QPainter * painter, const QStyleOptionGraphicsItem * option, QWidget * widget=0);
+
         void setCoordinates(int x, int y, int width, int height);
+        void reset();
 
-        QImage getImage();
+    protected:
 
-    public slots:
-
-        void shareDesktop(bool set);
-        void showDesktopSelectionWindow(bool set);
-        void setParallelStreaming(bool set);
-        void shareDesktopUpdate();
-        void updateCoordinates();
+        // QGraphicsRectItem events
+        void mouseMoveEvent(QGraphicsSceneMouseEvent * event);
+        void mousePressEvent(QGraphicsSceneMouseEvent * event);
+        void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
 
     private:
 
-        bool updatedDimensions_;
+        void updateCoordinates();
 
-        QLineEdit hostnameLineEdit_;
-        QLineEdit uriLineEdit_;
-        QSpinBox xSpinBox_;
-        QSpinBox ySpinBox_;
-        QSpinBox widthSpinBox_;
-        QSpinBox heightSpinBox_;
-        QSpinBox frameRateSpinBox_;
-        QLabel frameRateLabel_;
+        int x_, y_, width_, height_;
 
-        QAction * shareDesktopAction_;
-        QAction * showDesktopSelectionWindowAction_;
-
-        std::string hostname_;
-        std::string uri_;
-        int x_;
-        int y_;
-        int width_;
-        int height_;
-
-        bool parallelStreaming_;
-
-        // full image
-        QImage image_;
-
-        // for regular pixel streaming
-        QByteArray previousImageData_;
-
-        // for parallel pixel streaming
-        std::vector<ParallelPixelStreamSegment> segments_;
-
-        QTimer shareDesktopUpdateTimer_;
-
-        // used for frame rate calculations
-        std::vector<QTime> frameSentTimes_;
-
-        QTcpSocket tcpSocket_;
-
-        bool serialStream();
-        bool parallelStream();
+				enum RectCorner { NONE, LL, LR, UL, UR } selectedCorner_ = NONE;
 };
 
 #endif

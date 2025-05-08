@@ -36,40 +36,103 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DESKTOP_SELECTION_RECTANGLE_H
-#define DESKTOP_SELECTION_RECTANGLE_H
+#ifndef MAIN_WINDOW_H
+#define MAIN_WINDOW_H
 
-#define PEN_WIDTH 10 // should be even
-#define CORNER_RESIZE_THRESHHOLD 50
+#define SUPPORTED_NETWORK_PROTOCOL_VERSION 3
 
+#define SHARE_DESKTOP_UPDATE_DELAY 1
+
+#define FRAME_RATE_AVERAGE_NUM_FRAMES 10
+
+#define JPEG_QUALITY 75
+
+#include "ParallelPixelStream.h"
 #include <QtGui>
+#include "QtIncludes.h"
+#include <string>
+#include <iostream>
 
-class DesktopSelectionRectangle : public QGraphicsRectItem {
+ParallelPixelStreamSegment computeSegmentJpeg(const ParallelPixelStreamSegment & segment);
+
+class MainWindow : public QMainWindow {
+    Q_OBJECT
 
     public:
 
-        DesktopSelectionRectangle();
+        MainWindow();
 
-        // QGraphicsRectItem painting
-        void paint(QPainter * painter, const QStyleOptionGraphicsItem * option, QWidget * widget=0);
-
+        void getCoordinates(int &x, int &y, int &width, int &height);
         void setCoordinates(int x, int y, int width, int height);
 
-    protected:
+        QImage getImage();
 
-        // QGraphicsRectItem events
-        void mouseMoveEvent(QGraphicsSceneMouseEvent * event);
-        void mousePressEvent(QGraphicsSceneMouseEvent * event);
-        void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
+				bool isResizing() { return resizing_; }
+				void setResizing() { if (resizing_) std::cerr << "Error: setResizing call while resizing\n"; resizing_ = true; }
+				void clearResizing() { if (! resizing_) std::cerr << "Error: clearResizing call while not resizing\n"; resizing_ = false; }
+
+    public slots:
+
+        void shareDesktop(bool set);
+        void showDesktopSelectionWindow();
+        void resetDesktopSelectionWindow();
+        void hideDesktopSelectionWindow();
+        void setParallelStreaming(bool set);
+        void shareDesktopUpdate();
+        void updateCoordinates();
+				void toggleShareDesktop();
 
     private:
 
-        void updateCoordinates();
+        bool updatedDimensions_;
+				void resetSharing();
 
-        // resizing state
-        bool resizing_;
+        QLineEdit hostnameLineEdit_;
+        QLineEdit uriLineEdit_;
+        QSpinBox xSpinBox_;
+        QSpinBox ySpinBox_;
+        QSpinBox widthSpinBox_;
+        QSpinBox heightSpinBox_;
+        QSpinBox frameRateSpinBox_;
+        QLabel frameRateLabel_;
+				QPushButton shareDesktopButton_;
 
-        int x_, y_, width_, height_;
+				bool isSharing_ = false;
+
+        QAction * shareDesktopAction_;
+        QAction * showDesktopSelectionWindowAction_;
+        QAction * resetDesktopSelectionWindowAction_;
+				QAction * setParallelStreamingAction_;
+
+        std::string hostname_;
+        std::string uri_;
+        int x_;
+        int y_;
+        int width_;
+        int height_;
+
+        bool parallelStreaming_;
+
+        // full image
+        QImage image_;
+
+        // for regular pixel streaming
+        QByteArray previousImageData_;
+
+        // for parallel pixel streaming
+        std::vector<ParallelPixelStreamSegment> segments_;
+
+        QTimer shareDesktopUpdateTimer_;
+
+        // used for frame rate calculations
+        std::vector<QTime> frameSentTimes_;
+
+        QTcpSocket tcpSocket_;
+
+        bool serialStream();
+        bool parallelStream();
+
+				bool resizing_;
 };
 
 #endif

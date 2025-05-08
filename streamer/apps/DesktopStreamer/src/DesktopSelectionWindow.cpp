@@ -36,23 +36,55 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
+#include "DesktopSelectionRectangle.h"
+#include "DesktopSelectionWindow.h"
 #include "main.h"
-#include "../../../src/log.h"
 
-MainWindow * g_mainWindow = NULL;
-DesktopSelectionWindow * g_desktopSelectionWindow = NULL;
+#include <iostream>
 
-int g_mpiRank = 0; // For log
-
-int main(int argc, char * argv[])
+DesktopSelectionWindow::DesktopSelectionWindow()
 {
-    put_flog(LOG_INFO, "");
+    // make window transparent
+    setStyleSheet("background:transparent;");
+    setAttribute(Qt::WA_TranslucentBackground);
+    setWindowFlags(Qt::FramelessWindowHint);
 
-    QApplication * app = new QApplication(argc, argv);
+    // window stays on top
+    Qt::WindowFlags flags = windowFlags();
+    setWindowFlags(flags | Qt::CustomizeWindowHint | Qt::WindowStaysOnTopHint);
 
-    g_mainWindow = new MainWindow();
-    g_desktopSelectionWindow = new DesktopSelectionWindow();
+    // add the view after showing the window to avoid shadow artifacts on Mac
+    setCentralWidget(&desktopSelectionView_);
 
-    // enter Qt event loop
-    return app->exec();
+    // button to hide the window
+    hideWindowButton = new QPushButton("Exit selection mode");
+    connect(hideWindowButton, SIGNAL(pressed()), this, SLOT(hide()));
+
+    // makes the button square so the background doesn't look bad
+    hideWindowButton->setFlat(true);
+
+    // add it to the scene
+    desktopSelectionView_.scene()->addWidget(hideWindowButton);
+
+		QRect r = hideWindowButton->geometry();
+		hideWindowButton->setGeometry(PEN_WIDTH/2, PEN_WIDTH/2, r.width(), r.height());
+}
+
+void
+DesktopSelectionWindow::placeButton(int x, int y)
+{
+		QRect r = hideWindowButton->geometry();
+		hideWindowButton->setGeometry(x + PEN_WIDTH/2, y + PEN_WIDTH/2, r.width(), r.height());
+}
+
+DesktopSelectionView * DesktopSelectionWindow::getDesktopSelectionView()
+{
+    return &desktopSelectionView_;
+}
+
+void DesktopSelectionWindow::hideEvent(QHideEvent * event)
+{
+    QWidget::hideEvent(event);
+
+    g_mainWindow->hideDesktopSelectionWindow();
 }

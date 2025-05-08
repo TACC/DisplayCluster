@@ -36,28 +36,31 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DESKTOP_SELECTION_VIEW_H
-#define DESKTOP_SELECTION_VIEW_H
+#ifndef DESKTOP_SELECTION_WINDOW_H
+#define DESKTOP_SELECTION_WINDOW_H
 
+#include "DesktopSelectionView.h"
 #include <QtGui>
+#include "QtIncludes.h"
 
-class DesktopSelectionRectangle;
-
-class DesktopSelectionView : public QGraphicsView {
+class DesktopSelectionWindow : public QMainWindow {
 
     public:
 
-        DesktopSelectionView();
+        DesktopSelectionWindow();
 
-        DesktopSelectionRectangle * getDesktopSelectionRectangle();
+        DesktopSelectionView * getDesktopSelectionView();
+				void placeButton(int, int);
+
 
     protected:
 
-        void resizeEvent(QResizeEvent * event);
+        void hideEvent(QHideEvent * event);
 
     private:
 
-        DesktopSelectionRectangle * desktopSelectionRectangle_;
+        DesktopSelectionView desktopSelectionView_;
+        QPushButton *hideWindowButton;
 };
 
 #endif

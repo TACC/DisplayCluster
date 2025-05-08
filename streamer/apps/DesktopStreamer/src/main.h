@@ -41,6 +41,7 @@
 
 #include "MainWindow.h"
 #include "DesktopSelectionWindow.h"
+#include "QtIncludes.h"
 
 extern MainWindow * g_mainWindow;
 extern DesktopSelectionWindow * g_desktopSelectionWindow;

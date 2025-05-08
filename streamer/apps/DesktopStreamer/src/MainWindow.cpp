@@ -1,3 +1,9 @@
+// NOTE - looks like the jpeg encoder is not thread safe!  
+// Still - test parallel pixel streams, just don't encode
+// in parallel
+
+#define USE_THREADING 0 
+
 /*********************************************************************/
 /* Copyright (c) 2011 - 2012, The University of Texas at Austin.     */
 /* All rights reserved.                                              */
@@ -36,12 +42,16 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
+#include <iostream>
+
 #include "MainWindow.h"
 #include "main.h"
-#include "../../../src/log.h"
-#include "../../../src/MessageHeader.h"
+#include "log.h"
+#include "MessageHeader.h"
 #include "DesktopSelectionRectangle.h"
 #include <turbojpeg.h>
+
+#include <QtCore/QElapsedTimer>
 
 #ifdef _WIN32
     typedef __int32 int32_t;
@@ -50,10 +60,9 @@
     #include <stdint.h>
 #endif
 
-ParallelPixelStreamSegment computeSegmentJpeg(const ParallelPixelStreamSegment & segment)
+void
+computeSegmentJpeg(ParallelPixelStreamSegment *segment)
 {
-    ParallelPixelStreamSegment newSegment = segment;
-
     QImage image = g_mainWindow->getImage();
 
     // use libjpeg-turbo for JPEG conversion
@@ -67,13 +76,21 @@ ParallelPixelStreamSegment computeSegmentJpeg(const ParallelPixelStreamSegment &
     int jpegQual = JPEG_QUALITY;
     int flags = 0;
 
-    int success = tjCompress2(handle, image.scanLine(newSegment.parameters.y) + newSegment.parameters.x * image.depth()/8, newSegment.parameters.width, image.bytesPerLine(), newSegment.parameters.height, pixelFormat, jpegBuf, &jpegSize, jpegSubsamp, jpegQual, flags);
+    int success = tjCompress2(handle, 
+			 image.scanLine(segment->parameters.y) + segment->parameters.x * image.depth()/8,
+			 segment->parameters.width,
+			 image.bytesPerLine(),
+			 segment->parameters.height,
+			 pixelFormat,
+			 jpegBuf,
+			 &jpegSize,
+			 jpegSubsamp,
+			 jpegQual,
+			 flags);
 
     if(success != 0)
     {
         put_flog(LOG_ERROR, "libjpeg-turbo image conversion failure");
-
-        return newSegment;
     }
 
     // move the JPEG buffer to a byte array and free the libjpeg-turbo allocated memory
@@ -81,9 +98,7 @@ ParallelPixelStreamSegment computeSegmentJpeg(const ParallelPixelStreamSegment &
     free(jpegBufPtr);
 
     // copy byte array to new segment
-    newSegment.imageData = byteArray;
-
-    return newSegment;
+    segment->imageData = byteArray;
 }
 
 MainWindow::MainWindow()
@@ -93,7 +108,7 @@ MainWindow::MainWindow()
     parallelStreaming_ = false;
 
     QWidget * widget = new QWidget();
-    QFormLayout * layout = new QFormLayout();
+    QGridLayout * layout = new QGridLayout();
     widget->setLayout(layout);
 
     setCentralWidget(widget);
@@ -105,18 +120,19 @@ MainWindow::MainWindow()
     connect(&heightSpinBox_, SIGNAL(editingFinished()), this, SLOT(updateCoordinates()));
 
     // constrain valid range and default to a quarter of the desktop, centered
-    QRect desktopRect = QApplication::desktop()->screenGeometry();
+    QRect desktopRect = QGuiApplication::primaryScreen()->geometry();
 
     xSpinBox_.setRange(0, desktopRect.width());
     ySpinBox_.setRange(0, desktopRect.height());
     widthSpinBox_.setRange(1, desktopRect.width());
     heightSpinBox_.setRange(1, desktopRect.height());
 
-    // default to the upper-left quadrant of the screen
+    // default to the whole screen quadrant of the screen
     xSpinBox_.setValue(0);
     ySpinBox_.setValue(0);
-    widthSpinBox_.setValue(desktopRect.width() / 2);
-    heightSpinBox_.setValue(desktopRect.height() / 2);
+
+    widthSpinBox_.setValue(desktopRect.width());
+    heightSpinBox_.setValue(desktopRect.height());
 
     // call updateCoordinates() to commit coordinates from the UI
     updateCoordinates();
@@ -125,54 +141,86 @@ MainWindow::MainWindow()
     frameRateSpinBox_.setRange(1, 60);
     frameRateSpinBox_.setValue(24);
 
+		frameRateLabel_.setText("0");
+
     // add widgets to UI
-    layout->addRow("Hostname", &hostnameLineEdit_);
-    layout->addRow("Stream name", &uriLineEdit_);
-    layout->addRow("X", &xSpinBox_);
-    layout->addRow("Y", &ySpinBox_);
-    layout->addRow("Width", &widthSpinBox_);
-    layout->addRow("Height", &heightSpinBox_);
-    layout->addRow("Max frame rate", &frameRateSpinBox_);
-    layout->addRow("Actual frame rate", &frameRateLabel_);
+    int row = 0;
 
-    // share desktop action
-    shareDesktopAction_ = new QAction("Share Desktop", this);
-    shareDesktopAction_->setStatusTip("Share desktop");
-    shareDesktopAction_->setCheckable(true);
-    shareDesktopAction_->setChecked(false);
-    connect(shareDesktopAction_, SIGNAL(toggled(bool)), this, SLOT(shareDesktop(bool)));
+#define ADD_LABELLED_ROW(txt, wid) 	 \
+{																		 \
+  auto *l = new QLabel(txt); 						 \
+	l->setBuddy(&wid);								 \
+	layout->addWidget(l, row, 0);			 \
+	layout->addWidget(&wid, row++, 1); \
+}
 
+    ADD_LABELLED_ROW("Hostname", hostnameLineEdit_);
+    ADD_LABELLED_ROW("Stream name", uriLineEdit_);
+    ADD_LABELLED_ROW("X", xSpinBox_);
+    ADD_LABELLED_ROW("Y", ySpinBox_);
+    ADD_LABELLED_ROW("Width", widthSpinBox_);
+    ADD_LABELLED_ROW("Height", heightSpinBox_);
+    ADD_LABELLED_ROW("Max frame rate", frameRateSpinBox_);
+    ADD_LABELLED_ROW("Actual frame rate", frameRateLabel_);
+
+		QFrame *line = new QFrame();
+    line->setFrameShape(QFrame::HLine);
+    line->setFrameShadow(QFrame::Sunken);
+    layout->addWidget(line, row++, 0, 1, 2);
+		row++;
+
+		shareDesktopButton_.setText("Share");
+		connect(&shareDesktopButton_, SIGNAL(clicked()), this, SLOT(toggleShareDesktop()));
+		layout->addWidget(&shareDesktopButton_, row, 0, 1, 2);
+ 
     // show desktop selection window action
     showDesktopSelectionWindowAction_ = new QAction("Show Rectangle", this);
     showDesktopSelectionWindowAction_->setStatusTip("Show desktop selection rectangle");
-    showDesktopSelectionWindowAction_->setCheckable(true);
-    showDesktopSelectionWindowAction_->setChecked(false);
-    connect(showDesktopSelectionWindowAction_, SIGNAL(toggled(bool)), this, SLOT(showDesktopSelectionWindow(bool)));
+    connect(showDesktopSelectionWindowAction_, SIGNAL(triggered()), this, SLOT(showDesktopSelectionWindow()));
+
+    // reset to full window
+    resetDesktopSelectionWindowAction_ = new QAction("Reset Rectangle", this);
+    resetDesktopSelectionWindowAction_->setStatusTip("Reset desktop selection rectangle");
+    connect(resetDesktopSelectionWindowAction_, SIGNAL(triggered()), this, SLOT(resetDesktopSelectionWindow()));
 
     // set parallel streaming action
-    QAction * setParallelStreamingAction = new QAction("Enable Parallel Streaming", this);
-    setParallelStreamingAction->setStatusTip("Enable parallel streaming");
-    setParallelStreamingAction->setCheckable(true);
-    setParallelStreamingAction->setChecked(parallelStreaming_);
-    connect(setParallelStreamingAction, SIGNAL(toggled(bool)), this, SLOT(setParallelStreaming(bool)));
-
-    // create toolbar
-    QToolBar * toolbar = addToolBar("toolbar");
-
-    // add buttons to toolbar
-    toolbar->addAction(shareDesktopAction_);
-    toolbar->addAction(showDesktopSelectionWindowAction_);
+    setParallelStreamingAction_ = new QAction("Enable Parallel Streaming", this);
+    setParallelStreamingAction_->setStatusTip("Enable parallel streaming");
+    setParallelStreamingAction_->setCheckable(true);
+    setParallelStreamingAction_->setChecked(parallelStreaming_);
+    connect(setParallelStreamingAction_, SIGNAL(toggled(bool)), this, SLOT(setParallelStreaming(bool)));
 
     // create options menu
     QMenu * optionsMenu = menuBar()->addMenu("&Options");
 
     // add actions to options menu
-    optionsMenu->addAction(setParallelStreamingAction);
+    optionsMenu->addAction(showDesktopSelectionWindowAction_);
+    optionsMenu->addAction(resetDesktopSelectionWindowAction_);
+    optionsMenu->addAction(setParallelStreamingAction_);
 
     // timer will trigger updating of the desktop image
     connect(&shareDesktopUpdateTimer_, SIGNAL(timeout()), this, SLOT(shareDesktopUpdate()));
 
+		resizing_ = false;
+
     show();
+}
+
+void MainWindow::resetSharing()
+{
+		isSharing_ = true;
+		toggleShareDesktop();
+}
+
+void MainWindow::toggleShareDesktop()
+{
+	  if (isSharing_) 
+				shareDesktopButton_.setText("Share");
+		else
+				shareDesktopButton_.setText("End Sharing");
+
+		isSharing_ = !isSharing_;
+		shareDesktop(isSharing_);
 }
 
 void MainWindow::getCoordinates(int &x, int &y, int &width, int &height)
@@ -220,8 +268,7 @@ void MainWindow::shareDesktop(bool set)
         {
             put_flog(LOG_ERROR, "could not connect");
             QMessageBox::warning(this, "Error", "Could not connect.", QMessageBox::Ok, QMessageBox::Ok);
-
-            shareDesktopAction_->setChecked(false);
+						resetSharing();
             return;
         }
 
@@ -239,8 +286,7 @@ void MainWindow::shareDesktop(bool set)
         if(protocolVersion != SUPPORTED_NETWORK_PROTOCOL_VERSION)
         {
             tcpSocket_.disconnectFromHost();
-            shareDesktopAction_->setChecked(false);
-
+						resetSharing();
             put_flog(LOG_ERROR, "unsupported protocol version %i > %i", protocolVersion, SUPPORTED_NETWORK_PROTOCOL_VERSION);
             QMessageBox::warning(this, "Error", "This version is incompatible with the DisplayCluster instance you connected to. (" + QString::number(protocolVersion) + " != " + QString::number(SUPPORTED_NETWORK_PROTOCOL_VERSION) + ")", QMessageBox::Ok, QMessageBox::Ok);
 
@@ -262,22 +308,23 @@ void MainWindow::shareDesktop(bool set)
     }
 }
 
-void MainWindow::showDesktopSelectionWindow(bool set)
+void MainWindow::showDesktopSelectionWindow()
 {
-    if(set == true)
-    {
-        g_desktopSelectionWindow->showFullScreen();
-    }
-    else
-    {
-        g_desktopSelectionWindow->hide();
-    }
+		g_desktopSelectionWindow->showFullScreen();
+}
 
-    // this slot may be called externally, so make sure the action checked value matches the set argument
-    if(showDesktopSelectionWindowAction_->isChecked() != set)
-    {
-        showDesktopSelectionWindowAction_->setChecked(set);
-    }
+void MainWindow::resetDesktopSelectionWindow()
+{
+    QRect desktopRect = QGuiApplication::primaryScreen()->geometry();
+		setCoordinates(0, 0, desktopRect.width(), desktopRect.height());
+
+		g_desktopSelectionWindow->getDesktopSelectionView()->getDesktopSelectionRectangle()->reset();
+		g_desktopSelectionWindow->placeButton(0, 0);
+}
+
+void MainWindow::hideDesktopSelectionWindow()
+{
+		g_desktopSelectionWindow->hide();
 }
 
 void MainWindow::setParallelStreaming(bool set)
@@ -287,21 +334,23 @@ void MainWindow::setParallelStreaming(bool set)
 
 void MainWindow::shareDesktopUpdate()
 {
+		if (isResizing()) return;
+
     // time the frame
-    QTime frameTime;
+    QElapsedTimer frameTime;
     frameTime.start();
 
     if(tcpSocket_.state() != QAbstractSocket::ConnectedState)
     {
         put_flog(LOG_ERROR, "socket is not connected");
         QMessageBox::warning(this, "Error", "Socket is not connected.", QMessageBox::Ok, QMessageBox::Ok);
-
-        shareDesktopAction_->setChecked(false);
         return;
     }
 
     // take screenshot
-    QPixmap desktopPixmap = QPixmap::grabWindow(QApplication::desktop()->winId(), x_,y_,width_,height_);
+
+		QScreen *screen = QGuiApplication::primaryScreen();
+    QPixmap desktopPixmap = screen->grabWindow(QApplication::desktop()->winId(), x_, y_, width_, height_);
 
     if(desktopPixmap.isNull() == true)
     {
@@ -309,15 +358,35 @@ void MainWindow::shareDesktopUpdate()
         QMessageBox::warning(this, "Error", "Got NULL desktop pixmap.", QMessageBox::Ok, QMessageBox::Ok);
 
         tcpSocket_.disconnectFromHost();
-        shareDesktopAction_->setChecked(false);
+        resetSharing();
         return;
     }
 
     // convert to QImage
     image_ = desktopPixmap.toImage();
 
-    bool success;
+#if 0
+		// Color the segments for debugging
+		int bpp = image_.depth() / 8;
 
+		for (long unsigned int s = 0; s < segments_.size(); s++)
+		{
+			int k = s % 3;
+
+			for (int y = 0; y < segments_[s].parameters.height; y++)
+			{
+				unsigned char *ptr = image_.scanLine(segments_[s].parameters.y + y) + (segments_[s].parameters.x * bpp);
+
+				for (int x = 0; x < segments_[s].parameters.width; x++)
+				{
+					ptr[k] = 0xff;
+					ptr += bpp;
+				}
+			}
+		}
+#endif
+
+    bool success;
     if(parallelStreaming_ == false)
     {
         // stream as one big image
@@ -379,14 +448,14 @@ void MainWindow::shareDesktopUpdate()
         // no need to watch for dimension changes; server handles it automatically
     }
 
-    // check for failure
+    // ceck for failure
     if(success == false)
     {
         put_flog(LOG_ERROR, "streaming failure");
         QMessageBox::warning(this, "Error", "Streaming failure.", QMessageBox::Ok, QMessageBox::Ok);
 
         tcpSocket_.disconnectFromHost();
-        shareDesktopAction_->setChecked(false);
+        resetSharing();
         return;
     }
 
@@ -450,21 +519,30 @@ void MainWindow::updateCoordinates()
     int nominalSegmentSize = 512;
 
     // number of subdivisions in each dimensions
-    int numSubdivisionsX = (int)floor((float)width_ / (float)nominalSegmentSize + 0.5);
-    int numSubdivisionsY = (int)floor((float)height_ / (float)nominalSegmentSize + 0.5);
+    int numSubdivisionsX = (width_ / nominalSegmentSize) + 1;
+    int numSubdivisionsY = (height_ / nominalSegmentSize) + 1;
+
+		int dx = width_ / numSubdivisionsX;
+		int dy = height_ / numSubdivisionsY;
 
     // now, create segments with appropriate parameters
     for(int i=0; i<numSubdivisionsX; i++)
     {
+				int x = i*dx;
+				int w =  (i == (numSubdivisionsX-1)) ? (width_ - x)-1 : dx;
+
         for(int j=0; j<numSubdivisionsY; j++)
         {
+						int y = j*dy;
+						int h = (j == (numSubdivisionsY-1)) ? (height_ - y)-1 : dy;
+
             ParallelPixelStreamSegment segment;
 
             segment.parameters.sourceIndex = i*numSubdivisionsY + j;
-            segment.parameters.x = i * (int)((float)width_ / (float)numSubdivisionsX);
-            segment.parameters.y = j * (int)((float)height_ / (float)numSubdivisionsY);
-            segment.parameters.width = (int)((float)width_ / (float)numSubdivisionsX);
-            segment.parameters.height = (int)((float)height_ / (float)numSubdivisionsY);
+            segment.parameters.x = x;
+            segment.parameters.y = y;
+            segment.parameters.width = w;
+            segment.parameters.height = h;
             segment.parameters.totalWidth = width_;
             segment.parameters.totalHeight = height_;
 
@@ -542,69 +620,127 @@ bool MainWindow::serialStream()
     return true;
 }
 
+static void * to_jpeg(void *d);
+
+struct args
+{
+	QImage* image_;
+	ParallelPixelStreamSegment* segment;
+	unsigned char *buf = NULL;
+	unsigned long size = 0;
+	pthread_t tid;
+	int frameIndex;
+
+	args(QImage* i, ParallelPixelStreamSegment* s, int fi) : image_(i), segment(s), frameIndex(fi)
+	{
+#if USE_THREADING
+		pthread_create(&tid, NULL, to_jpeg, (void *)this);
+#else
+		to_jpeg(this);
+#endif
+	}
+
+	~args() { if (buf) free(buf); }
+};
+
+static void *
+to_jpeg(void *d)
+{
+	struct args *args_ = (struct args *)d;
+
+	tjhandle handle = tjInitCompress();
+	int pixelFormat = TJPF_BGRX;
+	int jpegSubsamp = TJSAMP_444;
+	int jpegQual = JPEG_QUALITY;
+	int flags = 0;
+
+	int success = tjCompress2(handle, 
+		args_->image_->scanLine(args_->segment->parameters.y) + args_->segment->parameters.x * args_->image_->depth()/8,
+		args_->segment->parameters.width,
+		args_->image_->bytesPerLine(),
+		args_->segment->parameters.height,
+		pixelFormat,
+		&args_->buf,
+		&args_->size,
+		jpegSubsamp,
+		jpegQual,
+		flags);
+
+	if(success != 0)
+	{
+			put_flog(LOG_ERROR, "libjpeg-turbo image conversion failure");
+	}
+
+#if USE_THREADING
+	pthread_exit(0);
+#else
+	return NULL;
+#endif
+}
+
 bool MainWindow::parallelStream()
 {
     // frame index
     static int frameIndex = 0;
 
-    // create JPEGs for each segment, in parallel
-    std::vector<ParallelPixelStreamSegment> segments = QtConcurrent::blockingMapped<std::vector<ParallelPixelStreamSegment> >(segments_, &computeSegmentJpeg);
+		std::vector<args*> tasks;
+		for (long unsigned i = 0; i < segments_.size(); i++)
+		{
+			tasks.push_back(new args(&image_, &segments_[i], frameIndex));
+		}
 
-    // stream segments
-    // we have to stream all of them in case stream synchronization is on (we can't ignore unchanged segments... todo: fix this)
-    for(unsigned int i=0; i<segments.size(); i++)
-    {
-        // update frame index
-        segments[i].parameters.frameIndex = frameIndex;
+		for (auto t : tasks)
+		{
+#if USE_THREADING
+			pthread_join(t->tid, NULL);
+#endif
+		
+			// send the parameters and image data
+			MessageHeader mh;
+			mh.size = sizeof(ParallelPixelStreamSegmentParameters) + t->size;
+			mh.type = MESSAGE_TYPE_PARALLEL_PIXELSTREAM;
 
-        // send the parameters and image data
-        MessageHeader mh;
-        mh.size = sizeof(ParallelPixelStreamSegmentParameters) + segments[i].imageData.size();
-        mh.type = MESSAGE_TYPE_PARALLEL_PIXELSTREAM;
+			// add the truncated URI to the header
+			size_t len = uri_.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
+			mh.uri[len] = '\0';
 
-        // add the truncated URI to the header
-        size_t len = uri_.copy(mh.uri, MESSAGE_HEADER_URI_LENGTH - 1);
-        mh.uri[len] = '\0';
+			// send the header
+			unsigned long sent = tcpSocket_.write((const char *)&mh, sizeof(MessageHeader));
 
-        // send the header
-        int sent = tcpSocket_.write((const char *)&mh, sizeof(MessageHeader));
+			while(sent < (int)sizeof(MessageHeader))
+			{
+					sent += tcpSocket_.write((const char *)&mh + sent, sizeof(MessageHeader) - sent);
+			}
 
-        while(sent < (int)sizeof(MessageHeader))
-        {
-            sent += tcpSocket_.write((const char *)&mh + sent, sizeof(MessageHeader) - sent);
-        }
+			// send the message
 
-        // send the message
+			// part 1: parameters
+			sent = tcpSocket_.write((const char *)&(t->segment->parameters), sizeof(ParallelPixelStreamSegmentParameters));
 
-        // part 1: parameters
-        sent = tcpSocket_.write((const char *)&(segments[i].parameters), sizeof(ParallelPixelStreamSegmentParameters));
+			while(sent < (int)sizeof(ParallelPixelStreamSegmentParameters))
+			{
+					sent += tcpSocket_.write((const char *)&(t->segment->parameters) + sent, sizeof(ParallelPixelStreamSegmentParameters) - sent);
+			}
 
-        while(sent < (int)sizeof(ParallelPixelStreamSegmentParameters))
-        {
-            sent += tcpSocket_.write((const char *)&(segments[i].parameters) + sent, sizeof(ParallelPixelStreamSegmentParameters) - sent);
-        }
+			// part 2: image data
+			sent = tcpSocket_.write((const char *)t->buf, t->size);
 
-        // part 2: image data
-        sent = tcpSocket_.write((const char *)segments[i].imageData.data(), segments[i].imageData.size());
+			while(sent < t->size)
+			{
+					sent += tcpSocket_.write((const char *)t->buf + sent, t->size - sent);
+			}
 
-        while(sent < segments[i].imageData.size())
-        {
-            sent += tcpSocket_.write((const char *)segments[i].imageData.data() + sent, segments[i].imageData.size() - sent);
-        }
-
-        // wait for acknowledgment
-        while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < 3)
-        {
+			// wait for acknowledgment
+			while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < 3)
+			{
 #ifndef _WIN32
             usleep(10);
 #endif
-        }
+			}
 
-        tcpSocket_.read(3);
+			tcpSocket_.read(3);
+			delete t;
     }
-
-    // update segments vector
-    segments_ = segments;
 
     // increment frame index
     frameIndex++;

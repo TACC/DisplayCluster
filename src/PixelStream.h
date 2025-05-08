@@ -39,9 +39,15 @@
 #ifndef PIXEL_STREAM_H
 #define PIXEL_STREAM_H
 
+#include "config.h"
+
 #include "FactoryObject.h"
 #include <boost/enable_shared_from_this.hpp>
+#if QT5 == 1
+#include <QtOpenGL/QGLWidget>
+#else
 #include <QGLWidget>
+#endif
 #include <QtConcurrentRun>
 #include <turbojpeg.h>
 

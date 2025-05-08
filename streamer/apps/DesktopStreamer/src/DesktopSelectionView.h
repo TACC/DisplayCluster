@@ -36,42 +36,29 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "DesktopSelectionWindow.h"
-#include "main.h"
+#ifndef DESKTOP_SELECTION_VIEW_H
+#define DESKTOP_SELECTION_VIEW_H
 
-DesktopSelectionWindow::DesktopSelectionWindow()
-{
-    // make window transparent
-    setStyleSheet("background:transparent;");
-    setAttribute(Qt::WA_TranslucentBackground);
-    setWindowFlags(Qt::FramelessWindowHint);
+#include <QtGui>
+#include "QtIncludes.h"
 
-    // window stays on top
-    Qt::WindowFlags flags = windowFlags();
-    setWindowFlags(flags | Qt::CustomizeWindowHint | Qt::WindowStaysOnTopHint);
+class DesktopSelectionRectangle;
 
-    // add the view after showing the window to avoid shadow artifacts on Mac
-    setCentralWidget(&desktopSelectionView_);
+class DesktopSelectionView : public QGraphicsView {
 
-    // button to hide the window
-    QPushButton * hideWindowButton = new QPushButton("Exit selection mode");
-    connect(hideWindowButton, SIGNAL(pressed()), this, SLOT(hide()));
+    public:
 
-    // makes the button square so the background doesn't look bad
-    hideWindowButton->setFlat(true);
+        DesktopSelectionView();
 
-    // add it to the scene
-    QGraphicsProxyWidget * hideWindowProxy = desktopSelectionView_.scene()->addWidget(hideWindowButton);
-}
+        DesktopSelectionRectangle * getDesktopSelectionRectangle();
 
-DesktopSelectionView * DesktopSelectionWindow::getDesktopSelectionView()
-{
-    return &desktopSelectionView_;
-}
+    protected:
 
-void DesktopSelectionWindow::hideEvent(QHideEvent * event)
-{
-    QWidget::hideEvent(event);
+        void resizeEvent(QResizeEvent * event);
 
-    g_mainWindow->showDesktopSelectionWindow(false);
-}
+    private:
+
+        DesktopSelectionRectangle * desktopSelectionRectangle_;
+};
+
+#endif

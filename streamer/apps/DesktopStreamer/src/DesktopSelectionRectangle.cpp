@@ -36,14 +36,13 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
+#include <iostream>
+
 #include "DesktopSelectionRectangle.h"
 #include "main.h"
 
 DesktopSelectionRectangle::DesktopSelectionRectangle()
 {
-    // defaults
-    resizing_ = false;
-
     // current coordinates from MainWindow
     g_mainWindow->getCoordinates(x_, y_, width_, height_);
 
@@ -54,7 +53,17 @@ DesktopSelectionRectangle::DesktopSelectionRectangle()
     setPen(QPen(QBrush(QColor(255, 0, 0)), PEN_WIDTH));
 
     // current coordinates, accounting for width of the pen outline
-    setRect(x_-PEN_WIDTH/2, y_-PEN_WIDTH/2, width_+PEN_WIDTH, height_+PEN_WIDTH);
+    setRect(x_, y_, width_, height_);
+}
+
+void
+DesktopSelectionRectangle::reset()
+{
+		auto screens = QGuiApplication::screens();
+		auto screenSize = screens[0]->size();
+		auto w = screenSize.width();
+		auto h = screenSize.height();
+    setRect(0, 0, w, h);
 }
 
 void DesktopSelectionRectangle::paint(QPainter * painter, const QStyleOptionGraphicsItem * option, QWidget * widget)
@@ -69,27 +78,62 @@ void DesktopSelectionRectangle::setCoordinates(int x, int y, int width, int heig
     width_ = width;
     height_ = height;
 
-    setRect(mapRectFromScene(x_-PEN_WIDTH/2, y_-PEN_WIDTH/2, width_+PEN_WIDTH, height_+PEN_WIDTH));
+    setRect(x_, y_, width_, height_);
 }
 
 void DesktopSelectionRectangle::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
 {
     if(event->buttons().testFlag(Qt::LeftButton) == true)
     {
-        if(resizing_ == true)
+        if(g_mainWindow->isResizing())
         {
             QRectF r = rect();
             QPointF eventPos = event->pos();
 
-            r.setBottomRight(eventPos);
+						if (selectedCorner_ == LL)
+								r.setBottomLeft(eventPos);
+						else if (selectedCorner_ == UL)
+								r.setTopLeft(eventPos);
+						else if (selectedCorner_ == LR)
+								r.setBottomRight(eventPos);
+						else if (selectedCorner_ == UR)
+								r.setTopRight(eventPos);
 
             setRect(r);
+						g_desktopSelectionWindow->placeButton(r.x(), r.y());
         }
         else
         {
+            QRectF r = rect();
+
+						// Desktop geometry
+						int dtw, dth;
+
+						auto screens = QGuiApplication::screens();
+						auto screenSize = screens[0]->size();
+						dtw = screenSize.width();
+						dth = screenSize.height();
+
             QPointF delta = event->pos() - event->lastPos();
 
-            moveBy(delta.x(), delta.y());
+						auto xl = r.x() + delta.x();
+						if (xl < 0) xl = 0;
+						else if (xl > dtw) xl = dtw;
+
+						auto xr = r.x() + r.width() + delta.x();
+						if (xr < 0) xr = 0;
+						else if (xr > dtw) xr = dtw;
+
+						auto yb = r.y() + delta.y();
+						if (yb < 0) yb = 0;
+						else if (yb > dth) yb = dth;
+
+						auto yt = r.y() + r.height() + delta.y();
+						if (yt < 0) yt = 0;
+						else if (yt > dth) yt = dth;
+
+						setRect(xl, yb, xr-xl, yt-yb);
+						g_desktopSelectionWindow->placeButton(r.x(), r.y());
         }
 
         updateCoordinates();
@@ -102,19 +146,30 @@ void DesktopSelectionRectangle::mousePressEvent(QGraphicsSceneMouseEvent * event
     QRectF r = rect();
     QPointF eventPos = event->pos();
 
+		selectedCorner_ = NONE;
+
+    if (fabs(r.x() - eventPos.x()) <= CORNER_RESIZE_THRESHHOLD)
+		{
+			if (fabs(r.y() - eventPos.y()) <= CORNER_RESIZE_THRESHHOLD) { selectedCorner_ = UL; }
+			else if (fabs((r.y()+r.height()) - eventPos.y()) <= CORNER_RESIZE_THRESHHOLD) { selectedCorner_ = LL; }
+		}
+		else if (fabs((r.x() + r.width()) - eventPos.x()) <= CORNER_RESIZE_THRESHHOLD)
+		{
+			if (fabs(r.y() - eventPos.y()) <= CORNER_RESIZE_THRESHHOLD) { selectedCorner_ = UR; }
+			else if (fabs((r.y()+r.height()) - eventPos.y()) <= CORNER_RESIZE_THRESHHOLD) { selectedCorner_ = LR; }
+		}
+			
     // check to see if user clicked on the resize button
-    if(fabs((r.x()+r.width()) - eventPos.x()) <= CORNER_RESIZE_THRESHHOLD && fabs((r.y()+r.height()) - eventPos.y()) <= CORNER_RESIZE_THRESHHOLD)
-    {
-        resizing_ = true;
-    }
+    if(selectedCorner_ != NONE)
+				g_mainWindow->setResizing();
 
     QGraphicsItem::mousePressEvent(event);
 }
 
 void DesktopSelectionRectangle::mouseReleaseEvent(QGraphicsSceneMouseEvent * event)
 {
-    resizing_ = false;
-
+		g_mainWindow->clearResizing();
+		g_mainWindow->updateCoordinates();
     QGraphicsItem::mouseReleaseEvent(event);
 }
 
@@ -122,10 +177,19 @@ void DesktopSelectionRectangle::updateCoordinates()
 {
     QRectF sceneRect = mapRectToScene(rect());
 
+#if 0
     x_ = (int)sceneRect.x() + PEN_WIDTH/2;
     y_ = (int)sceneRect.y() + PEN_WIDTH/2;
     width_ = (int)sceneRect.width() - PEN_WIDTH;
     height_ = (int)sceneRect.height() - PEN_WIDTH;
 
     g_mainWindow->setCoordinates(x_, y_, width_, height_);
+#else
+    x_ = sceneRect.x();
+    y_ = sceneRect.y();
+    width_ = sceneRect.width();
+    height_ = sceneRect.height();
+
+    g_mainWindow->setCoordinates(x_, y_, width_, height_);
+#endif
 }

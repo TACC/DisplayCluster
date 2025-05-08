@@ -36,27 +36,23 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DESKTOP_SELECTION_WINDOW_H
-#define DESKTOP_SELECTION_WINDOW_H
+#include "main.h"
+#include "log.h"
 
-#include "DesktopSelectionView.h"
-#include <QtGui>
+int g_mpiRank = 0;
 
-class DesktopSelectionWindow : public QMainWindow {
+MainWindow * g_mainWindow = NULL;
+DesktopSelectionWindow * g_desktopSelectionWindow = NULL;
 
-    public:
+int main(int argc, char * argv[])
+{
+    put_flog(LOG_INFO, "");
 
-        DesktopSelectionWindow();
+    QApplication * app = new QApplication(argc, argv);
 
-        DesktopSelectionView * getDesktopSelectionView();
+    g_mainWindow = new MainWindow();
+    g_desktopSelectionWindow = new DesktopSelectionWindow();
 
-    protected:
-
-        void hideEvent(QHideEvent * event);
-
-    private:
-
-        DesktopSelectionView desktopSelectionView_;
-};
-
-#endif
+    // enter Qt event loop
+    return app->exec();
+}
