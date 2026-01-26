@@ -120,8 +120,11 @@ class DC:
         self.updateContent()
         
     def create_event_list(self, script):
-        with open(script) as f:
-            j = json.load(f)
+        if isinstance(script, str):
+          with open(script) as f:
+              j = json.load(f)
+        elif isinstance(script, list):
+              j = script
         events = []
         for content in j:
             events.append(["open", content['open'], content])
