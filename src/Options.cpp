@@ -41,6 +41,7 @@
 Options::Options()
 {
     showWindowBorders_ = false;
+    showContentLabels_ = false;
     showTestPattern_ = false;
     enableMullionCompensation_ = true;
     showZoomContext_ = true;
@@ -56,6 +57,11 @@ Options::Options()
 bool Options::getShowWindowBorders()
 {
     return showWindowBorders_;
+}
+
+bool Options::getShowContentLabels()
+{
+    return showContentLabels_;
 }
 
 bool Options::getShowTestPattern()
@@ -98,6 +104,13 @@ bool Options::getShowSkeletons()
 void Options::setShowWindowBorders(bool set)
 {
     showWindowBorders_ = set;
+
+    emit(updated());
+}
+
+void Options::setShowContentLabels(bool set)
+{
+    showContentLabels_ = set;
 
     emit(updated());
 }

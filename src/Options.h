@@ -51,6 +51,7 @@ class Options : public QObject {
         Options();
 
         bool getShowWindowBorders();
+        bool getShowContentLabels();
         bool getShowTestPattern();
         bool getEnableMullionCompensation();
         bool getShowZoomContext();
@@ -64,6 +65,7 @@ class Options : public QObject {
 
     public slots:
         void setShowWindowBorders(bool set);
+        void setShowContentLabels(bool set);
         void setShowTestPattern(bool set);
         void setEnableMullionCompensation(bool set);
         void setShowZoomContext(bool set);
@@ -85,6 +87,7 @@ class Options : public QObject {
         void serialize(Archive & ar, const unsigned int)
         {
             ar & showWindowBorders_;
+            ar & showContentLabels_;
             ar & showTestPattern_;
             ar & enableMullionCompensation_;
             ar & showZoomContext_;
@@ -98,6 +101,7 @@ class Options : public QObject {
         }
 
         bool showWindowBorders_;
+        bool showContentLabels_;
         bool showTestPattern_;
         bool enableMullionCompensation_;
         bool showZoomContext_;

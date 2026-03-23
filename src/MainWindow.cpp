@@ -123,6 +123,13 @@ MainWindow::MainWindow()
         showWindowBordersAction->setChecked(g_displayGroupManager->getOptions()->getShowWindowBorders());
         connect(showWindowBordersAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowWindowBorders(bool)));
 
+        // show content labels action
+        QAction * showContentLabelsAction = new QAction("Show Content Labels", this);
+        showContentLabelsAction->setStatusTip("Show identifying label overlays on content windows");
+        showContentLabelsAction->setCheckable(true);
+        showContentLabelsAction->setChecked(g_displayGroupManager->getOptions()->getShowContentLabels());
+        connect(showContentLabelsAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowContentLabels(bool)));
+
         // show test pattern action
         QAction * showTestPatternAction = new QAction("Show Test Pattern", this);
         showTestPatternAction->setStatusTip("Show test pattern");
@@ -194,6 +201,7 @@ MainWindow::MainWindow()
         fileMenu->addAction(quitAction);
         viewMenu->addAction(constrainAspectRatioAction);
         viewMenu->addAction(showWindowBordersAction);
+        viewMenu->addAction(showContentLabelsAction);
         viewMenu->addAction(showTestPatternAction);
         viewMenu->addAction(enableMullionCompensationAction);
         viewMenu->addAction(showZoomContextAction);

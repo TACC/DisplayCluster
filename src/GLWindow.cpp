@@ -159,6 +159,43 @@ void GLWindow::paintGL()
 
         contentWindowManagers[i]->render();
 
+        // render identifying label overlay on each content window
+        if(g_displayGroupManager->getOptions()->getShowContentLabels() == true)
+        {
+            double x, y, w, h;
+            contentWindowManagers[i]->getCoordinates(x, y, w, h);
+
+            // label bar height: 5% of window height in normalized coords
+            double labelHeight = h * 0.05;
+
+            // draw semi-transparent dark background bar at the top of the window
+            glPushAttrib(GL_ENABLE_BIT | GL_DEPTH_BUFFER_BIT | GL_CURRENT_BIT);
+            glEnable(GL_BLEND);
+            glDepthMask(GL_FALSE);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glColor4f(0., 0., 0., 0.65);
+            GLWindow::drawRectangle(x, y, w, labelHeight);
+            glPopAttrib();
+
+            // extract filename from URI
+            std::string uri = contentWindowManagers[i]->getContent()->getURI();
+            std::string filename = uri.substr(uri.find_last_of("/\\") + 1);
+            QString label = QString::fromStdString(filename);
+
+            // convert normalized coords to screen pixels for renderText()
+            int pixelX = (int)(x * (double)width()) + 4;
+            int fontSize = std::max(10, (int)(labelHeight * (double)height() * 0.75));
+            int pixelY = (int)(y * (double)height()) + fontSize;
+
+            QFont font;
+            font.setPixelSize(fontSize);
+            font.setBold(true);
+
+            // white text
+            glColor4f(1., 1., 1., 1.);
+            renderText(pixelX, pixelY, label, font);
+        }
+
         glPopMatrix();
     }
 

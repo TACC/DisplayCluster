@@ -140,6 +140,10 @@ DCSocketManager::handleConnection(int skt)
 	{
 		g_displayGroupManager->getOptions()->setShowWindowBorders(j_in["state"] == "on");
 	}
+	else if (cmd == "show content labels")
+	{
+		g_displayGroupManager->getOptions()->setShowContentLabels(j_in["state"] == "on");
+	}
 	else if (cmd == "get configuration")
 	{
         json j_out = json::array();
