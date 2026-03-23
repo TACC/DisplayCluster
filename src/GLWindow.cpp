@@ -177,23 +177,44 @@ void GLWindow::paintGL()
             GLWindow::drawRectangle(x, y, w, labelHeight);
             glPopAttrib();
 
-            // extract filename from URI
-            std::string uri = contentWindowManagers[i]->getContent()->getURI();
-            std::string filename = uri.substr(uri.find_last_of("/\\") + 1);
-            QString label = QString::fromStdString(filename);
+            // Only render text if the label bar overlaps this tile's viewport.
+            // left_, right_, bottom_, top_ are the normalized global-display bounds
+            // of this tile, set by setOrthographicView().
+            bool labelInTile = (x < right_) && (x + w > left_) &&
+                               (y < top_)   && (y + labelHeight > bottom_);
 
-            // convert normalized coords to screen pixels for renderText()
-            int pixelX = (int)(x * (double)width()) + 4;
-            int fontSize = std::max(10, (int)(labelHeight * (double)height() * 0.75));
-            int pixelY = (int)(y * (double)height()) + fontSize;
+            if(labelInTile)
+            {
+                // extract filename from URI
+                std::string uri = contentWindowManagers[i]->getContent()->getURI();
+                std::string filename = uri.substr(uri.find_last_of("/\\") + 1);
+                QString label = QString::fromStdString(filename);
 
-            QFont font;
-            font.setPixelSize(fontSize);
-            font.setBold(true);
+                // Convert the label's top-left corner from normalized global display
+                // space into this tile's local pixel space.
+                //
+                // The tile covers [left_, right_] x [bottom_, top_] of the display.
+                // Map x -> fraction across this tile -> pixel column.
+                // The y-axis is inverted (origin at top in Qt pixel space).
+                double tileW = right_ - left_;
+                double tileH = top_   - bottom_;
 
-            // white text
-            glColor4f(1., 1., 1., 1.);
-            renderText(pixelX, pixelY, label, font);
+                int pixelX = (int)((x - left_) / tileW * (double)width()) + 4;
+
+                // fontSize scaled so it looks the same physical size regardless of
+                // how many tiles tall the display is
+                int fontSize = std::max(10, (int)(labelHeight / tileH * (double)height() * 0.75));
+
+                // y in global coords, mapped to pixel row (Qt y=0 is top of window)
+                int pixelY = (int)((y - bottom_) / tileH * (double)height()) + fontSize;
+
+                QFont font;
+                font.setPixelSize(fontSize);
+                font.setBold(true);
+
+                glColor4f(1., 1., 1., 1.);
+                renderText(pixelX, pixelY, label, font);
+            }
         }
 
         glPopMatrix();
