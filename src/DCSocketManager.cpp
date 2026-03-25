@@ -29,7 +29,7 @@ DCSocketManager::update_client(Connection* conn)
 		double x, y, w, h;
 		cm->getCoordinates(x, y, w, h);
 		j_out.push_back({x * g_configuration->getNumTilesWidth(), y * g_configuration->getNumTilesHeight(), 
-				w * g_configuration->getNumTilesWidth(), h * g_configuration->getNumTilesHeight(), c->getURI().c_str()});
+				w * g_configuration->getNumTilesWidth(), h * g_configuration->getNumTilesHeight(), c->getURI().c_str(), cm->getHidden()});
 	}
 
 	conn->Send(j_out);
@@ -125,6 +125,40 @@ DCSocketManager::handleConnection(int skt)
 			{
 				g_displayGroupManager->moveContentWindowManagerToFront(cm);
 				break;				
+			}
+		}
+	}
+	else if (cmd == "hide")
+	{
+		std::string uri = j_in["uri"];
+
+		std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers = g_displayGroupManager->getContentWindowManagers();
+
+		for (unsigned int i = 0; i < contentWindowManagers.size(); i++)
+		{
+			boost::shared_ptr<ContentWindowManager> cm = contentWindowManagers[i];
+			boost::shared_ptr<Content> c = cm->getContent();
+			if (uri == c->getURI())
+			{
+				cm->setHidden(true);
+				break;
+			}
+		}
+	}
+	else if (cmd == "reveal")
+	{
+		std::string uri = j_in["uri"];
+
+		std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers = g_displayGroupManager->getContentWindowManagers();
+
+		for (unsigned int i = 0; i < contentWindowManagers.size(); i++)
+		{
+			boost::shared_ptr<ContentWindowManager> cm = contentWindowManagers[i];
+			boost::shared_ptr<Content> c = cm->getContent();
+			if (uri == c->getURI())
+			{
+				cm->setHidden(false);
+				break;
 			}
 		}
 	}

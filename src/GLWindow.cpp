@@ -152,6 +152,9 @@ void GLWindow::paintGL()
 
     for(unsigned int i=0; i<contentWindowManagers.size(); i++)
     {
+        if(contentWindowManagers[i]->getHidden())
+            continue;
+
         // manage depth order
         // the visible depths seem to be in the range (-1,1); make the content window depths be in the range (-1,0)
         glPushMatrix();
