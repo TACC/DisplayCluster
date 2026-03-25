@@ -60,13 +60,14 @@ class DisplayGroupListWidgetProxy : public DisplayGroupInterface {
     private slots:
 
         void moveListWidgetItemToFront(QListWidgetItem * item);
-        void onHideCheckboxChanged(int state);
+        void onHideCheckboxChanged(const QString & uri);
 
     private:
 
         // we make this a member since we can't have multiple inheritance of QObject and still use signals/slots
         // see the "Diamond problem"
         QListWidget * listWidget_;
+        QSignalMapper * signalMapper_;
 
         void refreshListWidget();
 };

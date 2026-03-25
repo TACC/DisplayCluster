@@ -41,23 +41,15 @@
 #include "Content.h"
 #include "ContentWindowListWidgetItem.h"
 
-// Simple QCheckBox subclass that carries a reference to its ContentWindowManager.
-// Avoids QVariant void* which is not supported in Qt4.
-class HideCheckBox : public QCheckBox
-{
-public:
-    HideCheckBox(boost::shared_ptr<ContentWindowManager> cm, QWidget * parent = 0)
-        : QCheckBox(parent), contentWindowManager_(cm) { }
-
-    boost::shared_ptr<ContentWindowManager> contentWindowManager_;
-};
-
 DisplayGroupListWidgetProxy::DisplayGroupListWidgetProxy(boost::shared_ptr<DisplayGroupManager> displayGroupManager) : DisplayGroupInterface(displayGroupManager)
 {
     // create actual list widget
     listWidget_ = new QListWidget();
 
+    signalMapper_ = new QSignalMapper(this);
+
     connect(listWidget_, SIGNAL(itemClicked(QListWidgetItem * )), this, SLOT(moveListWidgetItemToFront(QListWidgetItem *)));
+    connect(signalMapper_, SIGNAL(mapped(const QString &)), this, SLOT(onHideCheckboxChanged(const QString &)));
 }
 
 DisplayGroupListWidgetProxy::~DisplayGroupListWidgetProxy()
@@ -117,14 +109,18 @@ void DisplayGroupListWidgetProxy::moveListWidgetItemToFront(QListWidgetItem * it
 
 void DisplayGroupListWidgetProxy::refreshListWidget()
 {
-    // clear list
+    // clear list and reset the signal mapper
     listWidget_->clear();
+    delete signalMapper_;
+    signalMapper_ = new QSignalMapper(this);
+    connect(signalMapper_, SIGNAL(mapped(const QString &)), this, SLOT(onHideCheckboxChanged(const QString &)));
 
     for(unsigned int i=0; i<contentWindowManagers_.size(); i++)
     {
         boost::shared_ptr<ContentWindowManager> cm = contentWindowManagers_[i];
+        QString uri = QString::fromStdString(cm->getContent()->getURI());
 
-        // create a row item (needs non-zero size hint so the widget has room)
+        // create a row item with enough height for the widget
         ContentWindowListWidgetItem * newItem = new ContentWindowListWidgetItem(cm);
         newItem->setSizeHint(QSize(0, 28));
         listWidget_->insertItem(0, newItem);
@@ -135,15 +131,16 @@ void DisplayGroupListWidgetProxy::refreshListWidget()
         layout->setContentsMargins(4, 2, 4, 2);
         layout->setSpacing(6);
 
-        HideCheckBox * cb = new HideCheckBox(cm);
+        QCheckBox * cb = new QCheckBox();
         cb->setToolTip("Hide/show this window");
         // checked = visible (i.e. NOT hidden)
         cb->setChecked(!cm->getHidden());
 
-        connect(cb, SIGNAL(stateChanged(int)), this, SLOT(onHideCheckboxChanged(int)));
+        // map this checkbox's stateChanged to its URI string
+        connect(cb, SIGNAL(stateChanged(int)), signalMapper_, SLOT(map()));
+        signalMapper_->setMapping(cb, uri);
 
-        QString uri = QString::fromStdString(cm->getContent()->getURI());
-        QString filename = uri.section('/', -1);   // basename
+        QString filename = uri.section('/', -1);
         QLabel * label = new QLabel(filename);
 
         layout->addWidget(cb);
@@ -154,12 +151,19 @@ void DisplayGroupListWidgetProxy::refreshListWidget()
     }
 }
 
-void DisplayGroupListWidgetProxy::onHideCheckboxChanged(int state)
+void DisplayGroupListWidgetProxy::onHideCheckboxChanged(const QString & uri)
 {
-    HideCheckBox * cb = dynamic_cast<HideCheckBox *>(sender());
-    if(!cb || !cb->contentWindowManager_)
-        return;
+    std::string uriStr = uri.toStdString();
 
-    // checked = visible, unchecked = hidden
-    cb->contentWindowManager_->setHidden(state != Qt::Checked);
+    for(unsigned int i=0; i<contentWindowManagers_.size(); i++)
+    {
+        if(contentWindowManagers_[i]->getContent()->getURI() == uriStr)
+        {
+            // find the checkbox via the signal mapper and read its state
+            QCheckBox * cb = qobject_cast<QCheckBox *>(signalMapper_->mapping(uri));
+            if(cb)
+                contentWindowManagers_[i]->setHidden(!cb->isChecked());
+            break;
+        }
+    }
 }
