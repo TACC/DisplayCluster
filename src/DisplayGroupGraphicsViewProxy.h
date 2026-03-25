@@ -36,39 +36,38 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#ifndef DISPLAY_GROUP_LIST_WIDGET_PROXY_H
-#define DISPLAY_GROUP_LIST_WIDGET_PROXY_H
+#ifndef DISPLAY_GROUP_GRAPHICS_VIEW_PROXY_H
+#define DISPLAY_GROUP_GRAPHICS_VIEW_PROXY_H
 
 #include "DisplayGroupInterface.h"
 #include <QtGui>
 
-class DisplayGroupListWidgetProxy : public DisplayGroupInterface {
+class DisplayGroupGraphicsView;
+
+class DisplayGroupGraphicsViewProxy : public DisplayGroupInterface {
     Q_OBJECT
 
     public:
 
-        DisplayGroupListWidgetProxy(boost::shared_ptr<DisplayGroupManager> displayGroupManager);
-        ~DisplayGroupListWidgetProxy();
+        DisplayGroupGraphicsViewProxy(boost::shared_ptr<DisplayGroupManager> displayGroupManager);
+        ~DisplayGroupGraphicsViewProxy();
 
-        QListWidget * getListWidget();
+        DisplayGroupGraphicsView * getGraphicsView();
 
         // re-implemented DisplayGroupInterface slots
         void addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
         void removeContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
         void moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
 
-    private slots:
+    public slots:
 
-        void moveListWidgetItemToFront(QListWidgetItem * item);
-        void onHideCheckboxChanged(int state);
+        void optionsUpdated();
 
     private:
 
         // we make this a member since we can't have multiple inheritance of QObject and still use signals/slots
         // see the "Diamond problem"
-        QListWidget * listWidget_;
-
-        void refreshListWidget();
+        DisplayGroupGraphicsView * graphicsView_;
 };
 
 #endif

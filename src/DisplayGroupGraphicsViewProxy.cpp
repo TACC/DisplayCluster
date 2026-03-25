@@ -36,130 +36,90 @@
 /* or implied, of The University of Texas at Austin.                 */
 /*********************************************************************/
 
-#include "DisplayGroupListWidgetProxy.h"
+#include "DisplayGroupGraphicsViewProxy.h"
+#include "DisplayGroupGraphicsView.h"
+#include "DisplayGroupGraphicsScene.h"
+#include "DisplayGroupManager.h"
 #include "ContentWindowManager.h"
-#include "Content.h"
-#include "ContentWindowListWidgetItem.h"
+#include "ContentWindowGraphicsItem.h"
 
-// Simple QCheckBox subclass that carries a reference to its ContentWindowManager.
-// Avoids QVariant void* which is not supported in Qt4.
-class HideCheckBox : public QCheckBox
+DisplayGroupGraphicsViewProxy::DisplayGroupGraphicsViewProxy(boost::shared_ptr<DisplayGroupManager> displayGroupManager) : DisplayGroupInterface(displayGroupManager)
 {
-public:
-    HideCheckBox(boost::shared_ptr<ContentWindowManager> cm, QWidget * parent = 0)
-        : QCheckBox(parent), contentWindowManager_(cm) { }
+    // create actual graphics view
+    graphicsView_ = new DisplayGroupGraphicsView();
 
-    boost::shared_ptr<ContentWindowManager> contentWindowManager_;
-};
-
-DisplayGroupListWidgetProxy::DisplayGroupListWidgetProxy(boost::shared_ptr<DisplayGroupManager> displayGroupManager) : DisplayGroupInterface(displayGroupManager)
-{
-    // create actual list widget
-    listWidget_ = new QListWidget();
-
-    connect(listWidget_, SIGNAL(itemClicked(QListWidgetItem * )), this, SLOT(moveListWidgetItemToFront(QListWidgetItem *)));
+    // connect Options updated signal
+    connect(displayGroupManager->getOptions().get(), SIGNAL(updated()), this, SLOT(optionsUpdated()));
 }
 
-DisplayGroupListWidgetProxy::~DisplayGroupListWidgetProxy()
+DisplayGroupGraphicsViewProxy::~DisplayGroupGraphicsViewProxy()
 {
-    delete listWidget_;
+    delete graphicsView_;
 }
 
-QListWidget * DisplayGroupListWidgetProxy::getListWidget()
+DisplayGroupGraphicsView * DisplayGroupGraphicsViewProxy::getGraphicsView()
 {
-    return listWidget_;
+    return graphicsView_;
 }
 
-void DisplayGroupListWidgetProxy::addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
+void DisplayGroupGraphicsViewProxy::addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
 {
     DisplayGroupInterface::addContentWindowManager(contentWindowManager, source);
 
     if(source != this)
     {
-        // for now, just clear and refresh the entire list, since this is just a read-only interface
-        // later this could be modeled after DisplayGroupGraphicsViewProxy if we want to expand the interface
-        refreshListWidget();
+        ContentWindowGraphicsItem * cwgi = new ContentWindowGraphicsItem(contentWindowManager);
+        graphicsView_->scene()->addItem((QGraphicsItem *)cwgi);
     }
 }
 
-void DisplayGroupListWidgetProxy::removeContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
+void DisplayGroupGraphicsViewProxy::removeContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
 {
     DisplayGroupInterface::removeContentWindowManager(contentWindowManager, source);
 
     if(source != this)
     {
-        refreshListWidget();
+        // find ContentWindowGraphicsItem associated with contentWindowManager
+        QList<QGraphicsItem *> itemsList = graphicsView_->scene()->items();
+
+        for(int i=0; i<itemsList.size(); i++)
+        {
+            // need dynamic cast to make sure this is actually a CWGI
+            ContentWindowGraphicsItem * cwgi = dynamic_cast<ContentWindowGraphicsItem *>(itemsList.at(i));
+
+            if(cwgi != NULL && cwgi->getContentWindowManager() == contentWindowManager)
+            {
+                graphicsView_->scene()->removeItem(itemsList.at(i));
+            }
+        }
     }
 }
 
-void DisplayGroupListWidgetProxy::moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
+void DisplayGroupGraphicsViewProxy::moveContentWindowManagerToFront(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
 {
     DisplayGroupInterface::moveContentWindowManagerToFront(contentWindowManager, source);
 
     if(source != this)
     {
-        refreshListWidget();
+        // find ContentWindowGraphicsItem associated with contentWindowManager
+        QList<QGraphicsItem *> itemsList = graphicsView_->scene()->items();
+
+        for(int i=0; i<itemsList.size(); i++)
+        {
+            // need dynamic cast to make sure this is actually a CWGI
+            ContentWindowGraphicsItem * cwgi = dynamic_cast<ContentWindowGraphicsItem *>(itemsList.at(i));
+
+            if(cwgi != NULL && cwgi->getContentWindowManager() == contentWindowManager)
+            {
+                // don't call cwgi->moveToFront() here or that'll lead to infinite recursion!
+                cwgi->setZToFront();
+            }
+        }
     }
 }
 
-void DisplayGroupListWidgetProxy::moveListWidgetItemToFront(QListWidgetItem * item)
+void DisplayGroupGraphicsViewProxy::optionsUpdated()
 {
-    ContentWindowListWidgetItem * cwlwi = dynamic_cast<ContentWindowListWidgetItem *>(listWidget_->takeItem(listWidget_->currentRow()));
-
-    if(cwlwi != NULL)
-    {
-        cwlwi->moveToFront();
-
-        // just move the item to the top of the list, rather than refresh the entire list...
-        listWidget_->insertItem(0, cwlwi);
-    }
-}
-
-void DisplayGroupListWidgetProxy::refreshListWidget()
-{
-    // clear list
-    listWidget_->clear();
-
-    for(unsigned int i=0; i<contentWindowManagers_.size(); i++)
-    {
-        boost::shared_ptr<ContentWindowManager> cm = contentWindowManagers_[i];
-
-        // create a row item (needs non-zero size hint so the widget has room)
-        ContentWindowListWidgetItem * newItem = new ContentWindowListWidgetItem(cm);
-        newItem->setSizeHint(QSize(0, 28));
-        listWidget_->insertItem(0, newItem);
-
-        // build a small widget: [checkbox] [filename label]
-        QWidget * rowWidget = new QWidget();
-        QHBoxLayout * layout = new QHBoxLayout(rowWidget);
-        layout->setContentsMargins(4, 2, 4, 2);
-        layout->setSpacing(6);
-
-        HideCheckBox * cb = new HideCheckBox(cm);
-        cb->setToolTip("Hide/show this window");
-        // checked = visible (i.e. NOT hidden)
-        cb->setChecked(!cm->getHidden());
-
-        connect(cb, SIGNAL(stateChanged(int)), this, SLOT(onHideCheckboxChanged(int)));
-
-        QString uri = QString::fromStdString(cm->getContent()->getURI());
-        QString filename = uri.section('/', -1);   // basename
-        QLabel * label = new QLabel(filename);
-
-        layout->addWidget(cb);
-        layout->addWidget(label, 1);
-        rowWidget->setLayout(layout);
-
-        listWidget_->setItemWidget(newItem, rowWidget);
-    }
-}
-
-void DisplayGroupListWidgetProxy::onHideCheckboxChanged(int state)
-{
-    HideCheckBox * cb = dynamic_cast<HideCheckBox *>(sender());
-    if(!cb || !cb->contentWindowManager_)
-        return;
-
-    // checked = visible, unchecked = hidden
-    cb->contentWindowManager_->setHidden(state != Qt::Checked);
+    // mullion compensation may have been enabled or disabled, so refresh the tiled display rectangles
+    ((DisplayGroupGraphicsScene *)(graphicsView_->scene()))->refreshTileRects();
 }
