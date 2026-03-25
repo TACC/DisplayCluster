@@ -48,8 +48,11 @@ DisplayGroupListWidgetProxy::DisplayGroupListWidgetProxy(boost::shared_ptr<Displ
 
     signalMapper_ = new QSignalMapper(this);
 
-    connect(listWidget_, SIGNAL(itemClicked(QListWidgetItem * )), this, SLOT(moveListWidgetItemToFront(QListWidgetItem *)));
-    connect(signalMapper_, SIGNAL(mapped(const QString &)), this, SLOT(onHideCheckboxChanged(const QString &)));
+    bool ok;
+    ok = connect(listWidget_, SIGNAL(itemClicked(QListWidgetItem * )), this, SLOT(moveListWidgetItemToFront(QListWidgetItem *)));
+    qDebug("DisplayGroupListWidgetProxy: itemClicked connect: %d", ok);
+    ok = connect(signalMapper_, SIGNAL(mapped(const QString &)), this, SLOT(onHideCheckboxChanged(const QString &)));
+    qDebug("DisplayGroupListWidgetProxy: signalMapper connect: %d", ok);
 }
 
 DisplayGroupListWidgetProxy::~DisplayGroupListWidgetProxy()
@@ -113,12 +116,17 @@ void DisplayGroupListWidgetProxy::refreshListWidget()
     listWidget_->clear();
     delete signalMapper_;
     signalMapper_ = new QSignalMapper(this);
-    connect(signalMapper_, SIGNAL(mapped(const QString &)), this, SLOT(onHideCheckboxChanged(const QString &)));
+    bool ok = connect(signalMapper_, SIGNAL(mapped(const QString &)), this, SLOT(onHideCheckboxChanged(const QString &)));
+    qDebug("refreshListWidget: signalMapper connect: %d", ok);
+
+    qDebug("refreshListWidget: building %d rows", (int)contentWindowManagers_.size());
 
     for(unsigned int i=0; i<contentWindowManagers_.size(); i++)
     {
         boost::shared_ptr<ContentWindowManager> cm = contentWindowManagers_[i];
         QString uri = QString::fromStdString(cm->getContent()->getURI());
+
+        qDebug("refreshListWidget: row %d uri=%s", i, uri.toLocal8Bit().constData());
 
         // create a row item with enough height for the widget
         ContentWindowListWidgetItem * newItem = new ContentWindowListWidgetItem(cm);
@@ -137,7 +145,8 @@ void DisplayGroupListWidgetProxy::refreshListWidget()
         cb->setChecked(!cm->getHidden());
 
         // map this checkbox's stateChanged to its URI string
-        connect(cb, SIGNAL(stateChanged(int)), signalMapper_, SLOT(map()));
+        ok = connect(cb, SIGNAL(stateChanged(int)), signalMapper_, SLOT(map()));
+        qDebug("refreshListWidget: cb->signalMapper connect: %d", ok);
         signalMapper_->setMapping(cb, uri);
 
         QString filename = uri.section('/', -1);
@@ -153,6 +162,8 @@ void DisplayGroupListWidgetProxy::refreshListWidget()
 
 void DisplayGroupListWidgetProxy::onHideCheckboxChanged(const QString & uri)
 {
+    qDebug("onHideCheckboxChanged: uri=%s", uri.toLocal8Bit().constData());
+
     std::string uriStr = uri.toStdString();
 
     for(unsigned int i=0; i<contentWindowManagers_.size(); i++)
@@ -161,6 +172,7 @@ void DisplayGroupListWidgetProxy::onHideCheckboxChanged(const QString & uri)
         {
             // find the checkbox via the signal mapper and read its state
             QCheckBox * cb = qobject_cast<QCheckBox *>(signalMapper_->mapping(uri));
+            qDebug("onHideCheckboxChanged: cb=%p checked=%d", cb, cb ? cb->isChecked() : -1);
             if(cb)
                 contentWindowManagers_[i]->setHidden(!cb->isChecked());
             break;
