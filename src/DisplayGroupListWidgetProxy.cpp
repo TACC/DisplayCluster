@@ -41,6 +41,17 @@
 #include "Content.h"
 #include "ContentWindowListWidgetItem.h"
 
+// Simple QCheckBox subclass that carries a reference to its ContentWindowManager.
+// Avoids QVariant void* which is not supported in Qt4.
+class HideCheckBox : public QCheckBox
+{
+public:
+    HideCheckBox(boost::shared_ptr<ContentWindowManager> cm, QWidget * parent = 0)
+        : QCheckBox(parent), contentWindowManager_(cm) { }
+
+    boost::shared_ptr<ContentWindowManager> contentWindowManager_;
+};
+
 DisplayGroupListWidgetProxy::DisplayGroupListWidgetProxy(boost::shared_ptr<DisplayGroupManager> displayGroupManager) : DisplayGroupInterface(displayGroupManager)
 {
     // create actual list widget
@@ -111,10 +122,44 @@ void DisplayGroupListWidgetProxy::refreshListWidget()
 
     for(unsigned int i=0; i<contentWindowManagers_.size(); i++)
     {
-        // add to list view
-        ContentWindowListWidgetItem * newItem = new ContentWindowListWidgetItem(contentWindowManagers_[i]);
-        newItem->setText(contentWindowManagers_[i]->getContent()->getURI().c_str());
+        boost::shared_ptr<ContentWindowManager> cm = contentWindowManagers_[i];
 
+        // create a row item (needs non-zero size hint so the widget has room)
+        ContentWindowListWidgetItem * newItem = new ContentWindowListWidgetItem(cm);
+        newItem->setSizeHint(QSize(0, 28));
         listWidget_->insertItem(0, newItem);
+
+        // build a small widget: [checkbox] [filename label]
+        QWidget * rowWidget = new QWidget();
+        QHBoxLayout * layout = new QHBoxLayout(rowWidget);
+        layout->setContentsMargins(4, 2, 4, 2);
+        layout->setSpacing(6);
+
+        HideCheckBox * cb = new HideCheckBox(cm);
+        cb->setToolTip("Hide/show this window");
+        // checked = visible (i.e. NOT hidden)
+        cb->setChecked(!cm->getHidden());
+
+        connect(cb, SIGNAL(stateChanged(int)), this, SLOT(onHideCheckboxChanged(int)));
+
+        QString uri = QString::fromStdString(cm->getContent()->getURI());
+        QString filename = uri.section('/', -1);   // basename
+        QLabel * label = new QLabel(filename);
+
+        layout->addWidget(cb);
+        layout->addWidget(label, 1);
+        rowWidget->setLayout(layout);
+
+        listWidget_->setItemWidget(newItem, rowWidget);
     }
+}
+
+void DisplayGroupListWidgetProxy::onHideCheckboxChanged(int state)
+{
+    HideCheckBox * cb = dynamic_cast<HideCheckBox *>(sender());
+    if(!cb || !cb->contentWindowManager_)
+        return;
+
+    // checked = visible, unchecked = hidden
+    cb->contentWindowManager_->setHidden(state != Qt::Checked);
 }
