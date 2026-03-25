@@ -90,7 +90,6 @@ class ContentWindowManager : public ContentWindowInterface, public boost::enable
             ar & centerY_;
             ar & zoom_;
             ar & selected_;
-            ar & hidden_;
             ar & highlightedTimestamp_;
         }
 

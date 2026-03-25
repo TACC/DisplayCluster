@@ -67,7 +67,6 @@ class ContentWindowInterface : public QObject {
         double getZoom();
         bool getSelected();
         bool getHighlighted();
-        bool getHidden();
 
         // button dimensions
         void getButtonDimensions(float &width, float &height);
@@ -88,7 +87,6 @@ class ContentWindowInterface : public QObject {
         virtual void setCenter(double centerX, double centerY, ContentWindowInterface * source=NULL);
         virtual void setZoom(double zoom, ContentWindowInterface * source=NULL);
         virtual void setSelected(bool selected, ContentWindowInterface * source=NULL);
-        virtual void setHidden(bool hidden);
         virtual void highlight(ContentWindowInterface * source=NULL);
         virtual void moveToFront(ContentWindowInterface * source=NULL);
         virtual void close(ContentWindowInterface * source=NULL);
@@ -131,7 +129,6 @@ class ContentWindowInterface : public QObject {
 
         // window state
         bool selected_;
-        bool hidden_;
 
         // highlighted timestamp
         boost::posix_time::ptime highlightedTimestamp_;

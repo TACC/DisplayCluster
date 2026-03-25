@@ -64,7 +64,6 @@ ContentWindowManager::ContentWindowManager(boost::shared_ptr<Content> content)
 
     // default window state
     selected_ = false;
-    hidden_ = false;
 
     // set content object
     content_ = content;
