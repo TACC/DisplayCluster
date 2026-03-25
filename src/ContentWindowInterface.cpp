@@ -475,6 +475,7 @@ void ContentWindowInterface::setSelected(bool selected, ContentWindowInterface *
 void ContentWindowInterface::setHidden(bool hidden)
 {
     hidden_ = hidden;
+    g_displayGroupManager->sendDisplayGroup();
 }
 
 void ContentWindowInterface::highlight(ContentWindowInterface * source)
