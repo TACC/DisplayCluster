@@ -154,10 +154,7 @@ void GLWindow::paintGL()
     {
         // skip hidden windows entirely
         if(contentWindowManagers[i]->getHidden())
-        {
-            qDebug("paintGL: skipping hidden window %d", i);
             continue;
-        }
 
         // manage depth order
         // the visible depths seem to be in the range (-1,1); make the content window depths be in the range (-1,0)
