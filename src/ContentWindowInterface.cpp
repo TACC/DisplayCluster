@@ -57,6 +57,7 @@ ContentWindowInterface::ContentWindowInterface(boost::shared_ptr<ContentWindowMa
         centerY_ = contentWindowManager->centerY_;
         zoom_ = contentWindowManager->zoom_;
         selected_ = contentWindowManager->selected_;
+        hidden_ = contentWindowManager->hidden_;
     }
 
     // connect signals from this to slots on the ContentWindowManager
@@ -134,6 +135,11 @@ double ContentWindowInterface::getZoom()
 bool ContentWindowInterface::getSelected()
 {
     return selected_;
+}
+
+bool ContentWindowInterface::getHidden()
+{
+    return hidden_;
 }
 
 bool ContentWindowInterface::getHighlighted()
@@ -464,6 +470,11 @@ void ContentWindowInterface::setSelected(bool selected, ContentWindowInterface *
 
         emit(selectedChanged(selected_, source));
     }
+}
+
+void ContentWindowInterface::setHidden(bool hidden)
+{
+    hidden_ = hidden;
 }
 
 void ContentWindowInterface::highlight(ContentWindowInterface * source)

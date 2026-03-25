@@ -60,6 +60,7 @@ class DisplayGroupListWidgetProxy : public DisplayGroupInterface {
     private slots:
 
         void moveListWidgetItemToFront(QListWidgetItem * item);
+        void onHideCheckboxChanged(int state);
 
     private:
 
