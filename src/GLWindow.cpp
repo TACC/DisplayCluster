@@ -152,6 +152,7 @@ void GLWindow::paintGL()
 
     for(unsigned int i=0; i<contentWindowManagers.size(); i++)
     {
+        // skip hidden windows entirely
         if(contentWindowManagers[i]->getHidden())
             continue;
 
