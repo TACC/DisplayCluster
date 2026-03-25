@@ -174,7 +174,11 @@ void DisplayGroupListWidgetProxy::onHideCheckboxChanged(const QString & uri)
             QCheckBox * cb = qobject_cast<QCheckBox *>(signalMapper_->mapping(uri));
             qDebug("onHideCheckboxChanged: cb=%p checked=%d", cb, cb ? cb->isChecked() : -1);
             if(cb)
+            {
+                qDebug("onHideCheckboxChanged: calling setHidden(%d)", !cb->isChecked());
                 contentWindowManagers_[i]->setHidden(!cb->isChecked());
+                qDebug("onHideCheckboxChanged: getHidden() now returns %d", contentWindowManagers_[i]->getHidden());
+            }
             break;
         }
     }
