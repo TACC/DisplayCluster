@@ -101,6 +101,14 @@ class DC:
         c.Send({ "cmd": "reveal", "uri": uri })
         self.updateContent()
 
+    def moveToFront(self, uri):
+        if uri not in self.content:
+            print('uri ', uri, ' not open')
+            return
+        c = Connection(self.port, self.host)
+        c.Send({ "cmd": "top", "uri": uri })
+        self.updateContent()
+
     def setConstrainAspectRatio(self, onOff):
         c = Connection(self.port, self.host)
         c.Send({ "cmd": "constrain aspect ratio", "state": onOff})
@@ -109,6 +117,11 @@ class DC:
     def setShowWindowBorders(self, onOff):
         c = Connection(self.port, self.host)
         c.Send({ "cmd": "show window borders", "state": onOff})
+        self.updateContent()
+
+    def setShowContentLabels(self, onOff):
+        c = Connection(self.port, self.host)
+        c.Send({ "cmd": "show content labels", "state": "on" if onOff else "off"})
         self.updateContent()
 
     def close(self, uri):
