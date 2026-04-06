@@ -140,6 +140,14 @@ void DisplayGroupListWidgetProxy::refreshListWidget()
         connect(cb, SIGNAL(stateChanged(int)), signalMapper_, SLOT(map()));
         signalMapper_->setMapping(cb, uri);
 
+        // store the checkbox on the item so onHiddenChanged can find it by URI
+        newItem->setData(Qt::UserRole + 1, QVariant::fromValue(static_cast<void *>(cb)));
+
+        // when the manager's hidden state changes externally, update the checkbox
+        connect(cm.get(), SIGNAL(hiddenChanged(bool, ContentWindowInterface *)),
+                this, SLOT(onHiddenChanged(bool, ContentWindowInterface *)),
+                Qt::QueuedConnection);
+
         QString filename = uri.section('/', -1);
         QLabel * label = new QLabel(filename);
 
@@ -162,6 +170,31 @@ void DisplayGroupListWidgetProxy::onHideCheckboxChanged(const QString & uri)
             QCheckBox * cb = qobject_cast<QCheckBox *>(signalMapper_->mapping(uri));
             if(cb)
                 contentWindowManagers_[i]->setHidden(!cb->isChecked());
+            break;
+        }
+    }
+}
+
+void DisplayGroupListWidgetProxy::onHiddenChanged(bool hidden, ContentWindowInterface * source)
+{
+    // Find the ContentWindowManager that sent this signal and update its checkbox.
+    ContentWindowManager * cwm = dynamic_cast<ContentWindowManager *>(source);
+    if(!cwm)
+        return;
+
+    std::string uriStr = cwm->getContent()->getURI();
+    QString uri = QString::fromStdString(uriStr);
+
+    for(int i = 0; i < listWidget_->count(); i++)
+    {
+        QListWidgetItem * item = listWidget_->item(i);
+        QCheckBox * cb = static_cast<QCheckBox *>(item->data(Qt::UserRole + 1).value<void *>());
+        if(cb && signalMapper_->mapping(uri) == cb)
+        {
+            // Block signals so setting the checkbox doesn't trigger onHideCheckboxChanged
+            cb->blockSignals(true);
+            cb->setChecked(!hidden);
+            cb->blockSignals(false);
             break;
         }
     }

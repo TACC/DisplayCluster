@@ -88,7 +88,7 @@ class ContentWindowInterface : public QObject {
         virtual void setCenter(double centerX, double centerY, ContentWindowInterface * source=NULL);
         virtual void setZoom(double zoom, ContentWindowInterface * source=NULL);
         virtual void setSelected(bool selected, ContentWindowInterface * source=NULL);
-        virtual void setHidden(bool hidden);
+        virtual void setHidden(bool hidden, ContentWindowInterface * source=NULL);
         virtual void highlight(ContentWindowInterface * source=NULL);
         virtual void moveToFront(ContentWindowInterface * source=NULL);
         virtual void close(ContentWindowInterface * source=NULL);
@@ -104,6 +104,7 @@ class ContentWindowInterface : public QObject {
         void centerChanged(double centerX, double centerY, ContentWindowInterface * source);
         void zoomChanged(double zoom, ContentWindowInterface * source);
         void selectedChanged(bool selected, ContentWindowInterface * source);
+        void hiddenChanged(bool hidden, ContentWindowInterface * source);
         void highlighted(ContentWindowInterface * source);
         void movedToFront(ContentWindowInterface * source);
         void closed(ContentWindowInterface * source);

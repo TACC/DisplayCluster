@@ -61,6 +61,7 @@ class DisplayGroupListWidgetProxy : public DisplayGroupInterface {
 
         void moveListWidgetItemToFront(QListWidgetItem * item);
         void onHideCheckboxChanged(const QString & uri);
+        void onHiddenChanged(bool hidden, ContentWindowInterface * source);
 
     private:
 
