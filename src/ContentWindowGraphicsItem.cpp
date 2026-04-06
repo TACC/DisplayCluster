@@ -53,8 +53,8 @@ ContentWindowGraphicsItem::ContentWindowGraphicsItem(boost::shared_ptr<ContentWi
     // graphics items are movable
     setFlag(QGraphicsItem::ItemIsMovable, true);
 
-    // default fill color / opacity
-    setBrush(QBrush(QColor(0, 0, 0, 128)));
+    // default fill color / opacity; reflects hidden state if set before construction
+    setBrush(QBrush(hidden_ ? QColor(0, 0, 180, 128) : QColor(0, 0, 0, 128)));
 
     // border based on if we're selected or not
     // use the -1 argument to force an update but not emit signals
@@ -231,6 +231,29 @@ void ContentWindowGraphicsItem::setSelected(bool selected, ContentWindowInterfac
         }
 
         setPen(p);
+
+        // force a redraw
+        update();
+    }
+}
+
+void ContentWindowGraphicsItem::setHidden(bool hidden, ContentWindowInterface * source)
+{
+    ContentWindowInterface::setHidden(hidden, source);
+
+    if(source != this)
+    {
+        // change fill color to indicate hidden state:
+        // hidden  -> dark blue tint  (semi-transparent)
+        // visible -> normal black fill (semi-transparent)
+        if(hidden_)
+        {
+            setBrush(QBrush(QColor(0, 0, 180, 128)));
+        }
+        else
+        {
+            setBrush(QBrush(QColor(0, 0, 0, 128)));
+        }
 
         // force a redraw
         update();
