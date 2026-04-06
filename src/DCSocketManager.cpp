@@ -45,6 +45,8 @@ DCSocketManager::handleConnection(int skt)
     json j_in = conn.Receive();
 
 	std::string cmd = j_in["cmd"];
+	put_flog(LOG_WARN, "received " + cmd);
+
 	if (cmd == "update")
 	{
 		put_flog(LOG_WARN, "UPDATE\n");
