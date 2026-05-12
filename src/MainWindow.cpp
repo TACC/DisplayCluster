@@ -368,8 +368,8 @@ void MainWindow::openContentsDirectory()
 {
     QString directoryName = QFileDialog::getExistingDirectory(this);
 
-    int gridX = QInputDialog::getInt(this, "Grid X dimension", "Grid X dimension");
-    int gridY = QInputDialog::getInt(this, "Grid Y dimension", "Grid Y dimension");
+    int gridX = QInputDialog::getInt(this, "Grid X dimension", "Grid X dimension", 2);
+    int gridY = QInputDialog::getInt(this, "Grid Y dimension", "Grid Y dimension", 2);
     float w = 1./(float)gridX;
     float h = 1./(float)gridY;
 
