@@ -42,40 +42,37 @@
 #include <iostream>
 #include <stdint.h>
 #include <chrono>
-#include <pthread.h>
-
-#include <sys/types.h>
-#include <unistd.h>
-#include <signal.h>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 
 using namespace std::chrono;
 
 extern "C" {
     #include "libavcodec/avcodec.h"
     #include "libavformat/avformat.h"
-    #include "libswscale/swscale.h"
     #include "libavutil/error.h"
     #include "libavutil/mathematics.h"
     #include "libavutil/avutil.h"
     #include "libavutil/imgutils.h"
+    #include "libavutil/hwcontext.h"
 }
 
-#if LIBAVUTIL_VERSION_MAJOR == 56
+// these old names have been retired since FFmpeg ~3.x; alias them for any
+// reasonably modern FFmpeg rather than pinning to one exact libavutil release
+#if LIBAVUTIL_VERSION_MAJOR >= 56
 #define PIX_FMT_RGBA AV_PIX_FMT_RGBA
 #define avcodec_alloc_frame av_frame_alloc
 #define CODEC_CAP_FRAME_THREADS AV_CODEC_CAP_FRAME_THREADS
 #define CODEC_CAP_SLICE_THREADS AV_CODEC_CAP_SLICE_THREADS
 #endif
 
-class Decoder 
+class Decoder
 {
 private:
-    static void *
-    decoderThread(void *p)
+    static void
+    decoderThread(Decoder *decoder)
     {
-        Decoder *decoder = (Decoder *)p;
-        // std::cerr << "Decoder thread pid: " << ((long)gettid()) << "\n";
-       
         decoder->Lock();
         if (decoder->_setup())
           decoder->tState_ = RUNNING;
@@ -102,9 +99,6 @@ private:
         }
 
         decoder->_cleanup();
-
-        // std::cerr << "Decoder thread exit\n";
-        pthread_exit(0);
     }
 
 public:
@@ -132,23 +126,16 @@ public:
         Unlock();
     }
 
-    bool 
+    bool
     Setup(std::string uri)
     {
         uri_   = uri;
-
-        pthread_mutex_init(&lock_, NULL);
-        pthread_cond_init(&signal_, NULL);
 
         tState_ = START;
 
         Lock();
 
-        if (pthread_create(&tid_, NULL, decoderThread, (void *)this))
-        {
-            Unlock();
-            return false;
-        }
+        thread_ = std::thread(decoderThread, this);
 
         while (tState_ == START)
             Wait();
@@ -157,11 +144,25 @@ public:
         return tState_ == RUNNING;
     }
 
-    void Lock()   { pthread_mutex_lock(&lock_); }
-    void Unlock() { pthread_mutex_unlock(&lock_); }
-    void Signal() { pthread_cond_signal(&signal_); }
-    void Kill()   { pthread_kill(tid_, SIGUSR1); }
-    void Wait()   { pthread_cond_wait(&signal_, &lock_); }
+    void Lock()   { mutex_.lock(); }
+    void Unlock() { mutex_.unlock(); }
+    void Signal() { cv_.notify_one(); }
+
+    // mirrors pthread_cond_wait(): caller must already hold mutex_ (via a
+    // prior Lock()); adopt_lock takes over that ownership without
+    // re-locking (a fresh lock() attempt here would throw, since a
+    // unique_lock refuses to re-lock a mutex it doesn't already own itself,
+    // and this one doesn't - Lock()/Unlock() touch mutex_ directly, not a
+    // unique_lock). release() stops the temporary from unlocking on scope
+    // exit, since cv_.wait() re-locks before returning and the caller is
+    // still on the hook for the matching Unlock()
+    void
+    Wait()
+    {
+        std::unique_lock<std::mutex> ul(mutex_, std::adopt_lock);
+        cv_.wait(ul);
+        ul.release();
+    }
 
     void
     getFrameDimensions(int &w, int &h)
@@ -170,12 +171,15 @@ public:
         h = height_;
     }
 
-    uint8_t *
+    // hardware (NVDEC) frame ready for GPU-side consumption; caller must
+    // call releaseFrame() once done reading planes/linesize from it, since
+    // the decoder thread is locked out until then
+    AVFrame *
     getFrame()
     {
         Lock();
         newFrame_ = false;
-        return data_[0];
+        return readyFrame_;
     }
 
     void
@@ -189,9 +193,6 @@ public:
 
     int
     getNumberOfFrames() { return num_frames_; };
-    
-    int
-    getNumBytes() { return numBytes_; }
 
 private:
 
@@ -201,17 +202,14 @@ private:
 
     std::string uri_;
     int width_, height_;
-    uint8_t **data_;
-    int *linesize_;
     int current_frame_ = -1;
     bool newFrame_;
-    int numBytes_;
 
-    SwsContext * swsContext_;
     AVFormatContext *avFormatContext_;
-    AVCodecContext *avCodecContext_; 
-    AVFrame *avFrame_, *avFrameRGB_;
-    int64_t duration_, num_frames_, start_time_; 
+    AVCodecContext *avCodecContext_;
+    AVFrame *avFrame_, *readyFrame_;
+    AVBufferRef *hwDeviceCtx_;
+    int64_t duration_, num_frames_, start_time_;
     int videoStream_;
     double fps_;
     AVRational tb_;
@@ -219,11 +217,11 @@ private:
 
     enum ThreadState { START, RUNNING, ERROR } tState_ = START;
 
-    pthread_t tid_;
+    std::thread thread_;
     bool quit_, pause_;
 
-    pthread_mutex_t lock_;
-    pthread_cond_t  signal_;
+    std::mutex mutex_;
+    std::condition_variable cv_;
 
     time_point<high_resolution_clock> tStart_;
 };

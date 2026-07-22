@@ -59,14 +59,8 @@
 #include <QDomDocument>
 #include <fstream>
 
-#include <pthread.h>
-pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
-
-int 
-ptid()
-{
-	return (((long long)pthread_self()) & 0xfffffff);
-}
+#include <mutex>
+std::mutex lock;
 
 DisplayGroupManager::DisplayGroupManager()
 {
@@ -81,11 +75,6 @@ DisplayGroupManager::DisplayGroupManager()
 
     // register types for use in signals/slots
     qRegisterMetaType<boost::shared_ptr<ContentWindowManager> >("boost::shared_ptr<ContentWindowManager>");
-
-    // serialization support for the vector of skeleton states
-#if ENABLE_SKELETON_SUPPORT
-    qRegisterMetaType<std::vector< boost::shared_ptr<SkeletonState> > >("std::vector< boost::shared_ptr<SkeletonState> >");
-#endif
 }
 
 boost::shared_ptr<Options> DisplayGroupManager::getOptions()
@@ -128,13 +117,6 @@ boost::shared_ptr<boost::posix_time::ptime> DisplayGroupManager::getTimestamp()
         return timestamp_;
     }
 }
-
-#if ENABLE_SKELETON_SUPPORT
-std::vector<boost::shared_ptr<SkeletonState> > DisplayGroupManager::getSkeletons()
-{
-    return skeletons_;
-}
-#endif
 
 void DisplayGroupManager::addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
 {
@@ -346,41 +328,34 @@ bool DisplayGroupManager::saveStateXMLFile(std::string filename)
 
 bool DisplayGroupManager::loadStateXML(QString xml)
 {
-		QBuffer buffer;
-		buffer.setData(xml.toUtf8().constData(), xml.length());
-		buffer.open(QIODevice::ReadOnly);
+    QDomDocument doc;
 
-    QXmlQuery query;
-		query.bindVariable("DOC", &buffer);
-
-    // temp
-    QString qstring;
-
-    // get number of content windows
-    int numContentWindows = 0;
-    query.setQuery("count(doc($DOC)//state/ContentWindow)");
-
-    if(query.evaluateTo(&qstring) == true)
+    if(!doc.setContent(xml))
     {
-        numContentWindows = qstring.toInt();
+        put_flog(LOG_ERROR, "failed to parse state XML");
+        return false;
     }
+
+    QDomElement stateElem = doc.documentElement();
+
+    QDomNodeList contentWindowNodes = stateElem.elementsByTagName("ContentWindow");
+    int numContentWindows = contentWindowNodes.size();
 
     put_flog(LOG_INFO, "%i content windows", numContentWindows);
 
     // new contents vector
     std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers;
 
-    for(int i=1; i<=numContentWindows; i++)
+    for(int i=0; i<numContentWindows; i++)
     {
-        char string[1024];
+        QDomElement cwmNode = contentWindowNodes.at(i).toElement();
 
         std::string uri;
-        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/URI/text()", i);
-        query.setQuery(string);
+        QDomElement uriElem = cwmNode.firstChildElement("URI");
 
-        if(query.evaluateTo(&qstring) == true)
+        if(uriElem.isNull() == false)
         {
-            uri = qstring.toStdString();
+            uri = uriElem.text().toStdString();
 
             // remove any whitespace
             boost::trim(uri);
@@ -393,68 +368,54 @@ bool DisplayGroupManager::loadStateXML(QString xml)
 
         bool selected = false;
 
-        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/x/text()", i);
-        query.setQuery(string);
+        QDomElement elem;
 
-        if(query.evaluateTo(&qstring) == true)
+        elem = cwmNode.firstChildElement("x");
+        if(elem.isNull() == false)
         {
-            x = qstring.toDouble();
+            x = elem.text().toDouble();
         }
 
-        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/y/text()", i);
-        query.setQuery(string);
-
-        if(query.evaluateTo(&qstring) == true)
+        elem = cwmNode.firstChildElement("y");
+        if(elem.isNull() == false)
         {
-            y = qstring.toDouble();
+            y = elem.text().toDouble();
         }
 
-        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/w/text()", i);
-        query.setQuery(string);
-
-        if(query.evaluateTo(&qstring) == true)
+        elem = cwmNode.firstChildElement("w");
+        if(elem.isNull() == false)
         {
-            w = qstring.toDouble();
+            w = elem.text().toDouble();
         }
 
-        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/h/text()", i);
-        query.setQuery(string);
-
-        if(query.evaluateTo(&qstring) == true)
+        elem = cwmNode.firstChildElement("h");
+        if(elem.isNull() == false)
         {
-            h = qstring.toDouble();
+            h = elem.text().toDouble();
         }
 
-        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/centerX/text()", i);
-        query.setQuery(string);
-
-        if(query.evaluateTo(&qstring) == true)
+        elem = cwmNode.firstChildElement("centerX");
+        if(elem.isNull() == false)
         {
-            centerX = qstring.toDouble();
+            centerX = elem.text().toDouble();
         }
 
-        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/centerY/text()", i);
-        query.setQuery(string);
-
-        if(query.evaluateTo(&qstring) == true)
+        elem = cwmNode.firstChildElement("centerY");
+        if(elem.isNull() == false)
         {
-            centerY = qstring.toDouble();
+            centerY = elem.text().toDouble();
         }
 
-        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/zoom/text()", i);
-        query.setQuery(string);
-
-        if(query.evaluateTo(&qstring) == true)
+        elem = cwmNode.firstChildElement("zoom");
+        if(elem.isNull() == false)
         {
-            zoom = qstring.toDouble();
+            zoom = elem.text().toDouble();
         }
 
-        sprintf(string, "doc($DOC)//state/ContentWindow[%i]/selected/text()", i);
-        query.setQuery(string);
-
-        if(query.evaluateTo(&qstring) == true)
+        elem = cwmNode.firstChildElement("selected");
+        if(elem.isNull() == false)
         {
-            selected = (bool)qstring.toInt();
+            selected = (bool)elem.text().toInt();
         }
 
         // add the window if we have a valid URI
@@ -595,9 +556,7 @@ void DisplayGroupManager::sendDisplayGroup()
 		if (synchronization_suspended)
 			return;
 
-// std::cerr << "SDG going for lock " << ptid() << "\n";
-		pthread_mutex_lock(&lock);
-// std::cerr << "SDG got lock " << ptid() << "\n";
+		lock.lock();
 
     // serialize state
     std::ostringstream oss(std::ostringstream::binary);
@@ -631,8 +590,7 @@ void DisplayGroupManager::sendDisplayGroup()
     MPI_Bcast((void *)serializedString.data(), size, MPI_BYTE, 0, MPI_COMM_WORLD);
 		MPI_Barrier(MPI_COMM_WORLD);
 
-		pthread_mutex_unlock(&lock);
-// std::cerr << "SDG released lock " << ptid() << "\n";
+		lock.unlock();
 }
 
 void DisplayGroupManager::sendContentsDimensionsRequest()
@@ -1034,20 +992,9 @@ void DisplayGroupManager::advanceContents()
     }
 }
 
-#if ENABLE_SKELETON_SUPPORT
-void DisplayGroupManager::setSkeletons(std::vector< boost::shared_ptr<SkeletonState> > skeletons)
-{
-    skeletons_ = skeletons;
-
-    sendDisplayGroup();
-}
-#endif
-
 void DisplayGroupManager::receiveDisplayGroup(MessageHeader messageHeader)
 {
-// std::cerr << "RDG going for lock\n";
-		pthread_mutex_lock(&lock);
-// std::cerr << "RDG got lock\n";
+		lock.lock();
 
     // receive serialized data
     char * buf = new char[messageHeader.size];
@@ -1074,8 +1021,7 @@ void DisplayGroupManager::receiveDisplayGroup(MessageHeader messageHeader)
     // free mpi buffer
     delete [] buf;
 
-		pthread_mutex_unlock(&lock);
-// std::cerr << "RDG released lock\n";
+		lock.unlock();
 }
 
 void DisplayGroupManager::receiveContentsDimensionsRequest(MessageHeader messageHeader)

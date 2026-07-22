@@ -39,7 +39,6 @@
 #include "Marker.h"
 #include "log.h"
 #include "main.h"
-#include <QGLWidget>
 
 GLuint Marker::textureId_ = 0;
 
@@ -60,7 +59,7 @@ Marker::Marker()
             return;
         }
 
-        textureId_ = g_mainWindow->getGLWindow()->bindTexture(image, GL_TEXTURE_2D, GL_RGBA, QGLContext::DefaultBindOption);
+        textureId_ = g_mainWindow->getGLWindow()->bindTextureFromImage(image, true);
     }
 }
 

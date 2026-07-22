@@ -30,10 +30,10 @@ You can start DisplayCluster using the *startdisplaycluster* command in {host-in
 
     #! /bin/bash
 
-    ## Location of configuration.xml ... installed on the client system in {worker-installdir}/examples
+    ## Location of configuration.json ... installed on the client system in {worker-installdir}/examples
     export DISPLAYCLUSTER_HOME={worker-installdir}
     export DISPLAYCLUSTER_DIR=${DISPLAYCLUSTER_HOME}   # not side if both HOME and DIR are needed
-    export DISPLAYCLUSTER_CONFIG=${DISPLAYCLUSTER_HOME}/examples/configuration.xml
+    export DISPLAYCLUSTER_CONFIG=${DISPLAYCLUSTER_HOME}/examples/configuration.json
 
     ## tell it where to get the sif file. 
     export DISPLAYCLUSTER_SIF=${DISPLAYCLUSTER_HOME}/sif/displaycluster.sif
@@ -64,7 +64,7 @@ Your mileage may vary if you choose this alternative.
 ## Installation and Runtime
 
 Create a root directory for DisplayCluster in a shared file system.  
-Add a configuration.xml file to that directory as described elsewhere in the docs.
+Add a configuration.json file to that directory as described elsewhere in the docs.
 Place **displaycluster.sif** therein.  
 Also copy the file **examples/startdisplaycluster** into that file - this python script is where various environment variables are defaulted, and where the actual **mpirun** call is made.
 

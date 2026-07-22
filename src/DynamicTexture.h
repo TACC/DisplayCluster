@@ -46,7 +46,8 @@
 #undef DYNAMIC_TEXTURE_SHOW_BORDER
 
 #include "FactoryObject.h"
-#include <QGLWidget>
+#include <QImage>
+#include <QOpenGLFunctions>
 #include <QtConcurrentRun>
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>

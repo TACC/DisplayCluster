@@ -45,6 +45,7 @@
 #include "Marker.h"
 #include "config.h"
 #include <QtGui>
+#include <QtWidgets>
 #include <vector>
 #include <stack>
 #include <boost/shared_ptr.hpp>
@@ -52,10 +53,6 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
-
-#if ENABLE_SKELETON_SUPPORT
-    #include "SkeletonState.h"
-#endif
 
 class ContentWindowManager;
 
@@ -72,10 +69,6 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         std::vector<boost::shared_ptr<Marker> > getMarkers();
 
         boost::shared_ptr<boost::posix_time::ptime> getTimestamp();
-
-#if ENABLE_SKELETON_SUPPORT
-        std::vector< boost::shared_ptr<SkeletonState> > getSkeletons();
-#endif
 
         // re-implemented DisplayGroupInterface slots
         void addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source=NULL);
@@ -114,10 +107,6 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
 
         void advanceContents();
 
-#if ENABLE_SKELETON_SUPPORT
-        void setSkeletons(std::vector<boost::shared_ptr<SkeletonState> > skeletons);
-#endif
-
     private:
 				bool synchronization_suspended;
 
@@ -129,10 +118,6 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
             ar & options_;
             ar & markers_;
             ar & contentWindowManagers_;
-
-#if ENABLE_SKELETON_SUPPORT
-            ar & skeletons_;
-#endif
         }
 
         // options
@@ -144,10 +129,6 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
 
         // frame timing
         boost::shared_ptr<boost::posix_time::ptime> timestamp_;
-
-#if ENABLE_SKELETON_SUPPORT
-        std::vector<boost::shared_ptr<SkeletonState> > skeletons_;
-#endif
 
         // rank 1 - rank 0 timestamp offset
         boost::posix_time::time_duration timestampOffset_;

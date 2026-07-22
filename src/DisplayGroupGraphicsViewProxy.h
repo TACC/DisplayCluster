@@ -41,6 +41,7 @@
 
 #include "DisplayGroupInterface.h"
 #include <QtGui>
+#include <QtWidgets>
 
 class DisplayGroupGraphicsView;
 

@@ -1,7 +1,4 @@
 #include <iostream>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
 #include "QSSApp.h"
 #include "DCSocketManager.h"
 #include "ContentWindowManager.h"
@@ -12,7 +9,7 @@
 DCSocketManager::DCSocketManager(int port)
 {
 	DCSocketInterface *iface = new DCSocketInterface(port);
-	connect(iface, SIGNAL(connectionReady(int)), this, SLOT(handleConnection(int)));
+	connect(iface, SIGNAL(connectionReady(qintptr)), this, SLOT(handleConnection(qintptr)));
 	iface->start();
 }
 
@@ -35,13 +32,13 @@ DCSocketManager::update_client(Connection* conn)
 	conn->Send(j_out);
 }
 void
-DCSocketManager::handleConnection(int skt)
+DCSocketManager::handleConnection(qintptr skt)
 {
 	QSSApplication *q_app = (QSSApplication *)g_app;
 
 	q_app->pause_screensaver();
 
-	Connection conn(skt);
+	Connection conn((socket_t)skt);
     json j_in = conn.Receive();
 
 	std::string cmd = j_in["cmd"];
@@ -205,12 +202,12 @@ DCSocketInterface::DCSocketInterface(int port)
 	m_srvr = new SocketInterface(port);
 }
   
-void 
+void
 DCSocketInterface::run()
 {
 	while (true)
 	{
-		int skt = m_srvr->WaitForConnection();
-		emit connectionReady(skt);
+		socket_t skt = m_srvr->WaitForConnection();
+		emit connectionReady((qintptr)skt);
 	}
 }

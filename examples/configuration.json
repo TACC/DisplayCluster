@@ -1,0 +1,49 @@
+{
+    "dimensions": {
+        "numTilesWidth": 2,
+        "numTilesHeight": 2,
+        "screenWidth": 400,
+        "screenHeight": 400,
+        "mullionWidth": 50,
+        "mullionHeight": 50,
+        "fullscreen": 0
+    },
+    "processes": [
+        {
+            "host": "localhost",
+            "display": ":0",
+            "screens": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "i": 0,
+                    "j": 0
+                },
+                {
+                    "x": 400,
+                    "y": 0,
+                    "i": 1,
+                    "j": 0
+                }
+            ]
+        },
+        {
+            "host": "localhost",
+            "display": ":0",
+            "screens": [
+                {
+                    "x": 0,
+                    "y": 400,
+                    "i": 0,
+                    "j": 1
+                },
+                {
+                    "x": 400,
+                    "y": 400,
+                    "i": 1,
+                    "j": 1
+                }
+            ]
+        }
+    ]
+}

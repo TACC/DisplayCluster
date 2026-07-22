@@ -44,6 +44,7 @@
 #include "PixelStream.h"
 #include "Factory.hpp"
 #include <QtGui>
+#include <QtWidgets>
 #include <boost/shared_ptr.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>

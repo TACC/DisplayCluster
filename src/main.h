@@ -114,10 +114,4 @@ extern NetworkListener * g_networkListener;
 extern long g_frameCount;
 extern uint64_t g_dc_flags;
 
-#if ENABLE_SKELETON_SUPPORT
-    class SkeletonThread;
-
-    extern SkeletonThread * g_skeletonThread;
-#endif
-
 #endif

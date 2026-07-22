@@ -5,7 +5,7 @@
 # installation if necessary
 
 import os
-import xml.etree.ElementTree as ET
+import json
 import subprocess
 import shlex
 
@@ -44,31 +44,31 @@ startCommand = install_dir + "/bin/" + executable
 if myRank == 0:
     subprocess.call(shlex.split(startCommand))
 else:
-    # configuration.xml gives the display
+    # configuration.json gives the display
     display = None
 
     try:
-        if 'DISPLAYCLUSTER_CONFIG' in os.environ:
-            doc = ET.parse(os.environ['DISPLAYCLUSTER_CONFIG'])
-        else:
-            doc = ET.parse(dcPath + '/configuration.xml')
+        configPath = os.environ.get('DISPLAYCLUSTER_CONFIG', dcPath + '/configuration.json')
 
-        elems = doc.findall('.//process')
+        with open(configPath) as f:
+            config = json.load(f)
 
-        if len(elems) < myRank:
-            print( 'could not find process element for rank ' + str(myRank))
+        processes = config['processes']
+
+        if len(processes) < myRank:
+            print( 'could not find process entry for rank ' + str(myRank))
             exit(-5)
 
-        elem = elems[myRank - 1]
+        process = processes[myRank - 1]
 
-        display = elem.get('display')
+        display = process.get('display')
 
         if display != None:
             os.environ['DISPLAY'] = display
         else:
             os.environ['DISPLAY'] = ':0'
     except:
-        print( 'Error processing configuration.xml. Make sure you have created a configuration.xml and put it in ' + dcPath + '/. An example is provided in the examples/ directory.')
+        print( 'Error processing configuration.json. Make sure you have created a configuration.json and put it in ' + dcPath + '/. An example is provided in the examples/ directory.')
         exit(-6)
 
     subprocess.call(shlex.split(startCommand))

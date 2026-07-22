@@ -76,8 +76,19 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
 
     if(contentWindowManager != NULL)
     {
+        // save/restore around this item's paint work: the scale() calls
+        // below permanently mutate the painter's transform if not undone,
+        // corrupting whatever gets drawn next in the same paint pass
+        // (tile-boundary rects, other content items, etc.)
+        painter->save();
+
         // default pen
+        // cosmetic + width 0: fixed device-pixel width, not scaled by the
+        // item's scene-to-pixel transform (the scene is a 1x1 unit square,
+        // so a non-cosmetic width-1 pen renders hundreds of pixels thick)
         QPen pen;
+        pen.setCosmetic(true);
+        pen.setWidth(0);
 
         // button dimensions
         float buttonWidth, buttonHeight;
@@ -154,6 +165,8 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
 
         QString windowInfoLabel = coordinatesLabel + zoomCenterLabel;
         painter->drawText(textBoundingRect, Qt::AlignLeft | Qt::AlignBottom, windowInfoLabel);
+
+        painter->restore();
     }
 }
 
@@ -219,7 +232,17 @@ void ContentWindowGraphicsItem::setSelected(bool selected, ContentWindowInterfac
     if(source != this)
     {
         // set the pen
+        // cosmetic + width 0: fixed device-pixel width, not scaled by the
+        // item's scene-to-pixel transform. Width must be 0 here, not just
+        // cosmetic - QGraphicsRectItem::boundingRect() pads itself using
+        // pen().widthF() in local scene units regardless of the cosmetic
+        // flag (cosmetic only affects rendering), so a width-1 pen in this
+        // 1x1-unit scene inflates the item's hit-test region by 0.5 units
+        // in every direction, large enough to swallow every other item's
+        // clicks
         QPen p = pen();
+        p.setCosmetic(true);
+        p.setWidth(0);
 
         if(selected_ == true)
         {
@@ -306,20 +329,7 @@ void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
         if(event->buttons().testFlag(Qt::RightButton) == true)
         {
             // increment zoom
-
-            // if this is a touch event, use cross-product for determining change in zoom (counterclockwise rotation == zoom in, etc.)
-            // otherwise, use y as the change in zoom
-            double zoomDelta;
-
-            if(event->modifiers().testFlag(Qt::AltModifier) == true)
-            {
-                zoomDelta = (event->scenePos().x()-0.5) * delta.y() - (event->scenePos().y()-0.5) * delta.x();
-                zoomDelta *= 2.;
-            }
-            else
-            {
-                zoomDelta = delta.y();
-            }
+            double zoomDelta = delta.y();
 
             double zoom = zoom_ * (1. - zoomDelta);
 

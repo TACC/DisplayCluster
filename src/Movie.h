@@ -42,10 +42,13 @@
 #include "FactoryObject.h"
 #include "Decoder.h"
 
-#include <QGLWidget>
+#include <QOpenGLFunctions>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <chrono>
 #include <iostream>
+
+#include <cuda.h>
+#include <cudaGL.h>
 
 using namespace std::chrono;
 
@@ -67,14 +70,19 @@ class Movie : public FactoryObject {
     private:
         Decoder *decoder = NULL;
 
-        // texture
-        GLuint textureId_;
-        bool textureBound_;
+        // NVDEC hands back NV12 (one full-res luma plane, one half-res
+        // interleaved chroma plane) resident on the GPU; each plane is
+        // registered with CUDA as its own GL texture so the decoded surface
+        // can be copied device-to-device straight into it (no host
+        // round-trip), and a fragment shader does the NV12->RGB conversion
+        // at draw time
+        GLuint textureY_;
+        GLuint textureUV_;
+        CUgraphicsResource cudaResourceY_;
+        CUgraphicsResource cudaResourceUV_;
+        GLuint shaderProgram_;
         bool initialized_;
         bool paused_;
-
-        int numBytes_ = -1;
-        void *bytes_ = NULL;
 
         int last_rendered_frame_ = -1;
 };

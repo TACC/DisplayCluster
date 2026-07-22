@@ -1,20 +1,26 @@
 project(DisplayCluster)
 
-cmake_minimum_required(VERSION 2.4.0)
+cmake_minimum_required(VERSION 3.16)
 
 # version information
 set(VERSION_MAJOR 0)
 set(VERSION_MINOR 1)
 set(VERSION_PATCH 0)
 
-# required for mixing libraries with full paths and not...
-if(COMMAND cmake_policy)
-    cmake_policy(SET CMP0003 NEW)
-endif(COMMAND cmake_policy)
-
 # show all warnings
-# set(CMAKE_CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+
+# Qt6 requires C++17
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# automatically run moc on headers with Q_OBJECT, replacing the old manual
+# MOC_HEADERS list + qt4_wrap_cpp() calls
+set(CMAKE_AUTOMOC ON)
+
+# workaround for moc choking while tokenizing complex Boost template headers
+# pulled in transitively by some Q_OBJECT classes (e.g. DisplayGroupManager)
+set(CMAKE_AUTOMOC_MOC_OPTIONS -DPOSIX_TIME_HPP___ -DPOSIX_TIME_SERIALIZE_HPP___ -DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED)
 
 # keep the library path in installed executables
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
@@ -25,33 +31,15 @@ option(INSTALL_CLIENT "Install client-side bits package" OFF)
 if (INSTALL_CLIENT)
     INSTALL(PROGRAMS scripts/startdisplaycluster DESTINATION bin)
     INSTALL(PROGRAMS python/DC.py python/Bounce.ipynb DESTINATION python)
-    INSTALL(PROGRAMS examples/run_script.py examples/script examples/configuration.xml DESTINATION examples)
+    INSTALL(PROGRAMS examples/run_script.py examples/script examples/configuration.json DESTINATION examples)
 endif()
-
-option(ENABLE_TUIO_TOUCH_LISTENER "Enable TUIO touch listener for multi-touch events" OFF)
-option(ENABLE_JOYSTICK_SUPPORT "Enable joystick support" OFF)
-option(ENABLE_SKELETON_SUPPORT "EXPERIMENTAL: Enable skeleton tracking interface support" OFF)
 
 # path for additional modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
-# find and setup Qt4
-# see http://cmake.org/cmake/help/cmake2.6docs.html#module:FindQt4 for details
-set(QT5 0)
-set(QT_USE_QTOPENGL TRUE)
-set(QT_USE_QTSVG TRUE)
-set(QT_USE_QTXMLPATTERNS TRUE)
-set(QT_USE_QTXML TRUE)
-set(QT_USE_QTNETWORK TRUE)
-
-if(WIN32)
-    set(QT_USE_QTMAIN TRUE)
-endif()
-
-find_package(Qt4 REQUIRED)
-
-include(${QT_USE_FILE})
-set(LIBS ${LIBS} ${QT_LIBRARIES})
+# find and setup Qt6
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Network Svg Xml Concurrent OpenGL)
+set(LIBS ${LIBS} Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Network Qt6::Svg Qt6::Xml Qt6::Concurrent Qt6::OpenGL)
 
 # libjpeg-turbo
 find_package(LibJpegTurbo REQUIRED)
@@ -78,46 +66,18 @@ find_package(FFMPEG REQUIRED)
 include_directories(SYSTEM ${FFMPEG_INCLUDE_DIR}) # use SYSTEM to suppress FFMPEG compile warnings
 set(LIBS ${LIBS} ${FFMPEG_LIBRARIES})
 
-# handle build options
-if(ENABLE_TUIO_TOUCH_LISTENER)
-find_package(TUIO REQUIRED)
-include_directories(${TUIO_INCLUDE_DIRS})
-set(LIBS ${LIBS} ${TUIO_LIBRARIES})
-
-set(SRCS ${SRCS} src/TouchListener.cpp)
-
-find_package(X11 REQUIRED)
-include_directories(${X11_INCLUDE_DIR})
-set(LIBS ${LIBS} ${X11_LIBRARIES})
+# CUDA driver API (cuda.h / cudaGL.h) for NVDEC decode + zero-copy CUDA-GL
+# interop in Movie.cpp/Decoder.cpp; only needs the driver, not the full
+# toolkit/nvcc, since nothing here is compiled as CUDA device code
+find_path(CUDA_DRIVER_INCLUDE_DIR cuda.h
+    PATHS /usr/local/cuda/targets/x86_64-linux/include /usr/local/cuda/include)
+find_library(CUDA_DRIVER_LIBRARY cuda
+    PATHS /usr/local/cuda/targets/x86_64-linux/lib /usr/local/cuda/lib64 /usr/lib64 /usr/lib64/stubs)
+if(NOT CUDA_DRIVER_INCLUDE_DIR OR NOT CUDA_DRIVER_LIBRARY)
+    message(FATAL_ERROR "CUDA driver API not found (cuda.h / libcuda) - required for NVDEC decode")
 endif()
-
-if(ENABLE_JOYSTICK_SUPPORT)
-find_package(SDL REQUIRED)
-include_directories(${SDL_INCLUDE_DIR})
-set(LIBS ${LIBS} ${SDL_LIBRARY})
-
-set(SRCS ${SRCS} src/JoystickThread.cpp)
-set(SRCS ${SRCS} src/DisplayGroupJoystick.cpp)
-
-set(MOC_HEADERS ${MOC_HEADERS} src/JoystickThread.h)
-endif()
-
-if(ENABLE_SKELETON_SUPPORT)
-    find_package(OpenNI REQUIRED)
-    include_directories(SYSTEM ${OpenNI_INCLUDE_DIRS}) # use SYSTEM to suppress OpenNI compile warnings
-    set(LIBS ${LIBS} ${OpenNI_LIBRARIES})
-
-    set(SRCS ${SRCS}
-        src/SkeletonThread.cpp
-        src/SkeletonSensor.cpp
-        src/SkeletonState.cpp)
-
-    if(NOT ENABLE_JOYSTICK_SUPPORT)
-        set(SRCS ${SRCS} src/DisplayGroupJoystick.cpp)
-    endif()
-
-    set(MOC_HEADERS ${MOC_HEADERS} src/SkeletonThread.h)
-endif()
+include_directories(SYSTEM ${CUDA_DRIVER_INCLUDE_DIR})
+set(LIBS ${LIBS} ${CUDA_DRIVER_LIBRARY})
 
 # process config file
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
@@ -165,29 +125,23 @@ set(SRCS ${SRCS}
     src/TextureContent.cpp
 )
 
-set(MOC_HEADERS ${MOC_HEADERS}
-    src/Content.h
-    src/ContentWindowInterface.h
-    src/DCSocketManager.h
-    src/DisplayGroupManager.h
-    src/DisplayGroupInterface.h
-    src/DisplayGroupGraphicsViewProxy.h
-    src/DisplayGroupListWidgetProxy.h
-    src/MainWindow.h
-    src/Marker.h
-    src/NetworkListener.h
-    src/NetworkListenerThread.h
-    src/Options.h
-    src/QSSApp.h
-)
+add_executable(displaycluster ${SRCS})
 
+# nothing here calls pthreads directly anymore (std::thread/mutex/
+# condition_variable only), but glibc's libstdc++ still wants it linked
+# explicitly on Linux; MSVC's std::thread needs no such library
+if(NOT WIN32)
+    set(LIBS ${LIBS} pthread)
+endif()
 
-# add OPTIONS hacks for Qt's MOC processing of Boost headers, for compiler errors with some versions of Boost
-qt4_wrap_cpp(MOC_OUTFILES ${MOC_HEADERS} OPTIONS -DPOSIX_TIME_HPP___ -DPOSIX_TIME_SERIALIZE_HPP___ -DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED)
+# SocketInterface.cpp uses Winsock2 on Windows (DCSocketManager's Python/
+# DC.py control socket); ws2_32 also carries its own #pragma comment(lib)
+# under MSVC, but link it here too for non-MSVC Windows toolchains
+if(WIN32)
+    set(LIBS ${LIBS} ws2_32)
+endif()
 
-add_executable(displaycluster ${SRCS} ${MOC_OUTFILES})
-
-target_link_libraries(displaycluster ${LIBS} pthread)
+target_link_libraries(displaycluster ${LIBS})
 
 # install executable
 INSTALL(TARGETS displaycluster RUNTIME DESTINATION bin)

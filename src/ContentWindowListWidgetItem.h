@@ -41,6 +41,7 @@
 
 #include "ContentWindowInterface.h"
 #include <QtGui>
+#include <QtWidgets>
 #include <boost/shared_ptr.hpp>
 
 class ContentWindowManager;

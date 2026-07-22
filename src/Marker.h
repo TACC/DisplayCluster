@@ -48,7 +48,8 @@
 #define MARKER_TIMEOUT_SECONDS 5
 
 #include <QtGui>
-#include <QGLWidget>
+#include <QtWidgets>
+#include <QOpenGLFunctions>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>

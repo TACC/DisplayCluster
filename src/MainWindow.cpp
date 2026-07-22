@@ -44,11 +44,6 @@
 #include "DisplayGroupGraphicsViewProxy.h"
 #include "DisplayGroupListWidgetProxy.h"
 
-
-#if ENABLE_SKELETON_SUPPORT
-    #include "SkeletonThread.h"
-#endif
-
 MainWindow::MainWindow()
 {
     // defaults
@@ -66,10 +61,6 @@ MainWindow::MainWindow()
         QMenu * fileMenu = menuBar()->addMenu("&File");
         QMenu * viewMenu = menuBar()->addMenu("&View");
         QMenu * viewStreamingMenu = viewMenu->addMenu("&Streaming");
-
-#if ENABLE_SKELETON_SUPPORT
-        QMenu * skeletonMenu = menuBar()->addMenu("&Skeleton Tracking");
-#endif
 
         // create tool bar
         QToolBar * toolbar = addToolBar("toolbar");
@@ -172,25 +163,6 @@ MainWindow::MainWindow()
         showStreamingStatisticsAction->setChecked(g_displayGroupManager->getOptions()->getShowStreamingStatistics());
         connect(showStreamingStatisticsAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowStreamingStatistics(bool)));
 
-#if ENABLE_SKELETON_SUPPORT
-        // enable skeleton tracking action
-        QAction * enableSkeletonTrackingAction = new QAction("Enable Skeleton Tracking", this);
-        enableSkeletonTrackingAction->setStatusTip("Enable skeleton tracking");
-        enableSkeletonTrackingAction->setCheckable(true);
-        enableSkeletonTrackingAction->setChecked(true); // timer is started by default
-        connect(enableSkeletonTrackingAction, SIGNAL(toggled(bool)), this, SLOT(setEnableSkeletonTracking(bool)));
-
-        connect(this, SIGNAL(enableSkeletonTracking()), g_skeletonThread, SLOT(startTimer()));
-        connect(this, SIGNAL(disableSkeletonTracking()), g_skeletonThread, SLOT(stopTimer()));
-
-        // show skeletons action
-        QAction * showSkeletonsAction = new QAction("Show Skeletons", this);
-        showSkeletonsAction->setStatusTip("Show skeletons");
-        showSkeletonsAction->setCheckable(true);
-        showSkeletonsAction->setChecked(g_displayGroupManager->getOptions()->getShowSkeletons());
-        connect(showSkeletonsAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowSkeletons(bool)));
-#endif
-
         // add actions to menus
         fileMenu->addAction(openContentAction);
         fileMenu->addAction(openContentsDirectoryAction);
@@ -208,11 +180,6 @@ MainWindow::MainWindow()
         viewStreamingMenu->addAction(enableStreamingSynchronizationAction);
         viewStreamingMenu->addAction(showStreamingSegmentsAction);
         viewStreamingMenu->addAction(showStreamingStatisticsAction);
-
-#if ENABLE_SKELETON_SUPPORT
-        skeletonMenu->addAction(enableSkeletonTrackingAction);
-        skeletonMenu->addAction(showSkeletonsAction);
-#endif
 
         // add actions to toolbar
         toolbar->addAction(openContentAction);
@@ -265,7 +232,8 @@ MainWindow::MainWindow()
             boost::shared_ptr<GLWindow> glw(new GLWindow(0));
             glWindows_.push_back(glw);
 
-            setCentralWidget(glw.get());
+            // GLWindow is a QWindow, not a QWidget; wrap it to embed as the central widget
+            setCentralWidget(QWidget::createWindowContainer(glw.get()));
 
             if(g_configuration->getFullscreen() == true)
             {
@@ -306,7 +274,7 @@ MainWindow::MainWindow()
                     int x = g_configuration->getTileX(i);
                     int y = g_configuration->getTileY(i);
                     glw->setGeometry(x, y, g_configuration->getScreenWidth(), g_configuration->getScreenHeight());
-                    glw->setWindowFlags(Qt::FramelessWindowHint);
+                    glw->setFlags(Qt::FramelessWindowHint);
                     glw->show();
                 }
             }
@@ -491,19 +459,6 @@ void MainWindow::constrainAspectRatio(bool set)
     }
 }
 
-#if ENABLE_SKELETON_SUPPORT
-void MainWindow::setEnableSkeletonTracking(bool enable)
-{
-    if(enable == true)
-    {
-        emit(enableSkeletonTracking());
-    }
-    else
-    {
-        emit(disableSkeletonTracking());
-    }
-}
-#endif
 
 void MainWindow::updateGLWindows()
 {

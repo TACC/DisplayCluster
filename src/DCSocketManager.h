@@ -16,7 +16,10 @@ protected:
 	void update_client(Connection *);
 
 public slots:
-	void handleConnection(int);
+	// qintptr (not int/socket_t) because this crosses the Qt signal/slot
+	// boundary, and a Windows SOCKET is pointer-sized and won't fit in a
+	// plain int
+	void handleConnection(qintptr);
 };
 
 class DCSocketInterface : public QThread
@@ -28,7 +31,7 @@ public:
 	void run() override;
 
 signals:
-	void connectionReady(int);
+	void connectionReady(qintptr);
 
 private:
 	SocketInterface *m_srvr;

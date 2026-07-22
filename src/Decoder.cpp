@@ -40,30 +40,33 @@
 #include "main.h"
 #include "Decoder.h"
 
-static bool first = true;
-static void sighandler(int signum)
+// picks AV_PIX_FMT_CUDA out of the codec's offered formats so decoded frames
+// stay resident on the GPU (as NV12 device memory) instead of falling back
+// to a software pixel format
+static enum AVPixelFormat
+get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_fmts)
 {
-    std::cerr << "Decoder kill signal\n";
-    pthread_exit(NULL);
+    for (const enum AVPixelFormat *p = pix_fmts; *p != AV_PIX_FMT_NONE; p++)
+    {
+        if (*p == AV_PIX_FMT_CUDA)
+            return *p;
+    }
+
+    std::cerr << "failed to get CUDA hw surface format; codec has no NVDEC support\n";
+    return AV_PIX_FMT_NONE;
 }
 
 Decoder::Decoder(bool paused)
 {
     quit_   = false;
     pause_  = paused;
-
-    if (first)
-    {
-        first = false;
-        signal(SIGUSR1, sighandler);
-    }
 }
 
 Decoder::~Decoder()
 {
     quit_ = true;
     Signal();
-    pthread_join(tid_, NULL);
+    thread_.join();
 }
 
 bool
@@ -71,11 +74,11 @@ Decoder::_setup()
 {
     avformat_network_init();
 
-    swsContext_ = NULL;
     avFormatContext_ = NULL;
     avCodecContext_ = NULL;
     avFrame_ = NULL;
-    avFrameRGB_ = NULL;
+    readyFrame_ = NULL;
+    hwDeviceCtx_ = NULL;
     newFrame_ = false;
 
     current_frame_ = -1;
@@ -114,7 +117,7 @@ Decoder::_setup()
     }
 
 
-    AVCodec *codec = avcodec_find_decoder(stream->codecpar->codec_id);
+    const AVCodec *codec = avcodec_find_decoder(stream->codecpar->codec_id);
     if (!codec)
     {
         std::cerr << "unsupported codec\n";
@@ -130,17 +133,14 @@ Decoder::_setup()
         return false;
     }
 
-#if 1
-    // set codec to automatically determine how many threads suits best for the decoding job
-    avCodecContext_->thread_count = 0;
+    if (av_hwdevice_ctx_create(&hwDeviceCtx_, AV_HWDEVICE_TYPE_CUDA, NULL, NULL, 0) < 0)
+    {
+        std::cerr << "could not create CUDA hw device context\n";
+        return false;
+    }
 
-    if (codec->capabilities & CODEC_CAP_FRAME_THREADS)
-       avCodecContext_->thread_type = FF_THREAD_FRAME;
-    else if (codec->capabilities & CODEC_CAP_SLICE_THREADS)
-       avCodecContext_->thread_type = FF_THREAD_SLICE;
-    else
-       avCodecContext_->thread_count = 1; //don't use multithreading
-#endif
+    avCodecContext_->hw_device_ctx = av_buffer_ref(hwDeviceCtx_);
+    avCodecContext_->get_format = get_hw_format;
 
     if (avcodec_open2(avCodecContext_, codec, NULL) < 0)
     {
@@ -149,12 +149,7 @@ Decoder::_setup()
     }
 
     avFrame_ = avcodec_alloc_frame();
-    avFrameRGB_ = avcodec_alloc_frame();
-
-    numBytes_ = av_image_get_buffer_size(PIX_FMT_RGBA, avCodecContext_->width, avCodecContext_->height, 32);
-    uint8_t *buffer = (uint8_t *)av_malloc(numBytes_*sizeof(uint8_t));
-
-    av_image_fill_arrays(avFrameRGB_->data, avFrameRGB_->linesize, buffer, AV_PIX_FMT_RGBA, avCodecContext_->width, avCodecContext_->height, 1);
+    readyFrame_ = avcodec_alloc_frame();
 
     duration_ = stream->duration;
     num_frames_ = av_rescale(duration_, stream->time_base.num * stream->r_frame_rate.num, stream->time_base.den * stream->r_frame_rate.den);
@@ -167,10 +162,6 @@ Decoder::_setup()
 
     height_ = avCodecContext_->height;
     width_ = avCodecContext_->width;
-    data_ = &avFrameRGB_->data[0];
-    linesize_ = &avFrameRGB_->linesize[0];
-
-    swsContext_ = sws_getContext(width_, height_, avCodecContext_->pix_fmt, width_, height_, PIX_FMT_RGBA, SWS_FAST_BILINEAR, NULL, NULL, NULL);
 
     return true;
 }
@@ -217,10 +208,11 @@ Decoder::_decode()
             if(dts == 0 || (avFrame_->pkt_dts >= dts))
             {
                 Lock();
-                sws_scale(swsContext_, avFrame_->data, avFrame_->linesize, 0, avCodecContext_->height, avFrameRGB_->data, avFrameRGB_->linesize);
+                av_frame_unref(readyFrame_);
+                av_frame_ref(readyFrame_, avFrame_);
                 newFrame_ = true;
                 Unlock();
-          
+
                 av_packet_unref(&packet);
 
                 break;
@@ -238,7 +230,7 @@ Decoder::_cleanup()
 {
     avcodec_close(avCodecContext_);
     avformat_close_input(&avFormatContext_);
-    sws_freeContext(swsContext_);
-    av_free(avFrame_);
-    av_free(avFrameRGB_);
+    av_frame_free(&avFrame_);
+    av_frame_free(&readyFrame_);
+    av_buffer_unref(&hwDeviceCtx_);
 }

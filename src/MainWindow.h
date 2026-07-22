@@ -45,7 +45,7 @@
 #include "config.h"
 #include "GLWindow.h"
 #include <QtGui>
-#include <QGLWidget>
+#include <QtWidgets>
 #include <boost/shared_ptr.hpp>
 
 class MainWindow : public QMainWindow {
@@ -73,10 +73,6 @@ class MainWindow : public QMainWindow {
         void computeImagePyramid();
         void constrainAspectRatio(bool set);
 
-#if ENABLE_SKELETON_SUPPORT
-        void setEnableSkeletonTracking(bool enable);
-#endif
-
         void updateGLWindows();
 
         void finalize();
@@ -84,11 +80,6 @@ class MainWindow : public QMainWindow {
     signals:
 
         void updateGLWindowsFinished();
-
-#if ENABLE_SKELETON_SUPPORT
-        void enableSkeletonTracking();
-        void disableSkeletonTracking();
-#endif
 
     private:
 

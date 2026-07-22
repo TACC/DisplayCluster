@@ -40,6 +40,7 @@
 #define DISPLAY_GROUP_GRAPHICS_SCENE_H
 
 #include <QtGui>
+#include <QtWidgets>
 #include <boost/shared_ptr.hpp>
 #include <vector>
 

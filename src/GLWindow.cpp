@@ -41,7 +41,10 @@
 #include "Marker.h"
 #include "ContentWindowManager.h"
 #include "log.h"
-#include <QtOpenGL>
+#include <QOpenGLContext>
+#include <QOpenGLPaintDevice>
+#include <QSurfaceFormat>
+#include <QPainter>
 #include <boost/shared_ptr.hpp>
 
 #ifdef __APPLE__
@@ -51,27 +54,49 @@
 #endif
 
 GLWindow::GLWindow(int tileIndex)
+    : tileIndex_(tileIndex), context_(NULL), initializedGL_(false)
 {
-    tileIndex_ = tileIndex;
-
-    // disable automatic buffer swapping
-    setAutoBufferSwap(false);
+    init(NULL);
 }
 
-GLWindow::GLWindow(int tileIndex, QRect windowRect, QGLWidget * shareWidget) : QGLWidget(0, shareWidget)
+GLWindow::GLWindow(int tileIndex, QRect windowRect, GLWindow * shareWindow)
+    : tileIndex_(tileIndex), context_(NULL), initializedGL_(false)
 {
-    tileIndex_ = tileIndex;
     setGeometry(windowRect);
+    init(shareWindow);
+}
+
+void GLWindow::init(GLWindow * shareWindow)
+{
+    setSurfaceType(QWindow::OpenGLSurface);
+
+    QSurfaceFormat format;
+    format.setDepthBufferSize(24);
+
+    // the rendering code here (and in Content subclasses) is fixed-function
+    // GL (glBegin/glMatrixMode/etc.), so we need a compatibility profile
+    format.setProfile(QSurfaceFormat::CompatibilityProfile);
+
+    setFormat(format);
+
+    context_ = new QOpenGLContext(this);
+    context_->setFormat(format);
+
+    if(shareWindow != 0)
+    {
+        context_->setShareContext(shareWindow->context_);
+    }
+
+    context_->create();
+
+    create();
 
     // make sure sharing succeeded
-    if(shareWidget != 0 && isSharing() != true)
+    if(shareWindow != 0 && context_->shareContext() != shareWindow->context_)
     {
         put_flog(LOG_FATAL, "failed to share OpenGL context");
         exit(-1);
     }
-
-    // disable automatic buffer swapping
-    setAutoBufferSwap(false);
 }
 
 GLWindow::~GLWindow()
@@ -122,11 +147,113 @@ void GLWindow::purgeTextures()
 
     for(unsigned int i=0; i<purgeTextureIds_.size(); i++)
     {
-        glDeleteTextures(1, &purgeTextureIds_[i]); // it appears deleteTexture() below is not actually deleting the texture from the GPU...
-        deleteTexture(purgeTextureIds_[i]);
+        glDeleteTextures(1, &purgeTextureIds_[i]);
     }
 
     purgeTextureIds_.clear();
+}
+
+void GLWindow::updateGL()
+{
+    context_->makeCurrent(this);
+
+    if(initializedGL_ == false)
+    {
+        initializeGL();
+        initializedGL_ = true;
+    }
+
+    resizeGL(width(), height());
+    paintGL();
+}
+
+void GLWindow::swapBuffers()
+{
+    context_->swapBuffers(this);
+}
+
+GLuint GLWindow::bindTextureFromImage(const QImage & image, bool generateMipmaps)
+{
+    context_->makeCurrent(this);
+
+    // match QGLWidget::bindTexture()'s behavior: convert to a GL-ready byte
+    // order (Format_RGBA8888 matches GL_RGBA/GL_UNSIGNED_BYTE regardless of
+    // platform endianness) and flip vertically, since QImage rows are
+    // top-down but GL texture data is expected bottom-up
+    QImage glImage = image.convertToFormat(QImage::Format_RGBA8888).mirrored(false, true);
+
+    GLuint textureId;
+    glGenTextures(1, &textureId);
+    glBindTexture(GL_TEXTURE_2D, textureId);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, generateMipmaps ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, glImage.width(), glImage.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, glImage.constBits());
+
+    if(generateMipmaps)
+    {
+        // glGenerateMipmap is OpenGL 3.0+/ARB_framebuffer_object and isn't
+        // declared by the system's classic GL headers; resolve it through
+        // Qt, which also makes this portable to platforms that need
+        // explicit extension-function loading (e.g. Windows/WGL)
+        context_->extraFunctions()->glGenerateMipmap(GL_TEXTURE_2D);
+    }
+
+    return textureId;
+}
+
+void GLWindow::queueText(int x, int y, const QString & text, const QFont & font, const QColor & color)
+{
+    QueuedText qt;
+    qt.x = x;
+    qt.y = y;
+    qt.text = text;
+    qt.font = font;
+    qt.color = color;
+
+    queuedText_.push_back(qt);
+}
+
+void GLWindow::queueText(double x, double y, double z, const QString & text, const QFont & font, const QColor & color)
+{
+    // project the object-space point through the current matrix stack (as
+    // set up at the call site) to get a window pixel position, matching
+    // what QGLWidget::renderText(x,y,z,...) used to do internally
+    GLdouble modelview[16];
+    glGetDoublev(GL_MODELVIEW_MATRIX, modelview);
+
+    GLdouble projection[16];
+    glGetDoublev(GL_PROJECTION_MATRIX, projection);
+
+    GLint viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+
+    GLdouble winX, winY, winZ;
+    gluProject(x, y, z, modelview, projection, viewport, &winX, &winY, &winZ);
+
+    // gluProject's window Y is measured from the bottom; QPainter measures from the top
+    queueText((int)winX, viewport[3] - (int)winY, text, font, color);
+}
+
+void GLWindow::drawQueuedText()
+{
+    if(queuedText_.empty() == true)
+    {
+        return;
+    }
+
+    QOpenGLPaintDevice paintDevice(size());
+    QPainter painter(&paintDevice);
+
+    for(unsigned int i=0; i<queuedText_.size(); i++)
+    {
+        painter.setFont(queuedText_[i].font);
+        painter.setPen(queuedText_[i].color);
+        painter.drawText(queuedText_[i].x, queuedText_[i].y, queuedText_[i].text);
+    }
+
+    queuedText_.clear();
 }
 
 void GLWindow::initializeGL()
@@ -144,6 +271,7 @@ void GLWindow::paintGL()
     if(g_displayGroupManager->getOptions()->getShowTestPattern() == true)
     {
         renderTestPattern();
+        drawQueuedText();
         return;
     }
 
@@ -216,8 +344,7 @@ void GLWindow::paintGL()
                 font.setPixelSize(fontSize);
                 font.setBold(true);
 
-                glColor4f(1., 1., 1., 1.);
-                renderText(pixelX, pixelY, label, font);
+                queueText(pixelX, pixelY, label, font, Qt::white);
             }
         }
 
@@ -233,40 +360,7 @@ void GLWindow::paintGL()
         markers[i]->render();
     }
 
-#if ENABLE_SKELETON_SUPPORT
-    if(g_displayGroupManager->getOptions()->getShowSkeletons() == true)
-    {
-        // render perspective overlay for skeletons
-
-        // setPersectiveView() may change the viewport!
-        glPushAttrib(GL_VIEWPORT_BIT | GL_ENABLE_BIT | GL_CURRENT_BIT);
-
-        // set the height of the skeleton view to a fraction of the total display height
-        // set the width to maintain a 16/9 aspect ratio
-        double skeletonViewHeight = 0.4;
-        double skeletonViewWidth = 16./9. * (double)g_configuration->getTotalHeight() / (double)g_configuration->getTotalWidth() * skeletonViewHeight;
-
-        // view at the center bottom
-        if(setPerspectiveView(0.5 * (1. - skeletonViewWidth), 1. - skeletonViewHeight, skeletonViewWidth, skeletonViewHeight) == true)
-        {
-            // enable depth testing, lighting, color tracking, and normal normalization (since we're scaling)
-            glEnable(GL_DEPTH_TEST);
-            glEnable(GL_LIGHTING);
-            glEnable(GL_COLOR_MATERIAL);
-            glEnable(GL_NORMALIZE);
-
-            // get and render skeletons
-            std::vector< boost::shared_ptr<SkeletonState> > skeletons = g_displayGroupManager->getSkeletons();
-
-            for(unsigned int i = 0; i < skeletons.size(); i++)
-            {
-                skeletons[i]->render();
-            }
-        }
-
-        glPopAttrib();
-    }
-#endif
+    drawQueuedText();
 }
 
 void GLWindow::resizeGL(int width, int height)
@@ -276,8 +370,6 @@ void GLWindow::resizeGL(int width, int height)
     glLoadIdentity();
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-
-    update();
 }
 
 void GLWindow::setOrthographicView()
@@ -328,100 +420,12 @@ void GLWindow::setOrthographicView()
     gluOrtho2D(left_, right_, bottom_, top_);
     glPushMatrix();
 
-    glMatrixMode(GL_MODELVIEW); 
-    glLoadIdentity();	
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
 
     glClearColor(0,0,0,0);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-}
-
-bool GLWindow::setPerspectiveView(double x, double y, double w, double h)
-{
-    // we want a perspective view for an area over the entire display bounded by (x,y,w,h)
-    // this windows area is produced by intersection((left_,right_,bottom_,top_), (x,y,w,h))
-    // in the current coordinate system, bottom is at the top of the screen, top at the bottom...
-    QRectF screenRect = QRectF(left_, bottom_, right_-left_, top_-bottom_);
-    QRectF windowRect = QRectF(x, y, w, h);
-    QRectF boundRect = screenRect.intersected(windowRect);
-
-    // if bounding rectangle is empty, return false to indicate no rendering should be done
-    if(boundRect.isEmpty() == true)
-    {
-        return false;
-    }
-
-    if(boundRect != screenRect)
-    {
-        // x,y for viewport is lower-left corner
-        // the y coordinate needs to be shifted from the top of the screen to the bottom, and y-direction inverted
-        int viewPortX = (int)((boundRect.x() - screenRect.x()) / screenRect.width() * width());
-        int viewPortY = (int)((screenRect.height() - (boundRect.y() + boundRect.height() - screenRect.y())) / screenRect.height() * height());
-        int viewPortW = (int)(boundRect.width() / screenRect.width() * width());
-        int viewPortH = (int)(boundRect.height() / screenRect.height() * height());
-
-        glViewport(viewPortX, viewPortY, viewPortW, viewPortH);
-    }
-
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-
-    double near = 0.001;
-    double far = 100.;
-
-    double aspect = (double)g_configuration->getTotalHeight() / (double)g_configuration->getTotalWidth() * windowRect.height() / windowRect.width();
-
-    double winFovY = 45.0 * aspect;
-
-    double top = tan(0.5 * winFovY * M_PI/180.) * near;
-    double bottom = -top;
-    double left = 1./aspect * bottom;
-    double right = 1./aspect * top;
-
-    // this window's portion of the entire view above is bounded by (left_, right_) and (bottom_, top_)
-    // the full frustum would be for this screen:
-    // glFrustum(left + left_ * (right-left), left + right_ * (right-left), top + top_ * (bottom-top), top + bottom_ * (bottom-top), near, far);
-    double fLeft = left + (boundRect.x() - windowRect.x()) / windowRect.width() * (right-left);
-    double fRight = fLeft + boundRect.width() / windowRect.width() * (right-left);
-    double fBottom = top + (boundRect.y() - windowRect.y()) / windowRect.height() * (bottom-top);
-    double fTop = fBottom + boundRect.height() / windowRect.height() * (bottom-top);
-
-    glFrustum(fLeft, fRight, fTop, fBottom, near, far);
-
-    glPushMatrix();
-
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-
-    // don't clear the GL_COLOR_BUFFER_BIT since this may be an overlay. only clear depth
-    glClear(GL_DEPTH_BUFFER_BIT);
-
-    // new lookat matrix
-    glLoadIdentity();
-
-    gluLookAt(0,0,1, 0,0,0, 0,1,0);
-
-    // setup lighting
-    GLfloat LightAmbient[] = { 0.01, 0.01, 0.01, 1.0 };
-    GLfloat LightDiffuse[] = { .5, .5, .5, 1.0 };
-    GLfloat LightSpecular[] = { .9,.9,.9, 1.0 };
-
-    GLfloat LightPosition[] = { 0,0,1000000, 1.0 };
-
-    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, LightAmbient);
-    glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, 1);
-
-    glLightfv(GL_LIGHT1, GL_AMBIENT, LightAmbient);
-    glLightfv(GL_LIGHT1, GL_DIFFUSE, LightDiffuse);
-    glLightfv(GL_LIGHT1, GL_SPECULAR, LightSpecular);
-    glLightfv(GL_LIGHT1, GL_POSITION, LightPosition);
-
-    glEnable(GL_LIGHT1);
-
-    // glEnable(GL_LIGHTING) needs to be called to actually use lighting. ditto for depth testing.
-    // let other code enable / disable such settings so glPushAttrib() and glPopAttrib() can be used appropriately
-
-    return true;
 }
 
 bool GLWindow::isScreenRectangleVisible(double x, double y, double w, double h)
@@ -570,14 +574,12 @@ void GLWindow::renderTestPattern()
     QFont font;
     font.setPixelSize(fontSize);
 
-    glColor3f(1.,1.,1.);
-
-    renderText(50, 1*fontSize, label1, font);
-    renderText(50, 2*fontSize, label2, font);
-    renderText(50, 3*fontSize, label3, font);
-    renderText(50, 4*fontSize, label4, font);
-    renderText(50, 5*fontSize, label5, font);
-    renderText(50, 6*fontSize, label6, font);
+    queueText(50, 1*fontSize, label1, font, Qt::white);
+    queueText(50, 2*fontSize, label2, font, Qt::white);
+    queueText(50, 3*fontSize, label3, font, Qt::white);
+    queueText(50, 4*fontSize, label4, font, Qt::white);
+    queueText(50, 5*fontSize, label5, font, Qt::white);
+    queueText(50, 6*fontSize, label6, font, Qt::white);
 
     glPopMatrix();
     glPopAttrib();

@@ -49,7 +49,7 @@ DisplayGroupListWidgetProxy::DisplayGroupListWidgetProxy(boost::shared_ptr<Displ
     signalMapper_ = new QSignalMapper(this);
 
     connect(listWidget_, SIGNAL(itemClicked(QListWidgetItem * )), this, SLOT(moveListWidgetItemToFront(QListWidgetItem *)));
-    connect(signalMapper_, SIGNAL(mapped(const QString &)), this, SLOT(onHideCheckboxChanged(const QString &)));
+    connect(signalMapper_, SIGNAL(mappedString(const QString &)), this, SLOT(onHideCheckboxChanged(const QString &)));
 }
 
 DisplayGroupListWidgetProxy::~DisplayGroupListWidgetProxy()
@@ -113,7 +113,7 @@ void DisplayGroupListWidgetProxy::refreshListWidget()
     listWidget_->clear();
     delete signalMapper_;
     signalMapper_ = new QSignalMapper(this);
-    connect(signalMapper_, SIGNAL(mapped(const QString &)), this, SLOT(onHideCheckboxChanged(const QString &)));
+    connect(signalMapper_, SIGNAL(mappedString(const QString &)), this, SLOT(onHideCheckboxChanged(const QString &)));
 
     for(unsigned int i=0; i<contentWindowManagers_.size(); i++)
     {

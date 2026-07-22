@@ -40,115 +40,81 @@
 #include "log.h"
 #include "main.h"
 
+#include <fstream>
+#include "json.hpp"
+using json = nlohmann::json;
+
 Configuration::Configuration(const char * filename)
 {
     put_flog(LOG_INFO, "loading %s", filename);
 
-    if(query_.setFocus(QUrl(filename)) == false)
+    std::ifstream ifs(filename);
+
+    if(ifs.good() == false)
     {
         put_flog(LOG_FATAL, "failed to load %s", filename);
         exit(-1);
     }
 
-    // temp strings
-    char string[1024];
-    QString qstring;
+    json root;
+
+    try
+    {
+        ifs >> root;
+    }
+    catch(const std::exception & e)
+    {
+        put_flog(LOG_FATAL, "failed to parse %s: %s", filename, e.what());
+        exit(-1);
+    }
+
+    const json & dimensions = root.at("dimensions");
 
     // get screen / mullion dimensions
-    query_.setQuery("string(/configuration/dimensions/@numTilesWidth)");
-    query_.evaluateTo(&qstring);
-    numTilesWidth_ = qstring.toInt();
+    numTilesWidth_ = dimensions.at("numTilesWidth").get<int>();
+    numTilesHeight_ = dimensions.at("numTilesHeight").get<int>();
+    screenWidth_ = dimensions.at("screenWidth").get<int>();
+    screenHeight_ = dimensions.at("screenHeight").get<int>();
+    mullionWidth_ = dimensions.at("mullionWidth").get<int>();
+    mullionHeight_ = dimensions.at("mullionHeight").get<int>();
 
-    query_.setQuery("string(/configuration/dimensions/@numTilesHeight)");
-    query_.evaluateTo(&qstring);
-    numTilesHeight_ = qstring.toInt();
-
-    query_.setQuery("string(/configuration/dimensions/@screenWidth)");
-    query_.evaluateTo(&qstring);
-    screenWidth_ = qstring.toInt();
-
-    query_.setQuery("string(/configuration/dimensions/@screenHeight)");
-    query_.evaluateTo(&qstring);
-    screenHeight_ = qstring.toInt();
-
-    query_.setQuery("string(/configuration/dimensions/@mullionWidth)");
-    query_.evaluateTo(&qstring);
-    mullionWidth_ = qstring.toInt();
-
-    query_.setQuery("string(/configuration/dimensions/@mullionHeight)");
-    query_.evaluateTo(&qstring);
-    mullionHeight_ = qstring.toInt();
-
-    // check for fullscreen mode flag
-    query_.setQuery("string(/configuration/dimensions/@fullscreen)");
-
-    if(query_.evaluateTo(&qstring) == true)
-    {
-        fullscreen_ = qstring.toInt();
-    }
-    else
-    {
-        // default to fullscreen disabled
-        fullscreen_ = 0;
-    }
+    // fullscreen mode flag (optional, defaults to disabled)
+    fullscreen_ = dimensions.value("fullscreen", 0);
 
     put_flog(LOG_INFO, "dimensions: numTilesWidth = %i, numTilesHeight = %i, screenWidth = %i, screenHeight = %i, mullionWidth = %i, mullionHeight = %i. fullscreen = %i", numTilesWidth_, numTilesHeight_, screenWidth_, screenHeight_, mullionWidth_, mullionHeight_, fullscreen_);
 
     // get tile parameters (if we're not rank 0)
     if(g_mpiRank > 0)
     {
-        int processIndex = g_mpiRank;
+        // processes[] is 0-indexed; rank 0 is the master and isn't listed, so
+        // rank N corresponds to processes[N-1], matching the old XML
+        // //process[N] 1-indexed XPath convention (N there also skipped rank 0)
+        int processIndex = g_mpiRank - 1;
 
-        // get host
-        sprintf(string, "string(//process[%i]/@host)", processIndex);
-        query_.setQuery(string);
-        query_.evaluateTo(&qstring);
-        host_ = qstring.toStdString();
+        const json & process = root.at("processes").at(processIndex);
 
-        // get display (optional attribute)
-        sprintf(string, "string(//process[%i]/@display)", processIndex);
-        query_.setQuery(string);
+        host_ = process.at("host").get<std::string>();
 
-        if(query_.evaluateTo(&qstring) == true)
-        {
-            display_ = qstring.toStdString();
-        }
-        else
-        {
-            display_ = std::string("default (:0)"); // the default
-        }
+        // display (optional)
+        display_ = process.value("display", std::string("default (:0)"));
 
-        // get number of tiles for my process
-        sprintf(string, "string(count(//process[%i]/screen))", processIndex);
-        query_.setQuery(string);
-        query_.evaluateTo(&qstring);
-        myNumTiles_ = qstring.toInt();
+        const json & screens = process.at("screens");
 
-        put_flog(LOG_INFO, "rank %i: %i tiles", processIndex, myNumTiles_);
+        myNumTiles_ = (int)screens.size();
+
+        put_flog(LOG_INFO, "rank %i: %i tiles", g_mpiRank, myNumTiles_);
 
         // populate parameters for each tile
-        for(int i=1; i<=myNumTiles_; i++)
+        for(int i=0; i<myNumTiles_; i++)
         {
-            sprintf(string, "string(//process[%i]/screen[%i]/@x)", processIndex, i);
-            query_.setQuery(string);
-            query_.evaluateTo(&qstring);
-            tileX_.push_back(qstring.toInt());
+            const json & screen = screens.at(i);
 
-            sprintf(string, "string(//process[%i]/screen[%i]/@y)", processIndex, i);
-            query_.setQuery(string);
-            query_.evaluateTo(&qstring);
-            tileY_.push_back(qstring.toInt());
+            tileX_.push_back(screen.at("x").get<int>());
+            tileY_.push_back(screen.at("y").get<int>());
 
             // local pixel offsets on display
-            sprintf(string, "string(//process[%i]/screen[%i]/@i)", processIndex, i);
-            query_.setQuery(string);
-            query_.evaluateTo(&qstring);
-            tileI_.push_back(qstring.toInt());
-
-            sprintf(string, "string(//process[%i]/screen[%i]/@j)", processIndex, i);
-            query_.setQuery(string);
-            query_.evaluateTo(&qstring);
-            tileJ_.push_back(qstring.toInt());
+            tileI_.push_back(screen.at("i").get<int>());
+            tileJ_.push_back(screen.at("j").get<int>());
 
             put_flog(LOG_INFO, "tile parameters: tileX = %i, tileY = %i, tileI = %i, tileJ = %i", tileX_.back(), tileY_.back(), tileI_.back(), tileJ_.back());
         }

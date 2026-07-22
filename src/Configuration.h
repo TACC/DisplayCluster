@@ -39,8 +39,8 @@
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 
-#include <QtGui>
-#include <QtXmlPatterns>
+#include <string>
+#include <vector>
 
 class Configuration {
 
@@ -68,8 +68,6 @@ class Configuration {
         int getTileJ(int i);
 
     private:
-
-        QXmlQuery query_;
 
         int numTilesWidth_;
         int numTilesHeight_;

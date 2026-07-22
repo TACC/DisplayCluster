@@ -43,11 +43,8 @@
 
 #include "FactoryObject.h"
 #include <boost/enable_shared_from_this.hpp>
-#if QT5 == 1
-#include <QtOpenGL/QGLWidget>
-#else
-#include <QGLWidget>
-#endif
+#include <QImage>
+#include <QOpenGLFunctions>
 #include <QtConcurrentRun>
 #include <turbojpeg.h>
 

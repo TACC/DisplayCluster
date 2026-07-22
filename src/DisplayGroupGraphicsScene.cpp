@@ -42,10 +42,24 @@
 
 DisplayGroupGraphicsScene::DisplayGroupGraphicsScene()
 {
+    // the view previously relied on Qt's implicit default background fill
+    // (white); make it explicit rather than depending on that default
+    setBackgroundBrush(QBrush(Qt::white));
+
     setSceneRect(0., 0., 1., 1.);
 
     // for the tiled display
-    addRect(0., 0., 1., 1.);
+    // the scene is a 1x1 unit square, so a default (non-cosmetic) QPen's
+    // width of 1 scene-unit renders as a huge stroke once scaled to view
+    // pixels; use a cosmetic pen (fixed device-pixel width) instead.
+    // width must be 0, not just cosmetic - boundingRect() pads itself using
+    // pen().widthF() in local scene units regardless of the cosmetic flag,
+    // so a width-1 pen here would inflate this item's hit-test region by
+    // 0.5 units in every direction
+    QPen borderPen;
+    borderPen.setCosmetic(true);
+    borderPen.setWidth(0);
+    addRect(0., 0., 1., 1., borderPen);
 
     // add rectangles for the tiles
     refreshTileRects();
@@ -73,8 +87,12 @@ void DisplayGroupGraphicsScene::refreshTileRects()
     // rendering parameters
 
     // border
+    // cosmetic + width 0: fixed device-pixel width, not scaled by the
+    // view's scene-to-pixel transform (see comment in the constructor above)
     QPen pen;
     pen.setColor(QColor(0,0,0));
+    pen.setCosmetic(true);
+    pen.setWidth(0);
 
     // fill color / opacity
     QBrush brush = QBrush(QColor(0, 0, 0, 32));

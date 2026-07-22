@@ -1,37 +1,44 @@
 #ifndef SOCKETINTERFACE_H
 #define SOCKETINTERFACE_H
 
-#include <unistd.h>
+#ifdef _WIN32
+    #include <winsock2.h>
+    typedef SOCKET socket_t;
+#else
+    #include <unistd.h>
+    typedef int socket_t;
+#endif
+
 #include <iostream>
 
-#include "json.hpp" 
+#include "json.hpp"
 using json = nlohmann::json;
 
-class Connection 
+class Connection
 {
 public:
     Connection(const char *host, int port);
-    Connection(int skt) : m_skt(skt) {}
-    ~Connection() { close(m_skt); }
+    Connection(socket_t skt) : m_skt(skt) {}
+    ~Connection();
 
     json Receive();
     void Send(json j);
-    
+
 protected:
-    int m_skt;
+    socket_t m_skt;
 };
 
 class SocketInterface
 {
 public:
     SocketInterface(int port);
-    ~SocketInterface() { close(m_srvr); }
+    ~SocketInterface();
 
     Connection *Accept();
-    int WaitForConnection();
+    socket_t WaitForConnection();
 
 protected:
-    int m_srvr;
+    socket_t m_srvr;
 };
 
 

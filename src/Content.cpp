@@ -45,7 +45,6 @@
 #include "main.h"
 #include "GLWindow.h"
 #include "log.h"
-#include <QGLWidget>
 
 Content::Content(std::string uri)
 {

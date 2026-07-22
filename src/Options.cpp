@@ -48,10 +48,6 @@ Options::Options()
     enableStreamingSynchronization_ = false;
     showStreamingSegments_ = false;
     showStreamingStatistics_ = false;
-
-#if ENABLE_SKELETON_SUPPORT
-    showSkeletons_ = true;
-#endif
 }
 
 bool Options::getShowWindowBorders()
@@ -93,13 +89,6 @@ bool Options::getShowStreamingStatistics()
 {
     return showStreamingStatistics_;
 }
-
-#if ENABLE_SKELETON_SUPPORT
-bool Options::getShowSkeletons()
-{
-    return showSkeletons_;
-}
-#endif
 
 void Options::setShowWindowBorders(bool set)
 {
@@ -156,12 +145,3 @@ void Options::setShowStreamingStatistics(bool set)
 
     emit(updated());
 }
-
-#if ENABLE_SKELETON_SUPPORT
-void Options::setShowSkeletons(bool set)
-{
-    showSkeletons_ = set;
-
-    emit(updated());
-}
-#endif

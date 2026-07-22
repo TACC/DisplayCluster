@@ -46,15 +46,28 @@
 #include "Movie.h"
 #include "PixelStream.h"
 #include "ParallelPixelStream.h"
-#include <QGLWidget>
+#include <QWindow>
+#include <QMutex>
+#include <QFont>
+#include <QColor>
+#include <QImage>
 
-class GLWindow : public QGLWidget
+class QOpenGLContext;
+
+// GLWindow is a QWindow (not a QWidget) with its own explicit QOpenGLContext,
+// rather than QOpenGLWidget. The tiled display wall depends on manually
+// separating "render into the back buffer" (updateGL()) from "present"
+// (swapBuffers()), with an MPI_Barrier across the whole cluster in between
+// (see MainWindow::updateGLWindows()) so that every node flips to its next
+// frame in lockstep. QOpenGLWidget composites through an internal FBO on
+// Qt's own schedule and has no equivalent manual swap step.
+class GLWindow : public QWindow
 {
 
     public:
 
         GLWindow(int tileIndex);
-        GLWindow(int tileIndex, QRect windowRect, QGLWidget * shareWidget = 0);
+        GLWindow(int tileIndex, QRect windowRect, GLWindow * shareWindow = 0);
         ~GLWindow();
 
         Factory<Texture> & getTextureFactory();
@@ -71,7 +84,6 @@ class GLWindow : public QGLWidget
         void paintGL();
         void resizeGL(int width, int height);
         void setOrthographicView();
-        bool setPerspectiveView(double x=0., double y=0., double w=1., double h=1.);
 
         bool isScreenRectangleVisible(double x, double y, double w, double h);
 
@@ -80,9 +92,31 @@ class GLWindow : public QGLWidget
 
         void finalize();
 
+        // make the context current, run resizeGL()+paintGL(), but don't present
+        void updateGL();
+
+        // present the frame rendered by the most recent updateGL()
+        void swapBuffers();
+
+        // replaces QGLWidget::bindTexture(); generateMipmaps mirrors the
+        // DefaultBindOption (true) vs LinearFilteringBindOption (false)
+        // distinction the old call sites relied on
+        GLuint bindTextureFromImage(const QImage & image, bool generateMipmaps);
+
+        // replace QGLWidget::renderText(): queue text to be drawn with
+        // QPainter after all raw GL drawing for the frame is done
+        void queueText(int x, int y, const QString & text, const QFont & font, const QColor & color = Qt::white);
+        void queueText(double x, double y, double z, const QString & text, const QFont & font, const QColor & color = Qt::white);
+
     private:
 
+        void init(GLWindow * shareWindow);
+        void drawQueuedText();
+
         int tileIndex_;
+
+        QOpenGLContext * context_;
+        bool initializedGL_;
 
         double left_;
         double right_;
@@ -100,6 +134,17 @@ class GLWindow : public QGLWidget
         // this allows other threads to trigger deletion of a texture during the main OpenGL thread execution
         QMutex purgeTexturesMutex_;
         std::vector<GLuint> purgeTextureIds_;
+
+        struct QueuedText
+        {
+            int x;
+            int y;
+            QString text;
+            QFont font;
+            QColor color;
+        };
+
+        std::vector<QueuedText> queuedText_;
 
         void renderTestPattern();
 };

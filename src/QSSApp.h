@@ -43,6 +43,7 @@
 #include <math.h>
 #include <boost/shared_ptr.hpp>
 #include <QtGui>
+#include <QtWidgets>
 
 class ContentWindowManager;
 

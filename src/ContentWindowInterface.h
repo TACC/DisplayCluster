@@ -43,6 +43,7 @@
 #define HIGHLIGHT_BLINK_INTERVAL 250 // milliseconds
 
 #include <QtGui>
+#include <QtWidgets>
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>

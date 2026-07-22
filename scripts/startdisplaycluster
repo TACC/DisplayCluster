@@ -6,7 +6,7 @@
 
 import os
 import sys
-import xml.etree.ElementTree as ET
+import json
 import subprocess
 import distutils.spawn
 import signal
@@ -53,7 +53,7 @@ else:
 	os.environ['LD_LIBRARY_PATH'] = '/usr/local/lib'
 
 if 'DISPLAYCLUSTER_CONFIG' not in os.environ:
-    os.environ['DISPLAYCLUSTER_CONFIG'] = dcPath + '/configuration.xml'
+    os.environ['DISPLAYCLUSTER_CONFIG'] = dcPath + '/configuration.json'
 
 if 'DISPLAYCLUSTER_MPIARGS' not in os.environ:
     os.environ['DISPLAYCLUSTER_MPIARGS'] = ' '
@@ -76,26 +76,23 @@ os.environ['PYTHONPATH'] += os.pathsep + os.pathsep.join(sys.path)
 # rank 0 is always on localhost
 hostList = ['localhost']
 
-# configuration.xml gives the rest of the hosts
+# configuration.json gives the rest of the hosts
 try:
-    if 'DISPLAYCLUSTER_CONFIG' in os.environ:
-        print("yes")
-        doc = ET.parse(os.environ['DISPLAYCLUSTER_CONFIG'])
-        print(doc)
-    else:
-        print("no")
-        doc = ET.parse(dcPath + "/configuration.xml")
+    configPath = os.environ.get('DISPLAYCLUSTER_CONFIG', dcPath + '/configuration.json')
 
-    for elem in doc.findall('.//process'):
-        host = elem.get("host")
+    with open(configPath) as f:
+        config = json.load(f)
+
+    for process in config['processes']:
+        host = process.get('host')
 
         if host is None:
-            print( 'Error, no host attribute in <process> tag.')
+            print( 'Error, no "host" key in process entry.')
             exit(-1)
 
         hostList.append(host)
 except:
-    print( 'Error processing configuration.xml. Make sure you have created a configuration.xml and put it in ' + dcPath + '/. An example is provided in the examples/ directory.')
+    print( 'Error processing configuration.json. Make sure you have created a configuration.json and put it in ' + dcPath + '/. An example is provided in the examples/ directory.')
     exit(-2)
 
 hostListString = ",".join(hostList)

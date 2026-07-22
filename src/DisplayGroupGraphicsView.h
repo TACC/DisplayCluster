@@ -40,6 +40,7 @@
 #define DISPLAY_GROUP_GRAPHICS_VIEW_H
 
 #include <QtGui>
+#include <QtWidgets>
 
 class DisplayGroupGraphicsView : public QGraphicsView {
 

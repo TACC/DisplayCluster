@@ -40,7 +40,7 @@
 #define TEXTURE_H
 
 #include "FactoryObject.h"
-#include <QGLWidget>
+#include <QOpenGLFunctions>
 
 class Texture : public FactoryObject {
 

@@ -39,6 +39,7 @@
 #include "SVG.h"
 #include "main.h"
 #include "log.h"
+#include <QOpenGLPaintDevice>
 
 #ifdef __APPLE__
     #include <OpenGL/glu.h>
@@ -198,14 +199,21 @@ void SVG::generateTexture(QRectF screenRect, QRectF fullRect, float tX, float tY
     glPushMatrix();
 
     // generate new texture
-    boost::shared_ptr<QGLFramebufferObject> fbo(new QGLFramebufferObject(screenRect.width(), screenRect.height(), QGLFramebufferObject::CombinedDepthStencil));
+    boost::shared_ptr<QOpenGLFramebufferObject> fbo(new QOpenGLFramebufferObject(screenRect.width(), screenRect.height(), QOpenGLFramebufferObject::CombinedDepthStencil));
 
     // keep fbos in a map so they stick around -- they're needed for the texture to be rendered
     fbos_[g_mainWindow->getActiveGLWindow()] = fbo;
 
-    QPainter painter(fbo.get());
+    // QOpenGLFramebufferObject isn't a QPaintDevice itself (unlike the old
+    // QGLFramebufferObject); paint into it via a QOpenGLPaintDevice bound to it
+    fbo->bind();
+
+    QOpenGLPaintDevice paintDevice(fbo->size());
+    QPainter painter(&paintDevice);
     svgRenderer_.render(&painter);
     painter.end();
+
+    fbo->release();
 
     // restore OpenGL state
     glMatrixMode(GL_PROJECTION);

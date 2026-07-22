@@ -41,6 +41,7 @@
 
 #include "Factory.hpp"
 #include <QtGui>
+#include <QtWidgets>
 
 class SVGStreamSource {
 

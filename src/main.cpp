@@ -44,21 +44,6 @@
 #include <stdlib.h>
 #include "QSSApp.h"
 
-#if ENABLE_TUIO_TOUCH_LISTENER
-    #include "TouchListener.h"
-    #include <X11/Xlib.h>
-#endif
-
-#if ENABLE_JOYSTICK_SUPPORT
-    #include "JoystickThread.h"
-#endif
-
-#if ENABLE_SKELETON_SUPPORT
-    #include "SkeletonThread.h"
-
-    SkeletonThread * g_skeletonThread = NULL;
-#endif
-
 std::string g_displayClusterDir;
 QApplication * g_app = NULL;
 int g_mpiRank = 0;
@@ -89,11 +74,6 @@ int main(int argc, char * argv[])
     }
 
     g_displayClusterDir = std::string(getenv("DISPLAYCLUSTER_DIR"));
-
-#if ENABLE_TUIO_TOUCH_LISTENER
-    // we need X multithreading support if we're running the TouchListener thread and creating X events
-    XInitThreads();
-#endif
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &g_mpiRank);
@@ -131,50 +111,6 @@ int main(int argc, char * argv[])
 
     // calibrate timestamp offset between rank 0 and rank 1 clocks
     g_displayGroupManager->calibrateTimestampOffset();
-
-#if ENABLE_TUIO_TOUCH_LISTENER
-    if(g_mpiRank == 0)
-    {
-        new TouchListener();
-    }
-#endif
-
-#if ENABLE_JOYSTICK_SUPPORT
-    if(g_mpiRank == 0)
-    {
-        // do this before the thread starts to avoid X callback race conditions
-        // we need SDL_INIT_VIDEO for events to work
-        if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) < 0)
-        {
-            put_flog(LOG_ERROR, "could not initial SDL joystick subsystem");
-            return -2;
-        }
-
-        // create thread to monitor joystick events (all joysticks handled in same event queue)
-        JoystickThread * joystickThread = new JoystickThread();
-        joystickThread->start();
-
-        // wait for thread to start
-        while(joystickThread->isRunning() == false || joystickThread->isFinished() == true)
-        {
-            usleep(1000);
-        }
-    }
-#endif 
-
-#if ENABLE_SKELETON_SUPPORT
-    if(g_mpiRank == 0)
-    {
-        g_skeletonThread = new SkeletonThread();
-        g_skeletonThread->start();
-
-        // wait for thread to start
-        while(g_skeletonThread->isRunning() == false || g_skeletonThread->isFinished() == true)
-        {
-            usleep(1000);
-        }
-    }
-#endif
 
     if(g_mpiRank == 0)
     {

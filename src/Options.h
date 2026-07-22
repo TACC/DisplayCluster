@@ -41,6 +41,7 @@
 
 #include "config.h"
 #include <QtGui>
+#include <QtWidgets>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 
@@ -59,10 +60,6 @@ class Options : public QObject {
         bool getShowStreamingSegments();
         bool getShowStreamingStatistics();
 
-#if ENABLE_SKELETON_SUPPORT
-        bool getShowSkeletons();
-#endif
-
     public slots:
         void setShowWindowBorders(bool set);
         void setShowContentLabels(bool set);
@@ -72,10 +69,6 @@ class Options : public QObject {
         void setEnableStreamingSynchronization(bool set);
         void setShowStreamingSegments(bool set);
         void setShowStreamingStatistics(bool set);
-
-#if ENABLE_SKELETON_SUPPORT
-        void setShowSkeletons(bool set);
-#endif
 
     signals:
         void updated();
@@ -94,10 +87,6 @@ class Options : public QObject {
             ar & enableStreamingSynchronization_;
             ar & showStreamingSegments_;
             ar & showStreamingStatistics_;
-
-#if ENABLE_SKELETON_SUPPORT
-            ar & showSkeletons_;
-#endif
         }
 
         bool showWindowBorders_;
@@ -108,10 +97,6 @@ class Options : public QObject {
         bool enableStreamingSynchronization_;
         bool showStreamingSegments_;
         bool showStreamingStatistics_;
-
-#if ENABLE_SKELETON_SUPPORT
-        bool showSkeletons_;
-#endif
 };
 
 #endif

@@ -123,7 +123,10 @@ DynamicTexture::DynamicTexture(std::string uri, boost::shared_ptr<DynamicTexture
 
         // always load image for top-level object
         incrementThreadCount();
-        loadImageThread_ = QtConcurrent::run(loadImageThread, this);
+        // wrap in a lambda: loadImageThread is overloaded, and Qt6's
+        // QtConcurrent::run() can't deduce a template argument from an
+        // unresolved overload set
+        loadImageThread_ = QtConcurrent::run([this]() { loadImageThread(this); });
         loadImageThreadStarted_ = true;
     }
 }
@@ -281,7 +284,11 @@ void DynamicTexture::loadImage(bool convertToGLFormat)
     // save(), etc. won't work.
     if(convertToGLFormat == true)
     {
-        scaledImage_ = QGLWidget::convertToGLFormat(scaledImage_);
+        // convert to a GL-ready byte order (Format_RGBA8888 matches
+        // GL_RGBA/GL_UNSIGNED_BYTE regardless of platform endianness) and
+        // flip vertically, since QImage rows are top-down but GL texture
+        // data is expected bottom-up
+        scaledImage_ = scaledImage_.convertToFormat(QImage::Format_RGBA8888).mirrored(false, true);
     }
 }
 
@@ -332,7 +339,11 @@ void DynamicTexture::render(float tX, float tY, float tW, float tH, bool compute
                 std::vector<boost::shared_ptr<DynamicTexture> > objects;
                 getObjectsAscending(objects);
 
-                loadImageThread_ = QtConcurrent::run(loadImageThread, shared_from_this(), objects);
+                // wrap in a lambda: loadImageThread is overloaded, and Qt6's
+                // QtConcurrent::run() can't deduce a template argument from
+                // an unresolved overload set
+                boost::shared_ptr<DynamicTexture> self = shared_from_this();
+                loadImageThread_ = QtConcurrent::run([self, objects]() { loadImageThread(self, objects); });
                 loadImageThreadStarted_ = true;
             }
         }

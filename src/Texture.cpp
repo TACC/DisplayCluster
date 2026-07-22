@@ -61,7 +61,7 @@ Texture::Texture(std::string uri)
     imageHeight_ = image.height();
 
     // generate new texture
-    textureId_ = g_mainWindow->getGLWindow()->bindTexture(image, GL_TEXTURE_2D, GL_RGBA, QGLContext::DefaultBindOption);
+    textureId_ = g_mainWindow->getGLWindow()->bindTextureFromImage(image, true);
     textureBound_ = true;
 }
 
@@ -70,8 +70,7 @@ Texture::~Texture()
     // delete bound texture
     if(textureBound_ == true)
     {
-        glDeleteTextures(1, &textureId_); // it appears deleteTexture() below is not actually deleting the texture from the GPU...
-        g_mainWindow->getGLWindow()->deleteTexture(textureId_);
+        glDeleteTextures(1, &textureId_);
         textureBound_ = false;
     }
 }
