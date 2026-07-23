@@ -82,10 +82,19 @@ QSSApplication::sleep_start()
 
 	if (! ss_cwm)
 	{
-		std::string ss_image = getenv("DISPLAYCLUSTER_SCREENSAVER_IMAGE");
+		// getenv() returns NULL if unset; constructing a std::string
+		// directly from that is undefined behavior (crashes via a null
+		// pointer strlen() on MSVC, threw a std::logic_error on glibc)
+		const char *ss_image_env = getenv("DISPLAYCLUSTER_SCREENSAVER_IMAGE");
+		std::string ss_image = ss_image_env ? ss_image_env : "";
 		if (ss_image.size() > 0)
 		{
-			if (ss_image.substr(0, 1) != "/")
+			// portable absolute-path check: a bare "/" prefix check only
+			// recognizes Unix-style absolute paths, so on Windows (where
+			// absolute paths look like C:\...) this always evaluated to
+			// "not absolute" and wrongly prepended g_displayClusterDir
+			// even to an already-absolute path
+			if (!QDir::isAbsolutePath(QString::fromStdString(ss_image)))
 				ss_image = g_displayClusterDir + "/" + ss_image;
 
 			auto content = Content::getContent(ss_image);
