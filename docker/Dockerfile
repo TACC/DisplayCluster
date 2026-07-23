@@ -1,4 +1,4 @@
-FROM nvidia/opengl:1.0-glvnd-devel-ubuntu20.04
+FROM nvidia/opengl:1.0-glvnd-devel-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV NVIDIA_VISIBLE_DEVICES all
@@ -6,13 +6,20 @@ ENV NVIDIA_DRIVER_CAPABILITIES graphics,utility,compute
 
 RUN apt-get update && apt-get install -y -qq --no-install-recommends \
   build-essential \
-  software-properties-common 
+  cmake \
+  pkg-config \
+  git \
+  ca-certificates \
+  gnupg \
+  wget \
+  software-properties-common
 
-RUN add-apt-repository ppa:rock-core/qt4
-
-RUN apt-get -y install \
-  xterm \
-  qt4-default 
+# Qt6 - available natively on Ubuntu 22.04+, no PPA needed. Qt4 required
+# the rock-core/qt4 PPA (which only targeted old Ubuntu releases) - that
+# whole dance is gone now that the app is off Qt4.
+RUN apt-get install -y -qq --no-install-recommends \
+  qt6-base-dev \
+  qt6-svg-dev
 
 RUN apt-get update \
   && apt-get install -y -qq --no-install-recommends \
@@ -20,8 +27,15 @@ RUN apt-get update \
     libgl1 \
     libglx0 \
     libegl1 \
+    libglu1-mesa-dev \
     libxext6 \
     libx11-6 \
+    libxcursor1 \
+    libxcursor-dev \
+    libxi-dev \
+    libxkbcommon0 \
+    libxrandr-dev \
+    libxinerama-dev \
     glmark2 \
     mesa-utils \
     xterm \
@@ -30,8 +44,6 @@ RUN apt-get update \
     bzip2 \
     cpio \
     curl \
-    g++-8 \
-    gcc-8 \
     gfortran \
     git \
     gosu \
@@ -42,21 +54,9 @@ RUN apt-get update \
     virtualenv \
     wget \
     zlib1g-dev \
-    vim       \
     tzdata \
-    libpulse-dev \
-    xterm \
-    freeglut3-dev \
     libnss3 \
-    libxcursor1  \
-    libxcursor-dev  \
-    libxi-dev  \
-    libxkbcommon0 \
-    libxrandr-dev \
-    libxinerama-dev \
-    libasound2 \
     libgssapi-krb5-2 \
-    libqt5gui5 \
     htop \
     libglew-dev \
     libncurses5-dev \
@@ -65,8 +65,6 @@ RUN apt-get update \
     liblzma-dev \
     openssl \
     libssl-dev \
-    xterm \
-    qt4-default \
     libturbojpeg0-dev \
     zip \
     unzip \
@@ -74,42 +72,62 @@ RUN apt-get update \
     yasm \
     x11-apps
 
-RUN apt-get -y install \
-  ffmpeg  \
+# Boost - previously hand-built from a vendored 2013-era 1.53 tarball
+# (dependencies/boost_1_53_0.tar.gz - now unused, safe to remove from the
+# repo separately) with only serialization/date_time enabled, which was
+# actually incomplete: DisplayGroupManager.cpp also needs boost::iostreams
+# for message deserialization, silently relying on it being present some
+# other way. Ubuntu's packaged Boost is recent enough and covers
+# everything this codebase uses in one step; libboost-dev brings in the
+# header-only pieces (algorithm, tokenizer, smart_ptr) that don't have
+# their own dev packages.
+RUN apt-get install -y -qq --no-install-recommends \
+    libboost-dev \
+    libboost-serialization-dev \
+    libboost-date-time-dev \
+    libboost-iostreams-dev
+
+# MPI - previously built from source (openmpi-4.1.1) because Ubuntu
+# 20.04's packaged version was dated; a current Ubuntu base makes that
+# unnecessary.
+RUN apt-get install -y -qq --no-install-recommends \
+    libopenmpi-dev \
+    openmpi-bin
+
+# FFmpeg with NVDEC hwaccel for src/Decoder.cpp's hardware video decode.
+# Confirm after building with `ffmpeg -hwaccels` (want "cuda" in the
+# list) - if this Ubuntu release's packaged ffmpeg doesn't have it
+# compiled in, swap this block for a prebuilt NVDEC-enabled binary
+# instead (see BUILD.md's Windows section, which hit exactly this gap).
+RUN apt-get install -y -qq --no-install-recommends \
+  ffmpeg \
   libavcodec-dev \
-  libavdevice-dev \
-  libavfilter-dev \
   libavformat-dev \
-  libavresample-dev \
   libavutil-dev \
-  libpostproc-dev \
-  libswresample-dev \
   libswscale-dev
 
-RUN wget https://github.com/Kitware/CMake/releases/download/v3.24.3/cmake-3.24.3.tar.gz \
-  && tar xzf cmake-3.24.3.tar.gz \
-  && cd cmake-3.24.3 \
-  && ./bootstrap \
-  && make -j 6 \
-  && make install 
+# CUDA Toolkit - needed for the driver API headers (cuda.h, cudaGL.h)
+# src/Decoder.cpp and src/Movie.cpp use for NVDEC decode and the
+# zero-copy CUDA-GL interop path. The actual runtime driver
+# (libcuda.so, matching the host's installed driver version) is
+# supplied at container *run* time by the NVIDIA Container Toolkit via
+# NVIDIA_VISIBLE_DEVICES above, not baked into this image - the
+# cuda-toolkit package here only needs to provide a linkable stub for
+# the build itself.
+RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb \
+  && dpkg -i cuda-keyring_1.1-1_all.deb \
+  && rm cuda-keyring_1.1-1_all.deb \
+  && apt-get update \
+  && apt-get install -y -qq --no-install-recommends cuda-toolkit
 
-RUN wget https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.1.tar.gz \
-  && tar xzf openmpi-4.1.1.tar.gz \
-  && cd openmpi-4.1.1 \
-  && ./configure \
-  && make -j 5 install
+ENV PATH=/usr/local/cuda/bin:$PATH
+ENV CUDA_PATH=/usr/local/cuda
 
 RUN mkdir -p /usr/local/src \
     && cd /usr/local/src \
     && git clone https://github.com/TACC/DisplayCluster.git \
     && cd DisplayCluster \
-    && git checkout docker
-
-RUN cd /usr/local/src/DisplayCluster/dependencies \
-   && tar xzf boost_1_53_0.tar.gz \
-   && cd boost_1_53_0 \
-   && ./bootstrap.sh --with-libraries=serialization,date_time \
-   && ./b2 -j 4 install 
+    && git checkout Qt6
 
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH

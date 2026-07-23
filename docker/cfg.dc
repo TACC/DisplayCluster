@@ -1,4 +1,2 @@
 cmake .. \
--DCMAKE_INSTALL_PREFIX=/usr/local \
--DBUILD_DISPLAYCLUSTER=ON  
-
+-DCMAKE_INSTALL_PREFIX=/usr/local
