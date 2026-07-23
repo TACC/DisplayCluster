@@ -106,7 +106,10 @@ int main(int argc, char * argv[])
 
     g_configuration = new Configuration(getenv("DISPLAYCLUSTER_CONFIG"));
 
+#ifndef _WIN32
+		// DISPLAY is an X11-only concept; there's nothing to set on Windows
 		setenv("DISPLAY", g_configuration->getMyDisplay().c_str(), 1);
+#endif
 
     boost::shared_ptr<DisplayGroupManager> dgm(new DisplayGroupManager);
     g_displayGroupManager = dgm;

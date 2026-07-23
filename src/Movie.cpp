@@ -63,11 +63,17 @@ void ensureCudaContext()
     cuInit(0);
     CUdevice device;
     cuDeviceGet(&device, 0);
-    // explicit _v2, not the bare cuCtxCreate name: cuda.h macro-redirects
-    // the bare name to whatever's newest (cuCtxCreate_v4 as of CUDA 13,
-    // with a different signature), while _v2 is the long-stable ABI CUDA
-    // keeps around indefinitely
-    cuCtxCreate_v2(&g_cudaContext, 0, device);
+    // cuCtxCreate's signature genuinely changed in CUDA 13: it gained a
+    // CUctxCreateParams* parameter (NULL = default behavior, matching what
+    // the old 3-arg form did implicitly). cuda.h's own versioned symbols
+    // (_v2/_v3/_v4) aren't a stable way to pin this - older headers don't
+    // declare cuCtxCreate_v4 at all, so CUDA_VERSION is what actually
+    // distinguishes the two call shapes here
+#if CUDA_VERSION >= 13000
+    cuCtxCreate(&g_cudaContext, nullptr, 0, device);
+#else
+    cuCtxCreate(&g_cudaContext, 0, device);
+#endif
 }
 
 void checkCu(CUresult result, const char *what)
