@@ -9,6 +9,10 @@
     "qtsvg",
     "boost-serialization",
     "boost-date-time",
+    "boost-iostreams",
+    "boost-algorithm",
+    "boost-tokenizer",
+    "boost-smart-ptr",
     "libjpeg-turbo"
   ]
 }

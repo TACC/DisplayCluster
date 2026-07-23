@@ -228,7 +228,12 @@ Decoder::_decode()
 void
 Decoder::_cleanup()
 {
-    avcodec_close(avCodecContext_);
+    // avcodec_close() was deprecated years ago and is gone entirely from
+    // newer FFmpeg headers (still present in the older FFmpeg this builds
+    // against on Linux, which is why this didn't surface until the Windows
+    // build against a newer FFmpeg); avcodec_free_context() closes and
+    // frees in one call
+    avcodec_free_context(&avCodecContext_);
     avformat_close_input(&avFormatContext_);
     av_frame_free(&avFrame_);
     av_frame_free(&readyFrame_);
