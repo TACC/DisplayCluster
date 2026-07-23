@@ -4,16 +4,11 @@
   "dependencies": [
     {
       "name": "qtbase",
-      "features": ["widgets", "network", "opengl", "xml"]
+      "features": ["widgets", "network", "opengl"]
     },
     "qtsvg",
     "boost-serialization",
     "boost-date-time",
-    "libjpeg-turbo",
-    {
-      "name": "ffmpeg",
-      "default-features": false,
-      "features": ["avcodec", "avformat", "swscale", "nvcodec"]
-    }
+    "libjpeg-turbo"
   ]
 }

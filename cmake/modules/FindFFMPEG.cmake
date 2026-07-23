@@ -57,61 +57,73 @@ ENDIF( NOT FFMPEG_INCLUDE_DIR )
 get_filename_component(FFMPEG_INCLUDE_DIR ${FFMPEG_INCLUDE_DIR} ABSOLUTE)
 
 FIND_LIBRARY(FFMPEG_avformat_LIBRARY avformat
+  $ENV{FFMPEG_DIR}/lib
   /usr/local/lib
   /usr/lib
 )
 
 FIND_LIBRARY(FFMPEG_avcodec_LIBRARY avcodec
+  $ENV{FFMPEG_DIR}/lib
   /usr/local/lib
   /usr/lib
 )
 
 FIND_LIBRARY(FFMPEG_avutil_LIBRARY avutil
+  $ENV{FFMPEG_DIR}/lib
   /usr/local/lib
   /usr/lib
 )
 
 FIND_LIBRARY(FFMPEG_vorbis_LIBRARY vorbis
+  $ENV{FFMPEG_DIR}/lib
   /usr/local/lib
   /usr/lib
 )
 
 FIND_LIBRARY(FFMPEG_dc1394_LIBRARY dc1394_control
+  $ENV{FFMPEG_DIR}/lib
   /usr/local/lib
   /usr/lib
 )
 
 FIND_LIBRARY(FFMPEG_vorbisenc_LIBRARY vorbisenc
+  $ENV{FFMPEG_DIR}/lib
   /usr/local/lib
   /usr/lib
 )
 
 FIND_LIBRARY(FFMPEG_theora_LIBRARY theora
+  $ENV{FFMPEG_DIR}/lib
   /usr/local/lib
   /usr/lib
 )
 
 FIND_LIBRARY(FFMPEG_dts_LIBRARY dts
+  $ENV{FFMPEG_DIR}/lib
   /usr/local/lib
   /usr/lib
 )
 
 FIND_LIBRARY(FFMPEG_gsm_LIBRARY gsm
+  $ENV{FFMPEG_DIR}/lib
   /usr/local/lib
   /usr/lib
 )
 
 FIND_LIBRARY(FFMPEG_swscale_LIBRARY swscale
+  $ENV{FFMPEG_DIR}/lib
   /usr/local/lib
   /usr/lib
 )
 
 FIND_LIBRARY(FFMPEG_z_LIBRARY z
+  $ENV{FFMPEG_DIR}/lib
   /usr/local/lib
   /usr/lib
 )
 
 FIND_LIBRARY(FFMPEG_bz2_LIBRARY bz2
+  $ENV{FFMPEG_DIR}/lib
   /usr/local/lib
   /usr/lib
 )
