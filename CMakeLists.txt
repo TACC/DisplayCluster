@@ -8,7 +8,11 @@ set(VERSION_MINOR 1)
 set(VERSION_PATCH 0)
 
 # show all warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+# -Wall is GCC/Clang syntax; MSVC's equivalent is /W4, and passing -Wall to
+# cl.exe is an error, not a warning, so this must stay off MSVC entirely
+if(NOT MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+endif()
 
 # Qt6 requires C++17
 set(CMAKE_CXX_STANDARD 17)
@@ -22,8 +26,17 @@ set(CMAKE_AUTOMOC ON)
 # pulled in transitively by some Q_OBJECT classes (e.g. DisplayGroupManager)
 set(CMAKE_AUTOMOC_MOC_OPTIONS -DPOSIX_TIME_HPP___ -DPOSIX_TIME_SERIALIZE_HPP___ -DBOOST_TT_HAS_OPERATOR_HPP_INCLUDED)
 
-# keep the library path in installed executables
-SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+if(WIN32)
+    # NOMINMAX: <windows.h> otherwise #defines min/max macros that collide
+    # with std::min/max and Boost; WIN32_LEAN_AND_MEAN trims the rest of the
+    # rarely-needed headers (winsock1, etc.) windows.h pulls in by default,
+    # which matters since SocketInterface.cpp needs winsock2.h instead
+    add_definitions(-DNOMINMAX -DWIN32_LEAN_AND_MEAN)
+else()
+    # keep the library path in installed executables; meaningless on
+    # Windows, which has no RPATH concept
+    SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+endif()
 
 # build options
 
@@ -42,9 +55,19 @@ find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Network Svg Xml Concurrent
 set(LIBS ${LIBS} Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Network Qt6::Svg Qt6::Xml Qt6::Concurrent Qt6::OpenGL)
 
 # libjpeg-turbo
-find_package(LibJpegTurbo REQUIRED)
-include_directories(${LibJpegTurbo_INCLUDE_DIRS})
-set(LIBS ${LIBS} ${LibJpegTurbo_LIBRARIES})
+# cmake/modules/FindLibJpegTurbo.cmake looks for it via pkg-config, which
+# isn't the standard discovery path on Windows; vcpkg's libjpeg-turbo port
+# instead ships a proper CMake config package, so try that first (this is a
+# no-op everywhere else, since it's simply not found) and fall back to the
+# pkg-config-based module otherwise
+find_package(libjpeg-turbo CONFIG QUIET)
+if(libjpeg-turbo_FOUND)
+    set(LIBS ${LIBS} libjpeg-turbo::turbojpeg)
+else()
+    find_package(LibJpegTurbo REQUIRED)
+    include_directories(${LibJpegTurbo_INCLUDE_DIRS})
+    set(LIBS ${LIBS} ${LibJpegTurbo_LIBRARIES})
+endif()
 
 if (INSTALL_LAUNCHER)
     INSTALL(PROGRAMS scripts/startdisplaycluster DESTINATION bin)
@@ -68,13 +91,24 @@ set(LIBS ${LIBS} ${FFMPEG_LIBRARIES})
 
 # CUDA driver API (cuda.h / cudaGL.h) for NVDEC decode + zero-copy CUDA-GL
 # interop in Movie.cpp/Decoder.cpp; only needs the driver, not the full
-# toolkit/nvcc, since nothing here is compiled as CUDA device code
+# toolkit/nvcc, since nothing here is compiled as CUDA device code.
+# nvcuda.lib (the Windows import lib for the driver API) ships with the
+# CUDA Toolkit installer, under %CUDA_PATH% (set by that installer) - unlike
+# nvcuda.dll itself, which ships with the GPU driver
 find_path(CUDA_DRIVER_INCLUDE_DIR cuda.h
-    PATHS /usr/local/cuda/targets/x86_64-linux/include /usr/local/cuda/include)
-find_library(CUDA_DRIVER_LIBRARY cuda
-    PATHS /usr/local/cuda/targets/x86_64-linux/lib /usr/local/cuda/lib64 /usr/lib64 /usr/lib64/stubs)
+    PATHS
+        /usr/local/cuda/targets/x86_64-linux/include
+        /usr/local/cuda/include
+        "$ENV{CUDA_PATH}/include")
+if(WIN32)
+    find_library(CUDA_DRIVER_LIBRARY nvcuda
+        PATHS "$ENV{CUDA_PATH}/lib/x64" "$ENV{CUDA_PATH}/lib")
+else()
+    find_library(CUDA_DRIVER_LIBRARY cuda
+        PATHS /usr/local/cuda/targets/x86_64-linux/lib /usr/local/cuda/lib64 /usr/lib64 /usr/lib64/stubs)
+endif()
 if(NOT CUDA_DRIVER_INCLUDE_DIR OR NOT CUDA_DRIVER_LIBRARY)
-    message(FATAL_ERROR "CUDA driver API not found (cuda.h / libcuda) - required for NVDEC decode")
+    message(FATAL_ERROR "CUDA driver API not found (cuda.h / libcuda or nvcuda.lib) - required for NVDEC decode")
 endif()
 include_directories(SYSTEM ${CUDA_DRIVER_INCLUDE_DIR})
 set(LIBS ${LIBS} ${CUDA_DRIVER_LIBRARY})

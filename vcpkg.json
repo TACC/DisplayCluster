@@ -1,0 +1,19 @@
+{
+  "name": "displaycluster",
+  "version": "0.1.0",
+  "dependencies": [
+    {
+      "name": "qtbase",
+      "features": ["widgets", "network", "opengl", "xml"]
+    },
+    "qtsvg",
+    "boost-serialization",
+    "boost-date-time",
+    "libjpeg-turbo",
+    {
+      "name": "ffmpeg",
+      "default-features": false,
+      "features": ["avcodec", "avformat", "swscale", "nvcodec"]
+    }
+  ]
+}
