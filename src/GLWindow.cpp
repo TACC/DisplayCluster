@@ -49,6 +49,13 @@
 
 #ifdef __APPLE__
     #include <OpenGL/glu.h>
+#elif defined(_WIN32)
+    // GL/gl.h and GL/glu.h use Windows calling-convention macros
+    // (APIENTRY, WINGDIAPI) that only exist once windows.h has been
+    // included first - unlike Linux/Mac, these headers aren't self-
+    // contained on Windows
+    #include <windows.h>
+    #include <GL/glu.h>
 #else
     #include <GL/glu.h>
 #endif

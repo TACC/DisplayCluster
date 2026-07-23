@@ -77,7 +77,7 @@ private:
         if (decoder->_setup())
           decoder->tState_ = RUNNING;
         else
-          decoder->tState_ = ERROR;
+          decoder->tState_ = DECODE_FAILED;
         decoder->Signal();
         decoder->Unlock();
 
@@ -215,7 +215,9 @@ private:
     AVRational tb_;
     AVRational fr_;
 
-    enum ThreadState { START, RUNNING, ERROR } tState_ = START;
+    // "ERROR" would collide with the ERROR macro <windows.h> defines
+    // (same family of landmine as min/max, which is why NOMINMAX is set)
+    enum ThreadState { START, RUNNING, DECODE_FAILED } tState_ = START;
 
     std::thread thread_;
     bool quit_, pause_;

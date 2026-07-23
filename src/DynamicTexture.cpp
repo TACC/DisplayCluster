@@ -47,6 +47,11 @@
 
 #ifdef __APPLE__
     #include <OpenGL/glu.h>
+#elif defined(_WIN32)
+    // GL/gl.h and GL/glu.h need windows.h included first on Windows
+    // (APIENTRY/WINGDIAPI macros) - see GLWindow.cpp for the same fix
+    #include <windows.h>
+    #include <GL/glu.h>
 #else
     #include <GL/glu.h>
 #endif

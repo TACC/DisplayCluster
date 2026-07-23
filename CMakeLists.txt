@@ -92,16 +92,17 @@ set(LIBS ${LIBS} ${FFMPEG_LIBRARIES})
 # CUDA driver API (cuda.h / cudaGL.h) for NVDEC decode + zero-copy CUDA-GL
 # interop in Movie.cpp/Decoder.cpp; only needs the driver, not the full
 # toolkit/nvcc, since nothing here is compiled as CUDA device code.
-# nvcuda.lib (the Windows import lib for the driver API) ships with the
-# CUDA Toolkit installer, under %CUDA_PATH% (set by that installer) - unlike
-# nvcuda.dll itself, which ships with the GPU driver
+# The runtime driver library is nvcuda.dll (ships with the GPU driver, not
+# the Toolkit), but the *import lib* to link against at build time is named
+# cuda.lib on Windows (same base name as Linux's libcuda) and does ship
+# with the CUDA Toolkit installer under %CUDA_PATH%
 find_path(CUDA_DRIVER_INCLUDE_DIR cuda.h
     PATHS
         /usr/local/cuda/targets/x86_64-linux/include
         /usr/local/cuda/include
         "$ENV{CUDA_PATH}/include")
 if(WIN32)
-    find_library(CUDA_DRIVER_LIBRARY nvcuda
+    find_library(CUDA_DRIVER_LIBRARY cuda
         PATHS "$ENV{CUDA_PATH}/lib/x64" "$ENV{CUDA_PATH}/lib")
 else()
     find_library(CUDA_DRIVER_LIBRARY cuda
