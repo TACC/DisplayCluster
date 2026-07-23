@@ -63,7 +63,11 @@ void ensureCudaContext()
     cuInit(0);
     CUdevice device;
     cuDeviceGet(&device, 0);
-    cuCtxCreate(&g_cudaContext, 0, device);
+    // explicit _v2, not the bare cuCtxCreate name: cuda.h macro-redirects
+    // the bare name to whatever's newest (cuCtxCreate_v4 as of CUDA 13,
+    // with a different signature), while _v2 is the long-stable ABI CUDA
+    // keeps around indefinitely
+    cuCtxCreate_v2(&g_cudaContext, 0, device);
 }
 
 void checkCu(CUresult result, const char *what)

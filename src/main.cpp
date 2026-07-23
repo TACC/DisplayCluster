@@ -40,7 +40,9 @@
 #include "config.h"
 #include "log.h"
 #include <mpi.h>
-#include <unistd.h>
+#ifndef _WIN32
+    #include <unistd.h>
+#endif
 #include <stdlib.h>
 #include "QSSApp.h"
 
