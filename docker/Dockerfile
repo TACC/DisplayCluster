@@ -19,7 +19,8 @@ RUN apt-get update && apt-get install -y -qq --no-install-recommends \
 # whole dance is gone now that the app is off Qt4.
 RUN apt-get install -y -qq --no-install-recommends \
   qt6-base-dev \
-  qt6-svg-dev
+  libqt6svg6-dev \
+  libqt6opengl6-dev
 
 RUN apt-get update \
   && apt-get install -y -qq --no-install-recommends \
@@ -124,18 +125,20 @@ ENV PATH=/usr/local/cuda/bin:$PATH
 ENV CUDA_PATH=/usr/local/cuda
 
 RUN mkdir -p /usr/local/src \
-    && cd /usr/local/src \
-    && git clone https://github.com/TACC/DisplayCluster.git \
-    && cd DisplayCluster \
-    && git checkout Qt6
+    && cd /usr/local/src
+
+# Copies the repo checkout this Dockerfile lives in, rather than
+# git-cloning a fresh copy from GitHub - build context must be the repo
+# root for this to work (COPY can't reach outside it), so build with:
+#   docker build -f docker/Dockerfile -t displaycluster .
+# from the repo root, not from inside docker/.
+COPY . /usr/local/src/DisplayCluster
 
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
 
-COPY cfg.dc /usr/local/src/DisplayCluster
-
 RUN cd /usr/local/src/DisplayCluster \
    && mkdir build && cd build \
-   && sh ../cfg.dc  \
+   && sh ../docker/cfg.dc  \
    && make -j 5 install \
    && echo done

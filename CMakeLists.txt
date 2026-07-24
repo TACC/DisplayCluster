@@ -105,8 +105,18 @@ if(WIN32)
     find_library(CUDA_DRIVER_LIBRARY cuda
         PATHS "$ENV{CUDA_PATH}/lib/x64" "$ENV{CUDA_PATH}/lib")
 else()
+    # the stub lib for linking without a real driver present (e.g. a
+    # container build) lives in different places depending on packaging:
+    # RHEL/Rocky's nvidia-driver-cuda-libs puts it under /usr/lib64/stubs,
+    # Debian/Ubuntu's cuda-toolkit package puts it under
+    # targets/x86_64-linux/lib/stubs instead
     find_library(CUDA_DRIVER_LIBRARY cuda
-        PATHS /usr/local/cuda/targets/x86_64-linux/lib /usr/local/cuda/lib64 /usr/lib64 /usr/lib64/stubs)
+        PATHS
+            /usr/local/cuda/targets/x86_64-linux/lib/stubs
+            /usr/local/cuda/targets/x86_64-linux/lib
+            /usr/local/cuda/lib64
+            /usr/lib64
+            /usr/lib64/stubs)
 endif()
 if(NOT CUDA_DRIVER_INCLUDE_DIR OR NOT CUDA_DRIVER_LIBRARY)
     message(FATAL_ERROR "CUDA driver API not found (cuda.h / libcuda or nvcuda.lib) - required for NVDEC decode")
