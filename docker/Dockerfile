@@ -107,19 +107,27 @@ RUN apt-get install -y -qq --no-install-recommends \
   libavutil-dev \
   libswscale-dev
 
-# CUDA Toolkit - needed for the driver API headers (cuda.h, cudaGL.h)
-# src/Decoder.cpp and src/Movie.cpp use for NVDEC decode and the
-# zero-copy CUDA-GL interop path. The actual runtime driver
-# (libcuda.so, matching the host's installed driver version) is
-# supplied at container *run* time by the NVIDIA Container Toolkit via
-# NVIDIA_VISIBLE_DEVICES above, not baked into this image - the
-# cuda-toolkit package here only needs to provide a linkable stub for
-# the build itself.
+# CUDA driver API only - needed for the headers (cuda.h, cudaGL.h) and
+# a linkable stub library src/Decoder.cpp and src/Movie.cpp use for
+# NVDEC decode and the zero-copy CUDA-GL interop path. The actual
+# runtime driver (libcuda.so, matching the host's installed driver
+# version) is supplied at container *run* time by the NVIDIA Container
+# Toolkit via NVIDIA_VISIBLE_DEVICES above, not baked into this image.
+#
+# cuda-cudart-dev-13-3 (not the cuda-toolkit metapackage) is what we
+# actually need: it pulls in cuda-driver-dev-13-3 for the headers/stub,
+# with no compiler (nvcc), profiler (Nsight), or math library (cuBLAS/
+# cuFFT/...) bloat - 28MB installed vs. several GB for cuda-toolkit,
+# and meaningfully faster to convert with `apptainer build ...
+# docker-daemon:` afterward. The "-13-3" version pin needs bumping
+# occasionally as NVIDIA ships new CUDA releases - check the current
+# version with `apt-cache search cuda-cudart-dev` after adding the repo
+# below if this stops resolving.
 RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb \
   && dpkg -i cuda-keyring_1.1-1_all.deb \
   && rm cuda-keyring_1.1-1_all.deb \
   && apt-get update \
-  && apt-get install -y -qq --no-install-recommends cuda-toolkit
+  && apt-get install -y -qq --no-install-recommends cuda-cudart-dev-13-3
 
 ENV PATH=/usr/local/cuda/bin:$PATH
 ENV CUDA_PATH=/usr/local/cuda
