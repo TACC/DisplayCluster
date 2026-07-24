@@ -7,9 +7,12 @@ In the following we will refer to the host, e.g. *outside* the container, as the
 Clone the repo somewhere - we'll refer to this as the source directory - and check out the **Qt6** branch. To build the DC image, run this from the source directory itself (not from inside `docker/` - the Dockerfile `COPY`s the checkout it lives in, rather than cloning a fresh copy from GitHub, so the build context has to be the repo root):
 
     docker build -f docker/Dockerfile -t displaycluster .
-    apptainer build displaycluster docker-daemon:displaycluster:latest
+    docker save displaycluster:latest -o /tmp/displaycluster.tar
+    apptainer build displaycluster docker-archive:/tmp/displaycluster.tar
 
 This will create **displaycluster.sif** with the worker-side bits installed in the /usr/local area of the container.
+
+Use `docker save` + `docker-archive:`, not `apptainer build ... docker-daemon:displaycluster:latest` directly - on at least one multi-user setup (TACC's rattler-dev), `apptainer build`'s `docker-daemon:` transport connected to a different Docker daemon/socket than the `docker` CLI itself was using, so it kept baking a stale, previously-built image into the .sif no matter how many times the image was rebuilt or `apptainer cache clean` was run - completely silent, no error, just an old binary. `docker save` guarantees you're archiving the exact image the `docker` CLI just built (same daemon by construction), and `docker-archive:` reads directly from that file with no daemon connection involved at all, sidestepping the whole class of bug.
 
 ## Host-side code
 
