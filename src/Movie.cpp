@@ -63,17 +63,23 @@ void ensureCudaContext()
     cuInit(0);
     CUdevice device;
     cuDeviceGet(&device, 0);
-    // cuCtxCreate's signature genuinely changed in CUDA 13: it gained a
-    // CUctxCreateParams* parameter (NULL = default behavior, matching what
-    // the old 3-arg form did implicitly). cuda.h's own versioned symbols
-    // (_v2/_v3/_v4) aren't a stable way to pin this - older headers don't
-    // declare cuCtxCreate_v4 at all, so CUDA_VERSION is what actually
-    // distinguishes the two call shapes here
-#if CUDA_VERSION >= 13000
-    cuCtxCreate(&g_cudaContext, nullptr, 0, device);
-#else
-    cuCtxCreate(&g_cudaContext, 0, device);
-#endif
+    // cuCtxCreate() is the wrong tool here: cuda.h redirects the bare name
+    // to whatever versioned symbol (_v2/_v3/_v4/...) is current for the
+    // CUDA version this was BUILT against, but that's a compile-time
+    // decision baked into the binary - it doesn't track what the actual
+    // RUNTIME driver on whatever machine the binary ends up running on
+    // actually implements. A binary built against CUDA 13 headers
+    // reliably fails with "undefined symbol: cuCtxCreate_v4" on any
+    // machine whose installed driver predates CUDA 13, since older
+    // drivers never exported that symbol at all (confirmed happening in
+    // practice: built via the Ubuntu 22.04 container's CUDA 13.3
+    // toolkit, then run on a TACC GPU node with an older driver).
+    // cuDevicePrimaryCtxRetain() has never had versioned variants and
+    // gets a perfectly usable context for our purposes (we don't need
+    // any of the newer per-context creation flags), so it sidesteps this
+    // whole class of build-vs-runtime-driver mismatch entirely.
+    cuDevicePrimaryCtxRetain(&g_cudaContext, device);
+    cuCtxSetCurrent(g_cudaContext);
 }
 
 void checkCu(CUresult result, const char *what)
