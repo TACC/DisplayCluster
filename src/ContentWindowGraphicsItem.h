@@ -42,6 +42,7 @@
 #include "ContentWindowInterface.h"
 #include <QtGui>
 #include <QtWidgets>
+#include <QElapsedTimer>
 #include <boost/shared_ptr.hpp>
 
 class ContentWindowManager;
@@ -78,8 +79,22 @@ class ContentWindowGraphicsItem : public QGraphicsRectItem, public ContentWindow
 
     private:
 
+        // returns true if enough time has passed since the last cluster
+        // sync to allow another one now (and resets the clock); false if
+        // the caller should just mark itself dirty and wait for
+        // mouseReleaseEvent instead - see mouseMoveEvent
+        bool dragSyncReady();
+
         // resizing state
         bool resizing_;
+
+        // throttles how often dragging (move/resize/zoom/pan) broadcasts
+        // updates to the rest of the cluster - see mouseMoveEvent
+        QElapsedTimer dragSyncTimer_;
+        bool positionDirty_;
+        bool sizeDirty_;
+        bool zoomDirty_;
+        bool centerDirty_;
 
         // counter used to determine stacking order in the UI
         static qreal zCounter_;

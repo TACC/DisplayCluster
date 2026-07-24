@@ -45,10 +45,33 @@
 
 qreal ContentWindowGraphicsItem::zCounter_ = 0;
 
+namespace
+{
+    // how often (in ms) a drag broadcasts its position to the rest of the
+    // cluster while the mouse is still moving - see mouseMoveEvent. 0 (the
+    // default) means don't sync until mouse-up at all: no MPI traffic
+    // mid-drag, other hosts just see the window jump to its final spot
+    // when you let go. Override via DISPLAYCLUSTER_DRAG_SYNC_MS for
+    // periodic mid-drag updates instead, on setups that can afford the
+    // extra cluster round-trips and want other hosts to track the drag
+    // more closely.
+    int
+    dragSyncIntervalMs()
+    {
+        static const int interval = (getenv("DISPLAYCLUSTER_DRAG_SYNC_MS") == NULL) ? 0 : atoi(getenv("DISPLAYCLUSTER_DRAG_SYNC_MS"));
+        return interval;
+    }
+}
+
 ContentWindowGraphicsItem::ContentWindowGraphicsItem(boost::shared_ptr<ContentWindowManager> contentWindowManager) : ContentWindowInterface(contentWindowManager)
 {
     // defaults
     resizing_ = false;
+    positionDirty_ = false;
+    sizeDirty_ = false;
+    zoomDirty_ = false;
+    centerDirty_ = false;
+    dragSyncTimer_.start();
 
     // graphics items are movable
     setFlag(QGraphicsItem::ItemIsMovable, true);
@@ -66,6 +89,20 @@ ContentWindowGraphicsItem::ContentWindowGraphicsItem(boost::shared_ptr<ContentWi
     // new items at the front
     // we assume that interface items will be constructed in depth order so this produces the correct result...
     setZToFront();
+}
+
+bool
+ContentWindowGraphicsItem::dragSyncReady()
+{
+    int syncIntervalMs = dragSyncIntervalMs();
+
+    if(syncIntervalMs > 0 && dragSyncTimer_.elapsed() >= syncIntervalMs)
+    {
+        dragSyncTimer_.restart();
+        return true;
+    }
+
+    return false;
 }
 
 void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGraphicsItem * option, QWidget * widget)
@@ -289,6 +326,21 @@ void ContentWindowGraphicsItem::setZToFront()
     setZValue(zCounter_);
 }
 
+// Every branch below follows the same shape: update local state/visuals
+// on every mouse-move event via the (ContentWindowInterface *)-1 sentinel
+// (the same "force an update but don't emit signals" trick already used
+// in the constructor for setSelected()), so this host's own view stays
+// fully responsive regardless of sync rate. The *real* setter (default
+// source = NULL) is only called when dragSyncReady() allows it, since it
+// emits a signal that's wired straight to DisplayGroupManager::
+// sendDisplayGroup() - a blocking MPI_Bcast + MPI_Barrier across every
+// render host in the cluster. Calling that on every mouse-move event
+// (which fires far more often than a cluster round-trip takes) makes
+// dragging/resizing/zooming feel like it hangs, since the GUI thread
+// blocks on the whole cluster per pixel of movement. See
+// dragSyncIntervalMs() above for the default (off) and how to override
+// it; mouseReleaseEvent flushes any leftover dirty state so the final
+// values are never dropped regardless of interval.
 void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
 {
     // handle mouse movements differently depending on selected mode of item
@@ -308,7 +360,17 @@ void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
                 double w = sceneRect.width();
                 double h = sceneRect.height();
 
-                setSize(w, h);
+                setSize(w, h, (ContentWindowInterface *)-1);
+
+                if(dragSyncReady())
+                {
+                    setSize(w_, h_);
+                    sizeDirty_ = false;
+                }
+                else
+                {
+                    sizeDirty_ = true;
+                }
             }
             else
             {
@@ -317,7 +379,17 @@ void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
                 double x = x_ + delta.x();
                 double y = y_ + delta.y();
 
-                setPosition(x, y);
+                setPosition(x, y, (ContentWindowInterface *)-1);
+
+                if(dragSyncReady())
+                {
+                    setPosition(x_, y_);
+                    positionDirty_ = false;
+                }
+                else
+                {
+                    positionDirty_ = true;
+                }
             }
         }
     }
@@ -333,7 +405,17 @@ void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
 
             double zoom = zoom_ * (1. - zoomDelta);
 
-            setZoom(zoom);
+            setZoom(zoom, (ContentWindowInterface *)-1);
+
+            if(dragSyncReady())
+            {
+                setZoom(zoom_);
+                zoomDirty_ = false;
+            }
+            else
+            {
+                zoomDirty_ = true;
+            }
         }
         else if(event->buttons().testFlag(Qt::LeftButton) == true)
         {
@@ -341,7 +423,17 @@ void ContentWindowGraphicsItem::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
             double centerX = centerX_ + 2.*delta.x() / zoom_;
             double centerY = centerY_ + 2.*delta.y() / zoom_;
 
-            setCenter(centerX, centerY);
+            setCenter(centerX, centerY, (ContentWindowInterface *)-1);
+
+            if(dragSyncReady())
+            {
+                setCenter(centerX_, centerY_);
+                centerDirty_ = false;
+            }
+            else
+            {
+                centerDirty_ = true;
+            }
         }
 
         // force a redraw to update window info label
@@ -411,6 +503,31 @@ void ContentWindowGraphicsItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *
 void ContentWindowGraphicsItem::mouseReleaseEvent(QGraphicsSceneMouseEvent * event)
 {
     resizing_ = false;
+
+    // flush any drag update that was throttled away mid-drag (see
+    // mouseMoveEvent/dragSyncIntervalMs()) so the final state always
+    // reaches the rest of the cluster, even if it landed inside the last
+    // throttle interval
+    if(positionDirty_)
+    {
+        setPosition(x_, y_);
+        positionDirty_ = false;
+    }
+    if(sizeDirty_)
+    {
+        setSize(w_, h_);
+        sizeDirty_ = false;
+    }
+    if(zoomDirty_)
+    {
+        setZoom(zoom_);
+        zoomDirty_ = false;
+    }
+    if(centerDirty_)
+    {
+        setCenter(centerX_, centerY_);
+        centerDirty_ = false;
+    }
 
     QGraphicsItem::mouseReleaseEvent(event);
 }
