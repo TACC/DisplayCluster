@@ -40,6 +40,29 @@
 #include "main.h"
 #include "Decoder.h"
 
+namespace
+{
+    // how often (in seconds) each decoder re-anchors its frame-timing
+    // epoch (tStart_) via a fresh barrier-synchronized clock reading.
+    // _setup() only does this once, at startup; std::chrono::
+    // high_resolution_clock on different hosts doesn't run at exactly the
+    // same rate (NTP disciplines it, but not perfectly, and it can be
+    // adjusted between resyncs), so "elapsed = now - tStart_" slowly
+    // diverges between hosts the longer tStart_ stays fixed - on a
+    // long-running installation, that drift is unbounded without a
+    // periodic re-sync. 300s (5 min) bounds it to whatever a single
+    // interval's worth of clock-rate error amounts to, which should be
+    // imperceptible for any reasonable clock. Override via
+    // DISPLAYCLUSTER_MOVIE_RESYNC_SEC; 0 disables periodic resync
+    // entirely, matching the original one-time-only behavior.
+    double
+    decoderResyncIntervalSec()
+    {
+        static const double interval = (getenv("DISPLAYCLUSTER_MOVIE_RESYNC_SEC") == NULL) ? 300. : atof(getenv("DISPLAYCLUSTER_MOVIE_RESYNC_SEC"));
+        return interval;
+    }
+}
+
 // picks AV_PIX_FMT_CUDA out of the codec's offered formats so decoded frames
 // stay resident on the GPU (as NV12 device memory) instead of falling back
 // to a software pixel format
@@ -82,6 +105,7 @@ Decoder::_setup()
     newFrame_ = false;
 
     current_frame_ = -1;
+    frameOffset_ = 0;
     MPI_Barrier(g_mpiRenderComm);
     tStart_ = high_resolution_clock::now();
     MPI_Barrier(g_mpiRenderComm);
@@ -166,12 +190,32 @@ Decoder::_setup()
     return true;
 }
 
-bool 
+bool
 Decoder::_decode()
 {
     auto now = high_resolution_clock::now();
     duration<double, std::ratio<1>> t = now - tStart_;
-    int target = int(t.count() * fps_) % (num_frames_ - 2);
+
+    // periodically re-anchor tStart_ via a fresh barrier-synchronized
+    // clock reading to bound cross-host drift over a long-running
+    // session - see decoderResyncIntervalSec() above. frameOffset_
+    // absorbs the frame count already elapsed so this doesn't cause a
+    // visible jump: right after the resync, frameOffset_ + 0 elapsed
+    // still equals whatever frame we were already on.
+    double resyncIntervalSec = decoderResyncIntervalSec();
+    if (resyncIntervalSec > 0. && t.count() >= resyncIntervalSec)
+    {
+        frameOffset_ = (frameOffset_ + int(t.count() * fps_)) % (num_frames_ - 2);
+
+        MPI_Barrier(g_mpiRenderComm);
+        now = high_resolution_clock::now();
+        MPI_Barrier(g_mpiRenderComm);
+
+        tStart_ = now;
+        t = duration<double, std::ratio<1>>::zero();
+    }
+
+    int target = (frameOffset_ + int(t.count() * fps_)) % (num_frames_ - 2);
 
     if (target == current_frame_)
         return true;

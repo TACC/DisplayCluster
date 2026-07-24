@@ -226,6 +226,12 @@ private:
     std::condition_variable cv_;
 
     time_point<high_resolution_clock> tStart_;
+
+    // frame count already elapsed as of tStart_ - lets periodic re-syncs
+    // (see decoderResyncIntervalSec() in Decoder.cpp) re-anchor tStart_
+    // to a fresh barrier-synchronized clock reading without the current
+    // frame visibly jumping
+    int frameOffset_ = 0;
 };
 
 #endif
