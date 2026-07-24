@@ -1,11 +1,12 @@
-This branch DisplayCluster can be run using apptainer containers.  This is primarily intended for use with systems with Nvidia graphcs cards, and is  built on top of the Nvidia opengl image: nvidia/opengl:1.0-glvnd-devel-ubuntu20.04.   I believe you can build the image using a standard ubuntu 20.04 image (by changing the **FROM** line in the Dockerfile, but it will use Mesa for rendering, which can have performance issues when the displays are high resolution.  
+This branch DisplayCluster can be run using apptainer containers.  This is primarily intended for use with systems with Nvidia graphcs cards, and is  built on top of the Nvidia opengl image: nvidia/opengl:1.0-glvnd-devel-ubuntu22.04.   I believe you can build the image using a standard ubuntu 22.04 image (by changing the **FROM** line in the Dockerfile, but it will use Mesa for rendering, which can have performance issues when the displays are high resolution.
+
+Note: the container is no longer required just to get a working build - the app moved off Qt4 (which needed a PPA only available on old Ubuntu) to Qt6, which is packaged natively on any current Linux distro. See `BUILD.md` for a native build with no container at all. This apptainer path is still useful for reproducible/portable deployment across cluster nodes, which is a different goal.
 
 In the following we will refer to the host, e.g. *outside* the container, as the host.   Workers, which run both the GUI and the display nodes, are referred to as workers.
 
-Clone the repo somewhere - we'll refer to this as the source directory
-To build the DC image, enter the source directory, change to the **docker** branch and enter the 'docker' subdirectory.   In that directory run:
+Clone the repo somewhere - we'll refer to this as the source directory - and check out the **Qt6** branch. To build the DC image, run this from the source directory itself (not from inside `docker/` - the Dockerfile `COPY`s the checkout it lives in, rather than cloning a fresh copy from GitHub, so the build context has to be the repo root):
 
-    docker build -t displaycluster .
+    docker build -f docker/Dockerfile -t displaycluster .
     apptainer build displaycluster docker-daemon:displaycluster:latest
 
 This will create **displaycluster.sif** with the worker-side bits installed in the /usr/local area of the container.
@@ -56,8 +57,8 @@ This will install the startup command in {worker-installdir}/bin, the python pac
 
 To run apptainer containers under MPI the version of MPI on the hosts *outside the container* must match the version of MPI 
 *inside* the container.  
-This Dockerfile installs OpenMPI-4.1.1 off the web.  
-Thus the one requirement of the host environment (other than having apptainer installed) is to have OpenMPI-4.1.1 installed on the hosts.
+This Dockerfile installs OpenMPI via the Ubuntu 22.04 package repos (currently 4.1.2).
+Thus the one requirement of the host environment (other than having apptainer installed) is to have a matching OpenMPI version installed on the hosts.
 Alternatively, the Dockerfile can be modified to install a different version that matches the one on the host.   
 Your mileage may vary if you choose this alternative.
 
