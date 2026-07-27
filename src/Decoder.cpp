@@ -39,6 +39,7 @@
 
 #include "main.h"
 #include "Decoder.h"
+#include "log.h"
 
 namespace
 {
@@ -157,14 +158,46 @@ Decoder::_setup()
         return false;
     }
 
-    if (av_hwdevice_ctx_create(&hwDeviceCtx_, AV_HWDEVICE_TYPE_CUDA, NULL, NULL, 0) < 0)
+    // not every codec has an NVDEC hwaccel variant at all (ProRes, for
+    // one, never will - NVIDIA has never implemented it, on any GPU
+    // generation) - check before committing to the hw path, rather than
+    // discovering it later via a get_format() callback failure
+    hwDecode_ = false;
+    for (int i = 0; ; i++)
     {
-        std::cerr << "could not create CUDA hw device context\n";
-        return false;
+        const AVCodecHWConfig *config = avcodec_get_hw_config(codec, i);
+        if (!config)
+            break;
+        if ((config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX) &&
+            config->device_type == AV_HWDEVICE_TYPE_CUDA)
+        {
+            hwDecode_ = true;
+            break;
+        }
     }
 
-    avCodecContext_->hw_device_ctx = av_buffer_ref(hwDeviceCtx_);
-    avCodecContext_->get_format = get_hw_format;
+    if (hwDecode_)
+    {
+        if (av_hwdevice_ctx_create(&hwDeviceCtx_, AV_HWDEVICE_TYPE_CUDA, NULL, NULL, 0) < 0)
+        {
+            std::cerr << "could not create CUDA hw device context\n";
+            return false;
+        }
+
+        avCodecContext_->hw_device_ctx = av_buffer_ref(hwDeviceCtx_);
+        avCodecContext_->get_format = get_hw_format;
+    }
+    else
+    {
+        put_flog(LOG_WARN,
+            "'%s' is %s, which has no NVDEC hardware decode support on any NVIDIA GPU - "
+            "falling back to SOFTWARE decode. This is dramatically slower and will likely "
+            "struggle to keep up at cluster-wall resolutions/frame rates, especially with "
+            "multiple movies playing at once. You will get much better results by "
+            "transcoding this file to H.264 or HEVC first, e.g.:  "
+            "ffmpeg -i \"%s\" -c:v libx264 -crf 18 -pix_fmt yuv420p output.mp4",
+            uri_.c_str(), codec->name, uri_.c_str());
+    }
 
     if (avcodec_open2(avCodecContext_, codec, NULL) < 0)
     {
@@ -251,11 +284,45 @@ Decoder::_decode()
 
             if(dts == 0 || (avFrame_->pkt_dts >= dts))
             {
-                Lock();
-                av_frame_unref(readyFrame_);
-                av_frame_ref(readyFrame_, avFrame_);
-                newFrame_ = true;
-                Unlock();
+                if (hwDecode_)
+                {
+                    // avFrame_ is already an AV_PIX_FMT_CUDA frame (data[]
+                    // holds device pointers into GPU memory) - just share
+                    // it, matching what Movie.cpp's CUDA-GL interop path
+                    // expects
+                    Lock();
+                    av_frame_unref(readyFrame_);
+                    av_frame_ref(readyFrame_, avFrame_);
+                    newFrame_ = true;
+                    Unlock();
+                }
+                else
+                {
+                    // avFrame_ is in the software decoder's native format
+                    // (e.g. yuv422p10le for ProRes) and lives in host
+                    // memory - convert to NV12 so Movie.cpp only ever has
+                    // to deal with one pixel layout regardless of decode
+                    // path, just uploaded via plain glTexSubImage2D
+                    // instead of the CUDA-GL interop copy
+                    if (!swsContext_)
+                    {
+                        swsContext_ = sws_getContext(
+                            avFrame_->width, avFrame_->height, (AVPixelFormat)avFrame_->format,
+                            avFrame_->width, avFrame_->height, AV_PIX_FMT_NV12,
+                            SWS_BILINEAR, NULL, NULL, NULL);
+                    }
+
+                    Lock();
+                    av_frame_unref(readyFrame_);
+                    readyFrame_->format = AV_PIX_FMT_NV12;
+                    readyFrame_->width = avFrame_->width;
+                    readyFrame_->height = avFrame_->height;
+                    av_frame_get_buffer(readyFrame_, 0);
+                    sws_scale(swsContext_, avFrame_->data, avFrame_->linesize, 0, avFrame_->height,
+                              readyFrame_->data, readyFrame_->linesize);
+                    newFrame_ = true;
+                    Unlock();
+                }
 
                 av_packet_unref(&packet);
 
@@ -282,4 +349,6 @@ Decoder::_cleanup()
     av_frame_free(&avFrame_);
     av_frame_free(&readyFrame_);
     av_buffer_unref(&hwDeviceCtx_);
+    sws_freeContext(swsContext_);
+    swsContext_ = nullptr;
 }

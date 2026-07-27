@@ -236,36 +236,57 @@ void Movie::render(float tX, float tY, float tW, float tH)
     {
         AVFrame *frame = decoder->getFrame();
 
-        ensureCudaContext();
+        if (decoder->usingHardwareDecode())
+        {
+            ensureCudaContext();
 
-        CUgraphicsResource resources[2] = { cudaResourceY_, cudaResourceUV_ };
-        checkCu(cuGraphicsMapResources(2, resources, 0), "map movie textures");
+            CUgraphicsResource resources[2] = { cudaResourceY_, cudaResourceUV_ };
+            checkCu(cuGraphicsMapResources(2, resources, 0), "map movie textures");
 
-        CUarray arrayY, arrayUV;
-        checkCu(cuGraphicsSubResourceGetMappedArray(&arrayY, cudaResourceY_, 0, 0), "get Y array");
-        checkCu(cuGraphicsSubResourceGetMappedArray(&arrayUV, cudaResourceUV_, 0, 0), "get UV array");
+            CUarray arrayY, arrayUV;
+            checkCu(cuGraphicsSubResourceGetMappedArray(&arrayY, cudaResourceY_, 0, 0), "get Y array");
+            checkCu(cuGraphicsSubResourceGetMappedArray(&arrayUV, cudaResourceUV_, 0, 0), "get UV array");
 
-        CUDA_MEMCPY2D copyY = {};
-        copyY.srcMemoryType = CU_MEMORYTYPE_DEVICE;
-        copyY.srcDevice = (CUdeviceptr)frame->data[0];
-        copyY.srcPitch = frame->linesize[0];
-        copyY.dstMemoryType = CU_MEMORYTYPE_ARRAY;
-        copyY.dstArray = arrayY;
-        copyY.WidthInBytes = w;
-        copyY.Height = h;
-        checkCu(cuMemcpy2D(&copyY), "copy Y plane");
+            CUDA_MEMCPY2D copyY = {};
+            copyY.srcMemoryType = CU_MEMORYTYPE_DEVICE;
+            copyY.srcDevice = (CUdeviceptr)frame->data[0];
+            copyY.srcPitch = frame->linesize[0];
+            copyY.dstMemoryType = CU_MEMORYTYPE_ARRAY;
+            copyY.dstArray = arrayY;
+            copyY.WidthInBytes = w;
+            copyY.Height = h;
+            checkCu(cuMemcpy2D(&copyY), "copy Y plane");
 
-        CUDA_MEMCPY2D copyUV = {};
-        copyUV.srcMemoryType = CU_MEMORYTYPE_DEVICE;
-        copyUV.srcDevice = (CUdeviceptr)frame->data[1];
-        copyUV.srcPitch = frame->linesize[1];
-        copyUV.dstMemoryType = CU_MEMORYTYPE_ARRAY;
-        copyUV.dstArray = arrayUV;
-        copyUV.WidthInBytes = cw * 2;
-        copyUV.Height = ch;
-        checkCu(cuMemcpy2D(&copyUV), "copy UV plane");
+            CUDA_MEMCPY2D copyUV = {};
+            copyUV.srcMemoryType = CU_MEMORYTYPE_DEVICE;
+            copyUV.srcDevice = (CUdeviceptr)frame->data[1];
+            copyUV.srcPitch = frame->linesize[1];
+            copyUV.dstMemoryType = CU_MEMORYTYPE_ARRAY;
+            copyUV.dstArray = arrayUV;
+            copyUV.WidthInBytes = cw * 2;
+            copyUV.Height = ch;
+            checkCu(cuMemcpy2D(&copyUV), "copy UV plane");
 
-        checkCu(cuGraphicsUnmapResources(2, resources, 0), "unmap movie textures");
+            checkCu(cuGraphicsUnmapResources(2, resources, 0), "unmap movie textures");
+        }
+        else
+        {
+            // software-decode fallback (see Decoder::_setup()/_decode()):
+            // frame is already NV12 in ordinary host memory (sws_scale'd
+            // there), so a plain texture upload replaces the CUDA-GL
+            // interop copy above. GL_UNPACK_ROW_LENGTH accounts for
+            // ffmpeg's linesize possibly padding rows wider than the
+            // actual image, same role srcPitch plays in the CUDA copy
+            glPixelStorei(GL_UNPACK_ROW_LENGTH, frame->linesize[0]);
+            glBindTexture(GL_TEXTURE_2D, textureY_);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RED, GL_UNSIGNED_BYTE, frame->data[0]);
+
+            glPixelStorei(GL_UNPACK_ROW_LENGTH, frame->linesize[1] / 2);
+            glBindTexture(GL_TEXTURE_2D, textureUV_);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cw, ch, GL_RG, GL_UNSIGNED_BYTE, frame->data[1]);
+
+            glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+        }
 
         decoder->releaseFrame();
     }

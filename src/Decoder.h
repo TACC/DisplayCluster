@@ -56,6 +56,7 @@ extern "C" {
     #include "libavutil/avutil.h"
     #include "libavutil/imgutils.h"
     #include "libavutil/hwcontext.h"
+    #include "libswscale/swscale.h"
 }
 
 // these old names have been retired since FFmpeg ~3.x; alias them for any
@@ -194,6 +195,13 @@ public:
     int
     getNumberOfFrames() { return num_frames_; };
 
+    // false means this codec has no NVDEC hwaccel support and _decode() is
+    // falling back to software decode + an sws_scale() conversion to NV12
+    // (see _decode()) - Movie::render() needs to know this to pick between
+    // the CUDA-GL interop upload path and a plain glTexSubImage2D one
+    bool
+    usingHardwareDecode() { return hwDecode_; }
+
 private:
 
     bool _setup();
@@ -204,6 +212,8 @@ private:
     int width_, height_;
     int current_frame_ = -1;
     bool newFrame_;
+    bool hwDecode_ = true;
+    SwsContext *swsContext_ = nullptr;
 
     AVFormatContext *avFormatContext_;
     AVCodecContext *avCodecContext_;
