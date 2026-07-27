@@ -294,7 +294,22 @@ Decoder::_decode()
 
                 avcodec_send_packet(avCodecContext_, &packet);
 
-                if (avcodec_receive_frame(avCodecContext_, avFrame_))
+                int ret = avcodec_receive_frame(avCodecContext_, avFrame_);
+                if (ret == AVERROR(EAGAIN))
+                {
+                    // decoder needs another packet before it can produce
+                    // a frame - routine (B-frame reordering, internal
+                    // buffering), not an error. Feed it the next one
+                    // instead of aborting the whole catch-up attempt,
+                    // which previously had to restart from scratch
+                    // (re-seek, re-decode-from-keyframe) on the next
+                    // _decode() call - the more packets a large catch-up
+                    // needs to work through, the likelier this was to
+                    // hit repeatedly and never make progress at all.
+                    av_packet_unref(&packet);
+                    continue;
+                }
+                if (ret < 0)
                     return false;
 
                 if ((avFrame_->data[0] == NULL) && (avFrame_->data[1] == NULL) && (avFrame_->data[2] == NULL))
