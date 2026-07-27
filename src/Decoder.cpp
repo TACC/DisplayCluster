@@ -253,86 +253,125 @@ Decoder::_decode()
     if (target == current_frame_)
         return true;
 
-    int64_t dts = start_time_ + av_rescale(target, tb_.den * fr_.den, tb_.num * fr_.num);
-    // std::cerr << "fetch " << target << "(" << current_frame_ << ", " << dts << ") at " << t.count() << " sec\n";
+    // Catching up from a large gap (e.g. this decoder sat paused while its
+    // content window wasn't visible on this tile - tStart_ never stops
+    // ticking while paused, so the first target after being resumed can be
+    // far ahead) can take more than one seek: a seek + decode-forward-to-
+    // target cycle takes real time itself, so by the time it finishes,
+    // target may have already moved on again. Re-check against a fresh
+    // clock read after each attempt and seek again immediately rather than
+    // delivering a stale frame and waiting for the next _decode() call
+    // (and its scheduling/locking overhead) to notice and retry. Bounded
+    // so a decoder that genuinely can't keep up (very slow storage, e.g.)
+    // doesn't spin forever - it just falls back to the old one-attempt-
+    // per-call behavior via the outer decode loop instead. Normal
+    // steady-state playback (small target deltas, no seek needed) always
+    // exits after one attempt, same as before this loop existed.
+    auto catchupStart = high_resolution_clock::now();
 
-    if (target < current_frame_ || (target - current_frame_) > 10)
+    int attempt = 0;
+    for (; ; attempt++)
     {
-        avformat_seek_file(avFormatContext_, videoStream_, 0, dts, dts, 0);
-        avcodec_flush_buffers(avCodecContext_);
-    }
+        int64_t dts = start_time_ + av_rescale(target, tb_.den * fr_.den, tb_.num * fr_.num);
 
-    current_frame_ = target;
-
-    AVPacket packet;
-    while (1 == 1)
-    {
-        av_read_frame(avFormatContext_, &packet);
-
-        // make sure packet is from video stream
-        if(packet.stream_index == videoStream_)
+        if (target < current_frame_ || (target - current_frame_) > 10)
         {
-            // decode video frame
-            
-            avcodec_send_packet(avCodecContext_, &packet);
-
-            if (avcodec_receive_frame(avCodecContext_, avFrame_))
-                return false;
-
-            if ((avFrame_->data[0] == NULL) && (avFrame_->data[1] == NULL) && (avFrame_->data[2] == NULL))
-                continue;
-
-            if(dts == 0 || (avFrame_->pkt_dts >= dts))
-            {
-                if (hwDecode_)
-                {
-                    // avFrame_ is already an AV_PIX_FMT_CUDA frame (data[]
-                    // holds device pointers into GPU memory) - just share
-                    // it, matching what Movie.cpp's CUDA-GL interop path
-                    // expects
-                    Lock();
-                    av_frame_unref(readyFrame_);
-                    av_frame_ref(readyFrame_, avFrame_);
-                    newFrame_ = true;
-                    Unlock();
-                }
-                else
-                {
-                    // avFrame_ is in the software decoder's native format
-                    // (e.g. yuv422p10le for ProRes) and lives in host
-                    // memory - convert to NV12 so Movie.cpp only ever has
-                    // to deal with one pixel layout regardless of decode
-                    // path, just uploaded via plain glTexSubImage2D
-                    // instead of the CUDA-GL interop copy
-                    if (!swsContext_)
-                    {
-                        swsContext_ = sws_getContext(
-                            avFrame_->width, avFrame_->height, (AVPixelFormat)avFrame_->format,
-                            avFrame_->width, avFrame_->height, AV_PIX_FMT_NV12,
-                            SWS_BILINEAR, NULL, NULL, NULL);
-                    }
-
-                    Lock();
-                    av_frame_unref(readyFrame_);
-                    readyFrame_->format = AV_PIX_FMT_NV12;
-                    readyFrame_->width = avFrame_->width;
-                    readyFrame_->height = avFrame_->height;
-                    av_frame_get_buffer(readyFrame_, 0);
-                    sws_scale(swsContext_, avFrame_->data, avFrame_->linesize, 0, avFrame_->height,
-                              readyFrame_->data, readyFrame_->linesize);
-                    newFrame_ = true;
-                    Unlock();
-                }
-
-                av_packet_unref(&packet);
-
-                break;
-            }
+            avformat_seek_file(avFormatContext_, videoStream_, 0, dts, dts, 0);
+            avcodec_flush_buffers(avCodecContext_);
         }
 
-        av_packet_unref(&packet);
+        current_frame_ = target;
+
+        AVPacket packet;
+        while (1 == 1)
+        {
+            av_read_frame(avFormatContext_, &packet);
+
+            // make sure packet is from video stream
+            if(packet.stream_index == videoStream_)
+            {
+                // decode video frame
+
+                avcodec_send_packet(avCodecContext_, &packet);
+
+                if (avcodec_receive_frame(avCodecContext_, avFrame_))
+                    return false;
+
+                if ((avFrame_->data[0] == NULL) && (avFrame_->data[1] == NULL) && (avFrame_->data[2] == NULL))
+                    continue;
+
+                if(dts == 0 || (avFrame_->pkt_dts >= dts))
+                {
+                    av_packet_unref(&packet);
+                    break;
+                }
+            }
+
+            av_packet_unref(&packet);
+        }
+
+        if (attempt >= 4)
+            break;
+
+        now = high_resolution_clock::now();
+        t = now - tStart_;
+        int freshTarget = (frameOffset_ + int(t.count() * fps_)) % (num_frames_ - 2);
+
+        // small (or no) residual gap is fine to accept here - the next
+        // _decode() call's normal forward-decode-without-seek path closes
+        // it cheaply. Only a still-large gap, or a backward wrap, is
+        // worth another seek right now.
+        if (!(freshTarget < current_frame_ || (freshTarget - current_frame_) > 10))
+            break;
+
+        target = freshTarget;
     }
-    
+
+    if (attempt > 0)
+    {
+        duration<double, std::ratio<1>> catchupElapsed = high_resolution_clock::now() - catchupStart;
+        put_flog(LOG_DEBUG, "'%s' caught up to frame %d after %d extra seek(s), %.3fs",
+            uri_.c_str(), current_frame_, attempt, catchupElapsed.count());
+    }
+
+    if (hwDecode_)
+    {
+        // avFrame_ is already an AV_PIX_FMT_CUDA frame (data[] holds
+        // device pointers into GPU memory) - just share it, matching what
+        // Movie.cpp's CUDA-GL interop path expects
+        Lock();
+        av_frame_unref(readyFrame_);
+        av_frame_ref(readyFrame_, avFrame_);
+        newFrame_ = true;
+        Unlock();
+    }
+    else
+    {
+        // avFrame_ is in the software decoder's native format (e.g.
+        // yuv422p10le for ProRes) and lives in host memory - convert to
+        // NV12 so Movie.cpp only ever has to deal with one pixel layout
+        // regardless of decode path, just uploaded via plain
+        // glTexSubImage2D instead of the CUDA-GL interop copy
+        if (!swsContext_)
+        {
+            swsContext_ = sws_getContext(
+                avFrame_->width, avFrame_->height, (AVPixelFormat)avFrame_->format,
+                avFrame_->width, avFrame_->height, AV_PIX_FMT_NV12,
+                SWS_BILINEAR, NULL, NULL, NULL);
+        }
+
+        Lock();
+        av_frame_unref(readyFrame_);
+        readyFrame_->format = AV_PIX_FMT_NV12;
+        readyFrame_->width = avFrame_->width;
+        readyFrame_->height = avFrame_->height;
+        av_frame_get_buffer(readyFrame_, 0);
+        sws_scale(swsContext_, avFrame_->data, avFrame_->linesize, 0, avFrame_->height,
+                  readyFrame_->data, readyFrame_->linesize);
+        newFrame_ = true;
+        Unlock();
+    }
+
     return true;
 }
 
