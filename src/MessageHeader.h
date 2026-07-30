@@ -47,6 +47,18 @@
 
 enum MESSAGE_TYPE { MESSAGE_TYPE_CONTENTS, MESSAGE_TYPE_CONTENTS_DIMENSIONS, MESSAGE_TYPE_PIXELSTREAM, MESSAGE_TYPE_PIXELSTREAM_DIMENSIONS_CHANGED, MESSAGE_TYPE_PARALLEL_PIXELSTREAM, MESSAGE_TYPE_SVG_STREAM, MESSAGE_TYPE_FRAME_CLOCK, MESSAGE_TYPE_QUIT };
 
+// the regular content-message stream (MESSAGE_TYPE_CONTENTS etc.) uses tag
+// MPI_TAG_DATA and is deliberately only consumed once every render rank
+// simultaneously has one pending (see DisplayGroupManager::receiveMessages()'s
+// MPI_Allreduce(MPI_LAND) gate) - that's what keeps ranks dropping frames
+// together instead of drifting apart. Quit needs the opposite property: a
+// rank that's stuck or dead must not be able to prevent every OTHER,
+// healthy rank from noticing a shutdown request and exiting on its own. A
+// separate tag lets it be probed and received independently of the gated
+// stream, with no collective/peer-agreement requirement at all.
+#define MPI_TAG_DATA 0
+#define MPI_TAG_QUIT 1
+
 #define MESSAGE_HEADER_URI_LENGTH 64
 
 struct MessageHeader {

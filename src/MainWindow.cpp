@@ -44,6 +44,8 @@
 #include "DisplayGroupGraphicsViewProxy.h"
 #include "DisplayGroupListWidgetProxy.h"
 
+#include <set>
+
 MainWindow::MainWindow()
 {
     // defaults
@@ -467,13 +469,125 @@ void MainWindow::updateGLWindows()
 
     // synchronize clock
     // do this right after receiving messages to ensure we have an accurate clock for rendering, etc. below
-    if(g_mpiRank == 1)
     {
-        g_displayGroupManager->sendFrameClockUpdate();
+        auto t0 = high_resolution_clock::now();
+
+        if(g_mpiRank == 1)
+        {
+            g_displayGroupManager->sendFrameClockUpdate();
+        }
+        else
+        {
+            g_displayGroupManager->receiveFrameClockUpdate();
+        }
+
+        duration<double, std::ratio<1>> elapsed = high_resolution_clock::now() - t0;
+        if (elapsed.count() > 0.1)
+            put_flog(LOG_WARN, "frame clock send/receive took %.3fs", elapsed.count());
     }
-    else
+
+    // every rank participates in a per-movie "is everyone caught up"
+    // reduction, every render frame, so a straggler holds the whole
+    // display on its last agreed-good frame instead of the rest advancing
+    // without it (see Movie::setHold()/render()). This has to iterate
+    // movie URIs in an order every rank is guaranteed to agree on -
+    // g_displayGroupManager->getContentWindowManagers()'s own order isn't
+    // safe for that, since it changes on moveToFront() (every drag starts
+    // with one, via ContentWindowGraphicsItem::mousePressEvent()), and
+    // that reordering broadcast can reach different ranks on different
+    // frames. MPI_Allreduce calls are matched by their position in the
+    // call sequence, not by which movie they're actually about, so a
+    // transient order disagreement pairs one rank's vote for movie A with
+    // another rank's vote for movie B, corrupting the hold decision for
+    // both - a std::set of URIs is naturally sorted and so stays
+    // identically ordered across ranks regardless of Z-order, as long as
+    // the set of open movies itself agrees (which a pure reorder doesn't
+    // change).
+    //
+    // The reduction's outcome also decides how this movie's clock advances
+    // this frame: Resync() (re-anchor to the shared wall clock, so
+    // cross-host clock-rate drift never gets more than one frame's worth
+    // of time to accumulate) when everyone's caught up, or Freeze() (pin
+    // the target frame, advancing it not at all) while anyone's still
+    // behind. Without that, a still-behind decoder would be chasing a
+    // target that keeps moving in real time even though the whole display
+    // is frozen for viewers - if its decode throughput can't beat
+    // real-time (contention from another movie decoding concurrently,
+    // e.g.), that target recedes as fast as or faster than it can close
+    // the gap, and the freeze never ends. This used to be Resync()
+    // unconditionally, on its own 300s timer, guarded by an
+    // MPI_Barrier(g_mpiRenderComm) that only whichever ranks happened to
+    // have a live Decoder for a given movie ever called - piggybacking on
+    // the same per-movie reduction that already runs every frame, on every
+    // rank regardless of whether it has this movie, avoids that mismatch
+    // the same way the reduction itself does.
+    //
+    // All movies are reduced in ONE MPI_Allreduce call, not one call per
+    // movie: MPI_Allreduce reduces arrays element-wise, so packing every
+    // movie's vote into one int array and reducing the whole array at once
+    // keeps this at a single blocking round-trip per frame regardless of
+    // how many movies are open. One call per movie was N blocking
+    // round-trips every render frame - enough, with several movies open,
+    // to measurably slow the whole loop down, which meant Resync() ran
+    // less often for every movie (not just ones actually behind), and once
+    // the elapsed time folded into each less-frequent Resync() exceeded
+    // the small-gap catch-up threshold, even untouched playback started
+    // tripping the catch-up path.
     {
-        g_displayGroupManager->receiveFrameClockUpdate();
+        std::vector<boost::shared_ptr<ContentWindowManager> > windows = g_displayGroupManager->getContentWindowManagers();
+        std::set<std::string> movieURIs;
+
+        for (unsigned int i = 0; i < windows.size(); i++)
+            if (windows[i]->getContent()->getType() == CONTENT_TYPE_MOVIE)
+                movieURIs.insert(windows[i]->getContent()->getURI());
+
+        std::vector<boost::shared_ptr<Movie> > movies;
+        std::vector<int> localSynced;
+
+        for (std::set<std::string>::iterator it = movieURIs.begin(); it != movieURIs.end(); ++it)
+        {
+            boost::shared_ptr<Movie> movie = (glWindows_.size() > 0) ? glWindows_[0]->getMovieFactory().findObject(*it) : boost::shared_ptr<Movie>();
+
+            movies.push_back(movie);
+
+            // a paused movie's isSynced() is frozen at whatever it was the
+            // instant it got paused, since nothing updates it while its
+            // decoder thread is asleep - if that happened to be false
+            // (mid-catch-up right when this tile stopped overlapping the
+            // content), it would vote "unsynced" for as long as it stays
+            // paused, holding every other tile hostage on behalf of a rank
+            // that currently has nothing to show and isn't even trying to
+            // catch up. Same situation as having no movie here at all -
+            // vote vacuously synced.
+            localSynced.push_back((!movie || movie->isPaused() || movie->isSynced()) ? 1 : 0);
+        }
+
+        std::vector<int> allSynced(localSynced.size());
+
+        {
+            auto t0 = high_resolution_clock::now();
+
+            MPI_Allreduce(localSynced.data(), allSynced.data(), (int)localSynced.size(), MPI_INT, MPI_LAND, g_mpiRenderComm);
+
+            duration<double, std::ratio<1>> elapsed = high_resolution_clock::now() - t0;
+            if (elapsed.count() > 0.1)
+                put_flog(LOG_WARN, "per-movie sync Allreduce (%d movies) took %.3fs", (int)localSynced.size(), elapsed.count());
+        }
+
+        auto now = high_resolution_clock::now();
+
+        for (size_t i = 0; i < movies.size(); i++)
+        {
+            if (!movies[i])
+                continue;
+
+            movies[i]->setHold(!allSynced[i]);
+
+            if (allSynced[i])
+                movies[i]->Resync(now);
+            else
+                movies[i]->Freeze(now);
+        }
     }
 
     // render all GLWindows
@@ -484,7 +598,15 @@ void MainWindow::updateGLWindows()
     }
 
     // all render processes render simultaneously
-    MPI_Barrier(g_mpiRenderComm);
+    {
+        auto t0 = high_resolution_clock::now();
+
+        MPI_Barrier(g_mpiRenderComm);
+
+        duration<double, std::ratio<1>> elapsed = high_resolution_clock::now() - t0;
+        if (elapsed.count() > 0.1)
+            put_flog(LOG_WARN, "post-render MPI_Barrier took %.3fs", elapsed.count());
+    }
 
     // swap buffers on all windows
     for(unsigned int i=0; i<glWindows_.size(); i++)
@@ -517,6 +639,23 @@ void MainWindow::updateGLWindows()
 
     // increment frame counter
     g_frameCount = g_frameCount + 1;
+
+    // every render rank learns "shutdown requested" via the same
+    // frame-clock broadcast every one of them already participates in
+    // identically, every frame (see DisplayGroupManager::
+    // isShutdownRequested()'s comment) - so by this point, every render
+    // rank has uniformly finished this frame's per-frame collectives (the
+    // per-movie sync Allreduce, the post-render Barrier) together,
+    // regardless of which of them reacted to the shutdown request
+    // fastest. Stopping here rather than re-queuing the next iteration is
+    // what keeps everyone leaving on the same logical frame, instead of
+    // one rank abandoning a collective another rank is still relying on
+    // it for.
+    if (g_displayGroupManager->isShutdownRequested())
+    {
+        g_app->quit();
+        return;
+    }
 
     emit(updateGLWindowsFinished());
 }

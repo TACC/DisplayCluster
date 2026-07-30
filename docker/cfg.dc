@@ -1,2 +1,3 @@
 cmake .. \
--DCMAKE_INSTALL_PREFIX=/usr/local
+-DCMAKE_INSTALL_PREFIX=/usr/local \
+-DCMAKE_BUILD_TYPE=RelWithDebInfo

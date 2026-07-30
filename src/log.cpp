@@ -55,7 +55,11 @@ void put_log(int level, const char *format, ...)
     vsnprintf(log_string, MAX_LOG_LENGTH, format, ap);
     va_end(ap);
 
-    printf("%s\n", log_string);
+    // with 10+ render processes' output interleaved in one merged console
+    // (mpirun's default), a line otherwise carries no indication of which
+    // process emitted it - g_mpiRank prefixed here rather than left to
+    // each individual put_flog() call site
+    printf("[rank %d] %s\n", g_mpiRank, log_string);
 
     return;
 }

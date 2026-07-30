@@ -41,28 +41,7 @@
 #include "Decoder.h"
 #include "log.h"
 
-namespace
-{
-    // how often (in seconds) each decoder re-anchors its frame-timing
-    // epoch (tStart_) via a fresh barrier-synchronized clock reading.
-    // _setup() only does this once, at startup; std::chrono::
-    // high_resolution_clock on different hosts doesn't run at exactly the
-    // same rate (NTP disciplines it, but not perfectly, and it can be
-    // adjusted between resyncs), so "elapsed = now - tStart_" slowly
-    // diverges between hosts the longer tStart_ stays fixed - on a
-    // long-running installation, that drift is unbounded without a
-    // periodic re-sync. 300s (5 min) bounds it to whatever a single
-    // interval's worth of clock-rate error amounts to, which should be
-    // imperceptible for any reasonable clock. Override via
-    // DISPLAYCLUSTER_MOVIE_RESYNC_SEC; 0 disables periodic resync
-    // entirely, matching the original one-time-only behavior.
-    double
-    decoderResyncIntervalSec()
-    {
-        static const double interval = (getenv("DISPLAYCLUSTER_MOVIE_RESYNC_SEC") == NULL) ? 300. : atof(getenv("DISPLAYCLUSTER_MOVIE_RESYNC_SEC"));
-        return interval;
-    }
-}
+#include <cmath>
 
 // picks AV_PIX_FMT_CUDA out of the codec's offered formats so decoded frames
 // stay resident on the GPU (as NV12 device memory) instead of falling back
@@ -88,8 +67,7 @@ Decoder::Decoder(bool paused)
 
 Decoder::~Decoder()
 {
-    quit_ = true;
-    Signal();
+    RequestQuit();
     thread_.join();
 }
 
@@ -106,10 +84,14 @@ Decoder::_setup()
     newFrame_ = false;
 
     current_frame_ = -1;
-    frameOffset_ = 0;
-    MPI_Barrier(g_mpiRenderComm);
+    frameOffset_ = 0.;
+
+    // an unsynchronized reading is fine here - MainWindow::updateGLWindows()
+    // calls Resync() on every locally-live Decoder once per render frame
+    // (see Resync() below), so this gets corrected against the shared
+    // clock within one frame of the decoder thread reaching RUNNING,
+    // rather than needing to coordinate a synchronized reading here itself
     tStart_ = high_resolution_clock::now();
-    MPI_Barrier(g_mpiRenderComm);
 
     if (avformat_open_input(&avFormatContext_, uri_.c_str(), NULL, NULL) != 0)
     {
@@ -226,32 +208,45 @@ Decoder::_setup()
 bool
 Decoder::_decode()
 {
-    auto now = high_resolution_clock::now();
-    duration<double, std::ratio<1>> t = now - tStart_;
+    // while frozen, use the target Freeze() already computed and stored
+    // rather than deriving one from elapsed time - see frozenTarget_'s
+    // comment in Decoder.h for why. tStart_/frameOffset_ are also written
+    // from MainWindow's thread (see Resync()) once per render frame now,
+    // instead of only ever being touched by this thread - lock the read,
+    // same as Resync() locks the write, so neither side observes a torn
+    // pair.
+    int target;
 
-    // periodically re-anchor tStart_ via a fresh barrier-synchronized
-    // clock reading to bound cross-host drift over a long-running
-    // session - see decoderResyncIntervalSec() above. frameOffset_
-    // absorbs the frame count already elapsed so this doesn't cause a
-    // visible jump: right after the resync, frameOffset_ + 0 elapsed
-    // still equals whatever frame we were already on.
-    double resyncIntervalSec = decoderResyncIntervalSec();
-    if (resyncIntervalSec > 0. && t.count() >= resyncIntervalSec)
+    if (frozen_)
     {
-        frameOffset_ = (frameOffset_ + int(t.count() * fps_)) % (num_frames_ - 2);
-
-        MPI_Barrier(g_mpiRenderComm);
-        now = high_resolution_clock::now();
-        MPI_Barrier(g_mpiRenderComm);
-
-        tStart_ = now;
-        t = duration<double, std::ratio<1>>::zero();
+        target = frozenTarget_;
+    }
+    else
+    {
+        Lock();
+        auto now = high_resolution_clock::now();
+        duration<double, std::ratio<1>> t = now - tStart_;
+        target = int(frameOffset_ + t.count() * fps_) % (num_frames_ - 2);
+        Unlock();
     }
 
-    int target = (frameOffset_ + int(t.count() * fps_)) % (num_frames_ - 2);
-
     if (target == current_frame_)
+    {
+        synced_ = true;
         return true;
+    }
+
+    // mark unsynced immediately, before the catch-up loop below - which
+    // can run for multiple seconds - rather than only updating synced_ at
+    // its end. Otherwise a decoder that was synced right up until a new
+    // gap opened (paused then resumed without being torn down, e.g.) would
+    // keep reporting the old "synced" state for the whole duration of the
+    // catch-up burst, telling MainWindow's cluster-wide reduction
+    // everything's fine while actually scrambling to catch up - letting
+    // every other tile showing this movie advance without it instead of
+    // holding for it, which is exactly the per-tile straggling this
+    // mechanism exists to prevent
+    synced_ = false;
 
     // Catching up from a large gap (e.g. this decoder sat paused while its
     // content window wasn't visible on this tile - tStart_ never stops
@@ -274,7 +269,17 @@ Decoder::_decode()
     {
         int64_t dts = start_time_ + av_rescale(target, tb_.den * fr_.den, tb_.num * fr_.num);
 
-        if (target < current_frame_ || (target - current_frame_) > 10)
+        // only the first attempt treats "target is far ahead" as worth a
+        // seek. A seek lands on the nearest keyframe <= target's dts; once
+        // that's been done, later attempts in this same burst are chasing
+        // a small residual gap (whatever elapsed during the previous
+        // attempt's wall-clock time), and the read cursor is already
+        // positioned past that keyframe - reseeking again would land on
+        // the same (or a barely-later) keyframe and redecode most of what
+        // was just decoded, instead of continuing forward from here. A
+        // backward jump (video loop wraparound) still forces a reseek on
+        // any attempt.
+        if (target < current_frame_ || (attempt == 0 && (target - current_frame_) > 10))
         {
             avformat_seek_file(avFormatContext_, videoStream_, 0, dts, dts, 0);
             avcodec_flush_buffers(avCodecContext_);
@@ -326,25 +331,50 @@ Decoder::_decode()
         }
 
         if (attempt >= 4)
+        {
+            // still a large gap after every attempt this call is willing
+            // to spend - genuinely behind, not just mid-catch-up
+            synced_ = false;
             break;
+        }
 
-        now = high_resolution_clock::now();
-        t = now - tStart_;
-        int freshTarget = (frameOffset_ + int(t.count() * fps_)) % (num_frames_ - 2);
+        int freshTarget;
+
+        if (frozen_)
+        {
+            freshTarget = frozenTarget_;
+        }
+        else
+        {
+            Lock();
+            auto now = high_resolution_clock::now();
+            duration<double, std::ratio<1>> t = now - tStart_;
+            freshTarget = int(frameOffset_ + t.count() * fps_) % (num_frames_ - 2);
+            Unlock();
+        }
 
         // small (or no) residual gap is fine to accept here - the next
         // _decode() call's normal forward-decode-without-seek path closes
         // it cheaply. Only a still-large gap, or a backward wrap, is
         // worth another seek right now.
         if (!(freshTarget < current_frame_ || (freshTarget - current_frame_) > 10))
+        {
+            synced_ = true;
             break;
+        }
 
         target = freshTarget;
     }
 
-    if (attempt > 0)
+    // logged confirmed every catch-up (not just attempt > 0 ones) takes
+    // single-digit milliseconds at most here - the periodic ~1s stalls
+    // being chased aren't decode/seek latency, so back to only logging
+    // the genuinely-multi-attempt or slow cases, not every routine
+    // one-frame advance
+    duration<double, std::ratio<1>> catchupElapsed = high_resolution_clock::now() - catchupStart;
+
+    if (attempt > 0 || catchupElapsed.count() > 0.1)
     {
-        duration<double, std::ratio<1>> catchupElapsed = high_resolution_clock::now() - catchupStart;
         put_flog(LOG_DEBUG, "'%s' caught up to frame %d after %d extra seek(s), %.3fs",
             uri_.c_str(), current_frame_, attempt, catchupElapsed.count());
     }
@@ -388,6 +418,43 @@ Decoder::_decode()
     }
 
     return true;
+}
+
+void
+Decoder::Resync(time_point<high_resolution_clock> now)
+{
+    Lock();
+    duration<double, std::ratio<1>> t = now - tStart_;
+    frameOffset_ = std::fmod(frameOffset_ + t.count() * fps_, double(num_frames_ - 2));
+    tStart_ = now;
+    frozen_ = false;
+    Unlock();
+}
+
+void
+Decoder::Freeze(time_point<high_resolution_clock> now)
+{
+    Lock();
+
+    // only compute frozenTarget_ on the transition into frozen, not on
+    // every call - MainWindow calls this every render frame for as long
+    // as the hold lasts, and recomputing from elapsed-since-last-call each
+    // time would let frozenTarget_ itself creep forward call by call
+    // (exactly the drift this exists to prevent), rather than staying at
+    // the single value it had the moment freezing began. Still bump
+    // tStart_ forward on every call regardless, so whenever Resync() next
+    // runs (unfreezing), the elapsed time it folds in is just the tail end
+    // since the last Freeze() call, not the whole frozen duration.
+    if (!frozen_)
+    {
+        duration<double, std::ratio<1>> t = now - tStart_;
+        frozenTarget_ = int(frameOffset_ + t.count() * fps_) % (num_frames_ - 2);
+        frozen_ = true;
+    }
+
+    tStart_ = now;
+
+    Unlock();
 }
 
 void

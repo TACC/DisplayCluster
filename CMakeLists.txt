@@ -2,6 +2,19 @@ project(DisplayCluster)
 
 cmake_minimum_required(VERSION 3.16)
 
+# default to a build with debug symbols but still optimized
+# (RelWithDebInfo) if the caller didn't pick a build type explicitly -
+# plain `cmake ..`/`cmake -S . -B ../build` otherwise leaves
+# CMAKE_BUILD_TYPE empty, which means no -g and no -O flags at all,
+# useless for getting a real backtrace out of a hung or crashed process.
+# RelWithDebInfo rather than Debug so the optimized code path (and its
+# timing/thread-scheduling characteristics) matches what actually gets
+# deployed, rather than potentially masking or altering the behavior
+# being debugged. Override with -DCMAKE_BUILD_TYPE=... as usual.
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Build type" FORCE)
+endif()
+
 # version information
 set(VERSION_MAJOR 0)
 set(VERSION_MINOR 1)
@@ -123,6 +136,37 @@ if(NOT CUDA_DRIVER_INCLUDE_DIR OR NOT CUDA_DRIVER_LIBRARY)
 endif()
 include_directories(SYSTEM ${CUDA_DRIVER_INCLUDE_DIR})
 set(LIBS ${LIBS} ${CUDA_DRIVER_LIBRARY})
+
+# captured at configure time (not build time) so it reflects whatever
+# commit/working-tree state was checked out when `cmake` last ran - good
+# enough given this project is configured once and then just `make`'d
+# repeatedly. Exists so a running process (or its log output) can be
+# unambiguously tied back to the exact source state it was built from -
+# distinguishing "this is the rebuilt binary" from "this is stale" has
+# repeatedly been a real source of confusion when iterating quickly
+# against a remote deployment.
+find_package(Git QUIET)
+if(GIT_FOUND)
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        OUTPUT_VARIABLE DISPLAYCLUSTER_GIT_HASH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET)
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} diff --quiet HEAD --
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        RESULT_VARIABLE DISPLAYCLUSTER_GIT_DIRTY_RESULT
+        ERROR_QUIET)
+endif()
+if(NOT DISPLAYCLUSTER_GIT_HASH)
+    set(DISPLAYCLUSTER_GIT_HASH "unknown")
+endif()
+if(DISPLAYCLUSTER_GIT_DIRTY_RESULT)
+    set(DISPLAYCLUSTER_GIT_VERSION "${DISPLAYCLUSTER_GIT_HASH}-dirty")
+else()
+    set(DISPLAYCLUSTER_GIT_VERSION "${DISPLAYCLUSTER_GIT_HASH}")
+endif()
 
 # process config file
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)

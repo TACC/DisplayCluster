@@ -1,4 +1,13 @@
-.git
+# .git is intentionally NOT excluded here (unlike the usual convention) -
+# CMakeLists.txt captures `git rev-parse --short HEAD` at configure time
+# to stamp DISPLAYCLUSTER_GIT_VERSION into every process's startup log
+# line, specifically so a running/crashed deployment can be tied back to
+# an exact source state. Excluding .git from the build context makes that
+# git command fail silently (falls back to "unknown"), which is worse
+# than the modest image-size cost of keeping it - this Dockerfile builds
+# and runs from the same single-stage image, so there's no later stage to
+# strip .git from even if excluding it from just the build step were
+# enough.
 build/
 configuration.json
 set.env

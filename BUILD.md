@@ -150,10 +150,14 @@ package needed.
 
 ### Configure and build
 
+Build out-of-tree, e.g. as a sibling of the repo rather than inside it —
+the Dockerfile COPYs the whole repo directory into the image, and an
+in-tree `build/` (even though `.gitignore`/`.dockerignore` both exclude
+it from tracking/COPY) is easy to end up dragging along by accident:
+
 ```bash
-mkdir build && cd build
-cmake ..
-make -j$(nproc)
+cmake -S . -B ../build
+cmake --build ../build -j$(nproc)
 ```
 
 ### Running

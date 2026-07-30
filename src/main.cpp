@@ -77,10 +77,32 @@ int main(int argc, char * argv[])
 
     g_displayClusterDir = std::string(getenv("DISPLAYCLUSTER_DIR"));
 
-    MPI_Init(&argc, &argv);
+    // plain MPI_Init() doesn't request thread-multiple support, but this
+    // process needs it: each Decoder runs its own background thread that
+    // calls MPI_Barrier(g_mpiRenderComm) (see Decoder::_setup()/_decode()),
+    // concurrently with the main thread's own MPI traffic on both
+    // MPI_COMM_WORLD (DisplayGroupManager's rank-0<->render control
+    // channel) and g_mpiRenderComm (DisplayGroupManager, MainWindow,
+    // ParallelPixelStream). MPI's thread-safety level is a per-process
+    // property covering every communicator, not a per-communicator one, so
+    // having two communicators in play doesn't make that concurrent access
+    // safe on its own - only MPI_THREAD_MULTIPLE does.
+    int providedThreadLevel;
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &providedThreadLevel);
+    if (providedThreadLevel < MPI_THREAD_MULTIPLE)
+    {
+        put_flog(LOG_FATAL, "MPI implementation only provides thread level %d, but MPI_THREAD_MULTIPLE (%d) is required - "
+            "Decoder background threads and the main thread both issue MPI calls concurrently", providedThreadLevel, MPI_THREAD_MULTIPLE);
+        return -1;
+    }
     MPI_Comm_rank(MPI_COMM_WORLD, &g_mpiRank);
     MPI_Comm_size(MPI_COMM_WORLD, &g_mpiSize);
     MPI_Comm_split(MPI_COMM_WORLD, g_mpiRank != 0, g_mpiRank, &g_mpiRenderComm);
+
+    // logged by every rank (not just rank 0) since each is a separate
+    // process potentially started from a separate copy of the binary -
+    // see DISPLAYCLUSTER_GIT_VERSION's comment in CMakeLists.txt for why
+    put_flog(LOG_INFO, "version %s, built %s %s", DISPLAYCLUSTER_GIT_VERSION, __DATE__, __TIME__);
 
     if (g_mpiRank == 0)
     {

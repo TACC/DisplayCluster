@@ -526,6 +526,17 @@ void GLWindow::finalize()
     textureFactory_.clear();
     dynamicTextureFactory_.clear();
     svgFactory_.clear();
+
+    // signal every movie's decoder to quit before destroying any of
+    // them - movieFactory_.clear() below destroys Movies one at a time,
+    // and ~Decoder() blocks (thread_.join()) until its decoder thread
+    // notices quit_ and returns, which can take real time if that
+    // decoder happens to be mid-catch-up. Signaling all of them up front
+    // means that wait happens once, in parallel across every open movie,
+    // rather than once per movie, sequentially, compounding.
+    for (auto& item : movieFactory_)
+        item.second->RequestQuit();
+
     movieFactory_.clear();
     pixelStreamFactory_.clear();
     parallelPixelStreamFactory_.clear();

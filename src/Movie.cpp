@@ -164,7 +164,17 @@ Movie::Movie(std::string uri)
 
 Movie::~Movie()
 {
-    if (initialized_)
+    // skip GL/CUDA cleanup entirely if there's no current GL context on
+    // this thread. A Movie's shared_ptr can outlive
+    // GLWindow::finalize()'s explicit factory-clearing (confirmed via a
+    // crash under load: main.cpp's `delete g_mainWindow` cascaded into
+    // this destructor after finalize() had already run, by which point a
+    // context isn't guaranteed to still be current) - dereferencing
+    // QOpenGLContext::currentContext() when it's null crashes. Leaking
+    // these GL objects here is harmless if the context itself is about to
+    // be destroyed at process exit anyway - the driver reclaims
+    // everything then regardless.
+    if (initialized_ && QOpenGLContext::currentContext() != nullptr)
     {
         cuGraphicsUnregisterResource(cudaResourceY_);
         cuGraphicsUnregisterResource(cudaResourceUV_);
@@ -232,7 +242,7 @@ void Movie::render(float tX, float tY, float tW, float tH)
         initialized_ = true;
     }
 
-    if (decoder->ready())
+    if (decoder->ready() && !hold_)
     {
         AVFrame *frame = decoder->getFrame();
 

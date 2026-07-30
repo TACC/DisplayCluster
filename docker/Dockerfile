@@ -140,6 +140,7 @@ RUN mkdir -p /usr/local/src \
 # root for this to work (COPY can't reach outside it), so build with:
 #   docker build -f docker/Dockerfile -t displaycluster .
 # from the repo root, not from inside docker/.
+RUN echo 2
 COPY . /usr/local/src/DisplayCluster
 
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH

@@ -3,4 +3,8 @@
 
 #cmakedefine01 ENABLE_PYTHON_SUPPORT
 
+// git commit this binary was built from, plus "-dirty" if the working
+// tree had uncommitted changes at configure time - see CMakeLists.txt
+#define DISPLAYCLUSTER_GIT_VERSION "@DISPLAYCLUSTER_GIT_VERSION@"
+
 #endif

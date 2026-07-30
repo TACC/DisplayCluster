@@ -74,6 +74,17 @@ class Factory {
             return map_;
         }
 
+        // unlike getObject(), never creates an entry - a null result means
+        // this process has no live object for that uri right now
+        boost::shared_ptr<T>
+        findObject(std::string uri)
+        {
+            QMutexLocker locker(&mapMutex_);
+
+            auto it = map_.find(uri);
+            return it == map_.end() ? boost::shared_ptr<T>() : it->second;
+        }
+
         void clear()
         {
             QMutexLocker locker(&mapMutex_);

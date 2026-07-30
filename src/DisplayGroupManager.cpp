@@ -48,6 +48,8 @@
 #include "SVGStreamSource.h"
 #include "SVGContent.h"
 #include <sstream>
+#include <chrono>
+#include <thread>
 #include <boost/iostreams/device/array.hpp>
 #include <boost/iostreams/stream.hpp>
 #include <boost/serialization/vector.hpp>
@@ -494,10 +496,41 @@ void DisplayGroupManager::receiveMessages()
         exit(-1);
     }
 
+    // rank 0 sends quit only to rank 1 (see sendQuit()) - checked here
+    // independently of, and before, the collectively-gated content-message
+    // stream below, since a stuck or dead rank must not be able to
+    // prevent rank 1 from noticing a shutdown request (see MPI_TAG_QUIT's
+    // comment in MessageHeader.h). Rank 1 doesn't quit immediately on
+    // seeing it, though - it just records that a shutdown was requested
+    // and relays that via its own frame-clock broadcast, so every other
+    // render rank learns about it on the same logical frame instead of
+    // rank 1 abandoning whatever per-frame collectives they're mid-way
+    // through together. See isShutdownRequested()'s comment.
+    if (g_mpiRank == 1)
+    {
+        int quitFlag;
+        MPI_Status quitStatus;
+        MPI_Iprobe(0, MPI_TAG_QUIT, MPI_COMM_WORLD, &quitFlag, &quitStatus);
+
+        if (quitFlag)
+        {
+            MessageHeader mh;
+            MPI_Recv((void *)&mh, sizeof(MessageHeader), MPI_BYTE, 0, MPI_TAG_QUIT, MPI_COMM_WORLD, &quitStatus);
+
+            // acknowledge before quitting, so rank 0 knows this rank got
+            // the message rather than being left waiting on it - see
+            // sendQuit()
+            char ack = 1;
+            MPI_Send((void *)&ack, 1, MPI_BYTE, 0, MPI_TAG_QUIT, MPI_COMM_WORLD);
+
+            shutdownRequested_ = true;
+        }
+    }
+
     // check to see if we have a message (non-blocking)
     int flag;
     MPI_Status status;
-    MPI_Iprobe(0, 0, MPI_COMM_WORLD, &flag, &status);
+    MPI_Iprobe(0, MPI_TAG_DATA, MPI_COMM_WORLD, &flag, &status);
 
     // check to see if all render processes have a message
     int allFlag;
@@ -514,7 +547,7 @@ void DisplayGroupManager::receiveMessages()
         while(allFlag)
         {
             // first, get message header
-            MPI_Recv((void *)&mh, sizeof(MessageHeader), MPI_BYTE, 0, 0, MPI_COMM_WORLD, &status);
+            MPI_Recv((void *)&mh, sizeof(MessageHeader), MPI_BYTE, 0, MPI_TAG_DATA, MPI_COMM_WORLD, &status);
 
             if(mh.type == MESSAGE_TYPE_CONTENTS)
             {
@@ -536,14 +569,9 @@ void DisplayGroupManager::receiveMessages()
             {
                 receiveSVGStreams(mh);
             }
-            else if(mh.type == MESSAGE_TYPE_QUIT)
-            {
-                g_app->quit();
-                return;
-            }
 
             // check to see if we have another message waiting, for this process and for all render processes
-            MPI_Iprobe(0, 0, MPI_COMM_WORLD, &flag, &status);
+            MPI_Iprobe(0, MPI_TAG_DATA, MPI_COMM_WORLD, &flag, &status);
             MPI_Allreduce(&flag, &allFlag, 1, MPI_INT, MPI_LAND, g_mpiRenderComm);
         }
 
@@ -902,6 +930,9 @@ void DisplayGroupManager::sendFrameClockUpdate()
     {
         boost::archive::binary_oarchive oa(oss);
         oa << timestamp;
+        // see isShutdownRequested()'s comment for why this rides along
+        // here rather than being its own message
+        oa << shutdownRequested_;
     }
 
     // serialized data to string
@@ -916,7 +947,7 @@ void DisplayGroupManager::sendFrameClockUpdate()
     // the header is sent via a send, so that we can probe it on the render processes
     for(int i=2; i<g_mpiSize; i++)
     {
-        MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, i, 0, MPI_COMM_WORLD);
+        MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, i, MPI_TAG_DATA, MPI_COMM_WORLD);
     }
 
     // broadcast it
@@ -937,7 +968,7 @@ void DisplayGroupManager::receiveFrameClockUpdate()
     // receive the message header
     MessageHeader messageHeader;
     MPI_Status status;
-    MPI_Recv((void *)&messageHeader, sizeof(MessageHeader), MPI_BYTE, 1, 0, MPI_COMM_WORLD, &status);
+    MPI_Recv((void *)&messageHeader, sizeof(MessageHeader), MPI_BYTE, 1, MPI_TAG_DATA, MPI_COMM_WORLD, &status);
 
     if(messageHeader.type != MESSAGE_TYPE_FRAME_CLOCK)
     {
@@ -961,6 +992,8 @@ void DisplayGroupManager::receiveFrameClockUpdate()
 
     boost::archive::binary_iarchive ia(iss);
     ia >> timestamp;
+    // see isShutdownRequested()'s comment
+    ia >> shutdownRequested_;
 
     // free mpi buffer
     delete [] buf;
@@ -971,14 +1004,55 @@ void DisplayGroupManager::receiveFrameClockUpdate()
 
 void DisplayGroupManager::sendQuit()
 {
-    // send the header and the message
+    // no render ranks to tell
+    if (g_mpiSize <= 1)
+        return;
+
+    // sent only to rank 1, not every render rank - rank 1 relays this to
+    // everyone else through its own frame-clock broadcast instead of each
+    // render rank quitting the instant it personally notices, which could
+    // otherwise abandon a per-frame collective another rank was still
+    // relying on it for. See isShutdownRequested()'s comment in
+    // DisplayGroupManager.h, and MPI_TAG_QUIT's in MessageHeader.h.
     MessageHeader mh;
     mh.type = MESSAGE_TYPE_QUIT;
 
-    // the header is sent via a send, so that we can probe it on the render processes
-    for(int i=1; i<g_mpiSize; i++)
+    MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, 1, MPI_TAG_QUIT, MPI_COMM_WORLD);
+
+    // MPI_Send for a message this small typically completes locally (from
+    // this rank's perspective) via an eager/buffered protocol without
+    // waiting for the receiver to actually consume it. Calling
+    // MPI_Finalize() right after this returns, as main.cpp does, risks
+    // tearing down this rank's MPI state before rank 1 has actually
+    // received its message - and separately, Open MPI's MPI_Finalize()
+    // commonly blocks until every process in the job has also reached its
+    // own MPI_Finalize() (not required by the MPI standard, but a
+    // well-known characteristic of its runtime, especially over TCP), so
+    // this rank would end up waiting regardless even without this. Wait
+    // for rank 1 to acknowledge, bounded by a timeout so a genuinely
+    // wedged rank 1 (which needs to be killed regardless - no message
+    // rescues an actually-hung process) doesn't hold this up forever.
+    const double ackTimeoutSec = 5.;
+    auto deadline = std::chrono::high_resolution_clock::now() + std::chrono::duration<double, std::ratio<1>>(ackTimeoutSec);
+    int flag = 0;
+    MPI_Status status;
+
+    while (std::chrono::high_resolution_clock::now() < deadline)
     {
-        MPI_Send((void *)&mh, sizeof(MessageHeader), MPI_BYTE, i, 0, MPI_COMM_WORLD);
+        MPI_Iprobe(1, MPI_TAG_QUIT, MPI_COMM_WORLD, &flag, &status);
+        if (flag)
+            break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    if (flag)
+    {
+        char ack;
+        MPI_Recv((void *)&ack, 1, MPI_BYTE, 1, MPI_TAG_QUIT, MPI_COMM_WORLD, &status);
+    }
+    else
+    {
+        put_flog(LOG_WARN, "rank 1 did not acknowledge quit within %.1fs - proceeding anyway", ackTimeoutSec);
     }
 }
 

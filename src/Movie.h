@@ -66,9 +66,22 @@ class Movie : public FactoryObject {
         void Pause() { decoder->Pause(); paused_ = true; }
         void Resume() { decoder->Resume(); paused_ = false; }
         bool isPaused() { return paused_; }
+        void Resync(time_point<high_resolution_clock> now) { decoder->Resync(now); }
+        void Freeze(time_point<high_resolution_clock> now) { decoder->Freeze(now); }
+        bool isSynced() { return decoder->isSynced(); }
+        void RequestQuit() { decoder->RequestQuit(); }
+
+        // when true, render() keeps showing whatever's already in
+        // textureY_/textureUV_ instead of consuming a fresh decoded frame -
+        // set by MainWindow once per render frame from the cluster-wide
+        // "is every rank showing this movie caught up" reduction, so a
+        // straggler holds the whole display on its last agreed-good frame
+        // instead of the rest advancing without it
+        void setHold(bool hold) { hold_ = hold; }
 
     private:
         Decoder *decoder = NULL;
+        bool hold_ = false;
 
         // NVDEC hands back NV12 (one full-res luma plane, one half-res
         // interleaved chroma plane) resident on the GPU; each plane is

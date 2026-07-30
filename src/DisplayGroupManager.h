@@ -78,6 +78,23 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         // find the offset between the rank 0 clock and the rank 1 clock. recall the rank 1 clock is used across rank 1 - n.
         void calibrateTimestampOffset();
 
+        // true once this rank has learned a shutdown was requested - set
+        // directly on rank 1 (which detects MPI_TAG_QUIT from rank 0 via
+        // receiveMessages(), independent of any collective) and relayed to
+        // every other render rank via sendFrameClockUpdate()/
+        // receiveFrameClockUpdate(), a channel every render rank already
+        // participates in identically, every frame. That's deliberate:
+        // MainWindow::updateGLWindows() only actually exits after finishing
+        // out the current frame's remaining per-frame collectives (the
+        // per-movie sync Allreduce, the post-render Barrier) rather than
+        // bailing out as soon as it personally notices - a rank quitting
+        // mid-frame would abandon a collective another rank, not yet
+        // aware, is still relying on it to participate in, hanging that
+        // rank forever. Routing the notification itself through the
+        // already-uniform frame-clock broadcast means every render rank
+        // learns about it on the same logical frame.
+        bool isShutdownRequested() { return shutdownRequested_; }
+
 				std::stack<QString> state_stack;
 
 				void pushState();
@@ -132,6 +149,9 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
 
         // rank 1 - rank 0 timestamp offset
         boost::posix_time::time_duration timestampOffset_;
+
+        // see isShutdownRequested()
+        bool shutdownRequested_ = false;
 
         void receiveDisplayGroup(MessageHeader messageHeader);
         void receiveContentsDimensionsRequest(MessageHeader messageHeader);
