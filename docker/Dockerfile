@@ -99,7 +99,7 @@ RUN apt-get install -y -qq --no-install-recommends \
 # Confirm after building with `ffmpeg -hwaccels` (want "cuda" in the
 # list) - if this Ubuntu release's packaged ffmpeg doesn't have it
 # compiled in, swap this block for a prebuilt NVDEC-enabled binary
-# instead (see BUILD.md's Windows section, which hit exactly this gap).
+# instead (see README.md's Windows section, which hit exactly this gap).
 RUN apt-get install -y -qq --no-install-recommends \
   ffmpeg \
   libavcodec-dev \

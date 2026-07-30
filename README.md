@@ -1,13 +1,16 @@
-# Building DisplayCluster (Qt6)
+# DisplayCluster
 
-Native build instructions for Windows 11 and Ubuntu. Containers are no longer
-required for either platform — the old apptainer/container workflow described
-in `README` was necessitated by Qt4 only being available via a PPA on old
-Ubuntu; Qt6 is available natively everywhere this now targets.
+There are two ways to build and run DisplayCluster: natively, if you can
+install the platform's dependencies directly, or via an apptainer/Docker
+container, if you'd rather not — useful for reproducible deployment across
+cluster nodes without managing native dependencies on every worker. Both
+produce the same application; pick whichever fits your situation.
 
-## Windows 11
+## Native build
 
-### Toolchain
+### Windows 11
+
+#### Toolchain
 
 - Visual Studio 2022 (Community or higher) with the **"Desktop development
   with C++"** workload — provides MSVC, the Windows SDK, and the "x64 Native
@@ -18,7 +21,7 @@ Ubuntu; Qt6 is available natively everywhere this now targets.
 - Git for Windows
 - CMake 3.16+ (bundled with VS2022, or install standalone)
 
-### Package manager
+#### Package manager
 
 - [vcpkg](https://github.com/microsoft/vcpkg), cloned to a **path with no
   spaces** (e.g. `C:\vcpkg`, not under `C:\Users\Some User\...`). Several
@@ -32,7 +35,7 @@ git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
 C:\vcpkg\bootstrap-vcpkg.bat
 ```
 
-### Installed manually (not vcpkg-managed)
+#### Installed manually (not vcpkg-managed)
 
 - **MS-MPI** — install both the SDK (`msmpisdk.msi`) and the runtime
   (`msmpisetup.exe`) from Microsoft. CMake's `FindMPI` locates it
@@ -56,14 +59,14 @@ C:\vcpkg\bootstrap-vcpkg.bat
   ```
   You want `cuda` in that list.
 
-### vcpkg-managed dependencies
+#### vcpkg-managed dependencies
 
 Everything else — Qt6 (`qtbase` with `widgets`/`network`/`opengl` features,
 plus `qtsvg`), Boost (`serialization`, `date-time`, `iostreams`, `algorithm`,
 `tokenizer`, `smart-ptr`), and `libjpeg-turbo` — is declared in `vcpkg.json`
 and installs automatically during CMake configure. No manual step needed.
 
-### Configure and build
+#### Configure and build
 
 From the **x64 Native Tools Command Prompt for VS 2022**:
 
@@ -79,7 +82,7 @@ machine-wide afterward (`%LOCALAPPDATA%\vcpkg\archives`), so subsequent
 configures — even in a fresh `build\` directory, or from another project
 using the same package/version/feature/triplet combination — are fast.
 
-### Running
+#### Running
 
 vcpkg copies the runtime DLLs (Qt, Boost, etc.) next to `displaycluster.exe`
 automatically, but **not** Qt's plugin subdirectories (platform integration,
@@ -118,7 +121,7 @@ template; the simplest single-tile version is:
 }
 ```
 
-## Ubuntu
+### Ubuntu
 
 Package names below are current as of a recent Ubuntu release; adjust via
 `apt search` if a name has changed on your version.
@@ -148,7 +151,7 @@ fallback.
 `nlohmann::json` is vendored in the repo (`src/json.hpp`) — no separate
 package needed.
 
-### Configure and build
+#### Configure and build
 
 Build out-of-tree, e.g. as a sibling of the repo rather than inside it —
 the Dockerfile COPYs the whole repo directory into the image, and an
@@ -160,7 +163,7 @@ cmake -S . -B ../build
 cmake --build ../build -j$(nproc)
 ```
 
-### Running
+#### Running
 
 ```bash
 export DISPLAYCLUSTER_DIR=/path/to/DisplayCluster
@@ -171,3 +174,129 @@ mpirun -np 2 ./build/displaycluster
 
 Same `configuration.json` and `DISPLAYCLUSTER_TIMEOUT` notes as the Windows
 section above apply.
+
+## Container build (apptainer)
+
+Built on top of the NVIDIA OpenGL image
+(`nvidia/opengl:1.0-glvnd-devel-ubuntu22.04), primarily for systems with
+NVIDIA graphics cards. The `FROM` line in `docker/Dockerfile` can be changed
+to a plain Ubuntu 22.04 base instead, but rendering then falls back to Mesa,
+which can struggle at high display resolutions.
+
+In the following, *host* refers to the machine outside the container, and
+*worker* to a machine running the containerized GUI and display nodes.
+
+Clone the repo somewhere — we'll refer to this as the source directory.
+To build the DC image, run this from the source directory itself (not from
+inside `docker/` — the Dockerfile `COPY`s the checkout it lives in, rather
+than cloning a fresh copy from GitHub, so the build context has to be the
+repo root):
+
+```bash
+docker build -f docker/Dockerfile -t displaycluster .
+docker save displaycluster:latest -o /tmp/displaycluster.tar
+apptainer build displaycluster.sif docker-archive:/tmp/displaycluster.tar
+```
+
+This creates **displaycluster.sif** with the worker-side bits installed in
+the `/usr/local` area of the container.
+
+Use `docker save` + `docker-archive:`, not
+`apptainer build ... docker-daemon:displaycluster:latest` directly — on at
+least one multi-user setup (TACC's rattler-dev), `apptainer build`'s
+`docker-daemon:` transport connected to a different Docker daemon/socket
+than the `docker` CLI itself was using, so it kept baking a stale,
+previously-built image into the .sif no matter how many times the image was
+rebuilt or `apptainer cache clean` was run — completely silent, no error,
+just an old binary. `docker save` guarantees you're archiving the exact
+image the `docker` CLI just built (same daemon by construction), and
+`docker-archive:` reads directly from that file with no daemon connection
+involved at all, sidestepping the whole class of bug.
+
+### Host-side code
+
+To run DisplayCluster, you'll need to install a few bits onto the host
+system. In the source directory, make a `build` subdirectory, and in there,
+run:
+
+```bash
+cmake .. -DINSTALL_CLIENT=On [-DCMAKE_INSTALL_PREFIX={host-installdir, default to /usr/local}]
+make install
+```
+
+This installs the startup command in `{host-installdir}/bin`, the python
+package in `{host-installdir}/python`, and some example code in
+`{host-installdir}/examples`.
+
+Now copy the sif file into the host install directory:
+
+```bash
+mkdir {host-installdir}/sif
+cp {source directory}/docker/displaycluster.sif {host-installdir}/sif
+```
+
+### Starting DisplayCluster
+
+Start DisplayCluster using the `startdisplaycluster` command in
+`{host-installdir}/bin`. It requires some environment setup; a shell script
+like this works well:
+
+```bash
+#! /bin/bash
+
+## Location of configuration.json ... installed on the client system in {worker-installdir}/examples
+export DISPLAYCLUSTER_HOME={worker-installdir}
+export DISPLAYCLUSTER_DIR=${DISPLAYCLUSTER_HOME}   # not sure if both HOME and DIR are needed
+export DISPLAYCLUSTER_CONFIG=${DISPLAYCLUSTER_HOME}/examples/configuration.json
+
+## tell it where to get the sif file
+export DISPLAYCLUSTER_SIF=${DISPLAYCLUSTER_HOME}/sif/displaycluster.sif
+
+export DISPLAYCLUSTER_PYTHONPORT=1900
+export DISPLAYCLUSTER_TIMEOUT=3600                 # screensaver timeout in seconds
+export DISPLAYCLUSTER_EXEC=/displaycluster
+
+cd {content directory}
+startdisplaycluster
+```
+
+This also installs the python package in `{worker-installdir}/python` and
+some example code in `{worker-installdir}/examples`. In
+`{worker-installdir}/examples`, run:
+
+```bash
+export PYTHONPATH={worker-installdir}/python
+python3 ./run_script.py
+```
+
+### MPI
+
+To run apptainer containers under MPI, the version of MPI on the hosts
+*outside* the container must match the version of MPI *inside* the
+container. `docker/Dockerfile` installs OpenMPI via the Ubuntu 22.04
+package repos (currently 4.1.2). So the one requirement of the host
+environment (other than having apptainer installed) is a matching OpenMPI
+version. Alternatively, `docker/Dockerfile` can be modified to install a
+different version that matches the host's — your mileage may vary if you
+choose this alternative.
+
+Separately: DisplayCluster requires an MPI build with `MPI_THREAD_MULTIPLE`
+support — its render processes issue MPI calls from more than one thread
+concurrently (a per-movie decoder thread alongside the main thread), and it
+requests that thread level explicitly at startup and fails fast with a
+clear error if the MPI implementation doesn't grant it. Ubuntu 22.04's
+packaged OpenMPI supports this; if you swap in a different MPI build,
+confirm it does too.
+
+### Installation and runtime
+
+Create a root directory for DisplayCluster in a shared filesystem. Add a
+`configuration.json` file to that directory as described above. Place
+**displaycluster.sif** there too, along with **examples/startdisplaycluster**
+— this python script is where various environment variables are defaulted,
+and where the actual `mpirun` call is made.
+
+Note: in some cases (like Rattler here at TACC) OpenMPI doesn't seem to find
+the correct interface for MPI to use. This is hard-coded in the
+`mpirunCommand` string built near the end of `startdisplaycluster` — you may
+need to change it.
