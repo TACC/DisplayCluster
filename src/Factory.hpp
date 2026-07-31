@@ -92,6 +92,13 @@ class Factory {
             map_.clear();
         }
 
+        void removeObject(std::string uri)
+        {
+            QMutexLocker locker(&mapMutex_);
+
+            map_.erase(uri);
+        }
+
         void clearStaleObjects()
         {
             QMutexLocker locker(&mapMutex_);

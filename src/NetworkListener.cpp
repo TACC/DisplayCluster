@@ -51,7 +51,7 @@ NetworkListener::NetworkListener(int port)
   listen(QHostAddress::Any, port_);
 }
 
-void NetworkListener::incomingConnection(int socketDescriptor)
+void NetworkListener::incomingConnection(qintptr socketDescriptor)
 {
     put_flog(LOG_DEBUG, "");
 

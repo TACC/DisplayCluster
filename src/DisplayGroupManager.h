@@ -115,6 +115,11 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         void sendPixelStreams();
         void sendParallelPixelStreams();
         void sendSVGStreams();
+
+        // removes the wall-side window for a pixel/parallel-pixel/SVG stream
+        // whose source connection has closed (cleanly or otherwise) - see
+        // NetworkListenerThread::run()
+        void closeStream(QString uri, int contentType);
         void sendFrameClockUpdate();
         void receiveFrameClockUpdate();
         void sendQuit();

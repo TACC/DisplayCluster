@@ -43,15 +43,18 @@
 #include "NetworkProtocol.h"
 
 #include "DisplayGroupManager.h"
+#include "Content.h"
 #include <QThread>
 #include <QtNetwork/QTcpSocket>
+#include <set>
+#include <string>
 
 class NetworkListenerThread : public QThread {
     Q_OBJECT
 
     public:
 
-        NetworkListenerThread(int socketDescriptor);
+        NetworkListenerThread(qintptr socketDescriptor);
 
         void run();
 
@@ -60,9 +63,21 @@ class NetworkListenerThread : public QThread {
         void updatedPixelStreamSource();
         void updatedSVGStreamSource();
 
+        // emitted once per URI this connection contributed data for, when
+        // run() exits - covers both a clean disconnect (e.g. DesktopStreamer's
+        // "End Sharing") and an abrupt one (crash, network drop), since either
+        // way the while loop below just falls out the same way
+        void closedStream(QString uri, int contentType);
+
     private:
 
-        int socketDescriptor_;
+        qintptr socketDescriptor_;
+
+        // URIs seen on this connection, by content type, so we know what to
+        // close out when the connection ends
+        std::set<std::string> pixelStreamUris_;
+        std::set<std::string> parallelPixelStreamUris_;
+        std::set<std::string> svgStreamUris_;
 
         void handleMessage(MessageHeader messageHeader, QByteArray byteArray);
 };

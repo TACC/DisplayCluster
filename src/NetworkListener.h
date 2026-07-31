@@ -50,7 +50,11 @@ class NetworkListener : public QTcpServer {
 
     protected:
 
-        void incomingConnection(int socketDescriptor);
+        // QTcpServer::incomingConnection()'s parameter type changed from
+        // int to qintptr in Qt5 - using int here silently fails to override
+        // the virtual (different signature), leaving every incoming
+        // connection stuck in Qt's default pending-connection queue forever
+        void incomingConnection(qintptr socketDescriptor);
 
     private:
 

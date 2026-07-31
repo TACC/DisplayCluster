@@ -277,9 +277,7 @@ void MainWindow::shareDesktop(bool set)
         // handshake
         while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < (int)sizeof(int32_t))
         {
-#ifndef _WIN32
             std::this_thread::sleep_for(std::chrono::microseconds(10));
-#endif
         }
 
         int32_t protocolVersion = -1;
@@ -434,9 +432,7 @@ void MainWindow::shareDesktopUpdate()
             // wait for acknowledgment
             while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < 3)
             {
-    #ifndef _WIN32
                 std::this_thread::sleep_for(std::chrono::microseconds(10));
-    #endif
             }
 
             tcpSocket_.read(3);
@@ -607,9 +603,7 @@ bool MainWindow::serialStream()
         // wait for acknowledgment
         while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < 3)
         {
-#ifndef _WIN32
             std::this_thread::sleep_for(std::chrono::microseconds(10));
-#endif
         }
 
         tcpSocket_.read(3);
@@ -737,9 +731,7 @@ bool MainWindow::parallelStream()
 			// wait for acknowledgment
 			while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < 3)
 			{
-#ifndef _WIN32
             std::this_thread::sleep_for(std::chrono::microseconds(10));
-#endif
 			}
 
 			tcpSocket_.read(3);

@@ -44,7 +44,7 @@
 #include "SVGStreamSource.h"
 #include <stdint.h>
 
-NetworkListenerThread::NetworkListenerThread(int socketDescriptor)
+NetworkListenerThread::NetworkListenerThread(qintptr socketDescriptor)
 {
     // assign values
     socketDescriptor_ = socketDescriptor;
@@ -56,6 +56,8 @@ NetworkListenerThread::NetworkListenerThread(int socketDescriptor)
     connect(this, SIGNAL(updatedPixelStreamSource()), g_displayGroupManager.get(), SLOT(sendPixelStreams()), Qt::BlockingQueuedConnection);
 
     connect(this, SIGNAL(updatedSVGStreamSource()), g_displayGroupManager.get(), SLOT(sendSVGStreams()), Qt::BlockingQueuedConnection);
+
+    connect(this, SIGNAL(closedStream(QString,int)), g_displayGroupManager.get(), SLOT(closeStream(QString,int)), Qt::BlockingQueuedConnection);
 }
 
 void NetworkListenerThread::run()
@@ -120,6 +122,24 @@ void NetworkListenerThread::run()
     tcpSocket.disconnectFromHost();
 
     put_flog(LOG_DEBUG, "disconnected");
+
+    // whatever this connection was streaming is done now - clean up its
+    // windows regardless of whether the loop above ended via a graceful
+    // disconnect or the socket just dropping (crash, network loss, etc.)
+    for(std::set<std::string>::iterator it = pixelStreamUris_.begin(); it != pixelStreamUris_.end(); it++)
+    {
+        emit(closedStream(QString::fromStdString(*it), CONTENT_TYPE_PIXEL_STREAM));
+    }
+
+    for(std::set<std::string>::iterator it = parallelPixelStreamUris_.begin(); it != parallelPixelStreamUris_.end(); it++)
+    {
+        emit(closedStream(QString::fromStdString(*it), CONTENT_TYPE_PARALLEL_PIXEL_STREAM));
+    }
+
+    for(std::set<std::string>::iterator it = svgStreamUris_.begin(); it != svgStreamUris_.end(); it++)
+    {
+        emit(closedStream(QString::fromStdString(*it), CONTENT_TYPE_SVG));
+    }
 }
 
 void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArray byteArray)
@@ -131,6 +151,8 @@ void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArra
         // sendPixelStreams() slot executions may still stack up, but they'll each grab only the latest pixel stream data
         std::string uri(messageHeader.uri);
 
+        pixelStreamUris_.insert(uri);
+
         g_pixelStreamSourceFactory.getObject(uri)->setImageData(byteArray);
 
         emit(updatedPixelStreamSource());
@@ -138,6 +160,8 @@ void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArra
     else if(messageHeader.type == MESSAGE_TYPE_PIXELSTREAM_DIMENSIONS_CHANGED)
     {
         std::string uri(messageHeader.uri);
+
+        pixelStreamUris_.insert(uri);
 
         const int * dimensions = (const int *)byteArray.constData();
 
@@ -151,6 +175,8 @@ void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArra
         // keep this in this thread so we can have parallel pixel stream source updating and sendParallelPixelStreams() happening in parallel
         // sendParallelPixelStreams() runs in a polling loop on the main thread
         std::string uri(messageHeader.uri);
+
+        parallelPixelStreamUris_.insert(uri);
 
         ParallelPixelStreamSegment segment;
 
@@ -171,6 +197,8 @@ void NetworkListenerThread::handleMessage(MessageHeader messageHeader, QByteArra
         // update SVG stream source
         // similar to pixel streaming above
         std::string uri(messageHeader.uri);
+
+        svgStreamUris_.insert(uri);
 
         g_SVGStreamSourceFactory.getObject(uri)->setImageData(byteArray);
 

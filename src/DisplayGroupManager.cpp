@@ -44,6 +44,7 @@
 #include "PixelStream.h"
 #include "PixelStreamSource.h"
 #include "PixelStreamContent.h"
+#include "ParallelPixelStream.h"
 #include "ParallelPixelStreamContent.h"
 #include "SVGStreamSource.h"
 #include "SVGContent.h"
@@ -687,9 +688,7 @@ void DisplayGroupManager::sendPixelStreams()
         if(updated == true)
         {
             // make sure Content/ContentWindowManager exists for the URI
-
-            // todo: this means as long as the pixel stream is updating, we'll have a window for it
-            // closing a window therefore will not terminate the pixel stream
+            // (closeStream() removes it once the source connection closes)
             if(getContentWindowManager(uri, CONTENT_TYPE_PIXEL_STREAM) == NULL)
             {
                 put_flog(LOG_DEBUG, "adding pixel stream: %s", uri.c_str());
@@ -766,9 +765,7 @@ void DisplayGroupManager::sendParallelPixelStreams()
         if(segments.size() > 0)
         {
             // make sure Content/ContentWindowManager exists for the URI
-
-            // todo: this means as long as the parallel pixel stream is updating, we'll have a window for it
-            // closing a window therefore will not terminate the parallel pixel stream
+            // (closeStream() removes it once the source connection closes)
             if(getContentWindowManager(uri, CONTENT_TYPE_PARALLEL_PIXEL_STREAM) == NULL)
             {
                 put_flog(LOG_DEBUG, "adding parallel pixel stream: %s", uri.c_str());
@@ -849,9 +846,7 @@ void DisplayGroupManager::sendSVGStreams()
         if(updated == true)
         {
             // make sure Content/ContentWindowManager exists for the URI
-
-            // todo: this means as long as the SVG stream is updating, we'll have a window for it
-            // closing a window therefore will not terminate the SVG stream
+            // (closeStream() removes it once the source connection closes)
             if(getContentWindowManager(uri, CONTENT_TYPE_SVG) == NULL)
             {
                 put_flog(LOG_DEBUG, "adding SVG stream: %s", uri.c_str());
@@ -909,6 +904,36 @@ void DisplayGroupManager::sendSVGStreams()
             // broadcast the message
             MPI_Bcast((void *)imageData.data(), size, MPI_BYTE, 0, MPI_COMM_WORLD);
         }
+    }
+}
+
+void DisplayGroupManager::closeStream(QString uriQ, int contentTypeInt)
+{
+    std::string uri = uriQ.toStdString();
+    CONTENT_TYPE contentType = (CONTENT_TYPE)contentTypeInt;
+
+    boost::shared_ptr<ContentWindowManager> cwm = getContentWindowManager(uri, contentType);
+
+    if(cwm != NULL)
+    {
+        put_flog(LOG_DEBUG, "closing stream: %s", uri.c_str());
+
+        removeContentWindowManager(cwm);
+    }
+
+    switch(contentType)
+    {
+        case CONTENT_TYPE_PIXEL_STREAM:
+            g_pixelStreamSourceFactory.removeObject(uri);
+            break;
+        case CONTENT_TYPE_PARALLEL_PIXEL_STREAM:
+            g_parallelPixelStreamSourceFactory.removeObject(uri);
+            break;
+        case CONTENT_TYPE_SVG:
+            g_SVGStreamSourceFactory.removeObject(uri);
+            break;
+        default:
+            break;
     }
 }
 
