@@ -42,9 +42,13 @@
 #define PEN_WIDTH 10 // should be even
 #define CORNER_RESIZE_THRESHHOLD 50
 
+// Qt4's monolithic <QtGui> bundled widget classes in with core GUI
+// primitives; Qt6 split them into separate modules (this class uses
+// QGraphicsRectItem/QGraphicsSceneMouseEvent from Widgets, QPainter from
+// Gui) - "QtIncludes.h" was some further Qt4-era compatibility header,
+// long since lost from the repo entirely
 #include <QtGui>
-
-#include "QtIncludes.h"
+#include <QtWidgets>
 
 
 class DesktopSelectionRectangle : public QGraphicsRectItem {

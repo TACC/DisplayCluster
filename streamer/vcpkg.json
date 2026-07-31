@@ -1,0 +1,12 @@
+{
+  "name": "displaycluster-streamer",
+  "version": "0.1.0",
+  "dependencies": [
+    {
+      "name": "qtbase",
+      "features": ["widgets", "network"]
+    },
+    "boost-serialization",
+    "libjpeg-turbo"
+  ]
+}

@@ -40,8 +40,10 @@
 #define DESKTOP_SELECTION_WINDOW_H
 
 #include "DesktopSelectionView.h"
+
+// see DesktopSelectionRectangle.h's comment on the Qt4->6 <QtGui> split
 #include <QtGui>
-#include "QtIncludes.h"
+#include <QtWidgets>
 
 class DesktopSelectionWindow : public QMainWindow {
 

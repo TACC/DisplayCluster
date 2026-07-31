@@ -39,8 +39,9 @@
 #ifndef DESKTOP_SELECTION_VIEW_H
 #define DESKTOP_SELECTION_VIEW_H
 
+// see DesktopSelectionRectangle.h's comment on the Qt4->6 <QtGui> split
 #include <QtGui>
-#include "QtIncludes.h"
+#include <QtWidgets>
 
 class DesktopSelectionRectangle;
 

@@ -52,6 +52,8 @@
 #include <turbojpeg.h>
 
 #include <QtCore/QElapsedTimer>
+#include <thread>
+#include <chrono>
 
 #ifdef _WIN32
     typedef __int32 int32_t;
@@ -276,7 +278,7 @@ void MainWindow::shareDesktop(bool set)
         while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < (int)sizeof(int32_t))
         {
 #ifndef _WIN32
-            usleep(10);
+            std::this_thread::sleep_for(std::chrono::microseconds(10));
 #endif
         }
 
@@ -350,7 +352,7 @@ void MainWindow::shareDesktopUpdate()
     // take screenshot
 
 		QScreen *screen = QGuiApplication::primaryScreen();
-    QPixmap desktopPixmap = screen->grabWindow(QApplication::desktop()->winId(), x_, y_, width_, height_);
+    QPixmap desktopPixmap = screen->grabWindow(0, x_, y_, width_, height_);
 
     if(desktopPixmap.isNull() == true)
     {
@@ -433,7 +435,7 @@ void MainWindow::shareDesktopUpdate()
             while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < 3)
             {
     #ifndef _WIN32
-                usleep(10);
+                std::this_thread::sleep_for(std::chrono::microseconds(10));
     #endif
             }
 
@@ -471,11 +473,7 @@ void MainWindow::shareDesktopUpdate()
 
     if(sleepTime > 0)
     {
-#ifdef _WIN32
-        Sleep(sleepTime);
-#else
-        usleep(1000 * sleepTime);
-#endif
+        std::this_thread::sleep_for(std::chrono::milliseconds(sleepTime));
     }
 
     // frame rate is calculated for every FRAME_RATE_AVERAGE_NUM_FRAMES sequential frames
@@ -610,7 +608,7 @@ bool MainWindow::serialStream()
         while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < 3)
         {
 #ifndef _WIN32
-            usleep(10);
+            std::this_thread::sleep_for(std::chrono::microseconds(10));
 #endif
         }
 
@@ -628,7 +626,13 @@ struct args
 	ParallelPixelStreamSegment* segment;
 	unsigned char *buf = NULL;
 	unsigned long size = 0;
+#if USE_THREADING
+	// pthreads isn't available on Windows without an extra compatibility
+	// layer - harmless to require it only when USE_THREADING is actually
+	// enabled (see the comment at the top of this file: it's off by
+	// default because the JPEG encoder isn't thread-safe)
 	pthread_t tid;
+#endif
 	int frameIndex;
 
 	args(QImage* i, ParallelPixelStreamSegment* s, int fi) : image_(i), segment(s), frameIndex(fi)
@@ -734,7 +738,7 @@ bool MainWindow::parallelStream()
 			while(tcpSocket_.waitForReadyRead() && tcpSocket_.bytesAvailable() < 3)
 			{
 #ifndef _WIN32
-            usleep(10);
+            std::this_thread::sleep_for(std::chrono::microseconds(10));
 #endif
 			}
 

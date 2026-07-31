@@ -47,7 +47,8 @@
 #include <cmath>
 #include <turbojpeg.h>
 #include <algorithm>
-#include <unistd.h>
+#include <thread>
+#include <chrono>
 
 // default to undefined frame index
 int g_dcStreamFrameIndex = FRAME_INDEX_UNDEFINED;
@@ -88,9 +89,7 @@ DcSocket * dcStreamConnect(const char * hostname)
     // handshake
     while(socket->waitForReadyRead() && socket->bytesAvailable() < (int)sizeof(int32_t))
     {
-    #ifndef _WIN32
-        usleep(10);
-    #endif
+        std::this_thread::sleep_for(std::chrono::microseconds(10));
     }
 
     int32_t protocolVersion = -1;
@@ -344,9 +343,7 @@ bool dcStreamSendJpeg(DcSocket * socket, DcStreamParameters parameters, const ch
     // wait for acknowledgment
     while(socket->waitForReadyRead() && socket->bytesAvailable() < 3)
     {
-#ifndef _WIN32
-        usleep(10);
-#endif
+        std::this_thread::sleep_for(std::chrono::microseconds(10));
     }
 
     socket->read(3);
@@ -491,9 +488,7 @@ bool dcStreamSendSVG(DcSocket * socket, std::string name, const char * svgData, 
     // wait for acknowledgment
     while(socket->waitForReadyRead() && socket->bytesAvailable() < 3)
     {
-#ifndef _WIN32
-        usleep(10);
-#endif
+        std::this_thread::sleep_for(std::chrono::microseconds(10));
     }
 
     socket->read(3);

@@ -48,8 +48,11 @@
 #define JPEG_QUALITY 75
 
 #include "ParallelPixelStream.h"
+
+// see DesktopSelectionRectangle.h's comment on the Qt4->6 <QtGui> split
 #include <QtGui>
-#include "QtIncludes.h"
+#include <QtWidgets>
+#include <QtNetwork/QTcpSocket>
 #include <string>
 #include <iostream>
 
