@@ -193,6 +193,17 @@ MainWindow::MainWindow()
 #if ENABLE_PYTHON_SUPPORT
         toolbar->addAction(pythonConsoleAction);
 #endif
+
+        // version label in the menu bar's corner - lets someone looking at
+        // a running wall confirm which build it's actually running, without
+        // having to go dig through logs. the corner (rather than the
+        // toolbar) is deliberate: a toolbar widget gets silently swallowed
+        // into the ">>" overflow chevron on a narrow window, the corner
+        // widget doesn't have that failure mode
+        QLabel * versionLabel = new QLabel(QString("DisplayCluster ") + DISPLAYCLUSTER_GIT_VERSION);
+        versionLabel->setContentsMargins(0, 0, 8, 0);
+        menuBar()->setCornerWidget(versionLabel, Qt::TopRightCorner);
+
         // main widget / layout area
         QTabWidget * mainWidget = new QTabWidget();
         setCentralWidget(mainWidget);
