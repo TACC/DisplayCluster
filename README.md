@@ -175,6 +175,105 @@ mpirun -np 2 ./build/displaycluster
 Same `configuration.json` and `DISPLAYCLUSTER_TIMEOUT` notes as the Windows
 section above apply.
 
+## Building DesktopStreamer
+
+`streamer/` holds a separate, standalone build for the client-side
+desktop-sharing tool (`DesktopStreamer`, plus the `dcStream` library it's
+built alongside) — meant to run on a presenter's own machine, not a cluster
+node. It has its own `CMakeLists.txt` and doesn't use the root project's
+build at all: no MPI, CUDA, or FFmpeg required, since none of that code path
+is used here. It connects over TCP to port 1701 on whichever host is running
+MPI rank 0 of a running DisplayCluster process; the moment it starts sending
+frames for a URI, a window for that URI appears on the wall automatically.
+
+### Windows 11
+
+Same toolchain as the main app's Windows section above (Visual Studio 2022
+with the C++ workload, built from the "x64 Native Tools Command Prompt for
+VS 2022", vcpkg cloned to a space-free path) — but only vcpkg is needed here,
+none of the manually-installed pieces (MS-MPI, CUDA, FFmpeg). Dependencies
+are declared in `streamer/vcpkg.json` (Qt6 `widgets`/`network` features,
+`boost-serialization`, `libjpeg-turbo`) and install automatically:
+
+```
+cd streamer
+cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake
+cmake --build build --config Release
+```
+
+Running it needs the same `QT_PLUGIN_PATH` workaround as the main app (vcpkg
+copies the DLLs next to the exe but not Qt's plugin subdirectories):
+
+```
+set QT_PLUGIN_PATH=C:\src\DisplayCluster\streamer\build\vcpkg_installed\x64-windows\Qt6\plugins
+streamer\build\Release\DesktopStreamer.exe
+```
+
+### Linux
+
+Only Qt6 (`Core`/`Gui`/`Widgets`/`Network`/`Concurrent`), Boost
+(`serialization`), and libjpeg-turbo are needed — a much smaller dependency
+set than the main app.
+
+**Ubuntu:**
+
+```bash
+sudo apt install build-essential cmake pkg-config git \
+    qt6-base-dev \
+    libboost-serialization-dev \
+    libjpeg-turbo8-dev
+```
+
+**Rocky/RHEL 9:** Qt6 comes from EPEL, not the base repos. Also note
+`libjpeg-turbo-devel` only provides the CMake config and headers — the
+actual `libturbojpeg.so` it points to ships in a separate `turbojpeg`
+package, and CMake will fail at configure time with a "file does not exist"
+error on the imported target if it's missing:
+
+```bash
+sudo dnf install epel-release
+sudo dnf install gcc-c++ cmake pkgconf-pkg-config git \
+    qt6-qtbase-devel \
+    boost-devel boost-serialization \
+    libjpeg-turbo-devel turbojpeg turbojpeg-devel
+```
+
+**Configure, build, and run** (same on both):
+
+```bash
+cmake -S streamer -B build-streamer
+cmake --build build-streamer -j$(nproc)
+build-streamer/DesktopStreamer
+```
+
+### macOS
+
+Untested on real hardware — this is best-effort based on how the equivalent
+Homebrew packages are laid out, not a verified build like the Windows/Linux
+paths above; expect to adjust something.
+
+```bash
+brew install cmake qt@6 boost jpeg-turbo
+```
+
+`qt@6` is keg-only (Homebrew won't symlink it into the general prefix, to
+avoid clashing with a `qt@5` install), so CMake needs to be told where to
+find it explicitly:
+
+```bash
+cmake -S streamer -B build-streamer -DCMAKE_PREFIX_PATH="$(brew --prefix qt@6)"
+cmake --build build-streamer -j$(sysctl -n hw.ncpu)
+open build-streamer/DesktopStreamer.app
+```
+
+This builds a real `.app` bundle (`streamer/CMakeLists.txt` sets
+`MACOSX_BUNDLE` under `if(APPLE)`), rather than a bare executable — matters
+for screen sharing specifically, since macOS ties the Screen Recording
+permission prompt to the bundle's identity. The first launch will prompt for
+Screen Recording access under System Settings → Privacy & Security; if it
+doesn't prompt and frames just come back black, check whether it's listed
+there already (denied) and needs to be removed/re-added.
+
 ## Container build (apptainer)
 
 Built on top of the NVIDIA OpenGL image

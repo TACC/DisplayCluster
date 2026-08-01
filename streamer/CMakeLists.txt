@@ -90,3 +90,16 @@ add_executable(DesktopStreamer
 )
 target_include_directories(DesktopStreamer PRIVATE apps/DesktopStreamer/src)
 target_link_libraries(DesktopStreamer Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Network Qt6::Concurrent ${JPEG_LIBS} ${Boost_LIBRARIES})
+
+if(APPLE)
+    # a real .app bundle rather than a bare executable - matters for screen
+    # sharing specifically, since macOS's Screen Recording permission (TCC)
+    # resolves identity through the bundle; without one, the terminal that
+    # launched the binary can end up as the thing System Settings shows
+    # asking for permission instead of DesktopStreamer itself
+    set_target_properties(DesktopStreamer PROPERTIES
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_GUI_IDENTIFIER org.tacc.DesktopStreamer
+        MACOSX_BUNDLE_BUNDLE_NAME DesktopStreamer
+    )
+endif()
