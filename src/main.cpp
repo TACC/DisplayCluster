@@ -117,6 +117,14 @@ int main(int argc, char * argv[])
     else
         g_app = new QApplication(argc, argv);
 
+    // Qt's default QImageReader allocation limit (128MB as of Qt 6.6) exists
+    // to guard against decompression-bomb attacks from untrusted image
+    // files - not a concern here, where content is deliberately loaded by
+    // whoever runs the wall, and legitimately huge images (multi-gigapixel
+    // textures) are the normal case, not the exception. Disable it globally
+    // rather than special-casing every QImage/QImageReader call site.
+    QImageReader::setAllocationLimit(0);
+
     if (g_mpiRank == 0)
     {
         int pport = 1999;  
