@@ -45,7 +45,22 @@
 
 // picks AV_PIX_FMT_CUDA out of the codec's offered formats so decoded frames
 // stay resident on the GPU (as NV12 device memory) instead of falling back
-// to a software pixel format
+// to a software pixel format.
+//
+// This can get called a second time, for the same decode, after FFmpeg has
+// already tried and failed to actually initialize the CUDA hwaccel - not
+// every codec's NVDEC implementation supports every resolution the codec
+// itself can handle (e.g. MPEG-4 part 2 tops out around 2032px wide on
+// Maxwell-generation GPUs, well under what the format allows), and that
+// only surfaces at hwaccel init time, not from avcodec_get_hw_config()'s
+// static capability check in _setup(). When that happens, AV_PIX_FMT_CUDA
+// is no longer offered here - falling through to AV_PIX_FMT_NONE (as this
+// used to do unconditionally) aborts decoding outright. Picking the first
+// software format instead - same as what avcodec_default_get_format() and
+// plain `ffmpeg -hwaccel cuda` do - lets decoding continue in software,
+// just like it would if the codec had never advertised NVDEC support in
+// the first place. ctx->opaque is set to the owning Decoder in _setup() so
+// hwDecode_ can be corrected to match reality here.
 static enum AVPixelFormat
 get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_fmts)
 {
@@ -55,8 +70,18 @@ get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_fmts)
             return *p;
     }
 
-    std::cerr << "failed to get CUDA hw surface format; codec has no NVDEC support\n";
-    return AV_PIX_FMT_NONE;
+    Decoder *decoder = (Decoder *)ctx->opaque;
+
+    put_flog(LOG_WARN,
+        "'%s': NVDEC hardware decode failed to initialize for this stream "
+        "(likely a resolution beyond what this codec's NVDEC implementation "
+        "supports on this GPU, even though the codec has NVDEC support in "
+        "general) - falling back to SOFTWARE decode",
+        decoder ? decoder->getURI().c_str() : "?");
+
+    decoder->hwDecodeFailed();
+
+    return pix_fmts[0];
 }
 
 Decoder::Decoder(bool paused)
@@ -132,9 +157,9 @@ Decoder::_setup()
     }
 
     avCodecContext_ = avcodec_alloc_context3(codec);
+    avCodecContext_->opaque = this;
 
     if (avcodec_parameters_to_context(avCodecContext_, stream->codecpar) < 0)
-    if (!codec)
     {
         std::cerr << "unable to copy codec params\n";
         return false;

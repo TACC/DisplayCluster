@@ -256,6 +256,15 @@ public:
     bool
     usingHardwareDecode() { return hwDecode_; }
 
+    // called from get_hw_format() (via AVCodecContext::opaque) when the
+    // codec advertised NVDEC support but the hwaccel failed to actually
+    // initialize for this particular stream - see its comment for why that
+    // can happen despite the avcodec_get_hw_config() check in _setup()
+    // passing. Corrects hwDecode_ to match the software fallback FFmpeg is
+    // actually using, so _decode()/Movie::render() pick the matching path
+    void
+    hwDecodeFailed() { hwDecode_ = false; }
+
     // re-anchors tStart_ to a fresh clock reading supplied by the caller,
     // absorbing the frame count already elapsed into frameOffset_ so this
     // doesn't cause a visible jump (see MainWindow::updateGLWindows(),
