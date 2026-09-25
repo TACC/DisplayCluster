@@ -324,9 +324,10 @@ void GLWindow::paintGL()
 
             if(labelInTile)
             {
-                // extract filename from URI
-                std::string uri = contentWindowManagers[i]->getContent()->getURI();
-                std::string filename = uri.substr(uri.find_last_of("/\\") + 1);
+                // label with the window's name, less any directory - for the
+                // default name (the URI) that's the filename, plus any #N suffix
+                std::string name = contentWindowManagers[i]->getName();
+                std::string filename = name.substr(name.find_last_of("/\\") + 1);
                 QString label = QString::fromStdString(filename);
 
                 // Convert the label's top-left corner from normalized global display

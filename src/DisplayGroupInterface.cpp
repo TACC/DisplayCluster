@@ -115,6 +115,31 @@ boost::shared_ptr<ContentWindowManager> DisplayGroupInterface::getContentWindowM
     return boost::shared_ptr<ContentWindowManager>();
 }
 
+boost::shared_ptr<ContentWindowManager> DisplayGroupInterface::getContentWindowManagerByName(std::string name)
+{
+    for(unsigned int i=0; i<contentWindowManagers_.size(); i++)
+    {
+        if(contentWindowManagers_[i]->getName() == name)
+        {
+            return contentWindowManagers_[i];
+        }
+    }
+
+    return boost::shared_ptr<ContentWindowManager>();
+}
+
+std::string DisplayGroupInterface::getUniqueName(std::string name)
+{
+    std::string candidate = name;
+
+    for(int n=2; getContentWindowManagerByName(candidate) != NULL; n++)
+    {
+        candidate = name + "#" + std::to_string(n);
+    }
+
+    return candidate;
+}
+
 void DisplayGroupInterface::setContentWindowManagers(std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers)
 {
     // remove existing content window managers

@@ -78,6 +78,16 @@ boost::shared_ptr<Content> ContentWindowManager::getContent()
     return content_;
 }
 
+std::string ContentWindowManager::getName()
+{
+    return name_.empty() ? content_->getURI() : name_;
+}
+
+void ContentWindowManager::setName(std::string name)
+{
+    name_ = name;
+}
+
 boost::shared_ptr<DisplayGroupManager> ContentWindowManager::getDisplayGroupManager()
 {
     return displayGroupManager_.lock();

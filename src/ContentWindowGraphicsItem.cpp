@@ -185,7 +185,7 @@ void ContentWindowGraphicsItem::paint(QPainter * painter, const QStyleOptionGrap
         QRectF textBoundingRect = QRectF(rect().x() / horizontalTextScale, rect().y() / verticalTextScale, rect().width() / horizontalTextScale, rect().height() / verticalTextScale);
 
         // get the label and render it
-        QString label(contentWindowManager->getContent()->getURI().c_str());
+        QString label(contentWindowManager->getName().c_str());
         QString labelSection = label.section("/", -1, -1).prepend(" ");
         painter->drawText(textBoundingRect, Qt::AlignLeft | Qt::AlignTop, labelSection);
 

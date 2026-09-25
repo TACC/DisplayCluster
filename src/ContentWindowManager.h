@@ -51,6 +51,7 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/weak_ptr.hpp>
 #include <boost/date_time/posix_time/time_serialize.hpp>
+#include <boost/serialization/string.hpp>
 
 class DisplayGroupManager;
 
@@ -62,6 +63,11 @@ class ContentWindowManager : public ContentWindowInterface, public boost::enable
         ContentWindowManager(boost::shared_ptr<Content> content);
 
         boost::shared_ptr<Content> getContent();
+
+        // unique name identifying this window, used by the remote API; empty
+        // until the DisplayGroupManager assigns one, in which case the URI stands in
+        std::string getName();
+        void setName(std::string name);
 
         boost::shared_ptr<DisplayGroupManager> getDisplayGroupManager();
         void setDisplayGroupManager(boost::shared_ptr<DisplayGroupManager> displayGroupManager);
@@ -80,6 +86,7 @@ class ContentWindowManager : public ContentWindowInterface, public boost::enable
         void serialize(Archive & ar, const unsigned int)
         {
             ar & content_;
+            ar & name_;
             ar & displayGroupManager_;
             ar & contentWidth_;
             ar & contentHeight_;
@@ -98,6 +105,8 @@ class ContentWindowManager : public ContentWindowInterface, public boost::enable
     private:
 
         boost::shared_ptr<Content> content_;
+
+        std::string name_;
 
         boost::weak_ptr<DisplayGroupManager> displayGroupManager_;
 };

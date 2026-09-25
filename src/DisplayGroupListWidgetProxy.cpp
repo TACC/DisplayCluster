@@ -118,7 +118,7 @@ void DisplayGroupListWidgetProxy::refreshListWidget()
     for(unsigned int i=0; i<contentWindowManagers_.size(); i++)
     {
         boost::shared_ptr<ContentWindowManager> cm = contentWindowManagers_[i];
-        QString uri = QString::fromStdString(cm->getContent()->getURI());
+        QString name = QString::fromStdString(cm->getName());
 
         // create a row item with enough height for the widget
         ContentWindowListWidgetItem * newItem = new ContentWindowListWidgetItem(cm);
@@ -136,11 +136,12 @@ void DisplayGroupListWidgetProxy::refreshListWidget()
         // checked = visible (i.e. NOT hidden)
         cb->setChecked(!cm->getHidden());
 
-        // map this checkbox's stateChanged to its URI string
+        // map this checkbox's stateChanged to its window's name - not its URI,
+        // which several windows can share
         connect(cb, SIGNAL(stateChanged(int)), signalMapper_, SLOT(map()));
-        signalMapper_->setMapping(cb, uri);
+        signalMapper_->setMapping(cb, name);
 
-        // store the checkbox on the item so onHiddenChanged can find it by URI
+        // store the checkbox on the item so onHiddenChanged can find it by name
         newItem->setData(Qt::UserRole + 1, QVariant::fromValue(static_cast<void *>(cb)));
 
         // when the manager's hidden state changes externally, update the checkbox
@@ -148,7 +149,7 @@ void DisplayGroupListWidgetProxy::refreshListWidget()
                 this, SLOT(onHiddenChanged(bool, ContentWindowInterface *)),
                 Qt::QueuedConnection);
 
-        QString filename = uri.section('/', -1);
+        QString filename = name.section('/', -1);
         QLabel * label = new QLabel(filename);
 
         layout->addWidget(cb);
@@ -159,15 +160,15 @@ void DisplayGroupListWidgetProxy::refreshListWidget()
     }
 }
 
-void DisplayGroupListWidgetProxy::onHideCheckboxChanged(const QString & uri)
+void DisplayGroupListWidgetProxy::onHideCheckboxChanged(const QString & name)
 {
-    std::string uriStr = uri.toStdString();
+    std::string nameStr = name.toStdString();
 
     for(unsigned int i=0; i<contentWindowManagers_.size(); i++)
     {
-        if(contentWindowManagers_[i]->getContent()->getURI() == uriStr)
+        if(contentWindowManagers_[i]->getName() == nameStr)
         {
-            QCheckBox * cb = qobject_cast<QCheckBox *>(signalMapper_->mapping(uri));
+            QCheckBox * cb = qobject_cast<QCheckBox *>(signalMapper_->mapping(name));
             if(cb)
                 contentWindowManagers_[i]->setHidden(!cb->isChecked());
             break;
@@ -182,14 +183,13 @@ void DisplayGroupListWidgetProxy::onHiddenChanged(bool hidden, ContentWindowInte
     if(!cwm)
         return;
 
-    std::string uriStr = cwm->getContent()->getURI();
-    QString uri = QString::fromStdString(uriStr);
+    QString name = QString::fromStdString(cwm->getName());
 
     for(int i = 0; i < listWidget_->count(); i++)
     {
         QListWidgetItem * item = listWidget_->item(i);
         QCheckBox * cb = static_cast<QCheckBox *>(item->data(Qt::UserRole + 1).value<void *>());
-        if(cb && signalMapper_->mapping(uri) == cb)
+        if(cb && signalMapper_->mapping(name) == cb)
         {
             // Block signals so setting the checkbox doesn't trigger onHideCheckboxChanged
             cb->blockSignals(true);

@@ -123,6 +123,13 @@ boost::shared_ptr<boost::posix_time::ptime> DisplayGroupManager::getTimestamp()
 
 void DisplayGroupManager::addContentWindowManager(boost::shared_ptr<ContentWindowManager> contentWindowManager, DisplayGroupInterface * source)
 {
+    // every window gets a unique name before anyone else sees it: the requested
+    // one (or the URI, if none was requested), suffixed with #2, #3, ... if taken
+    if(source != this)
+    {
+        contentWindowManager->setName(getUniqueName(contentWindowManager->getName()));
+    }
+
     DisplayGroupInterface::addContentWindowManager(contentWindowManager, source);
 
     if(source != this)
@@ -274,6 +281,10 @@ bool DisplayGroupManager::saveStateXML(QString& xml)
         n.appendChild(doc.createTextNode(QString(uri.c_str())));
         cwmNode.appendChild(n);
 
+        n = doc.createElement("name");
+        n.appendChild(doc.createTextNode(QString::fromStdString(contentWindowManagers[i]->getName())));
+        cwmNode.appendChild(n);
+
         n = doc.createElement("x");
         n.appendChild(doc.createTextNode(QString::number(x)));
         cwmNode.appendChild(n);
@@ -366,6 +377,15 @@ bool DisplayGroupManager::loadStateXML(QString xml)
             put_flog(LOG_DEBUG, "found content window with URI %s", uri.c_str());
         }
 
+        // state files written before windows had names have no name element
+        std::string name;
+        QDomElement nameElem = cwmNode.firstChildElement("name");
+
+        if(nameElem.isNull() == false)
+        {
+            name = nameElem.text().trimmed().toStdString();
+        }
+
         double x, y, w, h, centerX, centerY, zoom;
         x = y = w = h = centerX = centerY = zoom = -1.;
 
@@ -429,6 +449,7 @@ bool DisplayGroupManager::loadStateXML(QString xml)
             if(c != NULL)
             {
                 boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
+                cwm->setName(name);
 
                 contentWindowManagers.push_back(cwm);
 
@@ -477,16 +498,14 @@ bool DisplayGroupManager::loadStateXMLFile(std::string filename)
 		QFile file(filename.c_str());
 		if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
 		{
-				std::cerr << "error\n";
-				exit(1);
+				put_flog(LOG_ERROR, "could not open state file %s", filename.c_str());
+				return false;
 		}
 
 		QByteArray barray = file.readAll();
 		QString str(barray);
 
-		loadStateXML(str);
-
-    return true;
+		return loadStateXML(str);
 }
 
 void DisplayGroupManager::receiveMessages()

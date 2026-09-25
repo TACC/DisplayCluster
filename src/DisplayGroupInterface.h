@@ -61,6 +61,10 @@ class DisplayGroupInterface : public QObject {
         std::vector<boost::shared_ptr<ContentWindowManager> > getContentWindowManagers();
         boost::shared_ptr<ContentWindowManager> getContentWindowManager(std::string uri, CONTENT_TYPE contentType=CONTENT_TYPE_ANY);
         boost::shared_ptr<ContentWindowManager> getContentWindowManager(int);
+        boost::shared_ptr<ContentWindowManager> getContentWindowManagerByName(std::string name);
+
+        // returns name if no window has it, otherwise name#2, name#3, ...
+        std::string getUniqueName(std::string name);
 
         // remove all current ContentWindowManagers and add the vector of provided ContentWindowManagers
         void setContentWindowManagers(std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers);
