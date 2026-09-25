@@ -273,6 +273,8 @@ bool DisplayGroupManager::saveStateXML(QString& xml)
 
         bool selected = contentWindowManagers[i]->getSelected();
 
+        bool hidden = contentWindowManagers[i]->getHidden();
+
         // add the XML node with these values
         QDomElement cwmNode = doc.createElement("ContentWindow");
         root.appendChild(cwmNode);
@@ -315,6 +317,10 @@ bool DisplayGroupManager::saveStateXML(QString& xml)
 
         n = doc.createElement("selected");
         n.appendChild(doc.createTextNode(QString::number(selected)));
+        cwmNode.appendChild(n);
+
+        n = doc.createElement("hidden");
+        n.appendChild(doc.createTextNode(QString::number(hidden)));
         cwmNode.appendChild(n);
     }
 
@@ -390,6 +396,7 @@ bool DisplayGroupManager::loadStateXML(QString xml)
         x = y = w = h = centerX = centerY = zoom = -1.;
 
         bool selected = false;
+        bool hidden = false;
 
         QDomElement elem;
 
@@ -441,6 +448,12 @@ bool DisplayGroupManager::loadStateXML(QString xml)
             selected = (bool)elem.text().toInt();
         }
 
+        elem = cwmNode.firstChildElement("hidden");
+        if(elem.isNull() == false)
+        {
+            hidden = (bool)elem.text().toInt();
+        }
+
         // add the window if we have a valid URI
         if(uri.empty() == false)
         {
@@ -476,6 +489,11 @@ bool DisplayGroupManager::loadStateXML(QString xml)
                 }
 
                 cwm->setSelected(selected);
+                // setHidden() broadcasts the display group, so skip it in the common case
+                if(hidden)
+                {
+                    cwm->setHidden(true);
+                }
             }
         }
     }
