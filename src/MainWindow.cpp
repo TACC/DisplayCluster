@@ -297,8 +297,11 @@ MainWindow::MainWindow()
         // must be queued so we return to the main event loop and avoid infinite recursion
         connect(this, SIGNAL(updateGLWindowsFinished()), this, SLOT(updateGLWindows()), Qt::QueuedConnection);
 
-        // trigger the first update
-        updateGLWindows();
+        // trigger the first update once the event loop starts, not from here:
+        // a frame receives whatever rank 0 has sent, and handling that (e.g. a
+        // display group, a content dimensions request) uses g_mainWindow, which
+        // isn't set until this constructor returns
+        QMetaObject::invokeMethod(this, "updateGLWindows", Qt::QueuedConnection);
     }
 }
 
