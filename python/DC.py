@@ -111,12 +111,12 @@ class DC:
 
     def setConstrainAspectRatio(self, onOff):
         c = Connection(self.port, self.host)
-        c.Send({ "cmd": "constrain aspect ratio", "state": onOff})
+        c.Send({ "cmd": "constrain aspect ratio", "state": "on" if onOff else "off"})
         self.updateContent()
 
     def setShowWindowBorders(self, onOff):
         c = Connection(self.port, self.host)
-        c.Send({ "cmd": "show window borders", "state": onOff})
+        c.Send({ "cmd": "show window borders", "state": "on" if onOff else "off"})
         self.updateContent()
 
     def setShowContentLabels(self, onOff):
