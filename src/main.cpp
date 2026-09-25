@@ -58,8 +58,8 @@ NetworkListener * g_networkListener = NULL;
 long g_frameCount = 0;
 uint64_t g_dc_flags = 0;
 
-#include "DCSocketManager.h"
-DCSocketManager *g_dcSocketManager = NULL;
+#include "RestServer.h"
+RestServer *g_restServer = NULL;
 
 int main(int argc, char * argv[])
 {
@@ -127,11 +127,9 @@ int main(int argc, char * argv[])
 
     if (g_mpiRank == 0)
     {
-        int pport = 1999;  
-        char *p = getenv("DISPLAYCLUSTER_PYTHONPORT");
-        if (p)
-            pport = atoi(p);
-        g_dcSocketManager = new DCSocketManager(pport);
+        // remote-control API; see RestServer.h for its configuration
+        g_restServer = new RestServer();
+        g_restServer->start();
     }
 
     g_configuration = new Configuration(getenv("DISPLAYCLUSTER_CONFIG"));
@@ -158,6 +156,10 @@ int main(int argc, char * argv[])
     g_app->exec();
 
     put_flog(LOG_DEBUG, "quitting");
+
+    // stop taking remote requests before tearing down what they act on
+    delete g_restServer;
+    g_restServer = NULL;
 
     // wait for all threads to finish
     QThreadPool::globalInstance()->waitForDone();

@@ -38,8 +38,8 @@ sif = os.environ['DISPLAYCLUSTER_SIF']
 if 'DISPLAYCLUSTER_EXEC' not in os.environ:
     os.environ['DISPLAYCLUSTER_EXEC'] = 'displaycluster'
 
-if 'DISPLAYCLUSTER_PYTHONPORT' not in os.environ:
-    os.environ['DISPLAYCLUSTER_PYTHONPORT'] = '1910'
+if 'DISPLAYCLUSTER_API_PORT' not in os.environ:
+    os.environ['DISPLAYCLUSTER_API_PORT'] = '1910'
 
 if 'DISPLAYCLUSTER_NETWORKPORT' not in os.environ:
     os.environ['DISPLAYCLUSTER_NETWORKPORT'] = '1701'
@@ -110,7 +110,12 @@ startCommand = mpirunCommand + ' -host ' + hostListString + ' ' + os.environ['DI
 startCommand = startCommand + ' -x LD_LIBRARY_PATH -x DISPLAYCLUSTER_TIMEOUT -x DISPLAYCLUSTER_INSTALL'
 startCommand = startCommand + ' -x DISPLAYCLUSTER_EXEC -x DISPLAYCLUSTER_DIR -x DISPLAYCLUSTER_CONFIG '
 startCommand = startCommand + ' -x DISPLAYCLUSTER_LOG_THRESHOLD -x PYTHONPATH -x DISPLAYCLUSTER_SCREENSAVER_IMAGE'
-startCommand = startCommand + ' -x DISPLAYCLUSTER_PYTHONPORT -x DISPLAYCLUSTER_NETWORKPORT'
+startCommand = startCommand + ' -x DISPLAYCLUSTER_API_PORT -x DISPLAYCLUSTER_NETWORKPORT'
+
+# optional remote API settings (see src/RestServer.h), forwarded only if set
+for var in ['DISPLAYCLUSTER_API_TOKEN', 'DISPLAYCLUSTER_API_BIND', 'DISPLAYCLUSTER_STATE_DIR', 'DISPLAYCLUSTER_MEDIA_DIR']:
+    if var in os.environ:
+        startCommand = startCommand + ' -x ' + var
 startCommand = startCommand + ' apptainer run --nv  ' + sif
 startCommand = startCommand + ' sh %s/bin/displaycluster.sh %s/bin/displaycluster.py' % (os.environ['DISPLAYCLUSTER_INSTALL'], os.environ['DISPLAYCLUSTER_INSTALL'])
 

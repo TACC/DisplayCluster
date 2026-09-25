@@ -43,7 +43,7 @@ if(WIN32)
     # NOMINMAX: <windows.h> otherwise #defines min/max macros that collide
     # with std::min/max and Boost; WIN32_LEAN_AND_MEAN trims the rest of the
     # rarely-needed headers (winsock1, etc.) windows.h pulls in by default,
-    # which matters since SocketInterface.cpp needs winsock2.h instead
+    # which matters since httplib.h (RestServer.cpp) needs winsock2.h instead
     add_definitions(-DNOMINMAX -DWIN32_LEAN_AND_MEAN)
 else()
     # keep the library path in installed executables; meaningless on
@@ -180,7 +180,6 @@ set(SRCS ${SRCS}
     src/ContentWindowGraphicsItem.cpp
     src/ContentWindowListWidgetItem.cpp
     src/Marker.cpp
-    src/DCSocketManager.cpp
     src/Decoder.cpp
     src/DisplayGroupManager.cpp
     src/DisplayGroupInterface.cpp
@@ -206,12 +205,13 @@ set(SRCS ${SRCS}
     src/PixelStreamContent.cpp
     src/PixelStreamSource.cpp
     src/QSSApp.cpp
-    src/SocketInterface.cpp
+    src/RestServer.cpp
     src/SVG.cpp
     src/SVGContent.cpp
     src/SVGStreamSource.cpp
     src/Texture.cpp
     src/TextureContent.cpp
+    src/WallController.cpp
 )
 
 add_executable(displaycluster ${SRCS})
@@ -223,9 +223,9 @@ if(NOT WIN32)
     set(LIBS ${LIBS} pthread)
 endif()
 
-# SocketInterface.cpp uses Winsock2 on Windows (DCSocketManager's Python/
-# DC.py control socket); ws2_32 also carries its own #pragma comment(lib)
-# under MSVC, but link it here too for non-MSVC Windows toolchains
+# httplib.h (RestServer.cpp, the remote-control API) uses Winsock2 on
+# Windows; it also carries its own #pragma comment(lib) under MSVC, but link
+# ws2_32 here too for non-MSVC Windows toolchains
 if(WIN32)
     set(LIBS ${LIBS} ws2_32)
 endif()

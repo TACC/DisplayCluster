@@ -351,7 +351,7 @@ export DISPLAYCLUSTER_CONFIG=${DISPLAYCLUSTER_HOME}/examples/configuration.json
 ## tell it where to get the sif file
 export DISPLAYCLUSTER_SIF=${DISPLAYCLUSTER_HOME}/sif/displaycluster.sif
 
-export DISPLAYCLUSTER_PYTHONPORT=1900
+export DISPLAYCLUSTER_API_PORT=1910               # remote-control API; see "Remote control API"
 export DISPLAYCLUSTER_TIMEOUT=3600                 # screensaver timeout in seconds
 export DISPLAYCLUSTER_EXEC=/displaycluster
 
@@ -399,3 +399,52 @@ Note: in some cases (like Rattler here at TACC) OpenMPI doesn't seem to find
 the correct interface for MPI to use. This is hard-coded in the
 `mpirunCommand` string built near the end of `startdisplaycluster` — you may
 need to change it.
+
+## Remote control API
+
+The master process (rank 0) serves an HTTP/JSON API for controlling the wall
+remotely; `python/DC.py` is a Python client for it. Coordinates are in tile
+units — `(0, 0)` is the wall's top-left corner and `(tilesWide, tilesHigh)`
+its bottom-right — and windows are addressed by name: by default a window's
+name is its file's path, with `#2`, `#3`, ... appended if that file is
+already open, or you can choose one when opening it.
+
+| Request | Body | Does |
+|---|---|---|
+| `GET /config` | | wall size in tiles and pixels, version |
+| `GET /windows` | | every window, back to front |
+| `POST /windows` | `{uri, name?, x?, y?, w?, h?}` | open a file |
+| `DELETE /windows` | | close everything |
+| `GET /windows/{name}` | | one window |
+| `PATCH /windows/{name}` | any of `{x, y, w, h, hidden, front, zoom, centerX, centerY, name}` | move, resize, hide, raise, zoom, rename |
+| `DELETE /windows/{name}` | | close a window |
+| `GET /options`, `PATCH /options` | `{constrainAspectRatio?, showWindowBorders?, showContentLabels?}` | display options |
+| `POST /state/load`, `POST /state/save` | `{file}` | state files, relative to the state directory |
+| `GET /media?dir=` | | browse the media directory for files the wall can open |
+
+Names go in the URL percent-encoded (`/` as `%2F`, `#` as `%23`). Errors come
+back with a 4xx status and `{"error": "..."}`. Any request wakes the wall from
+its screensaver.
+
+It's configured by environment variables:
+
+- `DISPLAYCLUSTER_API_PORT` — port (default 1910)
+- `DISPLAYCLUSTER_API_TOKEN` — a shared secret every request must send as
+  `Authorization: Bearer <token>`. If unset, it's read from
+  `~/.displaycluster/api_token` if that exists. Generate one with
+  `python3 -c "import secrets; print(secrets.token_hex(32))"`.
+- `DISPLAYCLUSTER_API_BIND` — address to listen on. Defaults to all
+  interfaces when a token is configured, and to `127.0.0.1` (reachable only
+  from the master's own host, e.g. over an SSH tunnel) when not.
+- `DISPLAYCLUSTER_STATE_DIR` — where state files are loaded from and saved
+  to (default `~/.displaycluster/states`)
+- `DISPLAYCLUSTER_MEDIA_DIR` — the directory `/media` browses (default: your
+  home directory)
+
+The token is sent in the clear over plain HTTP; across an untrusted network,
+use an SSH tunnel or a TLS-terminating reverse proxy.
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" -X POST http://wallhost:1910/windows \
+     -d '{"uri": "/data/images/mars.jpg", "name": "mars", "x": 0, "y": 0, "w": 2, "h": 2}'
+```
