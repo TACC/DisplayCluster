@@ -1,155 +1,154 @@
-import sys
-import socket
+import os
 import json
+import urllib.request
+import urllib.error
+import urllib.parse
 from time import sleep
 
-last_msg = "none"
+# Client for DisplayCluster's remote-control HTTP API (see the README's
+# "Remote control API" section). Windows are identified by name - by default
+# the path of the file they show, with #2, #3, ... appended when that file is
+# already open. Coordinates are in tile units.
 
-class Connection:
+class DCError(Exception):
+    def __init__(self, status, message):
+        super().__init__('%s (HTTP %d)' % (message, status))
+        self.status = status
+        self.message = message
 
-    def __init__(self, k, host = None):
-        if host:
-            self.skt = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.skt.connect((host, k))
-        else:
-            self.skt = k
-
-    def Receive(self):
-        b = self.skt.recv(4)
-        sz = int.from_bytes(b, 'little')
-        buf = b''
-        while sz  > 0:
-            b = self.skt.recv(sz)
-            buf += b
-            sz -= len(b)
-        msg = buf.decode();
-        last_msg = msg
-        return json.loads(msg);
-
-    def Send(self, j):
-        msg = json.dumps(j).encode('ascii')
-        sz = len(msg)
-        b = sz.to_bytes(4, 'little')
-        self.skt.send(b)
-        self.skt.send(msg)
-        
-class Server:
-
-    def __init__(self, port): 
-        self.skt = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.skt.bind(('localhost', port))
-        self.skt.listen(5) 
-
-    def Accept(self):
-        skt = self.skt.accept()
-        return Connection(skt)
+def _read_token():
+    token = os.environ.get('DISPLAYCLUSTER_API_TOKEN')
+    if token:
+        return token
+    path = os.path.expanduser('~/.displaycluster/api_token')
+    if os.path.isfile(path):
+        with open(path) as f:
+            return f.read().strip()
+    return None
 
 class DC:
-    def __init__(self, host = 'localhost', port = 1910, nx = 1, ny = 1):
+    # token: defaults to $DISPLAYCLUSTER_API_TOKEN, then ~/.displaycluster/api_token
+    # strict: raise DCError on failures, rather than printing them and carrying on
+    def __init__(self, host = 'localhost', port = None, nx = 1, ny = 1, token = None, strict = False):
         self.host = host
-        self.port = port
+        self.port = port if port else int(os.environ.get('DISPLAYCLUSTER_API_PORT', 1910))
         self.nx   = nx
         self.ny   = ny
+        self.token = token if token else _read_token()
+        self.strict = strict
         self.updateContent()
+
+    def _request(self, method, path, body = None):
+        url = 'http://%s:%d%s' % (self.host, self.port, path)
+        data = json.dumps(body).encode() if body is not None else None
+        req = urllib.request.Request(url, data = data, method = method)
+        if data is not None:
+            req.add_header('Content-Type', 'application/json')
+        if self.token:
+            req.add_header('Authorization', 'Bearer ' + self.token)
+        try:
+            with urllib.request.urlopen(req) as response:
+                return json.loads(response.read())
+        except urllib.error.HTTPError as e:
+            try:
+                message = json.loads(e.read())['error']
+            except Exception:
+                message = e.reason
+            if self.strict:
+                raise DCError(e.code, message)
+            print('error:', message)
+            return None
+
+    def _window_path(self, name):
+        return '/windows/' + urllib.parse.quote(name, safe = '')
 
     def updateContent(self):
-        c = Connection(self.port, self.host)
-        c.Send({ "cmd": "update" })
-        j_in = c.Receive()
+        windows = self._request('GET', '/windows')
         self.content = {}
-        for i in j_in:
-            # i = [x, y, w, h, uri, hidden]
-            self.content[i[4]] = { 'x': i[0], 'y': i[1], 'w': i[2], 'h': i[3], 'hidden': bool(i[5]) }
+        for w in windows or []:
+            self.content[w['name']] = { 'uri': w['uri'], 'x': w['x'], 'y': w['y'], 'w': w['w'], 'h': w['h'], 'hidden': w['hidden'] }
 
     def getConfiguration(self):
-        c = Connection(self.port, self.host)
-        c.Send({ "cmd": "get configuration" })
-        j_in = c.Receive()
-        return j_in[0], j_in[1]
+        config = self._request('GET', '/config')
+        return config['tilesWide'], config['tilesHigh']
 
-    def reposition(self, uri, x, y, w, h):
-        if uri not in self.content.keys():
-            print('uri ', uri, ' not open')
-            return
-        content = self.content[uri]
-        if x == -1: x = content['x']
-        if y == -1: y = content['y']
-        if w == -1: w = content['w']
-        if h == -1: h = content['h']
-        c = Connection(self.port, self.host)
-        c.Send({ "cmd": "reposition", "uri": uri, "x": x, "y": y, "w": w, "h": h} )
+    # any of x, y, w, h given as -1 keeps its current value
+    def reposition(self, name, x, y, w, h):
+        params = { k: v for k, v in (('x', x), ('y', y), ('w', w), ('h', h)) if v != -1 }
+        self._request('PATCH', self._window_path(name), params)
         self.updateContent()
 
-    def open(self, uri, x = 0, y = 0, w = 1, h = 1):
-        c = Connection(self.port, self.host)
-        c.Send({ "cmd": "open", "uri": uri, "x": x, "y": y, "w": w, "h": h} )
+    # returns the new window's name - the file's path unless name is given (or
+    # the file is already open, in which case #2, #3, ... is appended)
+    def open(self, uri, x = 0, y = 0, w = 1, h = 1, name = None):
+        params = { 'uri': uri, 'x': x, 'y': y, 'w': w, 'h': h }
+        if name:
+            params['name'] = name
+        window = self._request('POST', '/windows', params)
+        self.updateContent()
+        return window['name'] if window else None
+
+    def rename(self, name, new_name):
+        self._request('PATCH', self._window_path(name), { 'name': new_name })
         self.updateContent()
 
-    def hide(self, uri):
-        if uri not in self.content:
-            print('uri ', uri, ' not open')
-            return
-        c = Connection(self.port, self.host)
-        c.Send({ "cmd": "hide", "uri": uri })
+    def hide(self, name):
+        self._request('PATCH', self._window_path(name), { 'hidden': True })
         self.updateContent()
 
-    def reveal(self, uri):
-        if uri not in self.content:
-            print('uri ', uri, ' not open')
-            return
-        c = Connection(self.port, self.host)
-        c.Send({ "cmd": "reveal", "uri": uri })
+    def reveal(self, name):
+        self._request('PATCH', self._window_path(name), { 'hidden': False })
         self.updateContent()
 
-    def moveToFront(self, uri):
-        if uri not in self.content:
-            print('uri ', uri, ' not open')
-            return
-        c = Connection(self.port, self.host)
-        c.Send({ "cmd": "top", "uri": uri })
+    def moveToFront(self, name):
+        self._request('PATCH', self._window_path(name), { 'front': True })
         self.updateContent()
 
     def setConstrainAspectRatio(self, onOff):
-        c = Connection(self.port, self.host)
-        c.Send({ "cmd": "constrain aspect ratio", "state": "on" if onOff else "off"})
+        self._request('PATCH', '/options', { 'constrainAspectRatio': bool(onOff) })
         self.updateContent()
 
     def setShowWindowBorders(self, onOff):
-        c = Connection(self.port, self.host)
-        c.Send({ "cmd": "show window borders", "state": "on" if onOff else "off"})
+        self._request('PATCH', '/options', { 'showWindowBorders': bool(onOff) })
         self.updateContent()
 
     def setShowContentLabels(self, onOff):
-        c = Connection(self.port, self.host)
-        c.Send({ "cmd": "show content labels", "state": "on" if onOff else "off"})
+        self._request('PATCH', '/options', { 'showContentLabels': bool(onOff) })
         self.updateContent()
 
-    def close(self, uri):
-        c = Connection(self.port, self.host)
-        c.Send({'cmd': 'close', 'uri': uri })
+    def close(self, name):
+        self._request('DELETE', self._window_path(name))
         self.updateContent()
 
     def clear(self):
-        c = Connection(self.port, self.host)
-        c.Send({'cmd': 'clear' })
+        self._request('DELETE', '/windows')
         self.updateContent()
 
     def showContent(self):
         print("Current contents")
-        for uri, props in self.content.items():
+        for name, props in self.content.items():
             hidden_str = ' [hidden]' if props['hidden'] else ''
-            print(uri, props['x'], props['y'], props['w'], props['h'], hidden_str)
+            uri_str = '' if props['uri'] == name else ' (' + props['uri'] + ')'
+            print(name + uri_str, props['x'], props['y'], props['w'], props['h'], hidden_str)
 
     def clearState(self):
-        c = Connection(self.port, self.host)
-        c.Send({'cmd': 'clear state'})
+        self.clear()
+
+    # state files are relative to the wall's state directory
+    def loadState(self, state):
+        self._request('POST', '/state/load', { 'file': state })
         self.updateContent()
 
-    def loadState(self, state):
-        c = Connection(self.port, self.host)
-        c.Send({'cmd': 'load state', 'state': state})
-        self.updateContent()
-        
+    def saveState(self, state):
+        self._request('POST', '/state/save', { 'file': state })
+
+    # lists a directory under the wall's media directory: a list of entries
+    # with 'name', 'type' ('directory' or 'file'), and either 'dir' (to pass
+    # back here) or 'uri' (to pass to open)
+    def listMedia(self, dir = ''):
+        result = self._request('GET', '/media?dir=' + urllib.parse.quote(dir))
+        return result['entries'] if result else []
+
     def create_event_list(self, script):
         if isinstance(script, str):
           with open(script) as f:
@@ -165,12 +164,15 @@ class DC:
     def run_events(self, event_list):
         self.clear()
         now = 0
+        # the name each event's window got when it opened, so its close event
+        # closes that window even if the same file is open more than once
+        names = {}
         for e in event_list:
             if now < e[1]:
                 delay = e[1] - now
                 sleep(delay)
                 now = now + delay
             if e[0] == "open":
-                self.open(e[2]['uri'], e[2]['x'], e[2]['y'], e[2]['w'], e[2]['h'])
-            else:
-                self.close(e[2]['uri'])
+                names[id(e[2])] = self.open(e[2]['uri'], e[2]['x'], e[2]['y'], e[2]['w'], e[2]['h'])
+            elif names.get(id(e[2])):
+                self.close(names[id(e[2])])

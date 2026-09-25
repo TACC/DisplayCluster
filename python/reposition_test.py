@@ -22,7 +22,8 @@ from DC import DC
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("uri", help="path to the movie file, as displaycluster itself sees it")
 parser.add_argument("--host", default="localhost")
-parser.add_argument("--port", type=int, default=1900)
+parser.add_argument("--port", type=int, default=None,
+                    help="API port (default: $DISPLAYCLUSTER_API_PORT, else 1910)")
 parser.add_argument("--wait", type=float, default=30.0,
                      help="seconds to wait between opening and repositioning (default: 30)")
 parser.add_argument("--open", nargs=4, type=float, metavar=("X", "Y", "W", "H"),
@@ -37,7 +38,7 @@ dc = DC(args.host, args.port)
 
 ox, oy, ow, oh = args.open
 print(f"opening {args.uri!r} at ({ox}, {oy}, {ow}, {oh})")
-dc.open(args.uri, x=ox, y=oy, w=ow, h=oh)
+name = dc.open(args.uri, x=ox, y=oy, w=ow, h=oh)
 
 print(f"waiting {args.wait}s...")
 time.sleep(args.wait)
@@ -45,5 +46,5 @@ time.sleep(args.wait)
 nx, ny, nw, nh = args.new
 t0 = time.time()
 print(f"repositioning to ({nx}, {ny}, {nw}, {nh})")
-dc.reposition(args.uri, nx, ny, nw, nh)
+dc.reposition(name, nx, ny, nw, nh)
 print(f"reposition call returned after {time.time() - t0:.3f}s")
