@@ -403,48 +403,89 @@ need to change it.
 ## Remote control API
 
 The master process (rank 0) serves an HTTP/JSON API for controlling the wall
-remotely; `python/DC.py` is a Python client for it. Coordinates are in tile
-units — `(0, 0)` is the wall's top-left corner and `(tilesWide, tilesHigh)`
-its bottom-right — and windows are addressed by name: by default a window's
-name is its file's path, with `#2`, `#3`, ... appended if that file is
-already open, or you can choose one when opening it.
+remotely, and a web UI for it at `http://wallhost:1910/ui/`; `python/DC.py`
+is a Python client. Coordinates are in tile units — `(0, 0)` is the wall's
+top-left corner and `(tilesWide, tilesHigh)` its bottom-right — and windows
+are addressed by name: by default a window's name is its file's path, with
+`#2`, `#3`, ... appended if that file is already open, or you can choose one
+when opening it.
+
+### Control
+
+Anyone with the token can look; only one client at a time can change the
+wall. A client takes control with `POST /control {"label": "Greg's laptop"}`,
+which returns a `lease`; every change then carries it in an `X-DC-Lease`
+header. A change without it gets `423`, naming who has control. Control
+lapses after 30 seconds without a request carrying the lease — use
+`POST /control/heartbeat` to keep it while idle, or keep an `/events` stream
+open with `?lease=`. `{"force": true}` takes control from whoever has it.
+
+While a remote client has control, the control window is read-only (it keeps
+showing the wall) with a banner and a **Take control** button, and the wall's
+idle timer is paused — the controller decides when the wall sleeps. When
+control ends, the idle timer restarts. `DC.py` handles all of this: it takes
+control the first time it changes something and gives it back when it's done.
+
+### Requests
 
 | Request | Body | Does |
 |---|---|---|
-| `GET /config` | | wall size in tiles and pixels, version |
+| `GET /status` | | `{asleep, idleTimeout, controller}` |
+| `GET /events` | | server-sent events: the wall's status, windows and options, now and whenever they change |
+| `POST /control` | `{label?, force?}` | take control; returns `{lease, id, label, timeout}` |
+| `POST /control/heartbeat`, `DELETE /control` | | keep, or give up, control |
+| `GET /config` | | wall size in tiles and pixels, screen and mullion sizes, version |
 | `GET /windows` | | every window, back to front |
 | `POST /windows` | `{uri, name?, x?, y?, w?, h?}` | open a file |
+| `POST /windows/directory` | `{root, dir, cols?, rows?}` | open a folder's files tiled across the wall |
 | `DELETE /windows` | | close everything |
 | `GET /windows/{name}` | | one window |
 | `PATCH /windows/{name}` | any of `{x, y, w, h, hidden, front, zoom, centerX, centerY, name}` | move, resize, hide, raise, zoom, rename |
 | `DELETE /windows/{name}` | | close a window |
-| `GET /options`, `PATCH /options` | `{constrainAspectRatio?, showWindowBorders?, showContentLabels?}` | display options |
+| `GET /options`, `PATCH /options` | any of the View menu's options, as booleans | display options |
+| `GET /state` | | saved state files, newest first |
 | `POST /state/load`, `POST /state/save` | `{file}` | state files, relative to the state directory |
-| `GET /media?dir=` | | browse the media directory for files the wall can open |
+| `POST /sleep`, `POST /wake` | | start or end the screensaver (waking needs no control) |
+| `GET /media` | | the media roots |
+| `GET /media/{root}` | `?dir=&sort=name\|modified\|size&order=asc\|desc&offset=&limit=` | a page of a directory: folders, then files the wall can open |
 
-Names go in the URL percent-encoded (`/` as `%2F`, `#` as `%23`). Errors come
-back with a 4xx status and `{"error": "..."}`. Any request wakes the wall from
-its screensaver.
+`POST`, `PATCH` and `DELETE` requests to `/windows...`, `/options`,
+`/state/load` and `/sleep` need control. Names go in the URL
+percent-encoded (`/` as `%2F`, `#` as `%23`). Errors come back with a 4xx
+status and `{"error": "..."}`.
 
-It's configured by environment variables:
+Changes wake the wall from its screensaver; reads don't, so something that's
+only watching doesn't keep it awake. While it's asleep, `/windows` reports the
+layout waking will bring back.
+
+### Configuration
 
 - `DISPLAYCLUSTER_API_PORT` — port (default 1910)
 - `DISPLAYCLUSTER_API_TOKEN` — a shared secret every request must send as
-  `Authorization: Bearer <token>`. If unset, it's read from
+  `Authorization: Bearer <token>` (or, for `/events`, which browsers can't
+  send headers with, as `?access_token=`). If unset, it's read from
   `~/.displaycluster/api_token` if that exists. Generate one with
-  `python3 -c "import secrets; print(secrets.token_hex(32))"`.
+  `python3 -c "import secrets; print(secrets.token_hex(32))"`. The web UI's
+  own files load without it; the page asks for it.
 - `DISPLAYCLUSTER_API_BIND` — address to listen on. Defaults to all
   interfaces when a token is configured, and to `127.0.0.1` (reachable only
   from the master's own host, e.g. over an SSH tunnel) when not.
 - `DISPLAYCLUSTER_STATE_DIR` — where state files are loaded from and saved
   to (default `~/.displaycluster/states`)
-- `DISPLAYCLUSTER_MEDIA_DIR` — the directory `/media` browses (default: your
-  home directory)
+- `DISPLAYCLUSTER_MEDIA_DIRS` — the directories `/media` browses, separated
+  like `PATH` (`:`, or `;` on Windows), each optionally named:
+  `content=/data/content:/scratch/movies`. An unnamed one is named after its
+  last path component. Symlinks are followed only into another root.
+  Default: your home directory.
+- `DISPLAYCLUSTER_UI_DIR` — where the web UI's files are (default:
+  `<install prefix>/ui`)
 
 The token is sent in the clear over plain HTTP; across an untrusted network,
 use an SSH tunnel or a TLS-terminating reverse proxy.
 
 ```bash
-curl -H "Authorization: Bearer $TOKEN" -X POST http://wallhost:1910/windows \
+LEASE=$(curl -s -H "Authorization: Bearer $TOKEN" -X POST http://wallhost:1910/control \
+        -d '{"label": "curl"}' | python3 -c "import json,sys; print(json.load(sys.stdin)['lease'])")
+curl -H "Authorization: Bearer $TOKEN" -H "X-DC-Lease: $LEASE" -X POST http://wallhost:1910/windows \
      -d '{"uri": "/data/images/mars.jpg", "name": "mars", "x": 0, "y": 0, "w": 2, "h": 2}'
 ```
