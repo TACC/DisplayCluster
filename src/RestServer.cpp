@@ -12,6 +12,8 @@
 
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
+#include <QCoreApplication>
 #include <QMetaObject>
 #include <chrono>
 #include <cmath>
@@ -193,6 +195,8 @@ void RestServer::start()
         put_flog(LOG_WARN, "remote API listening on %s with no token: anyone who can reach port %d can control the wall", bindAddress_.c_str(), port_);
     }
 
+    mountUi();
+
     if(!server_->bind_to_port(bindAddress_, port_))
     {
         put_flog(LOG_ERROR, "remote API could not listen on %s:%d", bindAddress_.c_str(), port_);
@@ -202,6 +206,43 @@ void RestServer::start()
     put_flog(LOG_INFO, "remote API listening on %s:%d (%s)", bindAddress_.c_str(), port_, token_.empty() ? "no token" : "token required");
 
     thread_ = std::thread([this]() { server_->listen_after_bind(); });
+}
+
+void RestServer::mountUi()
+{
+    // DISPLAYCLUSTER_UI_DIR, else next to the installed binary (<prefix>/ui, or
+    // the source tree's ui/ when run from a build directory beside it)
+    QStringList candidates;
+    std::string configured = getenvOr("DISPLAYCLUSTER_UI_DIR", "");
+
+    if(!configured.empty())
+    {
+        candidates << QString::fromStdString(configured);
+    }
+
+    candidates << QCoreApplication::applicationDirPath() + "/../ui"
+               << QString::fromStdString(g_displayClusterDir) + "/ui";
+
+    for(const QString & candidate : candidates)
+    {
+        if(QFileInfo(candidate + "/index.html").isFile())
+        {
+            std::string dir = QDir(candidate).canonicalPath().toStdString();
+
+            server_->set_mount_point("/ui/", dir);
+
+            // /ui itself -> /ui/, so the page's relative links resolve
+            server_->Get("/ui", [](const httplib::Request &, httplib::Response & res)
+            {
+                res.set_redirect("/ui/");
+            });
+
+            put_flog(LOG_INFO, "remote UI served from %s", dir.c_str());
+            return;
+        }
+    }
+
+    put_flog(LOG_WARN, "remote UI files not found; set DISPLAYCLUSTER_UI_DIR");
 }
 
 void RestServer::stop()

@@ -24,6 +24,7 @@ class RemoteSession;
 //   DISPLAYCLUSTER_STATE_DIR   where state files are loaded/saved (default
 //                              ~/.displaycluster/states)
 //   DISPLAYCLUSTER_MEDIA_DIRS  directories /media browses; see MediaLibrary.h
+//   DISPLAYCLUSTER_UI_DIR      where the web UI's files are (default: <prefix>/ui)
 class RestServer
 {
     public:
@@ -47,6 +48,7 @@ class RestServer
         std::string token_;
 
         void setupRoutes();
+        void mountUi();
 };
 
 #endif

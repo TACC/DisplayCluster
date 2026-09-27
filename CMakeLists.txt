@@ -247,6 +247,9 @@ INSTALL(DIRECTORY remote DESTINATION .)
 # install data files
 INSTALL(DIRECTORY data DESTINATION .)
 
+# remote-control web UI, served by RestServer at /ui/
+INSTALL(DIRECTORY ui DESTINATION .)
+
 # install example files
 INSTALL(DIRECTORY examples DESTINATION .)
 
