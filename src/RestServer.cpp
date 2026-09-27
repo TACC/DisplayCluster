@@ -3,6 +3,8 @@
 #include "httplib.h"
 
 #include "RestServer.h"
+#include "MediaLibrary.h"
+#include "Configuration.h"
 #include "QSSApp.h"
 #include "main.h"
 #include "log.h"
@@ -11,10 +13,14 @@
 #include <QFile>
 #include <QMetaObject>
 #include <chrono>
+#include <cmath>
 #include <future>
 
 namespace
 {
+    // the most windows POST /windows/directory opens unless asked for more
+    const int MAX_DEFAULT_GRID = 36;
+
     // how long a request waits for the GUI thread before giving up
     const std::chrono::seconds GUI_TIMEOUT(30);
 
@@ -147,13 +153,10 @@ RestServer::RestServer()
     bindAddress_ = getenvOr("DISPLAYCLUSTER_API_BIND", token_.empty() ? "127.0.0.1" : "0.0.0.0");
 
     std::string stateDir = getenvOr("DISPLAYCLUSTER_STATE_DIR", displayClusterHome() + "/states");
-    std::string mediaDir = getenvOr("DISPLAYCLUSTER_MEDIA_DIR", QDir::homePath().toStdString());
-
-    // absolute, so paths handed back to clients can be passed straight to open
     stateDir = QDir(QString::fromStdString(stateDir)).absolutePath().toStdString();
-    mediaDir = QDir(QString::fromStdString(mediaDir)).absolutePath().toStdString();
 
-    controller_.reset(new WallController(stateDir, mediaDir));
+    controller_.reset(new WallController(stateDir));
+    media_.reset(new MediaLibrary());
     server_.reset(new httplib::Server());
 
     // requests are small JSON documents
@@ -230,7 +233,8 @@ void RestServer::setupRoutes()
             "GET /windows/{name}", "PATCH /windows/{name}", "DELETE /windows/{name}",
             "GET /options", "PATCH /options",
             "GET /state", "POST /state/load", "POST /state/save",
-            "GET /media?dir={dir}"
+            "POST /windows/directory",
+            "GET /media", "GET /media/{root}?dir=&sort=name|modified|size&order=asc|desc&offset=&limit=&all="
         } } } });
     });
 
@@ -326,9 +330,69 @@ void RestServer::setupRoutes()
         }
     });
 
-    s.Get("/media", [c](const httplib::Request & req, httplib::Response & res)
+    // browsing only touches the filesystem, so there's no need to involve the GUI thread
+    MediaLibrary * m = media_.get();
+
+    s.Get("/media", [m](const httplib::Request &, httplib::Response & res)
     {
-        // only touches the filesystem, so there's no need to involve the GUI thread
-        respond(res, c->listMedia(req.get_param_value("dir")));
+        respond(res, m->listRoots());
+    });
+
+    s.Get(R"(/media/([^/]+))", [m](const httplib::Request & req, httplib::Response & res)
+    {
+        respond(res, m->list(req.matches[1], req.get_param_value("dir"), req.get_param_value("sort"),
+                             req.get_param_value("order") == "desc",
+                             atoi(req.get_param_value("offset").c_str()), atoi(req.get_param_value("limit").c_str()),
+                             req.get_param_value("all") == "true"));
+    });
+
+    s.Post("/windows/directory", [c, m](const httplib::Request & req, httplib::Response & res)
+    {
+        json body;
+        std::string root;
+        if(!parseBody(req, res, body) || !stringParam(body, "root", root, res))
+        {
+            return;
+        }
+
+        if(body.contains("dir") && !body["dir"].is_string())
+        {
+            respond(res, { 400, { { "error", "'dir' must be a string" } } });
+            return;
+        }
+
+        QString path;
+        WallController::Result err;
+        if(!m->resolveDirectory(root, body.value("dir", ""), path, err))
+        {
+            respond(res, err);
+            return;
+        }
+
+        for(const char * key : { "cols", "rows" })
+        {
+            if(body.contains(key) && !body[key].is_number_integer())
+            {
+                respond(res, { 400, { { "error", std::string("'") + key + "' must be an integer" } } });
+                return;
+            }
+        }
+
+        int cols = body.value("cols", 0), rows = body.value("rows", 0);
+
+        if(cols <= 0 || rows <= 0)
+        {
+            // enough cells for every file (up to a limit), shaped so each cell
+            // is roughly 16:9 on this wall
+            int n = std::max(1, std::min(m->countOpenable(path), MAX_DEFAULT_GRID));
+            double wallAspect = (double)g_configuration->getTotalWidth() / (double)g_configuration->getTotalHeight();
+
+            cols = std::max(1, (int)std::lround(std::sqrt(n * wallAspect / (16. / 9.))));
+            cols = std::min(cols, n);
+            rows = (n + cols - 1) / cols;
+        }
+
+        std::string dir = path.toStdString();
+        respond(res, onGuiThread([c, dir, cols, rows]() { return c->openDirectory(dir, cols, rows); }));
     });
 }

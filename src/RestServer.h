@@ -7,6 +7,7 @@
 #include <thread>
 
 namespace httplib { class Server; }
+class MediaLibrary;
 
 // HTTP/JSON remote-control API for the wall, run on rank 0 only. Requests are
 // served on cpp-httplib's own threads, so a slow or stalled client can't block
@@ -21,7 +22,7 @@ namespace httplib { class Server; }
 //                              a token is configured, otherwise 127.0.0.1 only)
 //   DISPLAYCLUSTER_STATE_DIR   where state files are loaded/saved (default
 //                              ~/.displaycluster/states)
-//   DISPLAYCLUSTER_MEDIA_DIR   directory /media browses (default: home directory)
+//   DISPLAYCLUSTER_MEDIA_DIRS  directories /media browses; see MediaLibrary.h
 class RestServer
 {
     public:
@@ -36,6 +37,7 @@ class RestServer
 
         std::unique_ptr<httplib::Server> server_;
         std::unique_ptr<WallController> controller_;
+        std::unique_ptr<MediaLibrary> media_;
         std::thread thread_;
 
         std::string bindAddress_;

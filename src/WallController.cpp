@@ -9,7 +9,6 @@
 
 #include <QDir>
 #include <QFileInfo>
-#include <QImageReader>
 
 #include <algorithm>
 #include <functional>
@@ -66,19 +65,9 @@ namespace
     // conversions between normalized wall coordinates and tile units
     double tilesWide() { return g_configuration->getNumTilesWidth() > 0 ? g_configuration->getNumTilesWidth() : 1; }
     double tilesHigh() { return g_configuration->getNumTilesHeight() > 0 ? g_configuration->getNumTilesHeight() : 1; }
-
-    bool isOpenable(const QFileInfo & info)
-    {
-        static const QStringList movieSuffixes = { "mov", "avi", "mp4", "mkv", "mpg", "flv", "wmv" };
-
-        QString suffix = info.suffix().toLower();
-
-        return suffix == "svg" || suffix == "pyr" || movieSuffixes.contains(suffix)
-            || QImageReader::supportedImageFormats().contains(suffix.toLatin1());
-    }
 }
 
-WallController::WallController(std::string stateDir, std::string mediaDir) : stateDir_(stateDir), mediaDir_(mediaDir)
+WallController::WallController(std::string stateDir) : stateDir_(stateDir)
 {
 }
 
@@ -520,40 +509,11 @@ WallController::Result WallController::saveState(std::string file)
     return ok({ { "saved", file } });
 }
 
-WallController::Result WallController::listMedia(std::string dir)
+WallController::Result WallController::openDirectory(std::string dir, int cols, int rows)
 {
-    std::string path;
+    int opened = g_mainWindow->openContentsGrid(QString::fromStdString(dir), cols, rows);
 
-    if(!resolveUnder(mediaDir_, dir, path))
-    {
-        return error(400, "directories must be given relative to the media directory, " + mediaDir_);
-    }
-
-    QDir qdir(QString::fromStdString(path));
-
-    if(!qdir.exists())
-    {
-        return error(404, "no such directory: " + dir);
-    }
-
-    json entries = json::array();
-
-    // directories first, then the files the wall can open
-    QFileInfoList infos = qdir.entryInfoList(QDir::AllDirs | QDir::Files | QDir::NoDotAndDotDot, QDir::DirsFirst | QDir::Name | QDir::IgnoreCase);
-
-    for(const QFileInfo & info : infos)
-    {
-        std::string relative = QDir(QString::fromStdString(mediaDir_)).relativeFilePath(info.absoluteFilePath()).toStdString();
-
-        if(info.isDir())
-        {
-            entries.push_back({ { "name", info.fileName().toStdString() }, { "type", "directory" }, { "dir", relative } });
-        }
-        else if(isOpenable(info))
-        {
-            entries.push_back({ { "name", info.fileName().toStdString() }, { "type", "file" }, { "uri", info.absoluteFilePath().toStdString() } });
-        }
-    }
-
-    return ok({ { "dir", dir }, { "entries", entries } });
+    Result r = ok({ { "opened", opened }, { "cols", cols }, { "rows", rows } });
+    r.status = 201;
+    return r;
 }

@@ -27,8 +27,7 @@ class WallController
         };
 
         // stateDir: directory that state files are loaded from and saved to
-        // mediaDir: directory that listMedia() browses
-        WallController(std::string stateDir, std::string mediaDir);
+        WallController(std::string stateDir);
 
         Result getConfiguration();
 
@@ -56,13 +55,13 @@ class WallController
         Result loadState(std::string file);
         Result saveState(std::string file);
 
-        // dir is relative to the media directory; "" lists the media directory itself
-        Result listMedia(std::string dir);
+        // opens up to cols x rows of the openable files in dir (an absolute
+        // path, already vetted by MediaLibrary) tiled across the wall
+        Result openDirectory(std::string dir, int cols, int rows);
 
     private:
 
         std::string stateDir_;
-        std::string mediaDir_;
 
         json describe(boost::shared_ptr<ContentWindowManager> cwm, int z);
 

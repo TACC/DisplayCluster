@@ -113,7 +113,7 @@ startCommand = startCommand + ' -x DISPLAYCLUSTER_LOG_THRESHOLD -x PYTHONPATH -x
 startCommand = startCommand + ' -x DISPLAYCLUSTER_API_PORT -x DISPLAYCLUSTER_NETWORKPORT'
 
 # optional remote API settings (see src/RestServer.h), forwarded only if set
-for var in ['DISPLAYCLUSTER_API_TOKEN', 'DISPLAYCLUSTER_API_BIND', 'DISPLAYCLUSTER_STATE_DIR', 'DISPLAYCLUSTER_MEDIA_DIR']:
+for var in ['DISPLAYCLUSTER_API_TOKEN', 'DISPLAYCLUSTER_API_BIND', 'DISPLAYCLUSTER_STATE_DIR', 'DISPLAYCLUSTER_MEDIA_DIRS']:
     if var in os.environ:
         startCommand = startCommand + ' -x ' + var
 startCommand = startCommand + ' apptainer run --nv  ' + sif

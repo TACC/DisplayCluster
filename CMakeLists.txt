@@ -180,6 +180,7 @@ set(SRCS ${SRCS}
     src/ContentWindowGraphicsItem.cpp
     src/ContentWindowListWidgetItem.cpp
     src/Marker.cpp
+    src/MediaLibrary.cpp
     src/Decoder.cpp
     src/DisplayGroupManager.cpp
     src/DisplayGroupInterface.cpp
