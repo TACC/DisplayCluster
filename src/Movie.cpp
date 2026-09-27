@@ -176,8 +176,11 @@ Movie::~Movie()
     // everything then regardless.
     if (initialized_ && QOpenGLContext::currentContext() != nullptr)
     {
-        cuGraphicsUnregisterResource(cudaResourceY_);
-        cuGraphicsUnregisterResource(cudaResourceUV_);
+        if (interop_)
+        {
+            cuGraphicsUnregisterResource(cudaResourceY_);
+            cuGraphicsUnregisterResource(cudaResourceUV_);
+        }
 
         auto *gl = QOpenGLContext::currentContext()->extraFunctions();
         gl->glDeleteProgram(shaderProgram_);
@@ -232,10 +235,30 @@ void Movie::render(float tX, float tY, float tW, float tH)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, cw, ch, 0, GL_RG, GL_UNSIGNED_BYTE, 0);
 
-        checkCu(cuGraphicsGLRegisterImage(&cudaResourceY_, textureY_, GL_TEXTURE_2D,
-                                           CU_GRAPHICS_REGISTER_FLAGS_WRITE_DISCARD), "register Y texture");
-        checkCu(cuGraphicsGLRegisterImage(&cudaResourceUV_, textureUV_, GL_TEXTURE_2D,
-                                           CU_GRAPHICS_REGISTER_FLAGS_WRITE_DISCARD), "register UV texture");
+        // CUDA can only register textures belonging to the NVIDIA driver's GL;
+        // under Mesa (a VNC desktop, say) this fails, and render() falls back
+        // to copying frames through host memory
+        CUresult resultY = cuGraphicsGLRegisterImage(&cudaResourceY_, textureY_, GL_TEXTURE_2D,
+                                                     CU_GRAPHICS_REGISTER_FLAGS_WRITE_DISCARD);
+        CUresult resultUV = (resultY == CUDA_SUCCESS)
+            ? cuGraphicsGLRegisterImage(&cudaResourceUV_, textureUV_, GL_TEXTURE_2D, CU_GRAPHICS_REGISTER_FLAGS_WRITE_DISCARD)
+            : resultY;
+
+        interop_ = (resultY == CUDA_SUCCESS && resultUV == CUDA_SUCCESS);
+
+        if (!interop_)
+        {
+            if (resultY == CUDA_SUCCESS)
+            {
+                cuGraphicsUnregisterResource(cudaResourceY_);
+            }
+
+            const char *msg = nullptr;
+            cuGetErrorString(resultY != CUDA_SUCCESS ? resultY : resultUV, &msg);
+            put_flog(LOG_WARN, "can't share GL textures with CUDA (%s; GL renderer %s), "
+                     "so hardware-decoded frames will be copied through host memory",
+                     msg ? msg : "unknown error", (const char *)glGetString(GL_RENDERER));
+        }
 
         shaderProgram_ = buildNV12ShaderProgram(gl);
 
@@ -246,7 +269,48 @@ void Movie::render(float tX, float tY, float tW, float tH)
     {
         AVFrame *frame = decoder->getFrame();
 
-        if (decoder->usingHardwareDecode())
+        if (decoder->usingHardwareDecode() && !interop_)
+        {
+            // NVDEC frame in GPU memory, but no interop: copy both planes
+            // down into one tightly packed host buffer, then upload that
+            ensureCudaContext();
+
+            hostFrame_.resize((size_t)w * h + (size_t)cw * 2 * ch);
+
+            CUDA_MEMCPY2D copyY = {};
+            copyY.srcMemoryType = CU_MEMORYTYPE_DEVICE;
+            copyY.srcDevice = (CUdeviceptr)frame->data[0];
+            copyY.srcPitch = frame->linesize[0];
+            copyY.dstMemoryType = CU_MEMORYTYPE_HOST;
+            copyY.dstHost = hostFrame_.data();
+            copyY.dstPitch = w;
+            copyY.WidthInBytes = w;
+            copyY.Height = h;
+            checkCu(cuMemcpy2D(&copyY), "copy Y plane to host");
+
+            CUDA_MEMCPY2D copyUV = {};
+            copyUV.srcMemoryType = CU_MEMORYTYPE_DEVICE;
+            copyUV.srcDevice = (CUdeviceptr)frame->data[1];
+            copyUV.srcPitch = frame->linesize[1];
+            copyUV.dstMemoryType = CU_MEMORYTYPE_HOST;
+            copyUV.dstHost = hostFrame_.data() + (size_t)w * h;
+            copyUV.dstPitch = cw * 2;
+            copyUV.WidthInBytes = cw * 2;
+            copyUV.Height = ch;
+            checkCu(cuMemcpy2D(&copyUV), "copy UV plane to host");
+
+            // rows are packed with no padding, so they needn't be 4-byte aligned
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+            glBindTexture(GL_TEXTURE_2D, textureY_);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RED, GL_UNSIGNED_BYTE, hostFrame_.data());
+
+            glBindTexture(GL_TEXTURE_2D, textureUV_);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cw, ch, GL_RG, GL_UNSIGNED_BYTE, hostFrame_.data() + (size_t)w * h);
+
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+        }
+        else if (decoder->usingHardwareDecode())
         {
             ensureCudaContext();
 

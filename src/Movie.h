@@ -46,6 +46,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <chrono>
 #include <iostream>
+#include <vector>
 
 #include <cuda.h>
 #include <cudaGL.h>
@@ -93,6 +94,12 @@ class Movie : public FactoryObject {
         GLuint textureUV_;
         CUgraphicsResource cudaResourceY_;
         CUgraphicsResource cudaResourceUV_;
+
+        // false when this GL context can't be registered with CUDA - e.g. a
+        // Mesa-rendered VNC/X desktop rather than the NVIDIA driver's GL -
+        // in which case NVDEC frames take a host round-trip into the textures
+        bool interop_ = true;
+        std::vector<unsigned char> hostFrame_;
         GLuint shaderProgram_;
         bool initialized_;
         bool paused_;
