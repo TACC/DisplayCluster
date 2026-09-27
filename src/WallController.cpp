@@ -11,6 +11,9 @@
 #include <QFileInfo>
 #include <QImageReader>
 
+#include <algorithm>
+#include <functional>
+
 namespace
 {
     WallController::Result ok(json body)
@@ -87,6 +90,9 @@ json WallController::describe(boost::shared_ptr<ContentWindowManager> cwm, int z
     double centerX, centerY;
     cwm->getCenter(centerX, centerY);
 
+    int contentWidth, contentHeight;
+    cwm->getContentDimensions(contentWidth, contentHeight);
+
     return {
         { "name", cwm->getName() },
         { "uri", cwm->getContent()->getURI() },
@@ -98,7 +104,9 @@ json WallController::describe(boost::shared_ptr<ContentWindowManager> cwm, int z
         { "zoom", cwm->getZoom() },
         { "centerX", centerX },
         { "centerY", centerY },
-        { "z", z }
+        { "z", z },
+        { "contentWidth", contentWidth },
+        { "contentHeight", contentHeight }
     };
 }
 
@@ -109,6 +117,10 @@ WallController::Result WallController::getConfiguration()
         { "tilesHigh", g_configuration->getNumTilesHeight() },
         { "pixelsWide", g_configuration->getTotalWidth() },
         { "pixelsHigh", g_configuration->getTotalHeight() },
+        { "screenWidth", g_configuration->getScreenWidth() },
+        { "screenHeight", g_configuration->getScreenHeight() },
+        { "mullionWidth", g_configuration->getMullionWidth() },
+        { "mullionHeight", g_configuration->getMullionHeight() },
         { "version", DISPLAYCLUSTER_GIT_VERSION }
     });
 }
@@ -336,43 +348,72 @@ WallController::Result WallController::clearWindows()
     return ok(json::object());
 }
 
+namespace
+{
+    // every display option the API exposes; all but constrainAspectRatio live in Options
+    struct OptionAccess
+    {
+        const char * name;
+        std::function<bool()> get;
+        std::function<void(bool)> set;
+    };
+
+    std::vector<OptionAccess> optionAccessors()
+    {
+        boost::shared_ptr<Options> o = g_displayGroupManager->getOptions();
+
+        return {
+            { "constrainAspectRatio", []() { return g_mainWindow->getConstrainAspectRatio(); }, [](bool b) { g_mainWindow->constrainAspectRatio(b); } },
+            { "showWindowBorders", [o]() { return o->getShowWindowBorders(); }, [o](bool b) { o->setShowWindowBorders(b); } },
+            { "showContentLabels", [o]() { return o->getShowContentLabels(); }, [o](bool b) { o->setShowContentLabels(b); } },
+            { "showTestPattern", [o]() { return o->getShowTestPattern(); }, [o](bool b) { o->setShowTestPattern(b); } },
+            { "enableMullionCompensation", [o]() { return o->getEnableMullionCompensation(); }, [o](bool b) { o->setEnableMullionCompensation(b); } },
+            { "showZoomContext", [o]() { return o->getShowZoomContext(); }, [o](bool b) { o->setShowZoomContext(b); } },
+            { "enableStreamingSynchronization", [o]() { return o->getEnableStreamingSynchronization(); }, [o](bool b) { o->setEnableStreamingSynchronization(b); } },
+            { "showStreamingSegments", [o]() { return o->getShowStreamingSegments(); }, [o](bool b) { o->setShowStreamingSegments(b); } },
+            { "showStreamingStatistics", [o]() { return o->getShowStreamingStatistics(); }, [o](bool b) { o->setShowStreamingStatistics(b); } }
+        };
+    }
+}
+
 WallController::Result WallController::getOptions()
 {
-    boost::shared_ptr<Options> options = g_displayGroupManager->getOptions();
+    json options = json::object();
 
-    return ok({
-        { "constrainAspectRatio", g_mainWindow->getConstrainAspectRatio() },
-        { "showWindowBorders", options->getShowWindowBorders() },
-        { "showContentLabels", options->getShowContentLabels() }
-    });
+    for(const OptionAccess & option : optionAccessors())
+    {
+        options[option.name] = option.get();
+    }
+
+    return ok(options);
 }
 
 WallController::Result WallController::setOptions(const json & params)
 {
-    Result err;
-    bool hasConstrain, hasBorders, hasLabels;
-    bool constrain = false, borders = false, labels = false;
+    std::vector<OptionAccess> options = optionAccessors();
 
-    if(!optionalBool(params, "constrainAspectRatio", hasConstrain, constrain, err) ||
-       !optionalBool(params, "showWindowBorders", hasBorders, borders, err) ||
-       !optionalBool(params, "showContentLabels", hasLabels, labels, err))
+    // validate everything before changing anything
+    for(auto it = params.begin(); it != params.end(); ++it)
     {
-        return err;
+        auto known = std::find_if(options.begin(), options.end(), [&](const OptionAccess & o) { return it.key() == o.name; });
+
+        if(known == options.end())
+        {
+            return error(400, "unknown option '" + it.key() + "'");
+        }
+
+        if(!it.value().is_boolean())
+        {
+            return error(400, "'" + it.key() + "' must be true or false");
+        }
     }
 
-    if(hasConstrain)
+    for(const OptionAccess & option : options)
     {
-        g_mainWindow->constrainAspectRatio(constrain);
-    }
-
-    if(hasBorders)
-    {
-        g_displayGroupManager->getOptions()->setShowWindowBorders(borders);
-    }
-
-    if(hasLabels)
-    {
-        g_displayGroupManager->getOptions()->setShowContentLabels(labels);
+        if(params.contains(option.name))
+        {
+            option.set(params[option.name].get<bool>());
+        }
     }
 
     return getOptions();
@@ -410,6 +451,26 @@ bool WallController::resolveUnder(std::string root, std::string relative, std::s
 
     resolved = path.toStdString();
     return true;
+}
+
+WallController::Result WallController::listStates()
+{
+    json states = json::array();
+
+    QDir dir(QString::fromStdString(stateDir_));
+
+    // newest first, since that's usually the one wanted
+    QFileInfoList infos = dir.entryInfoList(QStringList() << "*.dcx", QDir::Files, QDir::Time);
+
+    for(const QFileInfo & info : infos)
+    {
+        states.push_back({
+            { "file", info.fileName().toStdString() },
+            { "modified", info.lastModified().toUTC().toString(Qt::ISODate).toStdString() }
+        });
+    }
+
+    return ok(states);
 }
 
 WallController::Result WallController::loadState(std::string file)

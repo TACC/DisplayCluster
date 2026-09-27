@@ -46,8 +46,11 @@ class WallController
 
         Result getOptions();
 
-        // params: any of constrainAspectRatio, showWindowBorders, showContentLabels
+        // params: any of the options getOptions() reports, as booleans
         Result setOptions(const json & params);
+
+        // the state files in the state directory, newest first
+        Result listStates();
 
         // file is relative to the state directory
         Result loadState(std::string file);

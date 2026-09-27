@@ -165,6 +165,22 @@ MainWindow::MainWindow()
         showStreamingStatisticsAction->setChecked(g_displayGroupManager->getOptions()->getShowStreamingStatistics());
         connect(showStreamingStatisticsAction, SIGNAL(toggled(bool)), g_displayGroupManager->getOptions().get(), SLOT(setShowStreamingStatistics(bool)));
 
+        boost::shared_ptr<Options> options = g_displayGroupManager->getOptions();
+
+        optionActions_ = {
+            { constrainAspectRatioAction, [this]() { return constrainAspectRatio_; } },
+            { showWindowBordersAction, [options]() { return options->getShowWindowBorders(); } },
+            { showContentLabelsAction, [options]() { return options->getShowContentLabels(); } },
+            { showTestPatternAction, [options]() { return options->getShowTestPattern(); } },
+            { enableMullionCompensationAction, [options]() { return options->getEnableMullionCompensation(); } },
+            { showZoomContextAction, [options]() { return options->getShowZoomContext(); } },
+            { enableStreamingSynchronizationAction, [options]() { return options->getEnableStreamingSynchronization(); } },
+            { showStreamingSegmentsAction, [options]() { return options->getShowStreamingSegments(); } },
+            { showStreamingStatisticsAction, [options]() { return options->getShowStreamingStatistics(); } }
+        };
+
+        connect(options.get(), SIGNAL(updated()), this, SLOT(refreshOptionActions()));
+
         // add actions to menus
         fileMenu->addAction(openContentAction);
         fileMenu->addAction(openContentsDirectoryAction);
@@ -354,45 +370,53 @@ void MainWindow::openContentsDirectory()
 
     int gridX = QInputDialog::getInt(this, "Grid X dimension", "Grid X dimension", 2);
     int gridY = QInputDialog::getInt(this, "Grid Y dimension", "Grid Y dimension", 2);
-    float w = 1./(float)gridX;
-    float h = 1./(float)gridY;
 
     if(!directoryName.isEmpty())
     {
-        QDir directory(directoryName);
-        directory.setFilter(QDir::Files);
+        openContentsGrid(directoryName, gridX, gridY);
+    }
+}
 
-        QFileInfoList list = directory.entryInfoList();
+int MainWindow::openContentsGrid(QString dir, int cols, int rows)
+{
+    float w = 1./(float)cols;
+    float h = 1./(float)rows;
 
-        int contentIndex = 0;
+    QDir directory(dir);
+    directory.setFilter(QDir::Files);
 
-        for(int i=0; i<list.size() && contentIndex < gridX*gridY; i++)
+    QFileInfoList list = directory.entryInfoList();
+
+    int contentIndex = 0;
+
+    for(int i=0; i<list.size() && contentIndex < cols*rows; i++)
+    {
+        QFileInfo fileInfo = list.at(i);
+
+        boost::shared_ptr<Content> c = Content::getContent(fileInfo.absoluteFilePath().toStdString());
+
+        if(c != NULL)
         {
-            QFileInfo fileInfo = list.at(i);
+            boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
 
-            boost::shared_ptr<Content> c = Content::getContent(fileInfo.absoluteFilePath().toStdString());
+            g_displayGroupManager->addContentWindowManager(cwm);
 
-            if(c != NULL)
-            {
-                boost::shared_ptr<ContentWindowManager> cwm(new ContentWindowManager(c));
+            int x = contentIndex % cols;
+            int y = contentIndex / cols;
 
-                g_displayGroupManager->addContentWindowManager(cwm);
+            cwm->setCoordinates(x*w, y*h, w, h);
 
-                int x = contentIndex % gridX;
-                int y = contentIndex / gridX;
+            contentIndex++;
 
-                cwm->setCoordinates(x*w, y*h, w, h);
-
-                contentIndex++;
-
-                put_flog(LOG_DEBUG, "added file %s", fileInfo.absoluteFilePath().toStdString().c_str());
-            }
-            else
-            {
-                put_flog(LOG_DEBUG, "ignoring unsupported file %s", fileInfo.absoluteFilePath().toStdString().c_str());
-            }
+            put_flog(LOG_DEBUG, "added file %s", fileInfo.absoluteFilePath().toStdString().c_str());
+        }
+        else
+        {
+            put_flog(LOG_DEBUG, "ignoring unsupported file %s", fileInfo.absoluteFilePath().toStdString().c_str());
         }
     }
+
+    return contentIndex;
 }
 
 void MainWindow::clearContents()
@@ -457,9 +481,20 @@ void MainWindow::computeImagePyramid()
     }
 }
 
+void MainWindow::refreshOptionActions()
+{
+    for(auto & optionAction : optionActions_)
+    {
+        QSignalBlocker blocker(optionAction.first);
+        optionAction.first->setChecked(optionAction.second());
+    }
+}
+
 void MainWindow::constrainAspectRatio(bool set)
 {
     constrainAspectRatio_ = set;
+
+    refreshOptionActions();
 
     if(constrainAspectRatio_ == true)
     {

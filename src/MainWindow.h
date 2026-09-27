@@ -47,6 +47,8 @@
 #include <QtGui>
 #include <QtWidgets>
 #include <boost/shared_ptr.hpp>
+#include <functional>
+#include <vector>
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -63,6 +65,10 @@ class MainWindow : public QMainWindow {
 
         void loadState(QString *);
 
+        // opens up to cols x rows of the openable files in dir, in name order,
+        // tiled across the whole wall; returns how many it opened
+        int openContentsGrid(QString dir, int cols, int rows);
+
     public slots:
 
         void openContent();
@@ -72,6 +78,10 @@ class MainWindow : public QMainWindow {
         void loadState();
         void computeImagePyramid();
         void constrainAspectRatio(bool set);
+
+        // brings the View menu's checkboxes back in line with the options,
+        // which the remote API can change behind the menu's back
+        void refreshOptionActions();
 
         void updateGLWindows();
 
@@ -87,6 +97,9 @@ class MainWindow : public QMainWindow {
         boost::shared_ptr<GLWindow> activeGLWindow_;
 
         bool constrainAspectRatio_;
+
+        // each View menu checkbox and the option it shows
+        std::vector<std::pair<QAction *, std::function<bool()> > > optionActions_;
 
         // polling timer for updating parallel pixel streams
         QTimer parallelPixelStreamTimer_;

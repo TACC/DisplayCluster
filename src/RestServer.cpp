@@ -229,7 +229,7 @@ void RestServer::setupRoutes()
             "GET /windows", "POST /windows", "DELETE /windows",
             "GET /windows/{name}", "PATCH /windows/{name}", "DELETE /windows/{name}",
             "GET /options", "PATCH /options",
-            "POST /state/load", "POST /state/save",
+            "GET /state", "POST /state/load", "POST /state/save",
             "GET /media?dir={dir}"
         } } } });
     });
@@ -293,6 +293,11 @@ void RestServer::setupRoutes()
         {
             respond(res, onGuiThread([c, body]() { return c->setOptions(body); }));
         }
+    });
+
+    s.Get("/state", [c](const httplib::Request &, httplib::Response & res)
+    {
+        respond(res, onGuiThread([c]() { return c->listStates(); }));
     });
 
     s.Post("/state/load", [c](const httplib::Request & req, httplib::Response & res)
