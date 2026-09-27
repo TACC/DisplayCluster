@@ -125,13 +125,6 @@ int main(int argc, char * argv[])
     // rather than special-casing every QImage/QImageReader call site.
     QImageReader::setAllocationLimit(0);
 
-    if (g_mpiRank == 0)
-    {
-        // remote-control API; see RestServer.h for its configuration
-        g_restServer = new RestServer();
-        g_restServer->start();
-    }
-
     g_configuration = new Configuration(getenv("DISPLAYCLUSTER_CONFIG"));
 
 #ifndef _WIN32
@@ -151,6 +144,14 @@ int main(int argc, char * argv[])
     }
 
     g_mainWindow = new MainWindow();
+
+    if (g_mpiRank == 0)
+    {
+        // remote-control API; see RestServer.h for its configuration. Started
+        // last, since requests act on everything created above
+        g_restServer = new RestServer();
+        g_restServer->start();
+    }
 
     // enter Qt event loop
     g_app->exec();

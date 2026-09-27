@@ -6,9 +6,11 @@
 #include "config.h"
 #include "main.h"
 #include "log.h"
+#include "QSSApp.h"
 
 #include <QDir>
 #include <QFileInfo>
+#include <QDomDocument>
 
 #include <algorithm>
 #include <functional>
@@ -116,6 +118,15 @@ WallController::Result WallController::getConfiguration()
 
 WallController::Result WallController::listWindows()
 {
+    QSSApplication * app = (QSSApplication *)g_app;
+
+    // asleep, the display group holds just the screensaver; report the layout
+    // it stashed, which is what waking will bring back
+    if(app->isAsleep() && !g_displayGroupManager->state_stack.empty())
+    {
+        return ok(stashedWindows(g_displayGroupManager->state_stack.top()));
+    }
+
     std::vector<boost::shared_ptr<ContentWindowManager> > cwms = g_displayGroupManager->getContentWindowManagers();
 
     // the vector is in stacking order, back to front, so z is the index
@@ -123,21 +134,74 @@ WallController::Result WallController::listWindows()
 
     for(unsigned int i=0; i<cwms.size(); i++)
     {
-        windows.push_back(describe(cwms[i], i));
+        json window = describe(cwms[i], i);
+
+        contentDimensions_[window["name"]] = { window["contentWidth"], window["contentHeight"] };
+
+        windows.push_back(window);
     }
 
     return ok(windows);
 }
 
+json WallController::stashedWindows(QString xml)
+{
+    json windows = json::array();
+
+    QDomDocument doc;
+
+    if(!doc.setContent(xml))
+    {
+        return windows;
+    }
+
+    QDomNodeList nodes = doc.documentElement().elementsByTagName("ContentWindow");
+
+    auto number = [](QDomElement parent, const char * tag, double fallback)
+    {
+        QDomElement e = parent.firstChildElement(tag);
+        return e.isNull() ? fallback : e.text().toDouble();
+    };
+
+    for(int i=0; i<nodes.size(); i++)
+    {
+        QDomElement node = nodes.at(i).toElement();
+
+        std::string uri = node.firstChildElement("URI").text().trimmed().toStdString();
+        QDomElement nameElem = node.firstChildElement("name");
+        std::string name = nameElem.isNull() ? uri : nameElem.text().trimmed().toStdString();
+
+        // the state XML doesn't record content dimensions; use what they were
+        // when last seen awake, if known
+        auto dims = contentDimensions_.find(name);
+
+        windows.push_back({
+            { "name", name },
+            { "uri", uri },
+            { "x", number(node, "x", 0) * tilesWide() },
+            { "y", number(node, "y", 0) * tilesHigh() },
+            { "w", number(node, "w", 0) * tilesWide() },
+            { "h", number(node, "h", 0) * tilesHigh() },
+            { "hidden", number(node, "hidden", 0) != 0 },
+            { "zoom", number(node, "zoom", 1) },
+            { "centerX", number(node, "centerX", 0.5) },
+            { "centerY", number(node, "centerY", 0.5) },
+            { "z", i },
+            { "contentWidth", dims != contentDimensions_.end() ? dims->second.first : 0 },
+            { "contentHeight", dims != contentDimensions_.end() ? dims->second.second : 0 }
+        });
+    }
+
+    return windows;
+}
+
 WallController::Result WallController::getWindow(std::string name)
 {
-    std::vector<boost::shared_ptr<ContentWindowManager> > cwms = g_displayGroupManager->getContentWindowManagers();
-
-    for(unsigned int i=0; i<cwms.size(); i++)
+    for(const json & window : listWindows().body)
     {
-        if(cwms[i]->getName() == name)
+        if(window["name"] == name)
         {
-            return ok(describe(cwms[i], i));
+            return ok(window);
         }
     }
 

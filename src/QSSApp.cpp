@@ -109,6 +109,7 @@ QSSApplication::sleep_start()
 		ss_cwm->getCoordinates(x, y, w, h);		
 	}
 
+	emit(asleepChanged(true));
 }
 
 void 
@@ -166,16 +167,52 @@ QSSApplication::sleep_end()
 	dgm->popState();
 
 	emit(idling(false));
+	emit(asleepChanged(false));
 
-	m_timer.setInterval(interval);
-	m_timer.start();
+	restartIdleTimer();
 }
 
 void
 QSSApplication::resume_screensaver()
 {
-	m_timer.setInterval(interval);
-	m_timer.start();
+	restartIdleTimer();
+}
+
+void
+QSSApplication::restartIdleTimer()
+{
+	// while asleep the same timer drives the screensaver's animation
+	if (sleeping)
+		return;
+
+	if (idleTimerEnabled_)
+	{
+		m_timer.setInterval(interval);
+		m_timer.start();
+	}
+	else
+		m_timer.stop();
+}
+
+void
+QSSApplication::setIdleTimerEnabled(bool enabled)
+{
+	idleTimerEnabled_ = enabled;
+	restartIdleTimer();
+}
+
+void
+QSSApplication::sleepNow()
+{
+	if (!sleeping)
+		go_to_sleep();
+}
+
+void
+QSSApplication::wakeNow()
+{
+	if (sleeping)
+		sleep_end();
 }
 
 void

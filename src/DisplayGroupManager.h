@@ -129,6 +129,12 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
 
         void advanceContents();
 
+    signals:
+
+        // anything about the display group changed - emitted by every
+        // sendDisplayGroup(), which every change goes through
+        void displayGroupChanged();
+
     private:
 				bool synchronization_suspended;
 

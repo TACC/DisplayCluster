@@ -65,6 +65,10 @@ class MainWindow : public QMainWindow {
 
         void loadState(QString *);
 
+        // makes the control window read-only (but still live) while a remote
+        // client controls the wall, with a banner naming it; "" restores it
+        void setRemoteController(QString label);
+
         // opens up to cols x rows of the openable files in dir, in name order,
         // tiled across the whole wall; returns how many it opened
         int openContentsGrid(QString dir, int cols, int rows);
@@ -91,12 +95,24 @@ class MainWindow : public QMainWindow {
 
         void updateGLWindowsFinished();
 
+        void constrainAspectRatioChanged(bool set);
+
+        // the banner's Take control button
+        void takeControlRequested();
+
     private:
 
         std::vector<boost::shared_ptr<GLWindow> > glWindows_;
         boost::shared_ptr<GLWindow> activeGLWindow_;
 
         bool constrainAspectRatio_;
+
+        // what setRemoteController() disables, and its banner
+        std::vector<QAction *> controlActions_;
+        std::vector<QWidget *> controlWidgets_;
+        QGraphicsView * graphicsView_ = NULL;
+        QWidget * remoteBanner_ = NULL;
+        QLabel * remoteBannerLabel_ = NULL;
 
         // each View menu checkbox and the option it shows
         std::vector<std::pair<QAction *, std::function<bool()> > > optionActions_;

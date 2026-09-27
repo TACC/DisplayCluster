@@ -55,8 +55,23 @@ public:
 	QTimer m_timer;
 	QSSApplication(int& argc, char **argv);
 
+	bool isAsleep() const { return sleeping; }
+	int idleTimeoutSeconds() const { return interval / 1000; }
+
+	// while disabled - e.g. while a remote controller holds the wall, and runs
+	// its own idle timer - the wall only sleeps when told to
+	void setIdleTimerEnabled(bool enabled);
+
+	// whether input at the control window wakes the wall; not while a remote
+	// controller holds it and the control window is read-only
+	void setLocalInputWakes(bool wakes) { localInputWakes_ = wakes; }
+
+	// restarts the countdown to sleep (if the wall's awake and the timer's enabled)
+	void restartIdleTimer();
+
 signals:
 	void idling(bool);
+	void asleepChanged(bool asleep);
 
 public slots:
 
@@ -71,6 +86,9 @@ public slots:
 	void resume_screensaver();
 	void pause_screensaver();
 
+	void sleepNow();
+	void wakeNow();
+
 
 
 public:
@@ -80,7 +98,16 @@ public:
 		if (e->type() == QEvent::MouseMove || e->type() == QEvent::MouseButtonPress || e->type() == QEvent::KeyPress)
 		{
 			if (sleeping)
-				sleep_end();
+			{
+				if (localInputWakes_)
+					sleep_end();
+			}
+			else
+			{
+				// activity postpones sleep - without this the wall slept a
+				// fixed time after it last woke, however busy it was
+				restartIdleTimer();
+			}
 		}
 		return QApplication::notify(r, e);
 	}
@@ -95,6 +122,8 @@ public:
 private:
 	int interval;
 	bool sleeping = false;
+	bool idleTimerEnabled_ = true;
+	bool localInputWakes_ = true;
 	double x, y, w, h, dx = 1.0 / 300.0, dy = 1.0 / 250.0;
 	boost::shared_ptr<ContentWindowManager> ss_cwm;
 	

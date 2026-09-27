@@ -206,6 +206,7 @@ set(SRCS ${SRCS}
     src/PixelStreamContent.cpp
     src/PixelStreamSource.cpp
     src/QSSApp.cpp
+    src/RemoteSession.cpp
     src/RestServer.cpp
     src/SVG.cpp
     src/SVGContent.cpp

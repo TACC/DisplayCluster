@@ -3,6 +3,8 @@
 
 #include "json.hpp"
 #include <string>
+#include <map>
+#include <QString>
 #include <boost/shared_ptr.hpp>
 
 using json = nlohmann::json;
@@ -64,6 +66,12 @@ class WallController
         std::string stateDir_;
 
         json describe(boost::shared_ptr<ContentWindowManager> cwm, int z);
+
+        // the windows in state XML, described as listWindows() does
+        json stashedWindows(QString xml);
+
+        // each window's content dimensions when last listed awake, by name
+        std::map<std::string, std::pair<int, int> > contentDimensions_;
 
         // resolves a client-supplied path under root, refusing any that escape it
         bool resolveUnder(std::string root, std::string relative, std::string & resolved);

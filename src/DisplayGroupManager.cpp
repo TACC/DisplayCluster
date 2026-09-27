@@ -619,6 +619,8 @@ void DisplayGroupManager::receiveMessages()
 
 void DisplayGroupManager::sendDisplayGroup()
 {
+		emit displayGroupChanged();
+
 		if (synchronization_suspended)
 			return;
 

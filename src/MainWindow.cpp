@@ -42,6 +42,7 @@
 #include "ContentWindowManager.h"
 #include "log.h"
 #include "DisplayGroupGraphicsViewProxy.h"
+#include "DisplayGroupGraphicsView.h"
 #include "DisplayGroupListWidgetProxy.h"
 
 #include <set>
@@ -220,13 +221,31 @@ MainWindow::MainWindow()
         versionLabel->setContentsMargins(0, 0, 8, 0);
         menuBar()->setCornerWidget(versionLabel, Qt::TopRightCorner);
 
-        // main widget / layout area
+        // main widget / layout area, under the banner shown while a remote
+        // client has control
+        QWidget * central = new QWidget();
+        QVBoxLayout * centralLayout = new QVBoxLayout(central);
+        centralLayout->setContentsMargins(0, 0, 0, 0);
+        setCentralWidget(central);
+
+        remoteBanner_ = new QWidget();
+        remoteBanner_->setStyleSheet("background: #fdf0d5;");
+        QHBoxLayout * bannerLayout = new QHBoxLayout(remoteBanner_);
+        remoteBannerLabel_ = new QLabel();
+        QPushButton * takeControlButton = new QPushButton("Take control");
+        connect(takeControlButton, SIGNAL(clicked()), this, SIGNAL(takeControlRequested()));
+        bannerLayout->addWidget(remoteBannerLabel_, 1);
+        bannerLayout->addWidget(takeControlButton);
+        remoteBanner_->hide();
+        centralLayout->addWidget(remoteBanner_);
+
         QTabWidget * mainWidget = new QTabWidget();
-        setCentralWidget(mainWidget);
+        centralLayout->addWidget(mainWidget, 1);
 
         // add the local renderer group
         DisplayGroupGraphicsViewProxy * dggv = new DisplayGroupGraphicsViewProxy(g_displayGroupManager);
         mainWidget->addTab((QWidget *)dggv->getGraphicsView(), "Display group 0");
+        graphicsView_ = dggv->getGraphicsView();
 
         // create contents dock widget
         QDockWidget * contentsDockWidget = new QDockWidget("Contents", this);
@@ -239,6 +258,15 @@ MainWindow::MainWindow()
         // add the list widget
         DisplayGroupListWidgetProxy * dglwp = new DisplayGroupListWidgetProxy(g_displayGroupManager);
         contentsLayout->addWidget(dglwp->getListWidget());
+
+        controlWidgets_ = { dglwp->getListWidget() };
+        controlActions_ = { openContentAction, openContentsDirectoryAction, clearContentsAction,
+                            loadStateAction, computeImagePyramidAction };
+
+        for(auto & optionAction : optionActions_)
+        {
+            controlActions_.push_back(optionAction.first);
+        }
 
         // timer will trigger polling of ParallelPixelStreams
         connect(&parallelPixelStreamTimer_, SIGNAL(timeout()), g_displayGroupManager.get(), SLOT(sendParallelPixelStreams()));
@@ -481,6 +509,33 @@ void MainWindow::computeImagePyramid()
     }
 }
 
+void MainWindow::setRemoteController(QString label)
+{
+    bool remote = !label.isEmpty();
+
+    // still drawn, and still updated, just not interactive
+    if(graphicsView_ != NULL)
+    {
+        graphicsView_->setInteractive(!remote);
+    }
+
+    for(QWidget * widget : controlWidgets_)
+    {
+        widget->setEnabled(!remote);
+    }
+
+    for(QAction * action : controlActions_)
+    {
+        action->setEnabled(!remote);
+    }
+
+    if(remoteBanner_ != NULL)
+    {
+        remoteBannerLabel_->setText("Controlled remotely by " + label.toHtmlEscaped());
+        remoteBanner_->setVisible(remote);
+    }
+}
+
 void MainWindow::refreshOptionActions()
 {
     for(auto & optionAction : optionActions_)
@@ -495,6 +550,8 @@ void MainWindow::constrainAspectRatio(bool set)
     constrainAspectRatio_ = set;
 
     refreshOptionActions();
+
+    emit constrainAspectRatioChanged(set);
 
     if(constrainAspectRatio_ == true)
     {
