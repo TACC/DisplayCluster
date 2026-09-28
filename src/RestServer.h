@@ -9,6 +9,7 @@
 namespace httplib { class Server; }
 class MediaLibrary;
 class RemoteSession;
+class ThumbnailCache;
 
 // HTTP/JSON remote-control API for the wall, run on rank 0 only. Requests are
 // served on cpp-httplib's own threads, so a slow or stalled client can't block
@@ -41,6 +42,7 @@ class RestServer
         std::unique_ptr<WallController> controller_;
         std::unique_ptr<MediaLibrary> media_;
         std::unique_ptr<RemoteSession> session_;
+        std::unique_ptr<ThumbnailCache> thumbnails_;
         std::thread thread_;
 
         std::string bindAddress_;

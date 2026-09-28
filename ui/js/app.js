@@ -102,7 +102,22 @@ const wall = new WallView($('wall'), {
   onChangeDone: () => patcher.finish(),
   onClose: (name) => call('DELETE', windowPath(name)),
   onHint: (text) => { $('wall-hint').textContent = text; },
+  thumbnail: (url) => thumbnail(url),
 });
+
+// thumbnails by URL: the image once loaded, null while loading or if there's
+// none. URLs carry the file's version, so each is fetched once
+const thumbnails = new Map();
+
+function thumbnail(url) {
+  if (!thumbnails.has(url)) {
+    thumbnails.set(url, null);
+    api.imageUrl(url)
+      .then((src) => { thumbnails.set(url, src); wall.render(); })
+      .catch(() => { /* no thumbnail: keep the placeholder */ });
+  }
+  return thumbnails.get(url);
+}
 
 // ---- rendering state ----
 

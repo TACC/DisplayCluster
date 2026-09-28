@@ -14,10 +14,9 @@
   --warn-bg: #fbeed6;
   --warn-text: #7a4e08;
   --danger: #b3302f;
-  --tile: #e2e0da;
-  --window: #ffffff;
-  --window-stroke: #555450;
   --radius: 8px;
+  /* the wall view is dark in both themes, like the wall itself */
+  --wall-accent: #5b9bf0;
   --touch: 44px;
   color-scheme: light;
 }
@@ -39,9 +38,6 @@
     --warn-bg: #4a3610;
     --warn-text: #f3d39a;
     --danger: #f08a86;
-    --tile: #3a3935;
-    --window: #4a4944;
-    --window-stroke: #c9c7bf;
     color-scheme: dark;
   }
 }
@@ -255,18 +251,25 @@ input:focus, button:focus-visible, select:focus-visible {
   -webkit-user-select: none;
 }
 
-.wall .tile { fill: var(--tile); }
-.wall .wall-outline { fill: none; stroke: var(--border-strong); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
-.wall .window rect.body { fill: var(--window); stroke: var(--window-stroke); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
-.wall .window.hidden-window rect.body { fill-opacity: 0.35; stroke-dasharray: 4 4; }
-.wall .window text { fill: var(--text); font-family: system-ui, sans-serif; pointer-events: none; }
-.wall .window.selected rect.body { stroke: var(--accent); stroke-width: 2.5; }
-.wall .window.viewing rect.body { stroke: var(--accent); stroke-dasharray: 8 5; }
-.wall .handle { fill: var(--surface); stroke: var(--accent); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.wall .bezel { fill: #0b0b0c; }
+.wall .tile { fill: #18181a; }
+.wall .window .body { fill: #26262a; }
+.wall .window .edge { fill: none; stroke: rgba(255, 255, 255, 0.3); stroke-width: 1; vector-effect: non-scaling-stroke; pointer-events: none; }
+.wall .window.selected .edge { stroke: var(--wall-accent); stroke-width: 2.5; }
+.wall .window.viewing .edge { stroke: var(--wall-accent); stroke-width: 2.5; stroke-dasharray: 8 5; }
+.wall .window .ring { fill: none; stroke: var(--wall-accent); stroke-opacity: 0.35; stroke-width: 6; vector-effect: non-scaling-stroke; pointer-events: none; }
+.wall .window.hidden-window { opacity: 0.35; }
+.wall .window.hidden-window .edge { stroke-dasharray: 5 4; }
+.wall .window text { font-family: system-ui, sans-serif; pointer-events: none; }
+.wall .window .placeholder { fill: #6f6f76; }
+.wall .window .chip { fill: rgba(0, 0, 0, 0.62); }
+.wall .window .label { fill: #fff; }
+.wall .handle { fill: #fff; stroke: var(--wall-accent); stroke-width: 2; vector-effect: non-scaling-stroke; }
 .wall .handle-hit { fill: transparent; }
-.wall .close-button rect { fill: var(--surface); stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
-.wall .close-button path { stroke: var(--accent); stroke-width: 2; vector-effect: non-scaling-stroke; }
-.wall .viewport { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; pointer-events: none; }
+.wall .close-button rect { fill: rgba(0, 0, 0, 0.6); stroke: rgba(255, 255, 255, 0.5); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.wall .close-button path { stroke: #fff; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.wall .viewport { fill: none; stroke: var(--wall-accent); stroke-width: 1.5; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; pointer-events: none; }
+.wall .window .zoom-label { fill: #fff; }
 .wall.read-only .window { cursor: default; }
 .wall .window { cursor: grab; }
 

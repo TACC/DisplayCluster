@@ -10,6 +10,7 @@
 using json = nlohmann::json;
 
 class ContentWindowManager;
+class ThumbnailCache;
 
 // The operations the remote API can perform on the wall. Every method must be
 // called on the GUI thread (RestServer arranges that), and returns an HTTP-style
@@ -29,7 +30,8 @@ class WallController
         };
 
         // stateDir: directory that state files are loaded from and saved to
-        WallController(std::string stateDir);
+        // thumbnails: says which windows' content can have a thumbnail
+        WallController(std::string stateDir, ThumbnailCache * thumbnails);
 
         Result getConfiguration();
 
@@ -66,6 +68,11 @@ class WallController
     private:
 
         std::string stateDir_;
+        ThumbnailCache * thumbnails_;
+
+        // the URL of the window's content's thumbnail - versioned, so it
+        // changes when the file does - or null if it can't have one
+        json thumbnailUrl(std::string name, std::string uri);
 
         json describe(boost::shared_ptr<ContentWindowManager> cwm, int z);
 

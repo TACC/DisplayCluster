@@ -74,6 +74,15 @@ export class Api {
 
   get(path) { return this.request('GET', path); }
 
+  // fetches an image with the token (which an <image> can't send) and returns
+  // a local URL for it
+  async imageUrl(path) {
+    const headers = this.token ? { 'Authorization': 'Bearer ' + this.token } : {};
+    const response = await fetch(path, { headers });
+    if (!response.ok) throw new ApiError(response.status, null);
+    return URL.createObjectURL(await response.blob());
+  }
+
   // ---- control ----
 
   hasControl(status) {

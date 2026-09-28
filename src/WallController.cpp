@@ -7,10 +7,12 @@
 #include "main.h"
 #include "log.h"
 #include "QSSApp.h"
+#include "ThumbnailCache.h"
 
 #include <QDir>
 #include <QFileInfo>
 #include <QDomDocument>
+#include <QUrl>
 
 #include <algorithm>
 #include <cmath>
@@ -70,8 +72,20 @@ namespace
     double tilesHigh() { return g_configuration->getNumTilesHeight() > 0 ? g_configuration->getNumTilesHeight() : 1; }
 }
 
-WallController::WallController(std::string stateDir) : stateDir_(stateDir)
+WallController::WallController(std::string stateDir, ThumbnailCache * thumbnails) : stateDir_(stateDir), thumbnails_(thumbnails)
 {
+}
+
+json WallController::thumbnailUrl(std::string name, std::string uri)
+{
+    std::string version = thumbnails_->version(uri);
+
+    if(version.empty())
+    {
+        return nullptr;
+    }
+
+    return "/windows/" + QUrl::toPercentEncoding(QString::fromStdString(name)).toStdString() + "/thumbnail?v=" + version;
 }
 
 json WallController::describe(boost::shared_ptr<ContentWindowManager> cwm, int z)
@@ -99,7 +113,8 @@ json WallController::describe(boost::shared_ptr<ContentWindowManager> cwm, int z
         { "centerY", centerY },
         { "z", z },
         { "contentWidth", contentWidth },
-        { "contentHeight", contentHeight }
+        { "contentHeight", contentHeight },
+        { "thumbnail", thumbnailUrl(cwm->getName(), cwm->getContent()->getURI()) }
     };
 }
 
@@ -191,7 +206,8 @@ json WallController::stashedWindows(QString xml)
             { "centerY", number(node, "centerY", 0.5) },
             { "z", i },
             { "contentWidth", dims != contentDimensions_.end() ? dims->second.first : 0 },
-            { "contentHeight", dims != contentDimensions_.end() ? dims->second.second : 0 }
+            { "contentHeight", dims != contentDimensions_.end() ? dims->second.second : 0 },
+            { "thumbnail", thumbnailUrl(name, uri) }
         });
     }
 

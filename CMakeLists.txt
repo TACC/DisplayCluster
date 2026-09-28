@@ -213,6 +213,7 @@ set(SRCS ${SRCS}
     src/SVGStreamSource.cpp
     src/Texture.cpp
     src/TextureContent.cpp
+    src/ThumbnailCache.cpp
     src/WallController.cpp
 )
 

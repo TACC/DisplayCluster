@@ -18,6 +18,8 @@
 // onChange while the gesture runs and onChangeDone when it ends; the override
 // is dropped once the wall's own state has caught up.
 
+import { typeIcon, typeOfUri } from './browser.js';
+
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const DRAG_THRESHOLD = 4;       // screen px before a press becomes a drag
 const DOUBLE_TAP_MS = 350;
@@ -38,7 +40,8 @@ export function baseName(name) {
 export class WallView {
   constructor(svg, callbacks) {
     this.svg = svg;
-    this.cb = callbacks;      // onSelect, onFront, onChange, onChangeDone, onClose, onHint, canEdit
+    this.cb = callbacks;      // onSelect, onFront, onChange, onChangeDone, onClose, onHint, canEdit,
+                              // thumbnail(url) -> image URL, or null while it loads
     this.config = null;
     this.windows = [];
     this.options = {};
@@ -221,7 +224,9 @@ export class WallView {
     const s = this.scale;
     const t = this.tilePx;
 
-    el('rect', { class: 'wall-outline', x: 0, y: 0, width: c.pixelsWide, height: c.pixelsHigh }, svg);
+    // the wall as it looks switched off: a dark bezel, dark screens
+    const bezel = Math.max(c.mullionWidth, c.mullionHeight, 6 / s);
+    el('rect', { class: 'bezel', x: -bezel, y: -bezel, width: c.pixelsWide + 2 * bezel, height: c.pixelsHigh + 2 * bezel, rx: bezel / 2 }, svg);
 
     for (let i = 0; i < c.tilesWide; i++) {
       for (let j = 0; j < c.tilesHigh; j++) {
@@ -233,7 +238,7 @@ export class WallView {
       }
     }
 
-    const fontPx = 12 / s;
+    const fontPx = 11 / s;
     const touch = this.lastPointerType !== 'mouse';
     const handleVisual = 10 / s;
     const handleHit = (touch ? 44 : 18) / s;
@@ -251,12 +256,44 @@ export class WallView {
         'data-name': w.name,
       }, svg);
 
+      if (selected) {
+        const r = 3 / s;
+        el('rect', { class: 'ring', x: x - r, y: y - r, width: width + 2 * r, height: height + 2 * r, rx: r }, g);
+      }
+
+      // the panel, which also takes the pointer for the whole window
       el('rect', { class: 'body', x, y, width, height, 'data-name': w.name, 'data-role': 'body' }, g);
 
-      // label, clipped to the window
-      const label = el('svg', { x, y, width, height, overflow: 'hidden', 'pointer-events': 'none' }, g);
-      const text = el('text', { x: 6 / s, y: fontPx + 4 / s, 'font-size': fontPx }, label);
-      text.textContent = baseName(w.name) + (w.hidden ? ' (hidden)' : '');
+      // the content: its thumbnail, cropped to what the window shows when
+      // zoomed in (the wall stretches content to the window, so no aspect
+      // is kept here either); an icon until it's loaded, or if there's none
+      const src = w.thumbnail ? this.cb.thumbnail(w.thumbnail) : null;
+      if (src) {
+        const half = 0.5 / w.zoom;
+        const crop = el('svg', { x, y, width, height, viewBox: `${w.centerX - half} ${w.centerY - half} ${1 / w.zoom} ${1 / w.zoom}`,
+                                 preserveAspectRatio: 'none', 'pointer-events': 'none' }, g);
+        el('image', { href: src, x: 0, y: 0, width: 1, height: 1, preserveAspectRatio: 'none' }, crop);
+      } else {
+        // centered in the space above the label chip
+        const above = height - fontPx * 1.6 - 10 / s;
+        const iconPx = Math.min(width, above) * 0.4;
+        if (iconPx * s > 10) {
+          const icon = el('text', { class: 'placeholder', x: x + width / 2, y: y + above / 2, 'font-size': iconPx,
+                                    'text-anchor': 'middle', 'dominant-baseline': 'central' }, g);
+          icon.textContent = typeIcon(typeOfUri(w.uri));
+        }
+      }
+
+      el('rect', { class: 'edge', x, y, width, height }, g);
+
+      // label: a chip at the bottom left, clipped to the window
+      const clip = el('svg', { x, y, width, height, overflow: 'hidden', 'pointer-events': 'none' }, g);
+      const pad = 5 / s;
+      const text = el('text', { class: 'label', x: 2 * pad, y: height - 2 * pad - fontPx * 0.3, 'font-size': fontPx }, clip);
+      text.textContent = (typeOfUri(w.uri) === 'movie' ? '▶ ' : '') + baseName(w.name) + (w.hidden ? ' · hidden' : '');
+      const textWidth = text.getComputedTextLength();
+      clip.insertBefore(el('rect', { class: 'chip', x: pad, y: height - pad - fontPx * 1.6, width: textWidth + 2 * pad,
+                                     height: fontPx * 1.6, rx: 3 / s }), text);
 
       if (viewing) {
         // overview of what part of the content the window shows
@@ -269,7 +306,7 @@ export class WallView {
         el('rect', { class: 'viewport', x: ox, y: oy, width: ow, height: oh, 'stroke-dasharray': 'none' }, g);
         const vw = ow / w.zoom, vh = oh / w.zoom;
         el('rect', { class: 'viewport', x: ox + (w.centerX * ow) - vw / 2, y: oy + (w.centerY * oh) - vh / 2, width: vw, height: vh }, g);
-        const zt = el('text', { x: ox, y: oy - 4 / s, 'font-size': fontPx }, g);
+        const zt = el('text', { class: 'zoom-label', x: ox, y: oy - 4 / s, 'font-size': fontPx }, g);
         zt.textContent = `${w.zoom.toFixed(1)}×`;
       }
 

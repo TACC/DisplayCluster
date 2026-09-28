@@ -5,6 +5,7 @@
 #include "RestServer.h"
 #include "MediaLibrary.h"
 #include "RemoteSession.h"
+#include "ThumbnailCache.h"
 #include "Configuration.h"
 #include "QSSApp.h"
 #include "main.h"
@@ -170,7 +171,8 @@ RestServer::RestServer()
     std::string stateDir = getenvOr("DISPLAYCLUSTER_STATE_DIR", displayClusterHome() + "/states");
     stateDir = QDir(QString::fromStdString(stateDir)).absolutePath().toStdString();
 
-    controller_.reset(new WallController(stateDir));
+    thumbnails_.reset(new ThumbnailCache());
+    controller_.reset(new WallController(stateDir, thumbnails_.get()));
     session_.reset(new RemoteSession(controller_.get()));
     media_.reset(new MediaLibrary());
     server_.reset(new httplib::Server());
@@ -322,7 +324,7 @@ void RestServer::setupRoutes()
             "POST /sleep", "POST /wake",
             "GET /config",
             "GET /windows", "POST /windows", "DELETE /windows",
-            "GET /windows/{name}", "PATCH /windows/{name}", "DELETE /windows/{name}",
+            "GET /windows/{name}", "PATCH /windows/{name}", "DELETE /windows/{name}", "GET /windows/{name}/thumbnail",
             "GET /options", "PATCH /options",
             "GET /state", "POST /state/load", "POST /state/save",
             "POST /windows/directory",
@@ -478,6 +480,35 @@ void RestServer::setupRoutes()
     s.Delete("/windows", [c, change](const httplib::Request & req, httplib::Response & res)
     {
         change(req, res, [c]() { return c->clearWindows(); });
+    });
+
+    // a window's content's thumbnail, as JPEG; made here, on this HTTP thread,
+    // not the GUI thread. Registered before /windows/{name}, which would
+    // otherwise match it. The URL windows give for it carries a version, so
+    // browsers may keep it for good.
+    ThumbnailCache * t = thumbnails_.get();
+
+    s.Get(R"(/windows/(.+)/thumbnail)", [c, t](const httplib::Request & req, httplib::Response & res)
+    {
+        std::string name = req.matches[1];
+        WallController::Result window = onGuiThread([c, name]() { return c->getWindow(name); });
+
+        if(window.status != 200)
+        {
+            respond(res, window);
+            return;
+        }
+
+        QByteArray jpeg = t->get(window.body["uri"]);
+
+        if(jpeg.isEmpty())
+        {
+            respond(res, { 404, { { "error", "no thumbnail for '" + name + "'" } } });
+            return;
+        }
+
+        res.set_header("Cache-Control", "private, max-age=31536000, immutable");
+        res.set_content(jpeg.constData(), jpeg.size(), "image/jpeg");
     });
 
     // window names default to the content's path, so {name} can contain slashes
