@@ -233,6 +233,46 @@ void RestServer::mountUi()
 
             server_->set_mount_point("/ui/", dir);
 
+            // the web app manifest, named for the wall as the browser reached
+            // it, so a home-screen app is called e.g. "rattler": the template,
+            // with the host name up to its first dot (or a whole IP address)
+            std::string templatePath = dir + "/manifest.template.json";
+
+            server_->Get("/ui/manifest.webmanifest", [templatePath](const httplib::Request & req, httplib::Response & res)
+            {
+                QFile file(QString::fromStdString(templatePath));
+                json manifest = file.open(QIODevice::ReadOnly) ? json::parse(file.readAll().toStdString(), nullptr, false) : json();
+
+                if(!manifest.is_object())
+                {
+                    respond(res, { 404, { { "error", "no manifest" } } });
+                    return;
+                }
+
+                std::string host = req.get_header_value("Host");
+
+                if(!host.empty() && host[0] == '[')
+                {
+                    host = host.substr(1, host.find(']') - 1);          // [IPv6]:port
+                }
+                else if(host.find(':') != std::string::npos)
+                {
+                    host = host.substr(0, host.find(':'));              // name:port
+                }
+
+                bool address = host.find_first_not_of("0123456789.") == std::string::npos || host.find(':') != std::string::npos;
+                std::string name = address ? host : host.substr(0, host.find('.'));
+
+                if(!name.empty())
+                {
+                    manifest["short_name"] = name;
+                    manifest["name"] = name + " - DisplayCluster";
+                }
+
+                res.set_header("Cache-Control", "no-cache");
+                res.set_content(manifest.dump(2), "application/manifest+json");
+            });
+
             // /ui itself -> /ui/, so the page's relative links resolve
             server_->Get("/ui", [](const httplib::Request &, httplib::Response & res)
             {

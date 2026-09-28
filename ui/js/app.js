@@ -477,7 +477,17 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
+// the name a home-screen app gets: the wall's host name up to the first dot
+// ("rattler" for rattler.tacc.utexas.edu), or a whole IP address. The wall
+// names its manifest the same way (RestServer::mountUi())
+export function appName(hostname) {
+  if (/^[\d.]+$/.test(hostname) || hostname.includes(':')) return hostname;
+  return hostname.split('.')[0] || 'Wall';
+}
+
 function init() {
+  $('app-title').setAttribute('content', appName(location.hostname));
+
   // a link can carry the token: #token=... (e.g. from a QR code)
   const hash = new URLSearchParams(location.hash.slice(1));
   if (hash.get('token')) {
