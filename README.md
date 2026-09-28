@@ -442,7 +442,7 @@ control the first time it changes something and gives it back when it's done.
 | `GET /windows/{name}` | | one window |
 | `PATCH /windows/{name}` | any of `{x, y, w, h, hidden, front, zoom, centerX, centerY, name, filled}` | move, resize, hide, raise, zoom, rename; `filled: true` fills the wall (as big as fits, centered, in front) remembering where the window was, `false` puts it back |
 | `DELETE /windows/{name}` | | close a window |
-| `GET /windows/{name}/thumbnail` | | a small JPEG of the window's content, for images and SVGs (see a window's `thumbnail` field, which is null for anything else) |
+| `GET /windows/{name}/thumbnail` | | a small JPEG of the window's content, for images, SVGs and movies (see a window's `thumbnail` field, which is null for anything else) |
 | `GET /options`, `PATCH /options` | any of the View menu's options, as booleans | display options |
 | `GET /state` | | saved state files, newest first |
 | `POST /state/load`, `POST /state/save` | `{file}` | state files, relative to the state directory |

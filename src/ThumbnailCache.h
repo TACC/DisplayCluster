@@ -15,9 +15,9 @@
 // by file and modification time, so each is made once per version of the
 // file. Safe to use from any thread.
 //
-// Images and SVGs only, for now: movies, image pyramids and streams have no
-// thumbnail, and neither do images too big to decode cheaply (see
-// MAX_DECODE_PIXELS) - the UI shows a placeholder for those.
+// Images, SVGs and movies (a frame a little way in). Image pyramids and
+// streams have no thumbnail, and neither do images too big to decode cheaply
+// (see MAX_DECODE_PIXELS) - the UI shows a placeholder for those.
 class ThumbnailCache
 {
     public:
