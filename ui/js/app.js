@@ -469,6 +469,14 @@ async function start() {
   api.connectEvents();
 }
 
+// iOS suspends a home-screen app in the background and drops its event
+// stream; reconnect as soon as it's back rather than waiting on the retry
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && config && api.events && api.events.readyState !== EventSource.OPEN) {
+    api.connectEvents();
+  }
+});
+
 function init() {
   // a link can carry the token: #token=... (e.g. from a QR code)
   const hash = new URLSearchParams(location.hash.slice(1));
