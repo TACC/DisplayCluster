@@ -99,10 +99,18 @@ static QImage movieFrame(QString path)
             break;
         }
 
-        const AVCodec * decoder = NULL;
-        int stream = av_find_best_stream(format, AVMEDIA_TYPE_VIDEO, -1, -1, &decoder, 0);
+        // not av_find_best_stream()'s decoder_ret: FFmpeg 5 made that a const
+        // AVCodec **, FFmpeg 4 (Ubuntu 22.04, the container's) doesn't take one
+        int stream = av_find_best_stream(format, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
 
-        if(stream < 0 || decoder == NULL)
+        if(stream < 0)
+        {
+            break;
+        }
+
+        const AVCodec * decoder = avcodec_find_decoder(format->streams[stream]->codecpar->codec_id);
+
+        if(decoder == NULL)
         {
             break;
         }
