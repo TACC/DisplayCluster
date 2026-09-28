@@ -362,6 +362,9 @@ WallController::Result WallController::updateWindow(std::string name, const json
         Fill fill;
         cwm->getCoordinates(fill.restore[0], fill.restore[1], fill.restore[2], fill.restore[3]);
 
+        std::vector<boost::shared_ptr<ContentWindowManager> > order = g_displayGroupManager->getContentWindowManagers();
+        fill.z = std::find(order.begin(), order.end(), cwm) - order.begin();
+
         // as big as fits - setCoordinates() keeps the content's shape if the
         // wall constrains it - and centered
         double fw, fh;
@@ -378,6 +381,20 @@ WallController::Result WallController::updateWindow(std::string name, const json
     {
         const Fill & fill = fills_[cwm->getName()];
         cwm->setCoordinates(fill.restore[0], fill.restore[1], fill.restore[2], fill.restore[3]);
+
+        // back to its old place in the stack: raise it, then everything that
+        // belongs above it, in order (only moves to the front, which the
+        // control window and render processes already follow)
+        std::vector<boost::shared_ptr<ContentWindowManager> > others = g_displayGroupManager->getContentWindowManagers();
+        others.erase(std::remove(others.begin(), others.end(), cwm), others.end());
+
+        g_displayGroupManager->moveContentWindowManagerToFront(cwm);
+
+        for(size_t i = std::min(fill.z, others.size()); i < others.size(); i++)
+        {
+            g_displayGroupManager->moveContentWindowManagerToFront(others[i]);
+        }
+
         fills_.erase(cwm->getName());
     }
 

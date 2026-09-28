@@ -77,6 +77,7 @@ class WallController
         {
             double restore[4];
             double filled[4];
+            size_t z;           // its place in the stacking order, from the back
         };
 
         std::map<std::string, Fill> fills_;

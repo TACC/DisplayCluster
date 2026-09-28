@@ -154,6 +154,7 @@ function renderControl() {
   $('open-button').disabled = !canEdit();
   $('tab-open').disabled = !canEdit();
   $('load-state-button').disabled = !canEdit();
+  $('clear-button').disabled = !canEdit() || !state.windows.length;
 }
 
 function renderList() {
@@ -406,6 +407,10 @@ function wireChrome() {
   const states = new StateDialog(api, {
     load: (file) => call('POST', '/state/load', { file }),
     save: async (file) => { if (await call('POST', '/state/save', { file })) toast(`Saved ${file}.`); },
+  });
+  $('clear-button').addEventListener('click', () => {
+    const n = state.windows.length;
+    if (n && confirm(`Close all ${n} window${n === 1 ? '' : 's'} on the wall?`)) call('DELETE', '/windows');
   });
   $('load-state-button').addEventListener('click', () => states.show('load'));
   $('save-state-button').addEventListener('click', () => states.show('save'));
