@@ -13,6 +13,7 @@
 #include <QDomDocument>
 
 #include <algorithm>
+#include <cmath>
 #include <functional>
 
 namespace
@@ -92,6 +93,7 @@ json WallController::describe(boost::shared_ptr<ContentWindowManager> cwm, int z
         { "w", w * tilesWide() },
         { "h", h * tilesHigh() },
         { "hidden", cwm->getHidden() },
+        { "filled", isFilled(cwm) },
         { "zoom", cwm->getZoom() },
         { "centerX", centerX },
         { "centerY", centerY },
@@ -183,6 +185,7 @@ json WallController::stashedWindows(QString xml)
             { "w", number(node, "w", 0) * tilesWide() },
             { "h", number(node, "h", 0) * tilesHigh() },
             { "hidden", number(node, "hidden", 0) != 0 },
+            { "filled", fills_.count(name) > 0 },
             { "zoom", number(node, "zoom", 1) },
             { "centerX", number(node, "centerX", 0.5) },
             { "centerY", number(node, "centerY", 0.5) },
@@ -292,9 +295,9 @@ WallController::Result WallController::updateWindow(std::string name, const json
 
     // validate everything before changing anything
     Result err;
-    bool hasX, hasY, hasW, hasH, hasZoom, hasCenterX, hasCenterY, hasHidden, hasFront;
+    bool hasX, hasY, hasW, hasH, hasZoom, hasCenterX, hasCenterY, hasHidden, hasFront, hasFilled;
     double x = 0, y = 0, w = 0, h = 0, zoom = 0, centerX = 0, centerY = 0;
-    bool hidden = false, front = false;
+    bool hidden = false, front = false, filled = false;
 
     if(!optionalNumber(params, "x", hasX, x, err) || !optionalNumber(params, "y", hasY, y, err) ||
        !optionalNumber(params, "w", hasW, w, err) || !optionalNumber(params, "h", hasH, h, err) ||
@@ -302,9 +305,15 @@ WallController::Result WallController::updateWindow(std::string name, const json
        !optionalNumber(params, "centerX", hasCenterX, centerX, err) ||
        !optionalNumber(params, "centerY", hasCenterY, centerY, err) ||
        !optionalBool(params, "hidden", hasHidden, hidden, err) ||
-       !optionalBool(params, "front", hasFront, front, err))
+       !optionalBool(params, "front", hasFront, front, err) ||
+       !optionalBool(params, "filled", hasFilled, filled, err))
     {
         return err;
+    }
+
+    if(hasFilled && (hasX || hasY || hasW || hasH))
+    {
+        return error(400, "'filled' can't be combined with x, y, w or h");
     }
 
     if((hasW && w <= 0) || (hasH && h <= 0))
@@ -343,6 +352,33 @@ WallController::Result WallController::updateWindow(std::string name, const json
 
         cwm->setCoordinates(hasX ? x / tilesWide() : cx, hasY ? y / tilesHigh() : cy,
                             hasW ? w / tilesWide() : cw, hasH ? h / tilesHigh() : ch);
+
+        // placed explicitly, so no longer filling the wall; keep this placement
+        fills_.erase(cwm->getName());
+    }
+
+    if(hasFilled && filled && !isFilled(cwm))
+    {
+        Fill fill;
+        cwm->getCoordinates(fill.restore[0], fill.restore[1], fill.restore[2], fill.restore[3]);
+
+        // as big as fits - setCoordinates() keeps the content's shape if the
+        // wall constrains it - and centered
+        double fw, fh;
+        cwm->setCoordinates(0., 0., 1., 1.);
+        cwm->getSize(fw, fh);
+        cwm->setPosition((1. - fw) / 2., (1. - fh) / 2.);
+
+        cwm->getCoordinates(fill.filled[0], fill.filled[1], fill.filled[2], fill.filled[3]);
+        fills_[cwm->getName()] = fill;
+
+        g_displayGroupManager->moveContentWindowManagerToFront(cwm);
+    }
+    else if(hasFilled && !filled && isFilled(cwm))
+    {
+        const Fill & fill = fills_[cwm->getName()];
+        cwm->setCoordinates(fill.restore[0], fill.restore[1], fill.restore[2], fill.restore[3]);
+        fills_.erase(cwm->getName());
     }
 
     // zoom needs to be set before center because of clamping
@@ -371,6 +407,14 @@ WallController::Result WallController::updateWindow(std::string name, const json
 
     if(!newName.empty() && newName != cwm->getName())
     {
+        auto fill = fills_.find(cwm->getName());
+
+        if(fill != fills_.end())
+        {
+            fills_[newName] = fill->second;
+            fills_.erase(fill);
+        }
+
         cwm->setName(newName);
 
         // nothing else about the window changed, so push the new label out explicitly
@@ -378,6 +422,31 @@ WallController::Result WallController::updateWindow(std::string name, const json
     }
 
     return getWindow(cwm->getName());
+}
+
+bool WallController::isFilled(boost::shared_ptr<ContentWindowManager> cwm)
+{
+    auto fill = fills_.find(cwm->getName());
+
+    if(fill == fills_.end())
+    {
+        return false;
+    }
+
+    // moved or resized since - by anyone, the control window included - so
+    // that placement stands and there's nothing to restore
+    double x, y, w, h;
+    cwm->getCoordinates(x, y, w, h);
+
+    const double * f = fill->second.filled;
+
+    if(std::abs(x - f[0]) > 1e-9 || std::abs(y - f[1]) > 1e-9 || std::abs(w - f[2]) > 1e-9 || std::abs(h - f[3]) > 1e-9)
+    {
+        fills_.erase(fill);
+        return false;
+    }
+
+    return true;
 }
 
 WallController::Result WallController::closeWindow(std::string name)
@@ -390,6 +459,7 @@ WallController::Result WallController::closeWindow(std::string name)
     }
 
     g_displayGroupManager->removeContentWindowManager(cwm);
+    fills_.erase(name);
 
     return ok({ { "closed", name } });
 }
@@ -397,6 +467,7 @@ WallController::Result WallController::closeWindow(std::string name)
 WallController::Result WallController::clearWindows()
 {
     g_displayGroupManager->setContentWindowManagers(std::vector<boost::shared_ptr<ContentWindowManager> >());
+    fills_.clear();
 
     return ok(json::object());
 }
@@ -539,6 +610,8 @@ WallController::Result WallController::loadState(std::string file)
     {
         return error(404, "no such state file: " + file);
     }
+
+    fills_.clear();
 
     if(!g_displayGroupManager->loadStateXMLFile(path))
     {

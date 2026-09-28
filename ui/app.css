@@ -312,6 +312,7 @@ input:focus, button:focus-visible, select:focus-visible {
 
 .fields label { font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
 .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 12px; }
+.actions button[aria-pressed="true"] { background: var(--accent-bg); color: var(--accent-text); border-color: var(--accent); }
 .actions button { padding: 4px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ---- menus ---- */

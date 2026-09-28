@@ -39,7 +39,9 @@ class WallController
         // params: uri (required), name, x, y, w, h
         Result openWindow(const json & params);
 
-        // params: any of x, y, w, h, hidden, front, zoom, centerX, centerY, name
+        // params: any of x, y, w, h, hidden, front, zoom, centerX, centerY, name,
+        // filled - true makes the window as big as fits, centered and in front,
+        // remembering where it was; false puts it back
         Result updateWindow(std::string name, const json & params);
 
         Result closeWindow(std::string name);
@@ -69,6 +71,18 @@ class WallController
 
         // the windows in state XML, described as listWindows() does
         json stashedWindows(QString xml);
+
+        // windows filling the wall, by name: where each was, and where filling put it
+        struct Fill
+        {
+            double restore[4];
+            double filled[4];
+        };
+
+        std::map<std::string, Fill> fills_;
+
+        // whether the window is filling the wall (and hasn't been moved since)
+        bool isFilled(boost::shared_ptr<ContentWindowManager> cwm);
 
         // each window's content dimensions when last listed awake, by name
         std::map<std::string, std::pair<int, int> > contentDimensions_;

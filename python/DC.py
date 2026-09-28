@@ -131,7 +131,8 @@ class DC:
         windows = self._request('GET', '/windows')
         self.content = {}
         for w in windows or []:
-            self.content[w['name']] = { 'uri': w['uri'], 'x': w['x'], 'y': w['y'], 'w': w['w'], 'h': w['h'], 'hidden': w['hidden'] }
+            self.content[w['name']] = { 'uri': w['uri'], 'x': w['x'], 'y': w['y'], 'w': w['w'], 'h': w['h'], 'hidden': w['hidden'],
+                                        'filled': w.get('filled', False) }
 
     def getConfiguration(self):
         config = self._request('GET', '/config')
@@ -155,6 +156,12 @@ class DC:
 
     def rename(self, name, new_name):
         self._request('PATCH', self._window_path(name), { 'name': new_name }, change = True)
+        self.updateContent()
+
+    # fills the wall with the window (as big as fits, centered, in front),
+    # remembering where it was; fill(name, False) puts it back
+    def fill(self, name, on = True):
+        self._request('PATCH', self._window_path(name), { 'filled': bool(on) }, change = True)
         self.updateContent()
 
     def hide(self, name):

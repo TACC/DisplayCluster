@@ -440,7 +440,7 @@ control the first time it changes something and gives it back when it's done.
 | `POST /windows/directory` | `{root, dir, cols?, rows?}` | open a folder's files tiled across the wall |
 | `DELETE /windows` | | close everything |
 | `GET /windows/{name}` | | one window |
-| `PATCH /windows/{name}` | any of `{x, y, w, h, hidden, front, zoom, centerX, centerY, name}` | move, resize, hide, raise, zoom, rename |
+| `PATCH /windows/{name}` | any of `{x, y, w, h, hidden, front, zoom, centerX, centerY, name, filled}` | move, resize, hide, raise, zoom, rename; `filled: true` fills the wall (as big as fits, centered, in front) remembering where the window was, `false` puts it back |
 | `DELETE /windows/{name}` | | close a window |
 | `GET /options`, `PATCH /options` | any of the View menu's options, as booleans | display options |
 | `GET /state` | | saved state files, newest first |

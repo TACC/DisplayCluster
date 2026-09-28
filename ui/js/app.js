@@ -20,6 +20,7 @@ const api = new Api();
 let config = null;
 let state = { status: { asleep: false, controller: null, idleTimeout: 0 }, windows: [], options: {} };
 let hadControl = false;
+let lastSelected = null;
 let lastActivity = Date.now();
 const patcher = new ThrottledPatch(api, 66, (e) => showError(e));
 
@@ -82,7 +83,16 @@ function verifyControl() {
 
 const wall = new WallView($('wall'), {
   canEdit,
-  onSelect: () => { renderList(); renderInspector(); },
+  onSelect: (name) => {
+    // selecting another window puts a filled one back where it was
+    const previous = lastSelected && state.windows.find((w) => w.name === lastSelected);
+    if (previous && previous.filled && name !== previous.name && canEdit()) {
+      call('PATCH', windowPath(previous.name), { filled: false });
+    }
+    lastSelected = name;
+    renderList();
+    renderInspector();
+  },
   onFront: (name) => {
     const top = Math.max(...state.windows.map((w) => w.z));
     const w = state.windows.find((w) => w.name === name);
@@ -211,6 +221,9 @@ function renderInspector() {
   $('insp-uri').textContent = w.uri === w.name ? '' : w.uri;
   $('insp-source').textContent = w.contentWidth ? `Source ${w.contentWidth} × ${w.contentHeight}` : '';
   $('insp-hide').textContent = w.hidden ? 'Show' : 'Hide';
+  $('insp-fill').textContent = w.filled ? 'Restore' : 'Fill wall';
+  $('insp-fill').setAttribute('aria-pressed', String(!!w.filled));
+  $('insp-fill').title = w.filled ? 'Put the window back where it was' : 'Fill the wall, remembering where the window was';
   $('insp-view').textContent = wall.viewing === w.name ? 'Done' : 'Adjust view';
 
   for (const id of ['insp-fill', 'insp-front', 'insp-hide', 'insp-view', 'insp-reset-view', 'insp-close']) {
@@ -302,12 +315,7 @@ function wireInspector() {
 
   $('insp-fill').addEventListener('click', () => {
     const w = selected();
-    if (!w) return;
-    // as big as fits, centered, keeping its shape if the wall does
-    const fitted = wall.fitAspect({ ...w, x: 0, y: 0, w: config.tilesWide, h: config.tilesHigh });
-    call('PATCH', windowPath(w.name), {
-      x: (config.tilesWide - fitted.w) / 2, y: (config.tilesHigh - fitted.h) / 2, w: fitted.w, h: fitted.h,
-    });
+    if (w) call('PATCH', windowPath(w.name), { filled: !w.filled });
   });
   $('insp-front').addEventListener('click', () => { const w = selected(); if (w) call('PATCH', windowPath(w.name), { front: true }); });
   $('insp-hide').addEventListener('click', () => { const w = selected(); if (w) call('PATCH', windowPath(w.name), { hidden: !w.hidden }); });
