@@ -3,11 +3,13 @@
 DisplayCluster can be controlled from other machines: from a web browser
 (including as an app on a phone or tablet), from Python scripts, and from
 anything that speaks HTTP. All three go through the same HTTP/JSON API,
-served by the wall's master process (rank 0).
+served by the wall's master process (rank 0). A browser extension uses the
+same port to show a live browser tab on the wall.
 
 - [Setting up the wall](#setting-up-the-wall)
 - [The web UI](#the-web-ui)
 - [On a phone or tablet](#on-a-phone-or-tablet)
+- [Streaming a browser tab](#streaming-a-browser-tab)
 - [Scripting with DC.py](#scripting-with-dcpy)
 - [Control: one at a time](#control-one-at-a-time)
 - [The screensaver](#the-screensaver)
@@ -202,6 +204,75 @@ HTTP, **Add to Home screen** makes a shortcut that opens in a browser tab.
 
 On narrow screens the side panels become sheets, opened from the bar at the
 bottom.
+
+## Streaming a browser tab
+
+The DisplayCluster Streamer extension, in `extension/`, shows a browser tab on
+the wall, live: a dashboard, a web visualization, a slide deck. You use the
+tab as normal on your own computer, and the wall shows what it shows. It works
+in Chrome and Edge (version 116 or later); Firefox and Safari don't have the
+tab capture it needs.
+
+It does DesktopStreamer's job for a single tab, with nothing to install but
+the extension: it sends the tab to the wall's `/stream` WebSocket, on the same
+port and with the same token as the web UI (see [Streaming](#streaming)).
+
+### Installing it
+
+The extension isn't in the Chrome Web Store, so it's loaded from a copy of
+the `extension/` folder:
+
+1. Open `chrome://extensions` (in Edge, `edge://extensions`).
+2. Turn on **Developer mode**.
+3. Click **Load unpacked** and choose the `extension` folder.
+4. Pin it to the toolbar: the puzzle-piece button, then the pin beside
+   **DisplayCluster Streamer**.
+5. Its options page opens from the extension's **⋮** menu → **Options**, or
+   from **Set up…** in its popup. Enter the wall's address (a host name, such
+   as `rattler.tacc.utexas.edu`; port 1910 is assumed) and its token, then
+   **Save**. Chrome asks to let the extension contact that address, which
+   **Test connection** needs; streaming works either way, but with it an
+   error can say exactly what went wrong.
+
+Chrome keeps the extension, and the settings, until it's removed. If the
+folder is moved or deleted, Chrome disables it; load it again from the new
+place.
+
+### Using it
+
+1. In the tab to show, click the extension's button.
+2. Change the **Window name** if you like; it starts as the tab's title.
+3. Click **Start streaming**. The window opens on the wall, and the button
+   shows **ON** for that tab.
+
+**Stop streaming** in the same popup, or closing the tab, closes the window
+on the wall. **Alt+Shift+W** starts or stops streaming the current tab without
+opening the popup (it can be changed at `chrome://extensions/shortcuts`).
+Several tabs can stream at once, each to its own window.
+
+The tab keeps streaming when it's in the background, in another window, or
+navigates to another page. Chrome shows its sharing indicator in the tab
+while it does.
+
+If it can't stream, the button shows a red **!**, and the popup says why: the
+wall couldn't be reached (the address, the network, or its firewall), or the
+wall refused the stream (usually the token). If another stream already has
+the window name, it's shown as "Name (2)".
+
+### The picture
+
+- A tab is sent at its size on your screen, in screen pixels, up to the
+  **Largest size** in the options (3840 by default). For a sharp picture on a
+  large part of the wall, make the browser window large, or use a screen with
+  more pixels.
+- Resizing the window reshapes the picture on the wall, but keeps the number
+  of pixels it started with; to get a sharper picture after making the window
+  larger, stop and start streaming again.
+- Frames are sent only when the page changes, up to the **Frame rate** in the
+  options. A still page costs nothing, and the wall keeps showing it.
+- Frames are JPEG, at the **Quality** in the options. Video plays, at the
+  frame rate. There's no sound.
+- While a tab is streaming, the wall stays awake.
 
 ## Scripting with DC.py
 

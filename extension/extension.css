@@ -1,0 +1,127 @@
+/* the web UI's colors (ui/app.css), so the extension looks like part of DC */
+:root {
+  --bg: #f6f5f1;
+  --surface: #ffffff;
+  --text: #1f1e1c;
+  --muted: #6b6a65;
+  --border: rgba(0, 0, 0, 0.12);
+  --border-strong: rgba(0, 0, 0, 0.28);
+  --accent: #2f6fd0;
+  --accent-text: #1c4f9c;
+  --ok-bg: #e4f2dc;
+  --ok-text: #2f5f14;
+  --danger: #b3302f;
+  --danger-bg: #f8e1e0;
+  --radius: 8px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1f1e1c;
+    --surface: #2a2926;
+    --text: #ecebe6;
+    --muted: #a5a39c;
+    --border: rgba(255, 255, 255, 0.12);
+    --border-strong: rgba(255, 255, 255, 0.3);
+    --accent: #6ea2ee;
+    --accent-text: #b9d3f7;
+    --ok-bg: #28401b;
+    --ok-text: #c3e3aa;
+    --danger: #f08a86;
+    --danger-bg: #4a2120;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+[hidden] { display: none !important; }
+
+h1 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+
+label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 12.5px;
+  margin: 4px 0 0;
+}
+
+input[type=text], input[type=password], input[type=url], select {
+  width: 100%;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+input:focus-visible, select:focus-visible, button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+button {
+  font: inherit;
+  font-weight: 500;
+  border-radius: 6px;
+  padding: 7px 14px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+@media (prefers-color-scheme: dark) {
+  button.primary { color: #10151c; }
+}
+
+button.stop {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+
+@media (prefers-color-scheme: dark) {
+  button.stop { color: #1c1010; }
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+a { color: var(--accent-text); }
+
+.status {
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 13px;
+}
+
+.status.ok { background: var(--ok-bg); color: var(--ok-text); }
+.status.error { background: var(--danger-bg); color: var(--danger); }
+.status.info { color: var(--muted); padding-left: 0; padding-right: 0; }

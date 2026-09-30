@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "DisplayCluster Streamer",
+  "version": "0.1.0",
+  "description": "Show a browser tab on a DisplayCluster wall, live.",
+  "minimum_chrome_version": "116",
+  "permissions": ["activeTab", "tabCapture", "offscreen", "storage"],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "action": {
+    "default_title": "Stream this tab to the wall",
+    "default_popup": "popup.html",
+    "default_icon": { "16": "icons/icon-16.png", "32": "icons/icon-32.png", "48": "icons/icon-48.png" }
+  },
+  "options_ui": { "page": "options.html", "open_in_tab": true },
+  "commands": {
+    "toggle-streaming": {
+      "suggested_key": { "default": "Alt+Shift+W" },
+      "description": "Start or stop streaming this tab"
+    }
+  },
+  "icons": { "16": "icons/icon-16.png", "32": "icons/icon-32.png", "48": "icons/icon-48.png", "128": "icons/icon-128.png" }
+}

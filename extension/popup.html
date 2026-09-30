@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>DisplayCluster Streamer</title>
+<link rel="stylesheet" href="extension.css">
+<style>
+  body { width: 300px; padding: 14px; }
+  header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  header img { width: 22px; height: 22px; }
+  header .wall { margin-left: auto; color: var(--muted); font-size: 12.5px; }
+  .field { margin-bottom: 12px; }
+  .actions { display: flex; align-items: center; gap: 10px; }
+  .actions button { flex: 1; }
+  #status { margin-top: 12px; }
+  footer { margin-top: 12px; font-size: 12.5px; }
+</style>
+</head>
+<body>
+  <header>
+    <img src="icons/icon-48.png" alt="">
+    <h1>Stream to the wall</h1>
+    <span class="wall" id="wall"></span>
+  </header>
+
+  <section id="setup" hidden>
+    <p>Tell the extension which wall to stream to, and its token.</p>
+    <button class="primary" id="open-options">Set up…</button>
+  </section>
+
+  <section id="controls" hidden>
+    <div class="field">
+      <label for="name">Window name</label>
+      <input type="text" id="name" maxlength="56" spellcheck="false">
+    </div>
+    <div class="actions">
+      <button class="primary" id="start">Start streaming</button>
+      <button class="stop" id="stop" hidden>Stop streaming</button>
+    </div>
+    <div id="status" class="status" hidden></div>
+  </section>
+
+  <footer><a href="#" id="options-link">Options</a> · Alt+Shift+W starts or stops without this window</footer>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

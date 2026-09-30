@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DisplayCluster Streamer options</title>
+<link rel="stylesheet" href="extension.css">
+<style>
+  main { max-width: 520px; margin: 0 auto; padding: 28px 16px 40px; }
+  header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+  header img { width: 32px; height: 32px; }
+  h1 { font-size: 19px; }
+  h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 28px 0 12px; }
+  .field { margin-bottom: 16px; }
+  .row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .row .field { margin-bottom: 0; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+  #status { margin-top: 16px; }
+  output { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 400; }
+  input[type=range] { width: 100%; }
+  @media (max-width: 480px) { .row { grid-template-columns: 1fr; gap: 16px; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="icons/icon-48.png" alt="">
+    <h1>DisplayCluster Streamer</h1>
+  </header>
+
+  <form id="form">
+    <h2>The wall</h2>
+    <div class="field">
+      <label for="wall">Address</label>
+      <input type="text" id="wall" placeholder="rattler.tacc.utexas.edu" spellcheck="false" autocomplete="off">
+      <p class="hint">The wall's host name. Port 1910 is assumed unless you give another.</p>
+    </div>
+    <div class="field">
+      <label for="token">Token</label>
+      <input type="password" id="token" spellcheck="false" autocomplete="off">
+      <p class="hint">The wall's remote-control token, the same one the web UI asks for. It's kept on this computer only.</p>
+    </div>
+
+    <h2>Picture</h2>
+    <div class="row">
+      <div class="field">
+        <label for="fps">Frame rate</label>
+        <select id="fps">
+          <option value="5">5 a second</option>
+          <option value="10">10 a second</option>
+          <option value="15">15 a second</option>
+          <option value="30">30 a second</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="maxSize">Largest size</label>
+        <select id="maxSize">
+          <option value="1920">1920 px</option>
+          <option value="2560">2560 px</option>
+          <option value="3840">3840 px</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="quality">Quality <output id="quality-value"></output></label>
+        <input type="range" id="quality" min="50" max="95" step="5">
+      </div>
+    </div>
+    <p class="hint">A tab is sent at its size on your screen, up to the largest size. Frames are sent only when the page changes, so a still page costs nothing.</p>
+
+    <div class="actions">
+      <button type="submit" class="primary">Save</button>
+      <button type="button" id="test">Test connection</button>
+    </div>
+    <div id="status" class="status" hidden role="status"></div>
+  </form>
+</main>
+<script type="module" src="options.js"></script>
+</body>
+</html>

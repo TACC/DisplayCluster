@@ -413,5 +413,8 @@ To reach it from another machine, give the wall a token — in
 `DISPLAYCLUSTER_API_TOKEN`, or `~/.displaycluster/api_token` for the account
 that runs it — and open port 1910 in its firewall (or use an SSH tunnel).
 
+A browser extension for Chrome and Edge, in `extension/`, shows a browser tab
+on the wall, live, through the same port.
+
 [doc/remote-control.md](doc/remote-control.md) covers setting it up, the web
-UI, the phone app, scripting with `DC.py`, and the API.
+UI, the phone app, the browser extension, scripting with `DC.py`, and the API.
