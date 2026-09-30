@@ -208,6 +208,7 @@ set(SRCS ${SRCS}
     src/QSSApp.cpp
     src/RemoteSession.cpp
     src/RestServer.cpp
+    src/StreamReceiver.cpp
     src/SVG.cpp
     src/SVGContent.cpp
     src/SVGStreamSource.cpp

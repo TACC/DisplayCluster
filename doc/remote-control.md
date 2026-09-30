@@ -307,8 +307,8 @@ wakes when someone uses it.
 ## API reference
 
 Every request carries the token, as `Authorization: Bearer <token>`. (A
-browser's `EventSource` can't send headers, so `/events` also accepts it as
-`?access_token=`.) Changes also carry the control lease, as
+browser's `EventSource` and `WebSocket` can't send headers, so `/events` and
+`/stream` also accept it as `?access_token=`.) Changes also carry the control lease, as
 `X-DC-Lease: <lease>`. Bodies and replies are JSON; errors come back with a
 4xx status and `{"error": "..."}`.
 
@@ -382,6 +382,37 @@ up to 1000 entries (200 by default). Folders come first. Each entry has
 `modified`, and either `dir` (to list next) or `uri` and `size` (to open).
 Only files the wall can open are listed, unless `all=true`, which lists the
 rest too, with `type` `other` and no `uri`.
+
+### Streaming
+
+`/stream/{name}` is a WebSocket that puts a live picture on the wall, as
+DesktopStreamer does, for senders that can't use DesktopStreamer's own
+protocol, such as a browser. Each binary message is one whole frame, a JPEG of
+any size. The first frame opens a window named `{name}`, later ones replace
+the picture, and the window closes when the connection does.
+
+- The server answers each frame with a text message, `ack`. Waiting for it
+  before sending the next frame keeps frames from queueing up.
+- Send frames only when the picture changes. An open connection keeps the wall
+  awake, frames or not: it wakes the wall when it opens and counts as activity
+  until it closes.
+- Names are cut to 63 bytes. A second connection with the name of a stream
+  already on the wall is closed with code 1008; a frame that isn't a JPEG
+  closes the connection with code 1007.
+- Streaming needs no control: a stream adds its own window and changes no one
+  else's.
+
+In Python, with the `websocket-client` package:
+
+```python
+import websocket
+
+ws = websocket.create_connection("ws://wallhost:1910/stream/My%20screen?access_token=" + TOKEN)
+for jpeg in frames:
+    ws.send_binary(jpeg)
+    ws.recv()           # "ack"
+ws.close()              # the window closes
+```
 
 ### Needing control
 

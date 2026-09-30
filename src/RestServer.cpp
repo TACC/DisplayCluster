@@ -5,6 +5,7 @@
 #include "RestServer.h"
 #include "MediaLibrary.h"
 #include "RemoteSession.h"
+#include "StreamReceiver.h"
 #include "ThumbnailCache.h"
 #include "Configuration.h"
 #include "QSSApp.h"
@@ -175,6 +176,7 @@ RestServer::RestServer()
     controller_.reset(new WallController(stateDir, thumbnails_.get()));
     session_.reset(new RemoteSession(controller_.get()));
     media_.reset(new MediaLibrary());
+    streams_.reset(new StreamReceiver());
     server_.reset(new httplib::Server());
 
     // requests are small JSON documents
@@ -291,8 +293,9 @@ void RestServer::stop()
 {
     if(thread_.joinable())
     {
-        // ends the event streams, which would otherwise hold their threads open
+        // ends the event and pixel streams, which would otherwise hold their threads open
         session_->shutdown();
+        streams_->shutdown();
         server_->stop();
         thread_.join();
     }
@@ -368,7 +371,8 @@ void RestServer::setupRoutes()
             "GET /options", "PATCH /options",
             "GET /state", "POST /state/load", "POST /state/save",
             "POST /windows/directory",
-            "GET /media", "GET /media/{root}?dir=&sort=name|modified|size&order=asc|desc&offset=&limit=&all="
+            "GET /media", "GET /media/{root}?dir=&sort=name|modified|size&order=asc|desc&offset=&limit=&all=",
+            "WebSocket /stream/{name}"
         } } } });
     });
 
@@ -683,5 +687,16 @@ void RestServer::setupRoutes()
 
         std::string dir = path.toStdString();
         change(req, res, [c, dir, cols, rows]() { return c->openDirectory(dir, cols, rows); });
+    });
+
+    // a pixel stream in JPEG frames, shown in a window named {name} (see
+    // StreamReceiver.h). Like DesktopStreamer, it needs no control: it adds its
+    // own window rather than changing anyone else's. Browsers can't set headers
+    // on a WebSocket, so the token comes as ?access_token=.
+    StreamReceiver * r = streams_.get();
+
+    s.WebSocket(R"(/stream/(.+))", [r](const httplib::Request & req, httplib::ws::WebSocket & ws)
+    {
+        r->serve(ws, req.matches[1]);
     });
 }

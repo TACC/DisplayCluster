@@ -9,6 +9,7 @@
 namespace httplib { class Server; }
 class MediaLibrary;
 class RemoteSession;
+class StreamReceiver;
 class ThumbnailCache;
 
 // HTTP/JSON remote-control API for the wall, run on rank 0 only. Requests are
@@ -43,6 +44,7 @@ class RestServer
         std::unique_ptr<MediaLibrary> media_;
         std::unique_ptr<RemoteSession> session_;
         std::unique_ptr<ThumbnailCache> thumbnails_;
+        std::unique_ptr<StreamReceiver> streams_;
         std::thread thread_;
 
         std::string bindAddress_;
