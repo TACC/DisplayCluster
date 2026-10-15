@@ -13,3 +13,4 @@ configuration.json
 set.env
 test.dcx
 *.dcx
+*.sif
