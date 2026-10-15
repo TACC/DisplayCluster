@@ -43,6 +43,17 @@ namespace
         return QDir::homePath().toStdString() + "/.displaycluster";
     }
 
+    // the configured path if there is one, else the fallback if it exists, else ""
+    std::string firstExisting(const std::string & configured, const std::string & fallback)
+    {
+        if(!configured.empty())
+        {
+            return configured;
+        }
+
+        return QFileInfo::exists(QString::fromStdString(fallback)) ? fallback : std::string();
+    }
+
     std::string readToken()
     {
         std::string token = getenvOr("DISPLAYCLUSTER_API_TOKEN", "");
@@ -177,7 +188,47 @@ RestServer::RestServer()
     session_.reset(new RemoteSession(controller_.get()));
     media_.reset(new MediaLibrary());
     streams_.reset(new StreamReceiver());
-    server_.reset(new httplib::Server());
+
+    // HTTPS if there's a certificate: DISPLAYCLUSTER_API_CERT / _KEY, or
+    // ~/.displaycluster/api_cert.pem and api_key.pem
+    std::string cert = firstExisting(getenvOr("DISPLAYCLUSTER_API_CERT", ""), displayClusterHome() + "/api_cert.pem");
+    std::string key = firstExisting(getenvOr("DISPLAYCLUSTER_API_KEY", ""), displayClusterHome() + "/api_key.pem");
+
+    if(!cert.empty() || !key.empty())
+    {
+#ifdef CPPHTTPLIB_SSL_ENABLED
+        if(cert.empty() || key.empty())
+        {
+            put_flog(LOG_ERROR, "remote API needs both a certificate and a private key for HTTPS; not starting it");
+        }
+        else
+        {
+            server_.reset(new httplib::SSLServer(cert.c_str(), key.c_str()));
+
+            if(server_->is_valid())
+            {
+                https_ = true;
+            }
+            else
+            {
+                put_flog(LOG_ERROR, "remote API couldn't load certificate %s and key %s; not starting it", cert.c_str(), key.c_str());
+            }
+        }
+#else
+        put_flog(LOG_ERROR, "a certificate for the remote API is configured, but this build has no HTTPS support (OpenSSL wasn't found); not starting it");
+#endif
+
+        // with a certificate configured, never fall back to plain HTTP
+        if(!https_)
+        {
+            failed_ = true;
+        }
+    }
+
+    if(!server_)
+    {
+        server_.reset(new httplib::Server());
+    }
 
     // requests are small JSON documents
     server_->set_payload_max_length(1024 * 1024);
@@ -192,6 +243,11 @@ RestServer::~RestServer()
 
 void RestServer::start()
 {
+    if(failed_)
+    {
+        return;
+    }
+
     session_->attach();
 
     if(token_.empty() && bindAddress_ != "127.0.0.1" && bindAddress_ != "localhost" && bindAddress_ != "::1")
@@ -207,7 +263,7 @@ void RestServer::start()
         return;
     }
 
-    put_flog(LOG_INFO, "remote API listening on %s:%d (%s)", bindAddress_.c_str(), port_, token_.empty() ? "no token" : "token required");
+    put_flog(LOG_INFO, "remote API listening on %s:%d (%s, %s)", bindAddress_.c_str(), port_, https_ ? "https" : "http", token_.empty() ? "no token" : "token required");
 
     thread_ = std::thread([this]() { server_->listen_after_bind(); });
 }

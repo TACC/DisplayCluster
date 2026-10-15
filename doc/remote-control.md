@@ -24,7 +24,9 @@ started (`startdisplaycluster` passes them on to the wall's processes):
 |---|---|---|
 | `DISPLAYCLUSTER_API_TOKEN` | read from `~/.displaycluster/api_token`, if that exists | a shared secret every client must present |
 | `DISPLAYCLUSTER_API_PORT` | `1910` | the port the API and web UI are served on |
-| `DISPLAYCLUSTER_API_BIND` | all interfaces with a token; `127.0.0.1` without | the address the API listens on |
+| `DISPLAYCLUSTER_API_BIND` | all interfaces (`0.0.0.0`) with a token; `127.0.0.1` without | the address the API listens on |
+| `DISPLAYCLUSTER_API_CERT` | `~/.displaycluster/api_cert.pem`, if that exists | a certificate to serve HTTPS with; see [HTTPS](#https) |
+| `DISPLAYCLUSTER_API_KEY` | `~/.displaycluster/api_key.pem`, if that exists | the certificate's private key |
 | `DISPLAYCLUSTER_STATE_DIR` | `~/.displaycluster/states` | where state files are loaded from and saved to |
 | `DISPLAYCLUSTER_MEDIA_DIRS` | your home directory | the directories the file browser shows |
 | `DISPLAYCLUSTER_UI_DIR` | `<install prefix>/ui` | where the web UI's files are |
@@ -61,7 +63,45 @@ same token — see each section below for where it goes. To revoke access,
 change the token and restart the wall.
 
 The token travels unencrypted over plain HTTP. On a network you don't
-trust, use an SSH tunnel (below) or a TLS-terminating reverse proxy.
+trust, turn on [HTTPS](#https), or use an SSH tunnel (below).
+
+### HTTPS
+
+Given a certificate, the wall serves everything over HTTPS (and WebSockets as
+`wss://`) on the same port, instead of HTTP: `https://wallhost:1910/ui/`.
+Plain HTTP is then refused. It needs a build with OpenSSL 3 (CMake's output
+says `remote API: HTTPS supported`); a build without it, given a certificate,
+doesn't start the API rather than serve it unencrypted.
+
+Put the certificate (with any intermediate certificates after it) and its
+private key, both PEM, in `~/.displaycluster`:
+
+```bash
+cp wallhost.crt ~/.displaycluster/api_cert.pem
+cp wallhost.key ~/.displaycluster/api_key.pem && chmod 600 ~/.displaycluster/api_key.pem
+```
+
+or point `DISPLAYCLUSTER_API_CERT` and `DISPLAYCLUSTER_API_KEY` at them. Restart
+the wall; it should say `remote API listening on 0.0.0.0:1910 (https, token
+required)`.
+
+A certificate from your institution's CA (or Let's Encrypt) is trusted by
+browsers as is. Without one, make a self-signed certificate, naming the wall's
+host:
+
+```bash
+openssl req -x509 -newkey rsa:2048 -nodes -days 825 -subj /CN=wallhost.example.edu \
+  -addext "subjectAltName=DNS:wallhost.example.edu" \
+  -keyout ~/.displaycluster/api_key.pem -out ~/.displaycluster/api_cert.pem
+chmod 600 ~/.displaycluster/api_key.pem
+```
+
+Browsers warn about a self-signed certificate until it's trusted: copy
+`api_cert.pem` (not the key) to each client machine and add it to its trusted
+certificates (Keychain Access on a Mac, `certmgr` on Windows, Settings →
+General → VPN & Device Management and then Certificate Trust Settings on an
+iPhone). Clicking through the warning lets the web UI work in that browser,
+but the extension can't stream until the certificate is trusted.
 
 ### Reaching the wall
 
@@ -89,7 +129,8 @@ ssh -L 1910:localhost:1910 you@wallhost
 ```
 
 Then use `localhost` in place of `wallhost`: `http://localhost:1910/ui/`,
-`DC('localhost')`.
+`DC('localhost')`. (With HTTPS, the browser will warn that the certificate is
+for `wallhost`, not `localhost`.)
 
 ### Content and state directories
 
@@ -187,7 +228,8 @@ home-screen app that opens full screen, with no browser bars.
 
 On an iPhone or iPad:
 
-1. Open **Safari** (it has to be Safari) at `http://wallhost:1910/ui/`.
+1. Open **Safari** (it has to be Safari) at `http://wallhost:1910/ui/`
+   (`https://` if the wall uses [HTTPS](#https)).
 2. Tap **Share** (in Safari's toolbar, or under **⋯** beside the address), then
    **Add to Home Screen**. The app is named after the wall's host —
    `rattler` for `rattler.tacc.utexas.edu` — and can be renamed here.
@@ -199,7 +241,8 @@ has its own storage, separate from Safari's. It keeps the token from then on,
 unless the app is removed or the wall's token changes. Several walls can
 each have their own app.
 
-On Android, Chrome only installs full-screen apps from HTTPS sites; over plain
+On Android, Chrome only installs full-screen apps from HTTPS sites: with
+[HTTPS](#https) and a trusted certificate, **Install app** works; over plain
 HTTP, **Add to Home screen** makes a shortcut that opens in a browser tab.
 
 On narrow screens the side panels become sheets, opened from the bar at the
@@ -229,7 +272,8 @@ the `extension/` folder:
    **DisplayCluster Streamer**.
 5. Its options page opens from the extension's **⋮** menu → **Options**, or
    from **Set up…** in its popup. Enter the wall's address (a host name, such
-   as `rattler.tacc.utexas.edu`; port 1910 is assumed) and its token, then
+   as `rattler.tacc.utexas.edu`, or `https://rattler.tacc.utexas.edu` if the
+   wall uses [HTTPS](#https); port 1910 is assumed) and its token, then
    **Save**. Chrome asks to let the extension contact that address, which
    **Test connection** needs; streaming works either way, but with it an
    error can say exactly what went wrong.
@@ -296,6 +340,11 @@ dc.showContent()                     # print what's open
 It finds the token in `$DISPLAYCLUSTER_API_TOKEN` or
 `~/.displaycluster/api_token` (on the machine it runs on), or take it as
 `DC('wallhost', token='...')`. The port is `$DISPLAYCLUSTER_API_PORT` or 1910.
+
+For a wall using [HTTPS](#https), pass `https=True` (or set
+`DISPLAYCLUSTER_API_HTTPS=1`). With a self-signed certificate, also give it a
+copy of the certificate to trust: `DC('wallhost', cafile='api_cert.pem')`
+(or `$DISPLAYCLUSTER_API_CA`), which implies `https=True`.
 
 Windows are named by their file's path unless given a name
 (`dc.open(uri, name='mars')`); a file opened twice gets `#2`, `#3`, … on the

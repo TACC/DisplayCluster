@@ -13,6 +13,7 @@
     "boost-algorithm",
     "boost-tokenizer",
     "boost-smart-ptr",
-    "libjpeg-turbo"
+    "libjpeg-turbo",
+    "openssl"
   ]
 }

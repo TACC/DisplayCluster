@@ -234,6 +234,21 @@ if(WIN32)
     set(LIBS ${LIBS} ws2_32)
 endif()
 
+# HTTPS for the remote-control API, when OpenSSL is available; without it the
+# API is plain HTTP only
+find_package(OpenSSL 3.0 QUIET)
+if(OPENSSL_FOUND)
+    target_compile_definitions(displaycluster PRIVATE CPPHTTPLIB_OPENSSL_SUPPORT)
+    set(LIBS ${LIBS} OpenSSL::SSL OpenSSL::Crypto)
+    # httplib reads the system certificate store through these on macOS
+    if(APPLE)
+        set(LIBS ${LIBS} "-framework CoreFoundation" "-framework Security")
+    endif()
+    message(STATUS "remote API: HTTPS supported (OpenSSL ${OPENSSL_VERSION})")
+else()
+    message(STATUS "remote API: OpenSSL 3 not found, HTTP only")
+endif()
+
 target_link_libraries(displaycluster ${LIBS})
 
 # install executable

@@ -1,6 +1,7 @@
 import os
 import json
 import socket
+import ssl
 import atexit
 import urllib.request
 import urllib.error
@@ -33,12 +34,16 @@ class DC:
     # strict: raise DCError on failures, rather than printing them and carrying on
     # label: how this client appears to others while it controls the wall
     # force: take control even if someone else has it
+    # https: connect over HTTPS; defaults to on if $DISPLAYCLUSTER_API_HTTPS is
+    #   1 (or cafile is given)
+    # cafile: a PEM certificate to trust, for a wall with a self-signed one;
+    #   defaults to $DISPLAYCLUSTER_API_CA
     #
     # Only one client at a time may change the wall. DC takes control the first
     # time it changes something (and again if its control lapsed from 30 s of
     # quiet), and gives it back at close() or exit; reading needs no control.
     def __init__(self, host = 'localhost', port = None, nx = 1, ny = 1, token = None, strict = False,
-                 label = None, force = False):
+                 label = None, force = False, https = None, cafile = None):
         self.host = host
         self.port = port if port else int(os.environ.get('DISPLAYCLUSTER_API_PORT', 1910))
         self.nx   = nx
@@ -47,6 +52,11 @@ class DC:
         self.strict = strict
         self.label = label if label else 'DC.py on %s (pid %d)' % (socket.gethostname(), os.getpid())
         self.force = force
+        self.cafile = cafile if cafile else os.environ.get('DISPLAYCLUSTER_API_CA')
+        if https is None:
+            https = os.environ.get('DISPLAYCLUSTER_API_HTTPS') == '1' or self.cafile is not None
+        self.scheme = 'https' if https else 'http'
+        self.context = ssl.create_default_context(cafile = self.cafile) if https else None
         self.lease = None
         atexit.register(self.disconnect)
         self.updateContent()
@@ -58,7 +68,7 @@ class DC:
         self.disconnect()
 
     def _send(self, method, path, body):
-        url = 'http://%s:%d%s' % (self.host, self.port, path)
+        url = '%s://%s:%d%s' % (self.scheme, self.host, self.port, path)
         data = json.dumps(body).encode() if body is not None else None
         req = urllib.request.Request(url, data = data, method = method)
         if data is not None:
@@ -68,7 +78,7 @@ class DC:
         if self.lease:
             req.add_header('X-DC-Lease', self.lease)
         try:
-            with urllib.request.urlopen(req) as response:
+            with urllib.request.urlopen(req, context = self.context) as response:
                 return response.status, json.loads(response.read())
         except urllib.error.HTTPError as e:
             try:

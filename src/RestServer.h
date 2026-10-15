@@ -23,6 +23,10 @@ class ThumbnailCache;
 //                              read from ~/.displaycluster/api_token if present
 //   DISPLAYCLUSTER_API_BIND    address to listen on (default: all interfaces if
 //                              a token is configured, otherwise 127.0.0.1 only)
+//   DISPLAYCLUSTER_API_CERT    PEM certificate (chain) to serve HTTPS with; if
+//                              unset, ~/.displaycluster/api_cert.pem if present
+//   DISPLAYCLUSTER_API_KEY     its PEM private key; if unset,
+//                              ~/.displaycluster/api_key.pem if present
 //   DISPLAYCLUSTER_STATE_DIR   where state files are loaded/saved (default
 //                              ~/.displaycluster/states)
 //   DISPLAYCLUSTER_MEDIA_DIRS  directories /media browses; see MediaLibrary.h
@@ -50,6 +54,8 @@ class RestServer
         std::string bindAddress_;
         int port_;
         std::string token_;
+        bool https_ = false;
+        bool failed_ = false;
 
         void setupRoutes();
         void mountUi();

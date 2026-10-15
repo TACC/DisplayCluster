@@ -412,6 +412,8 @@ that speaks HTTP, through an HTTP/JSON API served by the master process.
 To reach it from another machine, give the wall a token — in
 `DISPLAYCLUSTER_API_TOKEN`, or `~/.displaycluster/api_token` for the account
 that runs it — and open port 1910 in its firewall (or use an SSH tunnel).
+With a certificate in `~/.displaycluster/api_cert.pem` and `api_key.pem`, it
+serves all of this over HTTPS instead.
 
 A browser extension for Chrome and Edge, in `extension/`, shows a browser tab
 on the wall, live, through the same port.
