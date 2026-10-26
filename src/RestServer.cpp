@@ -425,6 +425,7 @@ void RestServer::setupRoutes()
             "GET /windows", "POST /windows", "DELETE /windows",
             "GET /windows/{name}", "PATCH /windows/{name}", "DELETE /windows/{name}", "GET /windows/{name}/thumbnail",
             "GET /options", "PATCH /options",
+            "GET /sensors", "PUT /sensors",
             "GET /state", "POST /state/load", "POST /state/save",
             "POST /windows/directory",
             "GET /media", "GET /media/{root}?dir=&sort=name|modified|size&order=asc|desc&offset=&limit=&all=",
@@ -645,6 +646,23 @@ void RestServer::setupRoutes()
         if(parseBody(req, res, body))
         {
             change(req, res, [c, body]() { return c->setOptions(body); });
+        }
+    });
+
+    s.Get("/sensors", [c](const httplib::Request &, httplib::Response & res)
+    {
+        respond(res, onGuiThread([c]() { return c->getSensors(); }));
+    });
+
+    // like /wake, setting the sensors needs no control - whatever reports them
+    // shouldn't lock out people arranging the wall, or be locked out by them -
+    // and it neither wakes the wall nor keeps it awake
+    s.Put("/sensors", [c](const httplib::Request & req, httplib::Response & res)
+    {
+        json body;
+        if(parseBody(req, res, body))
+        {
+            respond(res, onGuiThread([c, body]() { return c->setSensors(body); }));
         }
     });
 

@@ -38,12 +38,12 @@ class WallController
         Result listWindows();
         Result getWindow(std::string name);
 
-        // params: uri (required), name, x, y, w, h
+        // params: uri (required), name, x, y, w, h, sensorMask, showWhenLit
         Result openWindow(const json & params);
 
         // params: any of x, y, w, h, hidden, front, zoom, centerX, centerY, name,
         // filled - true makes the window as big as fits, centered and in front,
-        // remembering where it was; false puts it back
+        // remembering where it was; false puts it back - sensorMask, showWhenLit
         Result updateWindow(std::string name, const json & params);
 
         Result closeWindow(std::string name);
@@ -53,6 +53,13 @@ class WallController
 
         // params: any of the options getOptions() reports, as booleans
         Result setOptions(const json & params);
+
+        // the wall's sensor value, {value}
+        Result getSensors();
+
+        // params: value (required), mask - only the bits in mask change (all, if
+        // it's not given). Sensor-controlled windows follow at once.
+        Result setSensors(const json & params);
 
         // the state files in the state directory, newest first
         Result listStates();

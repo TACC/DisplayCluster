@@ -69,6 +69,19 @@ class ContentWindowManager : public ContentWindowInterface, public boost::enable
         std::string getName();
         void setName(std::string name);
 
+        // sensor control: a window with a nonzero sensor mask has its visibility
+        // set by the wall's sensor value (see DisplayGroupManager::setSensors()).
+        // It's visible when any sensor in the mask is lit if showWhenLit, or
+        // when none of them is lit if not. A mask of 0 - the default - leaves
+        // the window alone.
+        uint32_t getSensorMask() { return sensorMask_; }
+        bool getShowWhenLit() { return showWhenLit_; }
+        void setSensorControl(uint32_t sensorMask, bool showWhenLit);
+
+        // whether the window should be hidden for the given sensor value; only
+        // meaningful when the sensor mask is nonzero
+        bool hiddenForSensors(uint32_t sensors);
+
         boost::shared_ptr<DisplayGroupManager> getDisplayGroupManager();
         void setDisplayGroupManager(boost::shared_ptr<DisplayGroupManager> displayGroupManager);
 
@@ -107,6 +120,10 @@ class ContentWindowManager : public ContentWindowInterface, public boost::enable
         boost::shared_ptr<Content> content_;
 
         std::string name_;
+
+        // only used on the master process, so not serialized
+        uint32_t sensorMask_ = 0;
+        bool showWhenLit_ = true;
 
         boost::weak_ptr<DisplayGroupManager> displayGroupManager_;
 };

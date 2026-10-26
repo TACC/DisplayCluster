@@ -37,6 +37,7 @@
     <span class="wall-name"><span id="wall-host"></span> <span id="wall-size" class="muted"></span></span>
     <span class="spacer"></span>
     <span id="connection" class="pill warn" hidden>Reconnecting…</span>
+    <span id="sensors-pill" class="pill sensors-pill" hidden></span>
     <span id="control-pill" class="pill"></span>
     <button id="control-button" class="small"></button>
     <button id="sleep-button" class="small icon-text" title="Put the wall to sleep"><span aria-hidden="true">☾</span><span class="label"> Sleep</span></button>
@@ -90,6 +91,16 @@
           <label>Zoom<input id="insp-zoom" type="number" step="0.1" min="1" inputmode="decimal"></label>
         </div>
         <div class="muted small-text" id="insp-source"></div>
+        <div id="insp-sensors" class="sensors" hidden>
+          <div class="section-label">Sensors</div>
+          <div id="insp-sensor-bits" class="sensor-bits"></div>
+          <label class="sensor-when">Show when
+            <select id="insp-show-when">
+              <option value="lit">any is lit</option>
+              <option value="dark">none is lit</option>
+            </select>
+          </label>
+        </div>
         <div class="actions">
           <button id="insp-fill">Fill wall</button>
           <button id="insp-front">To front</button>

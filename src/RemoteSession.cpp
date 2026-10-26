@@ -206,7 +206,8 @@ void RemoteSession::publishIfDirty()
     std::string snapshot = json({
         { "status", status() },
         { "windows", controller_->listWindows().body },
-        { "options", controller_->getOptions().body }
+        { "options", controller_->getOptions().body },
+        { "sensors", controller_->getSensors().body["value"] }
     }).dump();
 
     std::lock_guard<std::mutex> lock(mutex_);

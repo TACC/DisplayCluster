@@ -95,6 +95,19 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         // learns about it on the same logical frame.
         bool isShutdownRequested() { return shutdownRequested_; }
 
+        // the wall's sensor value: bit i set means sensor i is lit. It's set by
+        // the remote API (PUT /sensors) and drives every window with a nonzero
+        // sensor mask; see ContentWindowManager::setSensorControl().
+        uint32_t getSensors() { return sensors_; }
+
+        // changes the bits of the sensor value in mask to those in value, then
+        // applies it
+        void setSensors(uint32_t value, uint32_t mask = 0xffffffff);
+
+        // shows or hides every sensor-controlled window to match the sensor
+        // value, in a single update to the displays
+        void applySensors();
+
 				std::stack<QString> state_stack;
 
 				void pushState();
@@ -137,6 +150,9 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
 
     private:
 				bool synchronization_suspended;
+
+        // only used on the master process, so not serialized
+        uint32_t sensors_ = 0;
 
         friend class boost::serialization::access;
 

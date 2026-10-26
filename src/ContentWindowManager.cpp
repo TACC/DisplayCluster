@@ -88,6 +88,18 @@ void ContentWindowManager::setName(std::string name)
     name_ = name;
 }
 
+void ContentWindowManager::setSensorControl(uint32_t sensorMask, bool showWhenLit)
+{
+    sensorMask_ = sensorMask;
+    showWhenLit_ = showWhenLit;
+}
+
+bool ContentWindowManager::hiddenForSensors(uint32_t sensors)
+{
+    bool anyLit = (sensors & sensorMask_) != 0;
+    return anyLit != showWhenLit_;
+}
+
 boost::shared_ptr<DisplayGroupManager> ContentWindowManager::getDisplayGroupManager()
 {
     return displayGroupManager_.lock();

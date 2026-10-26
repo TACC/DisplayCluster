@@ -23,7 +23,7 @@
 // paused (the controller runs its own); when it ends, both come back.
 //
 // Events: whenever the wall changes, a snapshot of it - status, windows,
-// options - is published at most ten times a second, and only if it differs
+// options, sensor value - is published at most ten times a second, and only if it differs
 // from the last one. So the screensaver's animation, which doesn't change the
 // layout remote clients see (see WallController::listWindows()), sends nothing.
 class RemoteSession : public QObject

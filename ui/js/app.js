@@ -18,7 +18,7 @@ const OPTION_LABELS = {
 
 const api = new Api();
 let config = null;
-let state = { status: { asleep: false, controller: null, idleTimeout: 0 }, windows: [], options: {} };
+let state = { status: { asleep: false, controller: null, idleTimeout: 0 }, windows: [], options: {}, sensors: 0 };
 let hadControl = false;
 let lastSelected = null;
 let lastActivity = Date.now();
@@ -143,7 +143,32 @@ function onSnapshot(snapshot) {
   renderList();
   renderInspector();
   renderOptions();
+  renderSensors();
   $('asleep').hidden = !state.status.asleep;
+}
+
+// how many sensors to offer for a window: the wall's sensorCount, or more if
+// the window's mask already uses higher bits
+function sensorSlots(mask) {
+  let n = (config && config.sensorCount) || 0;
+  while (mask >>> n) n++;
+  return n;
+}
+
+// the sensor value as one mark per sensor, sensor 0 first
+function sensorMarks(value, count) {
+  let marks = '';
+  for (let i = 0; i < count; i++) marks += (value >>> i) & 1 ? '●' : '○';
+  return marks;
+}
+
+function renderSensors() {
+  const pill = $('sensors-pill');
+  const value = state.sensors || 0;
+  const count = sensorSlots(value);
+  pill.hidden = count === 0;
+  pill.textContent = sensorMarks(value, count);
+  pill.title = `Sensors (sensor 0 first): value ${value}`;
 }
 
 function renderControl() {
@@ -202,10 +227,25 @@ function renderList() {
       call('PATCH', windowPath(w.name), { hidden: !w.hidden });
     });
 
-    item.append(icon, label, eye);
+    item.append(icon, label);
+    if (w.sensorMask) {
+      const badge = document.createElement('span');
+      badge.className = 'sensor-badge';
+      badge.textContent = '◐';
+      badge.title = `Sensor-controlled: shown when ${w.showWhenLit ? 'any is lit' : 'none is lit'} of ${sensorList(w.sensorMask)}`;
+      item.append(badge);
+    }
+    item.append(eye);
     item.addEventListener('click', () => wall.select(w.name));
     return item;
   }));
+}
+
+// e.g. "sensors 0, 2"
+function sensorList(mask) {
+  const bits = [];
+  for (let i = 0; i < 32; i++) if ((mask >>> i) & 1) bits.push(i);
+  return (bits.length === 1 ? 'sensor ' : 'sensors ') + bits.join(', ');
 }
 
 function fmt(n) {
@@ -245,6 +285,36 @@ function renderInspector() {
   for (const id of ['insp-fill', 'insp-front', 'insp-hide', 'insp-view', 'insp-reset-view', 'insp-close']) {
     $(id).disabled = !edit;
   }
+
+  renderInspectorSensors(w, edit);
+}
+
+function renderInspectorSensors(w, edit) {
+  const mask = w.sensorMask || 0;
+  const count = sensorSlots(mask);
+  $('insp-sensors').hidden = count === 0;
+  if (count === 0) return;
+
+  const bits = $('insp-sensor-bits');
+  bits.replaceChildren(...Array.from({ length: count }, (_, i) => {
+    const label = document.createElement('label');
+    label.className = 'check';
+    const box = document.createElement('input');
+    box.type = 'checkbox';
+    box.checked = !!((mask >>> i) & 1);
+    box.disabled = !edit;
+    box.addEventListener('change', () => {
+      const bit = (1 << i) >>> 0;
+      const newMask = (box.checked ? (mask | bit) : (mask & ~bit)) >>> 0;
+      call('PATCH', windowPath(w.name), { sensorMask: newMask });
+    });
+    label.append(box, String(i));
+    return label;
+  }));
+
+  const when = $('insp-show-when');
+  if (document.activeElement !== when) when.value = w.showWhenLit === false ? 'dark' : 'lit';
+  when.disabled = !edit;
 }
 
 function renderOptions() {
@@ -338,6 +408,10 @@ function wireInspector() {
   $('insp-view').addEventListener('click', () => { const w = selected(); if (w) { wall.setViewing(wall.viewing === w.name ? null : w.name); renderInspector(); } });
   $('insp-reset-view').addEventListener('click', () => { const w = selected(); if (w) call('PATCH', windowPath(w.name), { zoom: 1, centerX: 0.5, centerY: 0.5 }); });
   $('insp-close').addEventListener('click', () => { const w = selected(); if (w) call('DELETE', windowPath(w.name)); });
+  $('insp-show-when').addEventListener('change', () => {
+    const w = selected();
+    if (w) call('PATCH', windowPath(w.name), { showWhenLit: $('insp-show-when').value === 'lit' });
+  });
 }
 
 // ---- sleeping and waking ----

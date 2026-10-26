@@ -322,6 +322,21 @@ bool DisplayGroupManager::saveStateXML(QString& xml)
         n = doc.createElement("hidden");
         n.appendChild(doc.createTextNode(QString::number(hidden)));
         cwmNode.appendChild(n);
+
+        // only sensor-controlled windows carry these, so other windows' entries
+        // stay as they were
+        uint32_t sensorMask = contentWindowManagers[i]->getSensorMask();
+
+        if(sensorMask != 0)
+        {
+            n = doc.createElement("sensorMask");
+            n.appendChild(doc.createTextNode(QString::number(sensorMask)));
+            cwmNode.appendChild(n);
+
+            n = doc.createElement("showWhenLit");
+            n.appendChild(doc.createTextNode(QString::number(contentWindowManagers[i]->getShowWhenLit())));
+            cwmNode.appendChild(n);
+        }
     }
 
     xml = doc.toString();
@@ -454,6 +469,21 @@ bool DisplayGroupManager::loadStateXML(QString xml)
             hidden = (bool)elem.text().toInt();
         }
 
+        uint32_t sensorMask = 0;
+        bool showWhenLit = true;
+
+        elem = cwmNode.firstChildElement("sensorMask");
+        if(elem.isNull() == false)
+        {
+            sensorMask = elem.text().trimmed().toUInt();
+        }
+
+        elem = cwmNode.firstChildElement("showWhenLit");
+        if(elem.isNull() == false)
+        {
+            showWhenLit = (bool)elem.text().toInt();
+        }
+
         // add the window if we have a valid URI
         if(uri.empty() == false)
         {
@@ -489,6 +519,15 @@ bool DisplayGroupManager::loadStateXML(QString xml)
                 }
 
                 cwm->setSelected(selected);
+
+                // a sensor-controlled window follows the current sensor value,
+                // whatever the file says
+                if(sensorMask != 0)
+                {
+                    cwm->setSensorControl(sensorMask, showWhenLit);
+                    hidden = cwm->hiddenForSensors(sensors_);
+                }
+
                 // setHidden() broadcasts the display group, so skip it in the common case
                 if(hidden)
                 {
@@ -1285,6 +1324,51 @@ void DisplayGroupManager::popState()
 {
 	loadStateXML(state_stack.top());
 	state_stack.pop();
+}
+
+void DisplayGroupManager::setSensors(uint32_t value, uint32_t mask)
+{
+    sensors_ = (sensors_ & ~mask) | (value & mask);
+    applySensors();
+}
+
+void DisplayGroupManager::applySensors()
+{
+    std::vector<boost::shared_ptr<ContentWindowManager> > changes;
+
+    for(boost::shared_ptr<ContentWindowManager> cwm : getContentWindowManagers())
+    {
+        if(cwm->getSensorMask() != 0 && cwm->hiddenForSensors(sensors_) != cwm->getHidden())
+        {
+            changes.push_back(cwm);
+        }
+    }
+
+    if(changes.empty())
+    {
+        // no window changed, but the sensor value did, which remote clients follow
+        emit displayGroupChanged();
+        return;
+    }
+
+    // each setHidden() would send the display group; send it once, so every
+    // window changes on the same frame
+    bool wasSuspended = synchronization_suspended;
+
+    if(!wasSuspended)
+    {
+        suspendSynchronization();
+    }
+
+    for(boost::shared_ptr<ContentWindowManager> cwm : changes)
+    {
+        cwm->setHidden(!cwm->getHidden());
+    }
+
+    if(!wasSuspended)
+    {
+        resumeSynchronization();
+    }
 }
 
 void DisplayGroupManager::suspendSynchronization()

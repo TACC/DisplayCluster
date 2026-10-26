@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <functional>
 
 namespace
@@ -67,6 +68,33 @@ namespace
         return true;
     }
 
+    // reads an optional sensor mask or value: a whole number from 0 to 2^32 - 1
+    bool optionalBits(const json & params, const char * key, bool & present, uint32_t & value, WallController::Result & err)
+    {
+        present = params.contains(key);
+
+        if(present)
+        {
+            if(!params[key].is_number_integer() || params[key].get<int64_t>() < 0 || params[key].get<int64_t>() > 0xffffffffLL)
+            {
+                err = error(400, std::string("'") + key + "' must be a whole number from 0 to 4294967295");
+                return false;
+            }
+
+            value = (uint32_t)params[key].get<int64_t>();
+        }
+
+        return true;
+    }
+
+    // how many sensors the web UI offers for a window's sensor mask
+    int sensorCount()
+    {
+        const char * v = getenv("DISPLAYCLUSTER_SENSORS");
+        int n = v ? atoi(v) : 0;
+        return std::max(0, std::min(32, n));
+    }
+
     // conversions between normalized wall coordinates and tile units
     double tilesWide() { return g_configuration->getNumTilesWidth() > 0 ? g_configuration->getNumTilesWidth() : 1; }
     double tilesHigh() { return g_configuration->getNumTilesHeight() > 0 ? g_configuration->getNumTilesHeight() : 1; }
@@ -107,6 +135,8 @@ json WallController::describe(boost::shared_ptr<ContentWindowManager> cwm, int z
         { "w", w * tilesWide() },
         { "h", h * tilesHigh() },
         { "hidden", cwm->getHidden() },
+        { "sensorMask", cwm->getSensorMask() },
+        { "showWhenLit", cwm->getShowWhenLit() },
         { "filled", isFilled(cwm) },
         { "zoom", cwm->getZoom() },
         { "centerX", centerX },
@@ -129,6 +159,7 @@ WallController::Result WallController::getConfiguration()
         { "screenHeight", g_configuration->getScreenHeight() },
         { "mullionWidth", g_configuration->getMullionWidth() },
         { "mullionHeight", g_configuration->getMullionHeight() },
+        { "sensorCount", sensorCount() },
         { "version", DISPLAYCLUSTER_GIT_VERSION }
     });
 }
@@ -200,6 +231,8 @@ json WallController::stashedWindows(QString xml)
             { "w", number(node, "w", 0) * tilesWide() },
             { "h", number(node, "h", 0) * tilesHigh() },
             { "hidden", number(node, "hidden", 0) != 0 },
+            { "sensorMask", (uint32_t)number(node, "sensorMask", 0) },
+            { "showWhenLit", number(node, "showWhenLit", 1) != 0 },
             { "filled", fills_.count(name) > 0 },
             { "zoom", number(node, "zoom", 1) },
             { "centerX", number(node, "centerX", 0.5) },
@@ -268,6 +301,16 @@ WallController::Result WallController::openWindow(const json & params)
         return error(400, "'w' and 'h' must be positive");
     }
 
+    bool hasSensorMask, hasShowWhenLit;
+    uint32_t sensorMask = 0;
+    bool showWhenLit = true;
+
+    if(!optionalBits(params, "sensorMask", hasSensorMask, sensorMask, err) ||
+       !optionalBool(params, "showWhenLit", hasShowWhenLit, showWhenLit, err))
+    {
+        return err;
+    }
+
     // Content::getContent() would substitute an error image for a missing file
     if(!QFileInfo::exists(QString::fromStdString(uri)))
     {
@@ -291,6 +334,17 @@ WallController::Result WallController::openWindow(const json & params)
     cwm->setCoordinates(hasX ? x / tilesWide() : cx, hasY ? y / tilesHigh() : cy,
                         hasW ? w / tilesWide() : cw, hasH ? h / tilesHigh() : ch);
 
+    // set up before it's added, so it first appears as the sensors say
+    if(sensorMask != 0)
+    {
+        cwm->setSensorControl(sensorMask, showWhenLit);
+
+        if(cwm->hiddenForSensors(g_displayGroupManager->getSensors()))
+        {
+            cwm->setHidden(true);
+        }
+    }
+
     put_flog(LOG_INFO, "opening %s", uri.c_str());
 
     g_displayGroupManager->addContentWindowManager(cwm);
@@ -312,8 +366,10 @@ WallController::Result WallController::updateWindow(std::string name, const json
     // validate everything before changing anything
     Result err;
     bool hasX, hasY, hasW, hasH, hasZoom, hasCenterX, hasCenterY, hasHidden, hasFront, hasFilled;
+    bool hasSensorMask, hasShowWhenLit;
     double x = 0, y = 0, w = 0, h = 0, zoom = 0, centerX = 0, centerY = 0;
-    bool hidden = false, front = false, filled = false;
+    bool hidden = false, front = false, filled = false, showWhenLit = true;
+    uint32_t sensorMask = 0;
 
     if(!optionalNumber(params, "x", hasX, x, err) || !optionalNumber(params, "y", hasY, y, err) ||
        !optionalNumber(params, "w", hasW, w, err) || !optionalNumber(params, "h", hasH, h, err) ||
@@ -322,7 +378,9 @@ WallController::Result WallController::updateWindow(std::string name, const json
        !optionalNumber(params, "centerY", hasCenterY, centerY, err) ||
        !optionalBool(params, "hidden", hasHidden, hidden, err) ||
        !optionalBool(params, "front", hasFront, front, err) ||
-       !optionalBool(params, "filled", hasFilled, filled, err))
+       !optionalBool(params, "filled", hasFilled, filled, err) ||
+       !optionalBits(params, "sensorMask", hasSensorMask, sensorMask, err) ||
+       !optionalBool(params, "showWhenLit", hasShowWhenLit, showWhenLit, err))
     {
         return err;
     }
@@ -431,6 +489,24 @@ WallController::Result WallController::updateWindow(std::string name, const json
     if(hasHidden)
     {
         cwm->setHidden(hidden);
+    }
+
+    // after hidden, so a window put under sensor control follows the sensors
+    // straight away; one taken out of it keeps whatever visibility it has
+    if(hasSensorMask || hasShowWhenLit)
+    {
+        cwm->setSensorControl(hasSensorMask ? sensorMask : cwm->getSensorMask(),
+                              hasShowWhenLit ? showWhenLit : cwm->getShowWhenLit());
+
+        if(cwm->getSensorMask() != 0)
+        {
+            g_displayGroupManager->applySensors();
+        }
+        else
+        {
+            // the displays don't care, but remote clients follow the setting
+            emit g_displayGroupManager->displayGroupChanged();
+        }
     }
 
     if(hasFront && front)
@@ -574,6 +650,34 @@ WallController::Result WallController::setOptions(const json & params)
     }
 
     return getOptions();
+}
+
+WallController::Result WallController::getSensors()
+{
+    return ok({ { "value", g_displayGroupManager->getSensors() } });
+}
+
+WallController::Result WallController::setSensors(const json & params)
+{
+    Result err;
+    bool hasValue, hasMask;
+    uint32_t value = 0, mask = 0xffffffff;
+
+    if(!optionalBits(params, "value", hasValue, value, err) || !optionalBits(params, "mask", hasMask, mask, err))
+    {
+        return err;
+    }
+
+    if(!hasValue)
+    {
+        return error(400, "'value' is required");
+    }
+
+    // asleep, the sensor-controlled windows are stashed with the layout; waking
+    // reloads them, and they follow the value then
+    g_displayGroupManager->setSensors(value, mask);
+
+    return getSensors();
 }
 
 bool WallController::resolveUnder(std::string root, std::string relative, std::string & resolved)
