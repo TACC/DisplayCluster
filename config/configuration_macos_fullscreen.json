@@ -1,0 +1,25 @@
+{
+    "dimensions": {
+        "numTilesWidth": 1,
+        "numTilesHeight": 1,
+        "screenWidth": 1920,
+        "screenHeight": 1080,
+        "mullionWidth": 0,
+        "mullionHeight": 0,
+        "fullscreen": 1
+    },
+    "processes": [
+        {
+            "host": "localhost",
+            "display": ":0",
+            "screens": [
+                {
+                    "x": 2048,
+                    "y": 0,
+                    "i": 0,
+                    "j": 0
+                }
+            ]
+        }
+    ]
+}

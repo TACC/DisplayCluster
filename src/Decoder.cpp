@@ -170,6 +170,7 @@ Decoder::_setup()
     // generation) - check before committing to the hw path, rather than
     // discovering it later via a get_format() callback failure
     hwDecode_ = false;
+#ifdef DISPLAYCLUSTER_CUDA
     for (int i = 0; ; i++)
     {
         const AVCodecHWConfig *config = avcodec_get_hw_config(codec, i);
@@ -182,6 +183,7 @@ Decoder::_setup()
             break;
         }
     }
+#endif
 
     if (hwDecode_)
     {

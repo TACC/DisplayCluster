@@ -48,8 +48,10 @@
 #include <iostream>
 #include <vector>
 
+#ifdef DISPLAYCLUSTER_CUDA
 #include <cuda.h>
 #include <cudaGL.h>
+#endif
 
 using namespace std::chrono;
 
@@ -92,8 +94,10 @@ class Movie : public FactoryObject {
         // at draw time
         GLuint textureY_;
         GLuint textureUV_;
+#ifdef DISPLAYCLUSTER_CUDA
         CUgraphicsResource cudaResourceY_;
         CUgraphicsResource cudaResourceUV_;
+#endif
 
         // false when this GL context can't be registered with CUDA - e.g. a
         // Mesa-rendered VNC/X desktop rather than the NVIDIA driver's GL -

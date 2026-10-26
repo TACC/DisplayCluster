@@ -46,6 +46,7 @@
 namespace
 {
 
+#ifdef DISPLAYCLUSTER_CUDA
 // one CUDA context for the whole process, shared by every Movie's GL
 // interop calls; safe across the FFmpeg-owned NVDEC context because Maxwell+
 // GPUs use unified virtual addressing, so device pointers from one context
@@ -91,6 +92,7 @@ void checkCu(CUresult result, const char *what)
         std::cerr << "CUDA error in " << what << ": " << (msg ? msg : "unknown") << "\n";
     }
 }
+#endif
 
 GLuint compileShader(QOpenGLExtraFunctions *gl, GLenum type, const char *src)
 {
@@ -176,11 +178,13 @@ Movie::~Movie()
     // everything then regardless.
     if (initialized_ && QOpenGLContext::currentContext() != nullptr)
     {
+#ifdef DISPLAYCLUSTER_CUDA
         if (interop_)
         {
             cuGraphicsUnregisterResource(cudaResourceY_);
             cuGraphicsUnregisterResource(cudaResourceUV_);
         }
+#endif
 
         auto *gl = QOpenGLContext::currentContext()->extraFunctions();
         gl->glDeleteProgram(shaderProgram_);
@@ -217,7 +221,9 @@ void Movie::render(float tX, float tY, float tW, float tH)
         glShadeModel(GL_FLAT);
         glEnable(GL_DEPTH_TEST);
 
+#ifdef DISPLAYCLUSTER_CUDA
         ensureCudaContext();
+#endif
 
         glGenTextures(1, &textureY_);
         glBindTexture(GL_TEXTURE_2D, textureY_);
@@ -235,6 +241,7 @@ void Movie::render(float tX, float tY, float tW, float tH)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, cw, ch, 0, GL_RG, GL_UNSIGNED_BYTE, 0);
 
+#ifdef DISPLAYCLUSTER_CUDA
         // CUDA can only register textures belonging to the NVIDIA driver's GL;
         // under Mesa (a VNC desktop, say) this fails, and render() falls back
         // to copying frames through host memory
@@ -259,6 +266,10 @@ void Movie::render(float tX, float tY, float tW, float tH)
                      "so hardware-decoded frames will be copied through host memory",
                      msg ? msg : "unknown error", (const char *)glGetString(GL_RENDERER));
         }
+#else
+        // no CUDA in this build: every frame comes from the software decoder
+        interop_ = false;
+#endif
 
         shaderProgram_ = buildNV12ShaderProgram(gl);
 
@@ -269,6 +280,7 @@ void Movie::render(float tX, float tY, float tW, float tH)
     {
         AVFrame *frame = decoder->getFrame();
 
+#ifdef DISPLAYCLUSTER_CUDA
         if (decoder->usingHardwareDecode() && !interop_)
         {
             // NVDEC frame in GPU memory, but no interop: copy both planes
@@ -344,6 +356,7 @@ void Movie::render(float tX, float tY, float tW, float tH)
             checkCu(cuGraphicsUnmapResources(2, resources, 0), "unmap movie textures");
         }
         else
+#endif
         {
             // software-decode fallback (see Decoder::_setup()/_decode()):
             // frame is already NV12 in ordinary host memory (sws_scale'd

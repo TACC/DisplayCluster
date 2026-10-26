@@ -64,6 +64,14 @@ endif()
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
 # find and setup Qt6
+if(APPLE)
+    # Qt's FindWrapOpenGL links the AGL framework whenever it finds one in
+    # /System/Library, but current macOS SDKs no longer have it to link
+    # against; pointing its cache variable at OpenGL (which it already links)
+    # keeps it from looking
+    set(WrapOpenGL_AGL "${CMAKE_OSX_SYSROOT}/System/Library/Frameworks/OpenGL.framework" CACHE FILEPATH "" FORCE)
+endif()
+
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Network Svg Xml Concurrent OpenGL)
 set(LIBS ${LIBS} Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Network Qt6::Svg Qt6::Xml Qt6::Concurrent Qt6::OpenGL)
 
@@ -109,33 +117,48 @@ set(LIBS ${LIBS} ${FFMPEG_LIBRARIES})
 # the Toolkit), but the *import lib* to link against at build time is named
 # cuda.lib on Windows (same base name as Linux's libcuda) and does ship
 # with the CUDA Toolkit installer under %CUDA_PATH%
-find_path(CUDA_DRIVER_INCLUDE_DIR cuda.h
-    PATHS
-        /usr/local/cuda/targets/x86_64-linux/include
-        /usr/local/cuda/include
-        "$ENV{CUDA_PATH}/include")
-if(WIN32)
-    find_library(CUDA_DRIVER_LIBRARY cuda
-        PATHS "$ENV{CUDA_PATH}/lib/x64" "$ENV{CUDA_PATH}/lib")
+# NVDEC hardware movie decode through the CUDA driver API. macOS has no
+# CUDA, so it's off there by default, and movies always decode in software
+# (Decoder's existing fallback); elsewhere it's required unless turned off.
+if(APPLE)
+    set(DISPLAYCLUSTER_CUDA_DEFAULT OFF)
 else()
-    # the stub lib for linking without a real driver present (e.g. a
-    # container build) lives in different places depending on packaging:
-    # RHEL/Rocky's nvidia-driver-cuda-libs puts it under /usr/lib64/stubs,
-    # Debian/Ubuntu's cuda-toolkit package puts it under
-    # targets/x86_64-linux/lib/stubs instead
-    find_library(CUDA_DRIVER_LIBRARY cuda
+    set(DISPLAYCLUSTER_CUDA_DEFAULT ON)
+endif()
+option(DISPLAYCLUSTER_CUDA "Hardware movie decode via NVDEC (needs the CUDA driver API)" ${DISPLAYCLUSTER_CUDA_DEFAULT})
+
+if(DISPLAYCLUSTER_CUDA)
+    find_path(CUDA_DRIVER_INCLUDE_DIR cuda.h
         PATHS
-            /usr/local/cuda/targets/x86_64-linux/lib/stubs
-            /usr/local/cuda/targets/x86_64-linux/lib
-            /usr/local/cuda/lib64
-            /usr/lib64
-            /usr/lib64/stubs)
+            /usr/local/cuda/targets/x86_64-linux/include
+            /usr/local/cuda/include
+            "$ENV{CUDA_PATH}/include")
+    if(WIN32)
+        find_library(CUDA_DRIVER_LIBRARY cuda
+            PATHS "$ENV{CUDA_PATH}/lib/x64" "$ENV{CUDA_PATH}/lib")
+    else()
+        # the stub lib for linking without a real driver present (e.g. a
+        # container build) lives in different places depending on packaging:
+        # RHEL/Rocky's nvidia-driver-cuda-libs puts it under /usr/lib64/stubs,
+        # Debian/Ubuntu's cuda-toolkit package puts it under
+        # targets/x86_64-linux/lib/stubs instead
+        find_library(CUDA_DRIVER_LIBRARY cuda
+            PATHS
+                /usr/local/cuda/targets/x86_64-linux/lib/stubs
+                /usr/local/cuda/targets/x86_64-linux/lib
+                /usr/local/cuda/lib64
+                /usr/lib64
+                /usr/lib64/stubs)
+    endif()
+    if(NOT CUDA_DRIVER_INCLUDE_DIR OR NOT CUDA_DRIVER_LIBRARY)
+        message(FATAL_ERROR "CUDA driver API not found (cuda.h / libcuda or nvcuda.lib) - required for NVDEC decode; configure with -DDISPLAYCLUSTER_CUDA=OFF to decode movies in software instead")
+    endif()
+    include_directories(SYSTEM ${CUDA_DRIVER_INCLUDE_DIR})
+    set(LIBS ${LIBS} ${CUDA_DRIVER_LIBRARY})
+    add_definitions(-DDISPLAYCLUSTER_CUDA)
+else()
+    message(STATUS "Building without CUDA: movies decode in software")
 endif()
-if(NOT CUDA_DRIVER_INCLUDE_DIR OR NOT CUDA_DRIVER_LIBRARY)
-    message(FATAL_ERROR "CUDA driver API not found (cuda.h / libcuda or nvcuda.lib) - required for NVDEC decode")
-endif()
-include_directories(SYSTEM ${CUDA_DRIVER_INCLUDE_DIR})
-set(LIBS ${LIBS} ${CUDA_DRIVER_LIBRARY})
 
 # captured at configure time (not build time) so it reflects whatever
 # commit/working-tree state was checked out when `cmake` last ran - good
