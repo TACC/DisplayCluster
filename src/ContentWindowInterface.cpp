@@ -493,7 +493,16 @@ void ContentWindowInterface::setHidden(bool hidden, ContentWindowInterface * sou
         emit(hiddenChanged(hidden_, source));
     }
 
-    g_displayGroupManager->sendDisplayGroup();
+    // only the ContentWindowManager's copy goes out to the displays: the
+    // control window's graphics item and list entry hear about the change
+    // afterwards (queued), and sending from them as well cost one extra
+    // display-group broadcast - each waiting on the render ranks' next frame -
+    // per view of every window shown or hidden. A change made in the control
+    // window reaches the manager through hiddenChanged, and is sent from there.
+    if(dynamic_cast<ContentWindowManager *>(this) != NULL)
+    {
+        g_displayGroupManager->sendDisplayGroup();
+    }
 }
 
 void ContentWindowInterface::highlight(ContentWindowInterface * source)

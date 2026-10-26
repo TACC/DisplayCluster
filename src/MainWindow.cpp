@@ -763,6 +763,35 @@ void MainWindow::updateGLWindows()
         return;
     }
 
+    // with DISPLAYCLUSTER_FRAME_STATS set, log this rank's frame rate and
+    // slowest frame every 5 s - every display-group change waits for each
+    // render rank's next pass through here, so this bounds how quickly the
+    // wall can follow changes
+    static const bool frameStats = getenv("DISPLAYCLUSTER_FRAME_STATS") != NULL;
+
+    if (frameStats)
+    {
+        static auto periodStart = high_resolution_clock::now();
+        static auto frameStart = periodStart;
+        static int frames = 0;
+        static double slowest = 0.;
+
+        auto now = high_resolution_clock::now();
+        slowest = std::max(slowest, duration<double, std::milli>(now - frameStart).count());
+        frameStart = now;
+        frames++;
+
+        double period = duration<double>(now - periodStart).count();
+
+        if (period >= 5.)
+        {
+            put_flog(LOG_INFO, "rank %d: %.1f frames/s, slowest frame %.1f ms", g_mpiRank, frames / period, slowest);
+            periodStart = now;
+            frames = 0;
+            slowest = 0.;
+        }
+    }
+
     emit(updateGLWindowsFinished());
 }
 
