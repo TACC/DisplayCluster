@@ -269,11 +269,12 @@ cmake --build build --config Release
 ```
 
 Running it needs the same `QT_PLUGIN_PATH` workaround as the main app (vcpkg
-copies the DLLs next to the exe but not Qt's plugin subdirectories):
+copies the DLLs next to the exe but not Qt's plugin subdirectories). From the
+`streamer` directory:
 
 ```
-set QT_PLUGIN_PATH=C:\src\DisplayCluster\streamer\build\vcpkg_installed\x64-windows\Qt6\plugins
-streamer\build\Release\DesktopStreamer.exe
+set QT_PLUGIN_PATH=%CD%\build\vcpkg_installed\x64-windows\Qt6\plugins
+build\Release\DesktopStreamer.exe
 ```
 
 ### Linux

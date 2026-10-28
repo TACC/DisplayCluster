@@ -342,7 +342,8 @@ configure with `-DDISPLAYCLUSTER_CUDA=OFF`.
 ### macOS
 
 macOS runs a small wall in windows on one Mac. That's useful for development.
-There's no CUDA, so movies decode on the CPU and CUDA is off by default.
+There's no CUDA, so CUDA is off by default and movies decode on the CPU,
+using every core. A 4K movie keeps most of an 8-core Mac busy.
 
 ```bash
 brew install cmake qt boost ffmpeg jpeg-turbo openssl@3
@@ -988,7 +989,8 @@ build-streamer/DesktopStreamer
 ```bash
 sudo dnf install epel-release
 sudo dnf install gcc-c++ cmake pkgconf-pkg-config git qt6-qtbase-devel \
-    boost-devel libjpeg-turbo-devel turbojpeg turbojpeg-devel
+    boost-devel boost-serialization \
+    libjpeg-turbo-devel turbojpeg turbojpeg-devel
 ```
 then the same `cmake` commands as for Ubuntu.
 
@@ -1086,6 +1088,7 @@ The launcher passes every one of these to every process.
 | `DISPLAYCLUSTER_INSTALL` | `/usr/local` | where `bin/displaycluster` is |
 | `DISPLAYCLUSTER_EXEC` | `displaycluster` | the program's name under `bin/` |
 | `DISPLAYCLUSTER_MPIARGS` | (launcher) `-bind-to none` | extra `mpirun` arguments |
+| `DISPLAYCLUSTER_SCRIPTS` | (launcher) `/usr/local/src/DisplayCluster/scripts` | where, inside the image, the launcher finds `displaycluster.sh` and `.py` |
 | `DISPLAYCLUSTER_TIMEOUT` | `5` | seconds idle before the screensaver |
 | `DISPLAYCLUSTER_SCREENSAVER_IMAGE` | none | the screensaver's image; a relative path is under `DISPLAYCLUSTER_DIR` |
 | `DISPLAYCLUSTER_LOG_THRESHOLD` | `4` | log detail: 1 debug, 2 info, 3 warnings, 4 errors |
