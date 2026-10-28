@@ -6,6 +6,11 @@ container, if you'd rather not — useful for reproducible deployment across
 cluster nodes without managing native dependencies on every worker. Both
 produce the same application; pick whichever fits your situation.
 
+**New to DisplayCluster?** [doc/setup.md](doc/setup.md) walks through
+everything from cloning the repo to a working wall: both builds, the
+dependencies, preparing the display nodes, the configuration file, the
+launcher, remote control, and troubleshooting.
+
 ## Native build
 
 ### Windows 11
@@ -130,7 +135,7 @@ Package names below are current as of a recent Ubuntu release; adjust via
 sudo apt install build-essential cmake pkg-config git \
     qt6-base-dev qt6-svg-dev \
     libboost-serialization-dev libboost-date-time-dev libboost-iostreams-dev \
-    libjpeg-turbo8-dev \
+    libturbojpeg0-dev libssl-dev \
     libopenmpi-dev openmpi-bin \
     libavcodec-dev libavformat-dev libavutil-dev libswscale-dev \
     libgl1-mesa-dev libglu1-mesa-dev
@@ -221,7 +226,7 @@ set than the main app.
 sudo apt install build-essential cmake pkg-config git \
     qt6-base-dev \
     libboost-serialization-dev \
-    libjpeg-turbo8-dev
+    libturbojpeg0-dev
 ```
 
 **Rocky/RHEL 9:** Qt6 comes from EPEL, not the base repos. Also note
@@ -282,9 +287,6 @@ NVIDIA graphics cards. The `FROM` line in `docker/Dockerfile` can be changed
 to a plain Ubuntu 22.04 base instead, but rendering then falls back to Mesa,
 which can struggle at high display resolutions.
 
-In the following, *host* refers to the machine outside the container, and
-*worker* to a machine running the containerized GUI and display nodes.
-
 Clone the repo somewhere — we'll refer to this as the source directory.
 To build the DC image, run this from the source directory itself (not from
 inside `docker/` — the Dockerfile `COPY`s the checkout it lives in, rather
@@ -299,8 +301,9 @@ apptainer build displaycluster.sif docker-archive:/tmp/displaycluster.tar
 
 `build-sif.sh`, in the repo root, runs these three steps.
 
-This creates **displaycluster.sif** with the worker-side bits installed in
-the `/usr/local` area of the container.
+This creates **displaycluster.sif**, with DisplayCluster installed under
+`/usr/local` in the image and its source, including `scripts/`, in
+`/usr/local/src/DisplayCluster`.
 
 Use `docker save` + `docker-archive:`, not
 `apptainer build ... docker-daemon:displaycluster:latest` directly — on at
@@ -314,35 +317,22 @@ image the `docker` CLI just built (same daemon by construction), and
 `docker-archive:` reads directly from that file with no daemon connection
 involved at all, sidestepping the whole class of bug.
 
-### Host-side code
+### Installing and starting it
 
-To run DisplayCluster, you'll need to install a few bits onto the host
-system. In the source directory, make a `build` subdirectory, and in there,
-run:
+Nothing needs installing on the wall's machines but apptainer, the NVIDIA
+driver and a matching Open MPI (below). The wall needs three files, readable
+at the same paths on every machine (a shared home directory works):
 
-```bash
-cmake .. -DINSTALL_CLIENT=On [-DCMAKE_INSTALL_PREFIX={host-installdir, default to /usr/local}]
-make install
-```
+- **displaycluster.sif**
+- the wall's **configuration.json**, describing its tiles and which node
+  draws each one;
+- a copy of **scripts/startdisplaycluster**, edited for the site.
 
-This installs the startup command in `{host-installdir}/bin`, the python
-package in `{host-installdir}/python`, and some example code in
-`{host-installdir}/examples`.
-
-Now copy the sif file into the host install directory:
-
-```bash
-mkdir {host-installdir}/sif
-cp {source directory}/docker/displaycluster.sif {host-installdir}/sif
-```
-
-### Starting DisplayCluster
-
-Start DisplayCluster with `scripts/startdisplaycluster`, the one file a wall
-needs outside the image. Copy it somewhere on the `PATH` (e.g. `~/bin`) and
-edit the settings at its top: where the sif and `configuration.json` are, the
-content directory, the screensaver, extra `mpirun` arguments, and so on. A
-copy is in every image, so a site needs no checkout of the repo to get one:
+`startdisplaycluster` is the one file a wall needs outside the image. Copy it
+somewhere on the `PATH` (e.g. `~/bin`) and edit the settings at its top:
+where the sif and `configuration.json` are, the content directory, the
+screensaver, extra `mpirun` arguments, and so on. A copy is in every image,
+so a site needs no checkout of the repo to get one:
 
 ```bash
 apptainer exec displaycluster.sif cat /usr/local/src/DisplayCluster/scripts/startdisplaycluster > ~/bin/startdisplaycluster
@@ -353,13 +343,18 @@ environment wins. Every `DISPLAYCLUSTER_*` variable is passed on to all of the
 wall's processes, so others (see [doc/remote-control.md](doc/remote-control.md))
 can be added to the file or set before running it.
 
-The client install also puts the python package in `{worker-installdir}/python` and
-some example code in `{worker-installdir}/examples`. In
-`{worker-installdir}/examples`, run:
+In some cases (like Rattler here at TACC) Open MPI doesn't find the correct
+network interface to use. Name it in `DISPLAYCLUSTER_MPIARGS` in
+`startdisplaycluster`, e.g. `--mca btl_tcp_if_include enp0s25`.
+
+[doc/setup.md](doc/setup.md) covers the rest: preparing the display nodes'
+X servers, writing `configuration.json`, and a first run.
+
+The Python client needs no install either; use it from a checkout:
 
 ```bash
-export PYTHONPATH={worker-installdir}/python
-python3 ./run_script.py
+export PYTHONPATH=/path/to/DisplayCluster/python
+python3 examples/run_script.py
 ```
 
 ### MPI
@@ -380,17 +375,6 @@ requests that thread level explicitly at startup and fails fast with a
 clear error if the MPI implementation doesn't grant it. Ubuntu 22.04's
 packaged OpenMPI supports this; if you swap in a different MPI build,
 confirm it does too.
-
-### Installation and runtime
-
-Create a root directory for DisplayCluster in a shared filesystem. Add a
-`configuration.json` file to that directory as described above. Place
-**displaycluster.sif** there too, and a copy of **scripts/startdisplaycluster**
-edited for the site (see [Starting DisplayCluster](#starting-displaycluster)).
-
-Note: in some cases (like Rattler here at TACC) OpenMPI doesn't find the
-correct network interface to use. Name it in `DISPLAYCLUSTER_MPIARGS` in
-`startdisplaycluster`, e.g. `--mca btl_tcp_if_include enp0s25`.
 
 ## Remote control
 
