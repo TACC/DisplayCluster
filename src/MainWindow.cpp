@@ -207,9 +207,6 @@ MainWindow::MainWindow()
         toolbar->addAction(saveStateAction);
         toolbar->addAction(loadStateAction);
         toolbar->addAction(computeImagePyramidAction);
-#if ENABLE_PYTHON_SUPPORT
-        toolbar->addAction(pythonConsoleAction);
-#endif
 
         // version label in the menu bar's corner - lets someone looking at
         // a running wall confirm which build it's actually running, without

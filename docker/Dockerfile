@@ -74,8 +74,7 @@ RUN apt-get update \
     x11-apps
 
 # Boost - previously hand-built from a vendored 2013-era 1.53 tarball
-# (dependencies/boost_1_53_0.tar.gz - now unused, safe to remove from the
-# repo separately) with only serialization/date_time enabled, which was
+# with only serialization/date_time enabled, which was
 # actually incomplete: DisplayGroupManager.cpp also needs boost::iostreams
 # for message deserialization, silently relying on it being present some
 # other way. Ubuntu's packaged Boost is recent enough and covers

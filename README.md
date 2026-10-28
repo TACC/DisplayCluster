@@ -253,20 +253,15 @@ build-streamer/DesktopStreamer
 
 ### macOS
 
-Untested on real hardware — this is best-effort based on how the equivalent
-Homebrew packages are laid out, not a verified build like the Windows/Linux
-paths above; expect to adjust something.
-
 ```bash
-brew install cmake qt@6 boost jpeg-turbo
+brew install cmake qt boost jpeg-turbo
 ```
 
-`qt@6` is keg-only (Homebrew won't symlink it into the general prefix, to
-avoid clashing with a `qt@5` install), so CMake needs to be told where to
-find it explicitly:
+Homebrew's Qt isn't on CMake's default search path, so tell CMake where it
+is:
 
 ```bash
-cmake -S streamer -B build-streamer -DCMAKE_PREFIX_PATH="$(brew --prefix qt@6)"
+cmake -S streamer -B build-streamer -DCMAKE_PREFIX_PATH="$(brew --prefix qt)"
 cmake --build build-streamer -j$(sysctl -n hw.ncpu)
 open build-streamer/DesktopStreamer.app
 ```

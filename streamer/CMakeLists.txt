@@ -42,6 +42,14 @@ endif()
 # config.h.in, rather than duplicating them
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
 
+if(APPLE)
+    # Qt's FindWrapOpenGL links the AGL framework whenever it finds one in
+    # /System/Library, but current macOS SDKs no longer have it to link
+    # against; pointing its cache variable at OpenGL (which it already links)
+    # keeps it from looking
+    set(WrapOpenGL_AGL "${CMAKE_OSX_SYSROOT}/System/Library/Frameworks/OpenGL.framework" CACHE FILEPATH "" FORCE)
+endif()
+
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Network Concurrent)
 
 find_package(libjpeg-turbo CONFIG QUIET)
@@ -61,7 +69,6 @@ include_directories(${Boost_INCLUDE_DIRS})
 # root build's git-version-stamping (not very useful for a tool run locally
 # on a presenter's own machine, unlike the cluster-side render processes
 # this was actually added for)
-set(ENABLE_PYTHON_SUPPORT OFF)
 set(DISPLAYCLUSTER_GIT_VERSION "n/a")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
