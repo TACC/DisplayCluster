@@ -261,6 +261,30 @@ endif()
 
 target_link_libraries(displaycluster ${LIBS})
 
+# Windows has no RPATH, so a DLL must be next to the .exe or on PATH. vcpkg's
+# own post-build step copies only the DLLs displaycluster.exe links against
+# directly, not ones that only Qt's plugins need (imageformats/qjpeg.dll needs
+# jpeg62.dll: without it JPEG content and every thumbnail fail to load, with
+# no error), and nothing copies the prebuilt FFmpeg's DLLs. Copy both
+# directories' DLLs after each build.
+if(WIN32)
+    set(RUNTIME_DLL_DIRS "")
+    if(DEFINED VCPKG_INSTALLED_DIR)
+        set(VCPKG_BIN "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}")
+        list(APPEND RUNTIME_DLL_DIRS "$<IF:$<CONFIG:Debug>,${VCPKG_BIN}/debug/bin,${VCPKG_BIN}/bin>")
+    endif()
+    get_filename_component(FFMPEG_BIN "${FFMPEG_avcodec_LIBRARY}" DIRECTORY)
+    get_filename_component(FFMPEG_BIN "${FFMPEG_BIN}/../bin" ABSOLUTE)
+    if(EXISTS "${FFMPEG_BIN}")
+        list(APPEND RUNTIME_DLL_DIRS "${FFMPEG_BIN}")
+    endif()
+    foreach(DIR ${RUNTIME_DLL_DIRS})
+        add_custom_command(TARGET displaycluster POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -DFROM=${DIR} -DTO=$<TARGET_FILE_DIR:displaycluster>
+                    -P ${CMAKE_SOURCE_DIR}/cmake/CopyDlls.cmake)
+    endforeach()
+endif()
+
 # install executable
 INSTALL(TARGETS displaycluster RUNTIME DESTINATION bin)
 

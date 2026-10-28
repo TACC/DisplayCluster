@@ -17,12 +17,17 @@ launcher, remote control, and troubleshooting.
 
 #### Toolchain
 
-- Visual Studio 2022 (Community or higher) with the **"Desktop development
-  with C++"** workload — provides MSVC, the Windows SDK, and the "x64 Native
-  Tools Command Prompt for VS 2022". **Builds must be run from this specific
-  prompt**, not a plain terminal — `cl.exe` needs its environment
-  (`INCLUDE`/`LIB`/`PATH`) initialized, which only happens there (or after
-  manually running `vcvarsall.bat x64`).
+- Visual Studio 2022 (Community or higher, or just the Build Tools for
+  Visual Studio 2022) with the **"Desktop development with C++"** workload —
+  provides MSVC, the Windows SDK, and the "x64 Native Tools Command Prompt for
+  VS 2022". **Builds must be run from this specific prompt**, not a plain
+  terminal — `cl.exe` needs its environment (`INCLUDE`/`LIB`/`PATH`)
+  initialized, which only happens there (or after running `vcvars64.bat`,
+  under `VC\Auxiliary\Build` in the Visual Studio or Build Tools install).
+  In a `.bat` that calls `vcvars64.bat` and logs to a file, send vcvars'
+  own output to a *different* file: a process it starts keeps that file open
+  afterward, so every later `>> same.log` fails and its command silently
+  doesn't run.
 - Git for Windows
 - CMake 3.16+ (bundled with VS2022, or install standalone)
 
@@ -45,11 +50,14 @@ C:\vcpkg\bootstrap-vcpkg.bat
 - **MS-MPI** — install both the SDK (`msmpisdk.msi`) and the runtime
   (`msmpisetup.exe`) from Microsoft. CMake's `FindMPI` locates it
   automatically via the `MSMPI_INC`/`MSMPI_LIB64` environment variables the
-  SDK installer sets.
+  SDK installer sets — open a new prompt after installing the SDK, since
+  one that was already open won't have them.
 - **NVIDIA GPU driver** — whatever's current for the card.
-- **NVIDIA CUDA Toolkit** — needed for the driver-API headers (`cuda.h`,
-  `cudaGL.h`) and import library (`cuda.lib`); the installer sets
-  `CUDA_PATH`, which `CMakeLists.txt` searches automatically.
+- **NVIDIA CUDA Toolkit** (optional) — needed for NVDEC hardware movie
+  decode: the driver-API headers (`cuda.h`, `cudaGL.h`) and import library
+  (`cuda.lib`); the installer sets `CUDA_PATH`, which `CMakeLists.txt`
+  searches automatically. Without it, configure with
+  `-DDISPLAYCLUSTER_CUDA=OFF` and movies decode in software.
 - **FFmpeg with NVDEC, prebuilt** — building FFmpeg from source via vcpkg's
   MSYS2-driven Windows port hit an unresolved build failure (a malformed
   `compat/windows/makedef` invocation generating `libavcodec`'s DLL export
@@ -68,8 +76,9 @@ C:\vcpkg\bootstrap-vcpkg.bat
 
 Everything else — Qt6 (`qtbase` with `widgets`/`network`/`opengl` features,
 plus `qtsvg`), Boost (`serialization`, `date-time`, `iostreams`, `algorithm`,
-`tokenizer`, `smart-ptr`), and `libjpeg-turbo` — is declared in `vcpkg.json`
-and installs automatically during CMake configure. No manual step needed.
+`tokenizer`, `smart-ptr`), `libjpeg-turbo`, and OpenSSL 3 (HTTPS for the
+remote-control API) — is declared in `vcpkg.json` and installs automatically
+during CMake configure. No manual step needed.
 
 #### Configure and build
 
@@ -81,17 +90,22 @@ cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.c
 cmake --build build --config Release
 ```
 
+(add `-DDISPLAYCLUSTER_CUDA=OFF` to the first line without the CUDA Toolkit)
+
 The first configure builds the full vcpkg dependency set from source
-(mostly Qt6) and can take well over an hour; vcpkg caches build artifacts
+(94 packages, mostly Boost and Qt6); expect anywhere from about 25 minutes on
+a fast many-core machine to well over an hour. vcpkg caches build artifacts
 machine-wide afterward (`%LOCALAPPDATA%\vcpkg\archives`), so subsequent
 configures — even in a fresh `build\` directory, or from another project
 using the same package/version/feature/triplet combination — are fast.
 
 #### Running
 
-vcpkg copies the runtime DLLs (Qt, Boost, etc.) next to `displaycluster.exe`
-automatically, but **not** Qt's plugin subdirectories (platform integration,
-image format loaders), so `QT_PLUGIN_PATH` needs to be set explicitly:
+The build copies the runtime DLLs (Qt, Boost, OpenSSL, FFmpeg, and the
+libraries Qt's plugins need) next to `displaycluster.exe`, so `C:\ffmpeg\bin`
+needn't be on `PATH`; `msmpi.dll` comes from the MS-MPI runtime. Qt's plugin
+subdirectories (platform integration, image format loaders) are **not**
+copied, so `QT_PLUGIN_PATH` needs to be set explicitly:
 
 ```
 set DISPLAYCLUSTER_DIR=C:\src\DisplayCluster
@@ -125,6 +139,14 @@ template; the simplest single-tile version is:
     ]
 }
 ```
+
+With `mpiexec -n 2` that's rank 0 (the control window) plus one render rank
+with one 800×600 windowed tile. The remote-control web UI is then at
+<http://localhost:1910/ui/> (the API listens on `127.0.0.1` only until
+`DISPLAYCLUSTER_API_TOKEN` is set). Its media browser starts in your home
+folder; to offer other folders instead, set `DISPLAYCLUSTER_MEDIA_DIRS`,
+separating entries with `;` on Windows (`:` elsewhere), e.g.
+`set DISPLAYCLUSTER_MEDIA_DIRS=media=D:\wall-media;C:\src\DisplayCluster\examples`.
 
 ### Ubuntu
 
