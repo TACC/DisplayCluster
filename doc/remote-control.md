@@ -104,6 +104,42 @@ General → VPN & Device Management and then Certificate Trust Settings on an
 iPhone). Clicking through the warning lets the web UI work in that browser,
 but the extension can't stream until the certificate is trusted.
 
+#### Renewing the certificate
+
+The wall reads its certificate only when it starts, so a renewed certificate
+takes effect at the next restart. Until then it keeps serving the old one,
+which is fine as long as that hasn't expired. To see when the one in use
+expires:
+
+```bash
+openssl x509 -enddate -noout -in ~/.displaycluster/api_cert.pem
+```
+
+With Let's Encrypt, certbot renews about 30 days before expiry. A deploy hook
+can copy each renewed certificate into place. Certbot runs it after every
+renewal, as root. Save this as
+`/etc/letsencrypt/renewal-hooks/deploy/displaycluster.sh`, with `vislab`
+changed to the wall's account, and make it executable:
+
+```bash
+#!/bin/sh
+# copies a renewed certificate to where DisplayCluster reads it
+set -e
+user=vislab
+dir=$(getent passwd $user | cut -d: -f6)/.displaycluster
+install -o $user -g "$(id -gn $user)" -m 644 "$RENEWED_LINEAGE/fullchain.pem" "$dir/api_cert.pem"
+install -o $user -g "$(id -gn $user)" -m 600 "$RENEWED_LINEAGE/privkey.pem" "$dir/api_key.pem"
+```
+
+Use `fullchain.pem`, not `cert.pem`: browsers need the intermediate
+certificate too. Test it with `sudo certbot renew --dry-run`. Then restart the
+wall at a convenient time within the next 30 days.
+
+The hook doesn't restart the wall itself, because a renewal can happen while
+someone is using it. If the wall runs as a [systemd
+service](setup.md#as-a-systemd-service) and a restart at a random moment is
+acceptable, add `systemctl restart displaycluster` as the hook's last line.
+
 ### Reaching the wall
 
 Clients connect to the wall's host on the API port, so that port has to be

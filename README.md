@@ -289,12 +289,14 @@ than cloning a fresh copy from GitHub, so the build context has to be the
 repo root):
 
 ```bash
-docker build -f docker/Dockerfile -t displaycluster .
-docker save displaycluster:latest -o /tmp/displaycluster.tar
-apptainer build displaycluster.sif docker-archive:/tmp/displaycluster.tar
+./build-sif.sh
 ```
 
-`build-sif.sh`, in the repo root, runs these three steps.
+It runs three steps: `docker build -f docker/Dockerfile -t displaycluster .`,
+then `docker save` of the image to an archive in a temporary directory, then
+`apptainer build displaycluster.sif docker-archive:<that archive>`. It
+deletes the archive (about 2.5 GB) when it's done, and the Docker images that
+earlier builds left behind.
 
 This creates **displaycluster.sif**, with DisplayCluster installed under
 `/usr/local` in the image and its source, including `scripts/`, in

@@ -14,6 +14,7 @@ way around a Linux shell, but nothing about DisplayCluster.
 - [The launcher: startdisplaycluster](#the-launcher-startdisplaycluster)
 - [First run](#first-run)
 - [Using the control window](#using-the-control-window)
+- [Running it unattended](#running-it-unattended)
 - [Remote control and the web UI](#remote-control-and-the-web-ui)
 - [Showing a screen or a browser tab](#showing-a-screen-or-a-browser-tab)
 - [Updating](#updating)
@@ -197,7 +198,7 @@ where the wall can read it.
   releases page.
 
 The build needs roughly 15 GB of free space for Docker's layers and the
-image, plus room in `/tmp` for a 1 GB archive.
+image, plus 2.5 GB in `/tmp` (or `$TMPDIR`) while it runs.
 
 ### 2. Build
 
@@ -214,9 +215,16 @@ This runs three steps and stops at the first one that fails:
    FFmpeg and the CUDA driver API. The image is based on NVIDIA's
    `nvidia/opengl` image. It copies your checkout, including any uncommitted
    changes, so what you build is what's in the directory.
-2. `docker save` writes the image to `/tmp/displaycluster.tar`.
+2. `docker save` writes the image to an archive in a temporary directory.
 3. `apptainer build` converts that archive to `displaycluster.sif` in the
    checkout. Any old `displaycluster.sif` there is deleted first.
+
+It cleans up after itself: the archive is deleted however the script ends,
+and so are the images earlier builds left behind. Those are labelled as
+DisplayCluster's, so it leaves other people's Docker images alone. Images
+from builds before October 2026 aren't labelled. To clear them too,
+`docker image prune` removes every untagged image on the machine, so check
+with whoever else uses Docker there first.
 
 The first build downloads and installs a lot and takes 15–30 minutes. Later
 builds reuse Docker's cache and take a few minutes. The result is about
@@ -598,8 +606,9 @@ becomes MPI rank *N*+1 (rank 0 is the control process and isn't listed):
     `j` the row from the top, both from 0.
 
 Every tile `(i, j)` of the grid should appear exactly once. Start from
-`config/configuration_stallion.json` (80 tiles on 20 nodes, one X screen
-spanning four monitors per node) or `examples/configuration.json` (four small
+`config/configuration_stallion.json` (TACC's Stallion: eighteen 8K TVs, 6
+across and 3 down, on 9 nodes, each with two GPUs run as separate X screens
+`:0` and `:0.1`, one process each) or `examples/configuration.json` (four small
 windows on one machine). `python/xml2json_config.py` converts an old-style
 `configuration.xml`.
 
@@ -761,6 +770,73 @@ The `.pyr` file holds the pyramid folder's full path. You can rename or move
 the `.pyr` file. If you move the folder, edit the path in the `.pyr` file to
 match.
 
+## Running it unattended
+
+Started from a terminal, the wall stops when that terminal closes, and its log
+goes only to that terminal. For a wall that should run all the time, use one
+of the following.
+
+The control process always needs an X display for its control window:
+- the head node's own screen, if it has one;
+- a display node's screen, if the head node is also a display node;
+- a VNC desktop on the head node.
+
+Set `DISPLAY` to that display wherever you start it.
+
+### In tmux
+
+The simplest way to keep it running after you log out:
+
+```bash
+tmux new -d -s wall 'DISPLAY=:1 startdisplaycluster 2>&1 | tee -a ~/displaycluster.log'
+tmux attach -t wall        # watch it; Ctrl-B then D to leave it running
+tmux kill-session -t wall  # stop the wall
+```
+
+The log is in `~/displaycluster.log` as well. It keeps growing, so empty it
+now and then.
+
+### As a systemd service
+
+To start the wall at boot and restart it if it crashes, run it as a service.
+On the head node, as root, create `/etc/systemd/system/displaycluster.service`:
+
+```ini
+[Unit]
+Description=DisplayCluster wall
+Wants=network-online.target
+After=network-online.target X.service
+
+[Service]
+User=vislab
+Environment=DISPLAY=:0
+# systemd's PATH is minimal: add where mpirun is (on Rocky, /usr/lib64/openmpi/bin)
+Environment=PATH=/usr/lib64/openmpi/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/vislab/bin/startdisplaycluster
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Change `User`, `DISPLAY` and the launcher's path to suit. Then:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now displaycluster
+sudo systemctl restart displaycluster      # e.g. after updating the image
+journalctl -u displaycluster -f            # the log
+```
+
+`systemctl stop` stops every rank. **File → Quit** in the control window ends
+the service too, without a restart, since that isn't a failure. Start it again
+with `systemctl start`.
+
+When the display nodes boot at the same time, their X servers may not be up
+when the wall starts. The wall then fails, and systemd tries again 10 seconds
+later until they are.
+
 ## Remote control and the web UI
 
 The control process serves a web UI, and an API for scripts, at
@@ -796,6 +872,12 @@ other machines:
 4. **Restart the wall.** The token and certificate are read only at startup.
    The log should say
    `remote API listening on 0.0.0.0:1910 (https, token required)`.
+
+Certificates expire, often after 90 days for Let's Encrypt. Since the wall
+reads its certificate only at startup, a renewed one needs copying into place
+and a restart of the wall.
+[doc/remote-control.md](remote-control.md#renewing-the-certificate) has a
+certbot hook that does the copying.
 
 Then browse to `https://<head node's full name>:1910/ui/` and enter the token.
 To give someone access without them typing it, send them

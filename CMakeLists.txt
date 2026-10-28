@@ -51,15 +51,6 @@ else()
     SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 endif()
 
-# build options
-
-option(INSTALL_CLIENT "Install client-side bits package" OFF)
-if (INSTALL_CLIENT)
-    INSTALL(PROGRAMS scripts/startdisplaycluster DESTINATION bin)
-    INSTALL(PROGRAMS python/DC.py python/Bounce.ipynb DESTINATION python)
-    INSTALL(PROGRAMS examples/run_script.py examples/script examples/configuration.json DESTINATION examples)
-endif()
-
 # path for additional modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
@@ -88,10 +79,6 @@ else()
     find_package(LibJpegTurbo REQUIRED)
     include_directories(${LibJpegTurbo_INCLUDE_DIRS})
     set(LIBS ${LIBS} ${LibJpegTurbo_LIBRARIES})
-endif()
-
-if (INSTALL_LAUNCHER)
-    INSTALL(PROGRAMS scripts/startdisplaycluster DESTINATION bin)
 endif()
 
 find_package(OpenGL REQUIRED)
