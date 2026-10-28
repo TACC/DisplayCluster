@@ -91,7 +91,8 @@ Where they differ, it says so.
 - One account that runs the wall, with the same home directory (or at least
   the same paths) on every machine.
 - Passwordless SSH from the head node to every display node, as that account.
-  MPI starts the remote ranks over SSH.
+  MPI starts the remote ranks over SSH. See [Security](#security) for how to
+  set it up safely.
 - Permission for that account to draw on each display node's X display.
 
 **Network ports**
@@ -104,6 +105,54 @@ Where they differ, it says so.
     networks you trust.
 
 The browser extension uses port 1910, like the web UI.
+
+### Security
+
+A wall needs a few openings that a normal server wouldn't have. Keep each one
+as narrow as you can.
+
+**SSH between the nodes.** "Passwordless" still means authenticated: MPI
+logs in with an SSH key, so only someone holding the private key gets in. The
+key has no passphrase, though, because `mpirun` can't type one. Anyone who
+gets into the wall's account on the head node therefore gets into every
+display node as well. To limit what that exposes:
+
+- **Run the wall from a dedicated account,** not root and not a person's own
+  account. A stolen key then reaches only the wall.
+- **Give the wall its own key.** Don't reuse anyone's personal key. As the
+  wall's account:
+  ```bash
+  ssh-keygen -t ed25519 -N '' -C 'displaycluster wall' -f ~/.ssh/id_wall
+  ```
+  and add `IdentityFile ~/.ssh/id_wall` for the display nodes in
+  `~/.ssh/config`.
+- **Accept the key only from the head node.** In `~/.ssh/authorized_keys` on
+  the display nodes, start its line with a `from=` restriction. With a shared
+  home directory this is one file for every node:
+  ```
+  from="headnode.example.edu,10.0.0.1" ssh-ed25519 AAAA... displaycluster wall
+  ```
+- **Keep the display nodes on a private network** if you can, reachable only
+  from the head node. They then don't need SSH open to anything else.
+
+**The X servers.** `xhost +si:localuser:<account>` lets in only that one
+local account, which is fine. Starting X with `-ac` instead turns off access
+control: anyone who can reach the node can then draw on its screens or read
+its input. Use `-ac` only on nodes that run nothing else and that only the
+head node can reach. `-nolisten tcp`, in the `X.service` example, keeps X
+off the network either way.
+
+**The remote API, port 1910.** Give it a token, and a certificate so the token
+isn't sent in the clear (see [Remote control](#remote-control-and-the-web-ui)).
+Without a token it listens only on the head node itself. Anyone with the token
+can control the wall, so treat it like a password, and change it if it leaks:
+write a new one to `~/.displaycluster/api_token` and restart the wall.
+
+**DesktopStreamer, port 1701.** There's no token and no encryption, so anyone
+who can reach the port can put a window on the wall, and anyone on the network
+path can see what's streamed. Open it only to networks you trust, or not at
+all if presenters can use the browser extension, which goes through port 1910
+with the token.
 
 ## Getting the code
 
@@ -415,7 +464,7 @@ DISPLAY=:0 xhost +si:localuser:vislab      # as root, after X starts
 ```
 
 Or, on a node that does nothing else, add `-ac` to the `Xorg` line above to
-turn off access control altogether. Check from the wall's account with
+turn off access control altogether (but see [Security](#security)). Check from the wall's account with
 `DISPLAY=:0 xdpyinfo | head`.
 
 ### 4. Turn off screen blanking and DPMS
