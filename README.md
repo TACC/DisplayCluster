@@ -338,30 +338,22 @@ cp {source directory}/docker/displaycluster.sif {host-installdir}/sif
 
 ### Starting DisplayCluster
 
-Start DisplayCluster using the `startdisplaycluster` command in
-`{host-installdir}/bin`. It requires some environment setup; a shell script
-like this works well:
+Start DisplayCluster with `scripts/startdisplaycluster`, the one file a wall
+needs outside the image. Copy it somewhere on the `PATH` (e.g. `~/bin`) and
+edit the settings at its top: where the sif and `configuration.json` are, the
+content directory, the screensaver, extra `mpirun` arguments, and so on. A
+copy is in every image, so a site needs no checkout of the repo to get one:
 
 ```bash
-#! /bin/bash
-
-## Location of configuration.json ... installed on the client system in {worker-installdir}/examples
-export DISPLAYCLUSTER_HOME={worker-installdir}
-export DISPLAYCLUSTER_DIR=${DISPLAYCLUSTER_HOME}   # not sure if both HOME and DIR are needed
-export DISPLAYCLUSTER_CONFIG=${DISPLAYCLUSTER_HOME}/examples/configuration.json
-
-## tell it where to get the sif file
-export DISPLAYCLUSTER_SIF=${DISPLAYCLUSTER_HOME}/sif/displaycluster.sif
-
-export DISPLAYCLUSTER_API_PORT=1910               # remote-control API; see "Remote control API"
-export DISPLAYCLUSTER_TIMEOUT=3600                 # screensaver timeout in seconds
-export DISPLAYCLUSTER_EXEC=/displaycluster
-
-cd {content directory}
-startdisplaycluster
+apptainer exec displaycluster.sif cat /usr/local/src/DisplayCluster/scripts/startdisplaycluster > ~/bin/startdisplaycluster
 ```
 
-This also installs the python package in `{worker-installdir}/python` and
+Every setting is an environment variable, and one already set in the
+environment wins. Every `DISPLAYCLUSTER_*` variable is passed on to all of the
+wall's processes, so others (see [doc/remote-control.md](doc/remote-control.md))
+can be added to the file or set before running it.
+
+The client install also puts the python package in `{worker-installdir}/python` and
 some example code in `{worker-installdir}/examples`. In
 `{worker-installdir}/examples`, run:
 
@@ -393,14 +385,12 @@ confirm it does too.
 
 Create a root directory for DisplayCluster in a shared filesystem. Add a
 `configuration.json` file to that directory as described above. Place
-**displaycluster.sif** there too, along with **examples/startdisplaycluster**
-— this python script is where various environment variables are defaulted,
-and where the actual `mpirun` call is made.
+**displaycluster.sif** there too, and a copy of **scripts/startdisplaycluster**
+edited for the site (see [Starting DisplayCluster](#starting-displaycluster)).
 
-Note: in some cases (like Rattler here at TACC) OpenMPI doesn't seem to find
-the correct interface for MPI to use. This is hard-coded in the
-`mpirunCommand` string built near the end of `startdisplaycluster` — you may
-need to change it.
+Note: in some cases (like Rattler here at TACC) OpenMPI doesn't find the
+correct network interface to use. Name it in `DISPLAYCLUSTER_MPIARGS` in
+`startdisplaycluster`, e.g. `--mca btl_tcp_if_include enp0s25`.
 
 ## Remote control
 
