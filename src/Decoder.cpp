@@ -198,6 +198,13 @@ Decoder::_setup()
     }
     else
     {
+        // libavcodec decodes on one thread unless told otherwise, and one
+        // core can't keep up with a large, high-bitrate movie: 0 means one
+        // thread per core, and frame threading is what scales for H.264/HEVC
+        avCodecContext_->thread_count = 0;
+        avCodecContext_->thread_type = FF_THREAD_FRAME | FF_THREAD_SLICE;
+
+#ifdef DISPLAYCLUSTER_CUDA
         put_flog(LOG_WARN,
             "'%s' is %s, which has no NVDEC hardware decode support on any NVIDIA GPU - "
             "falling back to SOFTWARE decode. This is dramatically slower and will likely "
@@ -206,6 +213,10 @@ Decoder::_setup()
             "transcoding this file to H.264 or HEVC first, e.g.:  "
             "ffmpeg -i \"%s\" -c:v libx264 -crf 18 -pix_fmt yuv420p output.mp4",
             uri_.c_str(), codec->name, uri_.c_str());
+#else
+        put_flog(LOG_INFO, "'%s' (%s): decoding in software, this build has no CUDA",
+            uri_.c_str(), codec->name);
+#endif
     }
 
     if (avcodec_open2(avCodecContext_, codec, NULL) < 0)
