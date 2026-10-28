@@ -99,6 +99,19 @@ machine-wide afterward (`%LOCALAPPDATA%\vcpkg\archives`), so subsequent
 configures — even in a fresh `build\` directory, or from another project
 using the same package/version/feature/triplet combination — are fast.
 
+Things to check in CMake's output:
+- `remote API: HTTPS supported (OpenSSL 3.x)`
+- `Found MPI: TRUE` (if not, the prompt predates the MS-MPI SDK install)
+- `Building without CUDA: movies decode in software` appears only when CUDA
+  is off
+
+To turn CUDA on later, install the CUDA Toolkit, open a **new** prompt (so
+`CUDA_PATH` is set), and run the same configure line with
+`-DDISPLAYCLUSTER_CUDA=ON`; with the vcpkg packages already built that takes
+seconds. As of CUDA 13, `cuda.lib` is a small static loader that opens
+`nvcuda.dll` when CUDA is first used, not an import library, so
+`dumpbin /dependents` won't list `nvcuda.dll`; that's expected.
+
 #### Running
 
 The build copies the runtime DLLs (Qt, Boost, OpenSSL, FFmpeg, and the
@@ -147,6 +160,33 @@ with one 800×600 windowed tile. The remote-control web UI is then at
 folder; to offer other folders instead, set `DISPLAYCLUSTER_MEDIA_DIRS`,
 separating entries with `;` on Windows (`:` elsewhere), e.g.
 `set DISPLAYCLUSTER_MEDIA_DIRS=media=D:\wall-media;C:\src\DisplayCluster\examples`.
+
+#### Hardware movie decode, and laptops with two GPUs
+
+With CUDA on, NVDEC decodes each movie on the NVIDIA GPU and CUDA copies the
+frames straight into the tile's OpenGL textures. That last step only works
+when the NVIDIA GPU also does the drawing. Laptops with hybrid graphics (an
+integrated Intel or AMD GPU plus an NVIDIA one) hand new apps to the
+integrated GPU by default, and the render rank then logs:
+
+```
+Movie::render: can't share GL textures with CUDA (...; GL renderer AMD Radeon(TM) 610M), so hardware-decoded frames will be copied through host memory
+```
+
+Movies still play, but every frame takes a round trip through system memory
+to the other GPU. To fix it, give `displaycluster.exe` the NVIDIA GPU:
+**Settings → System → Display → Graphics → Add an app → Desktop app**, browse
+to `build\Release\displaycluster.exe`, then **Options → High performance**
+(or, in the NVIDIA Control Panel, **Manage 3D settings → Program Settings →
+High-performance NVIDIA processor**). Rebuilding to a different path needs
+the setting again. Desktop machines driving monitors from the NVIDIA card
+don't need any of this.
+
+To check that a playing movie is on the GPU, run `nvidia-smi dmon -s u`:
+the `dec` column should be above 0. `nvidia-smi` should list the render rank's
+`displaycluster.exe` with type `C+G` (CUDA and graphics on that GPU), and
+the "can't share GL textures" line shouldn't appear. Task Manager's GPU tab
+shows the decoder's load as "Video Decode".
 
 ### Ubuntu
 
