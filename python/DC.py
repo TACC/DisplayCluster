@@ -210,6 +210,11 @@ class DC:
         self._request('PATCH', self._window_path(name), { 'sensorMask': int(sensorMask), 'showWhenLit': bool(showWhenLit) }, change = True)
         self.updateContent()
 
+    # how many sensors the wall offers (its DISPLAYCLUSTER_SENSORS)
+    def getSensorCount(self):
+        config = self._request('GET', '/config')
+        return config.get('sensorCount', 0) if config else 0
+
     # the wall's sensor value: bit i set means sensor i is lit
     def getSensors(self):
         reply = self._request('GET', '/sensors')

@@ -448,6 +448,7 @@ dc.run_events(dc.create_event_list('show.json'))   # or a list instead of a file
 | File | What it does |
 |---|---|
 | `examples/run_script.py` | plays the timed script `examples/script`: `python3 run_script.py wallhost` |
+| `examples/sensors.py` | sets sensors from the keyboard (`s 4 on`, `t 2`, `a off`) and shows them in red and green; `setup` lays out a red and a green window for each sensor |
 | `python/Bounce.ipynb` | a Jupyter notebook that bounces every open window around the wall, then puts them back |
 | `python/reposition_test.py` | opens a movie, waits, then moves and resizes it |
 
@@ -549,6 +550,22 @@ dc.setSensorControl('b1s0-green', 0b000100)                     # sensor 2, show
 dc.setSensorControl('b1s0-red', 0b000100, showWhenLit = False)  # shown when it isn't
 dc.setSensors(0b000100)                                         # sensor 2 lit, the rest not
 dc.setSensors(0b01, mask = 0b11)                                # just sensors 0 and 1
+```
+
+`getSensorCount()` says how many sensors the wall offers.
+
+`examples/sensors.py` tries it all from the keyboard: `setup` puts a red
+window and a green one, stacked, in a cell for each sensor, in columns of two
+(sensor *n* in column *n* ÷ 2, on top for even *n*), and then `s 4 on`, `t 2`
+(toggle) and `a off` (all) set them, with the result shown in the terminal in
+the same layout:
+
+```
+$ python3 examples/sensors.py wallhost
+  [  0 off ]  [  2 on  ]  [  4 on  ]
+  [  1 off ]  [  3 off ]  [  5 off ]
+  value 0x14
+sensors> t 2
 ```
 
 In the web UI, the window inspector has a checkbox per sensor and a
