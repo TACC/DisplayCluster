@@ -13,6 +13,7 @@ way around a Linux shell, but nothing about DisplayCluster.
 - [Describing the wall: configuration.json](#describing-the-wall-configurationjson)
 - [The launcher: startdisplaycluster](#the-launcher-startdisplaycluster)
 - [First run](#first-run)
+- [Using the control window](#using-the-control-window)
 - [Remote control and the web UI](#remote-control-and-the-web-ui)
 - [Showing a screen or a browser tab](#showing-a-screen-or-a-browser-tab)
 - [Updating](#updating)
@@ -477,6 +478,7 @@ From the head node, as the wall's account:
 
 ```bash
 ssh node1 true                          # must not ask for a password
+ssh node1 DISPLAY=:0 xdpyinfo | head -3 # must reach node1's X server
 mpirun -host localhost,node1,node2 hostname
 ```
 
@@ -606,8 +608,13 @@ Do these in order. Each one rules out a layer.
    DISPLAYCLUSTER_CONFIG=~/test.json startdisplaycluster
    ```
    You should get a control window and four small tile windows.
-3. **The wall.** Run `startdisplaycluster` with the real configuration. Every
-   tile should show its part of the screensaver.
+3. **The wall.** Run `startdisplaycluster` with the real configuration, then
+   turn on **View → Show Test Pattern** in the control window. Every tile
+   shows a coloured diagonal grid, labelled with its rank, host, display,
+   tile coordinates and resolution. The grid's lines should run straight across the whole wall. A
+   tile with the wrong label, or lines that jump at a tile's edge, means its
+   entry in the configuration is wrong. Turn the test pattern off again in the
+   same menu.
 4. **Content.** Put an image in `CONTENT_DIR`. Open it from the control
    window's File menu, or from the web UI (below). Drag it across tile
    boundaries and check that lines stay straight across the bezels. If not,
@@ -617,6 +624,62 @@ Do these in order. Each one rules out a layer.
 The log goes to the terminal you started it from. Set
 `DISPLAYCLUSTER_LOG_THRESHOLD=2` for more detail. Each line starts with the
 rank (`[rank 3] ...`), so you can tell which node said what.
+
+## Using the control window
+
+Rank 0 shows the control window on the head node's screen. It's a scaled-down
+picture of the whole wall. Whatever you do in it happens on the wall. Most
+people use the [web UI](#remote-control-and-the-web-ui) instead, which does
+the same things from any device. While someone else has control through the
+API, the control window shows who, and a **Take control** button.
+
+**The File menu**
+
+| Item | What it does |
+|---|---|
+| Open Content | opens a file in a new window. Images (anything Qt reads: PNG, JPEG, TIFF, ...), SVG, movies (`.mov .avi .mp4 .mkv .mpg .flv .wmv`) and image pyramids (`.pyr`) |
+| Open Contents Directory | opens every file in a folder, laid out in a grid; it asks for the grid's columns and rows |
+| Clear | closes every window |
+| Save State, Load State | save the layout of every window to a `.dcx` file, and restore it |
+| Compute Image Pyramid | prepares a very large image for fast display (below) |
+| Quit | stops the whole wall |
+
+**The View menu** turns display options on and off: Constrain Aspect Ratio,
+Show Window Borders, Show Content Labels, Show Test Pattern, Enable Mullion
+Compensation (on by default: content behind a bezel is hidden, so lines stay
+straight across tiles), and Show Zoom Context. Its Streaming submenu has settings for pixel
+streams. The web UI's options panel has the same settings.
+
+**Windows**, in the picture of the wall:
+
+| To | Do |
+|---|---|
+| move a window | drag it |
+| resize it | drag its bottom-right corner, or use the scroll wheel over it |
+| close it | click its top-right corner |
+| bring it to the front | click it |
+| zoom and pan its content | double-click it to select it (its border changes); then the scroll wheel zooms, dragging pans, and right-dragging zooms. Double-click again to go back to moving and resizing |
+
+The **Contents** list beside the picture lists every open window.
+
+### Very large images: image pyramids
+
+An image up to 4096 pixels on a side is loaded whole. A larger one is shown
+from a multi-resolution version, so the wall loads only the detail it needs.
+Opening a large image directly works, but is slower and uses more memory.
+For an image you'll show more than once, build the pyramid ahead of time:
+
+1. **File → Compute Image Pyramid**, and choose the image. The control window
+   stops responding until it's done, which can take minutes for a very large
+   image.
+2. It writes a folder, `<image>.pyramid/`, and a small file, `<image>.pyr`,
+   next to the image.
+3. Open the `.pyr` file rather than the image, from the control window, the
+   web UI or `DC.py`.
+
+The `.pyr` file holds the pyramid folder's full path. You can rename or move
+the `.pyr` file. If you move the folder, edit the path in the `.pyr` file to
+match.
 
 ## Remote control and the web UI
 
