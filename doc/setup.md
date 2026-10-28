@@ -1063,6 +1063,7 @@ control window, which is the git commit it was built from. With
 | Web UI unreachable from other machines | no token (so localhost only), firewall, or not on the network (e.g. VPN required) | check the "listening on" line in the log; `curl -k https://<head>:1910/ui/` from the client |
 | Web UI says "That token didn't work"; console shows 401 on `/config` | the token doesn't match the one the wall loaded | copy it again; restart the wall if the token file changed |
 | Browser warns the connection isn't private | self-signed certificate, or the URL's name isn't on the certificate | use the full name on the certificate; use a CA-issued certificate |
+| Chrome refuses the web UI with `NET::ERR_CERT_AUTHORITY_INVALID`, but Safari and `curl` accept it | an ECDSA certificate on a chain whose root Chrome doesn't trust (InCommon's ECC chain, for one) | get it reissued with an RSA key; see [HTTPS](remote-control.md#https) |
 | Extension: red **!**, "couldn't reach the wall" | wrong address, port 1910 blocked, or the browser doesn't trust the certificate | open `https://<head>:1910/ui/` in that browser; fix whatever it shows |
 | Extension: "the wall refused the stream" | wrong token | re-enter it in the extension's options |
 | DesktopStreamer: nothing appears on the wall | port 1701 blocked, or the wrong host name | `nc -vz <head> 1701` from the presenter's machine |

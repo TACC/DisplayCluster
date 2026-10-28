@@ -87,7 +87,28 @@ the wall; it should say `remote API listening on 0.0.0.0:1910 (https, token
 required)`.
 
 A certificate from your institution's CA (or Let's Encrypt) is trusted by
-browsers as is. Without one, make a self-signed certificate, naming the wall's
+browsers as is, with one catch: **ask for an RSA key, not ECDSA.** Some CAs
+issue ECDSA certificates from a separate chain whose root not every browser
+trusts. InCommon, for one, chains its ECDSA certificates to emSign ECC Root
+CA - G3, which macOS trusts but Chrome doesn't. Safari and `curl` then accept
+the wall's certificate while Chrome refuses it with
+`NET::ERR_CERT_AUTHORITY_INVALID`. If the host's other web servers send HSTS,
+there's no button to click past it. InCommon's RSA certificates chain to emSign Root
+CA - G1, which Chrome trusts. To see which root a wall's certificate ends at:
+
+```bash
+echo | openssl s_client -connect wallhost.example.edu:1910 -showcerts 2>/dev/null | grep "i:" | tail -1
+```
+
+and compare it with a server on that host Chrome is happy with (port 443, say).
+With certbot, `--key-type rsa` asks for RSA, and certbot remembers it for
+renewals; to change an existing certificate:
+
+```bash
+sudo certbot certonly --cert-name wallhost.example.edu --key-type rsa --rsa-key-size 2048 --force-renewal
+```
+
+Without one, make a self-signed certificate, naming the wall's
 host:
 
 ```bash
