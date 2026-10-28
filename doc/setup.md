@@ -62,7 +62,7 @@ There are two ways to build and run it. Both produce the same program.
 | Build machine needs | Docker and apptainer | every library in the [dependency list](#dependencies) |
 | Wall nodes need | apptainer, the NVIDIA driver, and Open MPI matching the image's | every runtime library, on every node |
 | Updating | copy one file | reinstall on every node |
-| Best for | production walls | development, a Mac, or a single machine |
+| Best for | production walls, from one machine up | development, or a Mac |
 
 **Use the container for a real wall.** The rest of this guide covers both.
 Where they differ, it says so.
@@ -70,8 +70,11 @@ Where they differ, it says so.
 ## What every wall needs
 
 **Hardware**
-- One head node. It can also be a display node, or the same machine as
-  everything else for a single-machine test.
+- One head node, for the control process. It can also run display
+  processes. The smallest wall is a single machine running the control process
+  and one display process, which drives all of that machine's monitors. That's
+  a complete setup in its own right, not just a test, and it needs no SSH or
+  MPI networking between machines.
 - One or more display nodes with NVIDIA GPUs. Other GPUs work with a native
   build, but the container image is built for NVIDIA.
 - A network between them. Gigabit works; faster helps with movies and streams.
@@ -599,6 +602,34 @@ Every tile `(i, j)` of the grid should appear exactly once. Start from
 spanning four monitors per node) or `examples/configuration.json` (four small
 windows on one machine). `python/xml2json_config.py` converts an old-style
 `configuration.xml`.
+
+**A one-machine wall** has a single process, on `localhost`, with a tile for
+each monitor. Here are two 4K monitors side by side, as one X screen:
+
+```json
+{
+    "dimensions": {
+        "numTilesWidth": 2, "numTilesHeight": 1,
+        "screenWidth": 3840, "screenHeight": 2160,
+        "mullionWidth": 60, "mullionHeight": 0,
+        "fullscreen": 1
+    },
+    "processes": [
+        {
+            "host": "localhost",
+            "display": ":0",
+            "screens": [
+                { "x": 0,    "y": 0, "i": 0, "j": 0 },
+                { "x": 3840, "y": 0, "i": 1, "j": 0 }
+            ]
+        }
+    ]
+}
+```
+
+The control window opens on the same X display. To keep it off the wall,
+give the control process a different display, e.g. a VNC desktop, by
+starting the launcher with `DISPLAY` set to it.
 
 To try the software before the wall hardware is ready, put every process on
 `localhost` with `"fullscreen": 0` and small `screenWidth`/`screenHeight`.
