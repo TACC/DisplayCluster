@@ -321,7 +321,10 @@ the window name, it's shown as "Name (2)".
 
 ## Scripting with DC.py
 
-`python/DC.py` is a Python client, using only the standard library:
+`python/DC.py` is a Python client for the API. It's a single file that uses
+only Python's standard library, so there's nothing to install: copy `DC.py`
+next to your script, or put the repo's `python/` directory on `PYTHONPATH`.
+Any machine that can reach the wall's port 1910 can run scripts.
 
 ```python
 from DC import DC
@@ -338,6 +341,18 @@ dc.close(name)
 dc.showContent()                     # print what's open
 ```
 
+Two things to know before writing one:
+
+- **Coordinates are in tiles.** `(0, 0)` is the wall's top-left corner and
+  `(tilesWide, tilesHigh)`, from `getConfiguration()`, its bottom-right.
+  Fractions are fine: `x=1.5` is halfway across the second tile. Mullions
+  don't count; a window 1 wide covers exactly one tile.
+- **File paths are the wall's.** `open()` takes a path as the wall's
+  machines see it, not the machine running the script. Under apptainer that's
+  the same as the path on the wall's hosts, for anything in the wall
+  account's home directory. `listMedia()` returns paths ready to pass to
+  `open()`.
+
 It finds the token in `$DISPLAYCLUSTER_API_TOKEN` or
 `~/.displaycluster/api_token` (on the machine it runs on), or take it as
 `DC('wallhost', token='...')`. The port is `$DISPLAYCLUSTER_API_PORT` or 1910.
@@ -350,12 +365,14 @@ copy of the certificate to trust: `DC('wallhost', cafile='api_cert.pem')`
 Windows are named by their file's path unless given a name
 (`dc.open(uri, name='mars')`); a file opened twice gets `#2`, `#3`, … on the
 end. `open()` returns the name the window got. `dc.content` holds every window
-by name: `{uri, x, y, w, h, hidden, filled, sensorMask, showWhenLit}`,
+by name: `{uri, x, y, w, h, hidden, filled, sensorMask, showWhenLit, zoom,
+centerX, centerY}`,
 refreshed after every change or by `dc.updateContent()`.
 
 | Methods | |
 |---|---|
 | `open`, `close`, `clear`, `reposition`, `rename`, `hide`, `reveal`, `moveToFront`, `fill` | windows |
+| `zoom(name, zoom, centerX, centerY)` | the view of a window's content: `zoom` 1 shows all of it, 2 half of it across; the center is in fractions of the content |
 | `openDirectory(root, dir, cols, rows)` | a folder's files tiled across the wall |
 | `mediaRoots()`, `listMedia(root, dir, sort, descending, offset, limit)` | browsing the media directories |
 | `loadState(file)`, `saveState(file)`, `clearState()` | state files, relative to the state directory |
@@ -363,10 +380,40 @@ refreshed after every change or by `dc.updateContent()`.
 | `getOptions()`, `setOptions(**options)`, and `setConstrainAspectRatio`, `setShowWindowBorders`, `setShowContentLabels` | display options |
 | `sleepWall()`, `wakeWall()`, `status()` | the screensaver, and who has control |
 | `takeControl(force)`, `releaseControl()`, `disconnect()` | control, by hand |
-| `create_event_list(script)`, `run_events(events)` | play a timed script of windows opening and closing |
+| `create_event_list(script)`, `run_events(events)` | play a timed script of windows opening and closing (below) |
 
 Failures are printed and the script carries on; `DC(..., strict=True)` raises
 `DCError` instead.
+
+`reposition()` takes `-1` for any of `x`, `y`, `w`, `h` to keep as it is;
+`zoom()` keeps any it isn't given.
+
+### Timed scripts
+
+A timed script is a JSON list of windows, each with when it opens and closes,
+in seconds from the start:
+
+```json
+[
+    {"uri": "/data/images/a.png", "open": 0, "close": 10, "x": 0, "y": 0, "w": 2, "h": 2},
+    {"uri": "/data/images/b.png", "open": 2, "close": 8,  "x": 2, "y": 0, "w": 2, "h": 2}
+]
+```
+
+```python
+dc.run_events(dc.create_event_list('show.json'))   # or a list instead of a file
+```
+
+`run_events` clears the wall first, and returns after the last event.
+`examples/run_script.py` plays `examples/script` this way.
+
+### Examples
+
+| File | What it does |
+|---|---|
+| `examples/run_script.py` | plays the timed script `examples/script`: `python3 run_script.py wallhost` |
+| `python/Bounce.ipynb` | a Jupyter notebook that bounces every open window around the wall, then puts them back |
+| `python/reposition_test.py` | opens a movie, waits, then moves and resizes it |
 
 ### Control in scripts
 

@@ -8,9 +8,9 @@
 #   python3 reposition_test.py /path/to/movie.mp4 --wait 40 \
 #       --open 0 0 0.5 1 --new 0 0 1 1
 #
-# Run from a machine that can reach the running displaycluster instance's
-# Python control port (DISPLAYCLUSTER_PYTHONPORT, default 1900 to match
-# examples/run_script.py - check what your launch script actually set).
+# Coordinates are in tile units, as everywhere in DC.py. Run from a machine
+# that can reach the wall's remote API (port 1910 unless
+# DISPLAYCLUSTER_API_PORT says otherwise), with its token (see DC.py).
 
 import argparse
 import sys
@@ -28,10 +28,10 @@ parser.add_argument("--wait", type=float, default=30.0,
                      help="seconds to wait between opening and repositioning (default: 30)")
 parser.add_argument("--open", nargs=4, type=float, metavar=("X", "Y", "W", "H"),
                      default=[0.0, 0.0, 0.5, 1.0],
-                     help="initial x y w h, fractions of the wall (default: left half)")
+                     help="initial x y w h, in tiles (default: 0 0 0.5 1)")
 parser.add_argument("--new", nargs=4, type=float, metavar=("X", "Y", "W", "H"),
                      default=[0.0, 0.0, 1.0, 1.0],
-                     help="x y w h to reposition to (default: whole wall)")
+                     help="x y w h to reposition to, in tiles (default: 0 0 1 1)")
 args = parser.parse_args()
 
 dc = DC(args.host, args.port)
