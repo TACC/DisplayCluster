@@ -372,9 +372,29 @@ windows instead. Its comments list the settings it uses.
 
 ### Windows
 
-See the Windows section of the [README](../README.md#windows-11). It uses
-Visual Studio 2022, vcpkg (`vcpkg.json` lists the packages), MS-MPI, and a
-prebuilt FFmpeg.
+See the Windows section of the [README](../README.md#windows-11) for the
+steps. It uses Visual Studio 2022 or just its Build Tools, vcpkg
+(`vcpkg.json` lists the packages), MS-MPI, a prebuilt FFmpeg, and optionally
+the CUDA Toolkit. What's been tested on Windows is a wall in windows on one
+machine's desktop, launched with `mpiexec -n <1 + display processes>`; the
+launcher scripts and the display-node preparation below are for Linux.
+
+What differs from Linux:
+- Keep vcpkg and the checkout on paths with no spaces (e.g. `C:\vcpkg`,
+  `C:\src\DisplayCluster`).
+- Build from the "x64 Native Tools Command Prompt for VS 2022", or a `.bat`
+  that calls `vcvars64.bat` first. Open a new prompt after installing the
+  MS-MPI SDK or the CUDA Toolkit, so their environment variables are set.
+- The first configure builds Qt and the rest from source (25 minutes to over
+  an hour); later ones reuse vcpkg's cache.
+- The build copies the DLLs it needs, FFmpeg's included, next to
+  `displaycluster.exe`. Set `QT_PLUGIN_PATH` to
+  `build\vcpkg_installed\x64-windows\Qt6\plugins` when running.
+- List separators in variables such as `DISPLAYCLUSTER_MEDIA_DIRS` are `;`,
+  not `:`.
+- On a laptop with two GPUs, give `displaycluster.exe` the NVIDIA GPU in
+  Windows' graphics settings, or hardware-decoded movie frames take a trip
+  through system memory (see the README).
 
 ### Configure, build, install (Linux)
 
@@ -1048,6 +1068,10 @@ control window, which is the git commit it was built from. With
 | DesktopStreamer: nothing appears on the wall | port 1701 blocked, or the wrong host name | `nc -vz <head> 1701` from the presenter's machine |
 | DesktopStreamer: the wall shows black | Wayland on Linux; no Screen Recording permission on macOS | use an Xorg session; grant the permission and restart it |
 | Log says the remote UI files weren't found | `DISPLAYCLUSTER_DIR` doesn't point at the install prefix | set it to the prefix (`/usr/local` in the container) |
+| Log: `can't share GL textures with CUDA`, naming a non-NVIDIA (or Mesa) GL renderer | the tiles are drawn by a GPU CUDA can't share with: a laptop's integrated GPU, or a VNC/Mesa desktop | Windows: give `displaycluster.exe` the NVIDIA GPU in Settings → System → Display → Graphics; Linux: run on the NVIDIA X server |
+| Windows: "`<name>.dll` was not found" when starting | `msmpi.dll`: the MS-MPI runtime isn't installed; anything else: an exe built before the DLL-copy step | install `msmpisetup.exe`; rebuild |
+| Windows: CMake can't find MPI | the prompt was opened before the MS-MPI SDK was installed | open a new prompt and configure again |
+| Windows: a batch build stops after `vcvars64.bat` but exits 0 | vcvars' output and later commands share one log file, which a process vcvars starts keeps open | send vcvars' output to its own file |
 
 ## Environment variable reference
 
@@ -1070,7 +1094,7 @@ The launcher passes every one of these to every process.
 | `DISPLAYCLUSTER_API_BIND` | `0.0.0.0` with a token, else `127.0.0.1` | the API's listening address |
 | `DISPLAYCLUSTER_API_CERT`, `_KEY` | `~/.displaycluster/api_cert.pem`, `api_key.pem` | HTTPS certificate and key |
 | `DISPLAYCLUSTER_STATE_DIR` | `~/.displaycluster/states` | where saved layouts go |
-| `DISPLAYCLUSTER_MEDIA_DIRS` | home directory | folders the web UI browses, `name=path:name=path` |
+| `DISPLAYCLUSTER_MEDIA_DIRS` | home directory | folders the web UI browses, `name=path:name=path` (`;` between them on Windows) |
 | `DISPLAYCLUSTER_UI_DIR` | `$DISPLAYCLUSTER_DIR/ui` | the web UI's files |
 | `DISPLAYCLUSTER_SENSORS` | `0` | sensors offered in the web UI |
 | `DISPLAYCLUSTER_DRAG_SYNC_MS` | `0` | while dragging in the control window, update the wall this often (ms); 0 moves it only on release |

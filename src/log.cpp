@@ -61,6 +61,13 @@ void put_log(int level, const char *format, ...)
     // each individual put_flog() call site
     printf("[rank %d] %s\n", g_mpiRank, log_string);
 
+    // a rank's stdout is a pipe to the MPI launcher, not a terminal, so the C
+    // library buffers it in large blocks: a quiet rank's lines would show up
+    // minutes late, or never if it crashes. MS-MPI always pipes it, and
+    // MSVC's CRT has no line buffering (setvbuf's _IOLBF means full), so
+    // flush every line explicitly
+    fflush(stdout);
+
     return;
 }
 
