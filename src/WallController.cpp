@@ -714,19 +714,59 @@ bool WallController::resolveUnder(std::string root, std::string relative, std::s
     return true;
 }
 
-WallController::Result WallController::listStates()
+WallController::Result WallController::listStates(std::string dir)
 {
+    std::string path;
+
+    if(!resolveUnder(stateDir_, dir, path))
+    {
+        return error(400, "folders must be given relative to the state directory, " + stateDir_);
+    }
+
+    QDir qdir(QString::fromStdString(path));
+
+    if(!qdir.exists())
+    {
+        // the state directory itself is made by the first save
+        if(dir.empty())
+        {
+            return ok(json::array());
+        }
+
+        return error(404, "no such folder: " + dir);
+    }
+
+    // paths in the listing are relative to the state directory, like dir
+    QString prefix = QDir::cleanPath(QString::fromStdString(dir));
+    prefix = (prefix.isEmpty() || prefix == ".") ? "" : prefix + "/";
+
     json states = json::array();
 
-    QDir dir(QString::fromStdString(stateDir_));
+    for(const QFileInfo & info : qdir.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name | QDir::IgnoreCase))
+    {
+        // as with loading, a symlink can't lead out of the state directory
+        std::string resolved;
+
+        if(!resolveUnder(stateDir_, (prefix + info.fileName()).toStdString(), resolved))
+        {
+            continue;
+        }
+
+        states.push_back({
+            { "type", "directory" },
+            { "name", info.fileName().toStdString() },
+            { "dir", (prefix + info.fileName()).toStdString() },
+            { "modified", info.lastModified().toUTC().toString(Qt::ISODate).toStdString() }
+        });
+    }
 
     // newest first, since that's usually the one wanted
-    QFileInfoList infos = dir.entryInfoList(QStringList() << "*.dcx", QDir::Files, QDir::Time);
-
-    for(const QFileInfo & info : infos)
+    for(const QFileInfo & info : qdir.entryInfoList(QStringList() << "*.dcx", QDir::Files, QDir::Time))
     {
         states.push_back({
-            { "file", info.fileName().toStdString() },
+            { "type", "state" },
+            { "name", info.fileName().toStdString() },
+            { "file", (prefix + info.fileName()).toStdString() },
             { "modified", info.lastModified().toUTC().toString(Qt::ISODate).toStdString() }
         });
     }

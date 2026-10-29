@@ -203,8 +203,8 @@ An unnamed directory is named after its last component. Symbolic links are
 followed only if they lead into one of these directories.
 
 State files loaded and saved remotely are confined to
-`DISPLAYCLUSTER_STATE_DIR`, and are named relative to it (`demo.dcx`, not
-`/home/vislab/Content/demo.dcx`). The control window's own Load State and
+`DISPLAYCLUSTER_STATE_DIR`, and are named relative to it (`demo.dcx` or
+`talks/demo.dcx`, not `/home/vislab/Content/demo.dcx`). The control window's own Load State and
 Save State aren't limited this way.
 
 ## The web UI
@@ -265,13 +265,16 @@ rename the window, and:
 
 ### Opening content
 
-**Open…** browses the media directories: pick a location on the left, open
-folders, sort by name, date or size, and open a file. **Open folder as grid**
+**Open…** browses the media directories: pick a location on the left, click a
+folder to go into it, and **..** at the top of the list (or a name in the path
+above it) to go back up. Sort by name, date or size, and open a file. **Open folder as grid**
 opens the files in the current folder tiled across the wall, like the control
 window's Open Contents Directory.
 
 **Load state…** and **Save state…** list and write state files in the state
-directory.
+directory, which can have folders. They're navigated the same way, and
+both dialogs open in the folder last used. Save puts the file in the folder
+shown; a name with a slash, like `talks/morning`, makes a new folder.
 
 ### Options
 
@@ -663,9 +666,9 @@ images too big to decode cheaply); its URL changes when the file does.
 | Request | Body | Returns / does |
 |---|---|---|
 | `GET /options`, `PATCH /options` | any of `constrainAspectRatio`, `showWindowBorders`, `showContentLabels`, `showTestPattern`, `enableMullionCompensation`, `showZoomContext`, `enableStreamingSynchronization`, `showStreamingSegments`, `showStreamingStatistics`, as booleans | the display options |
-| `GET /state` | | state files in the state directory, newest first |
+| `GET /state?dir=` | | a folder of the state directory (default its top): subfolders by name, `{type: "directory", name, dir, modified}`, then state files newest first, `{type: "state", name, file, modified}`. `dir` and `file` are relative to the state directory |
 | `POST /state/load` | `{file}` | load a state file |
-| `POST /state/save` | `{file}` | save one (`.dcx` is added if missing) |
+| `POST /state/save` | `{file}` | save one (`.dcx` is added if missing); folders in `file` are made as needed |
 
 ### Browsing
 

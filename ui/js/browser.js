@@ -45,6 +45,38 @@ function li(icon, name, meta) {
   return item;
 }
 
+// breadcrumbs for dir (a '/'-separated path, '' at the top) under a top
+// labelled top; clicking one calls go(thatDir)
+function crumbs(top, dir, go) {
+  const parts = dir ? dir.split('/') : [];
+  const items = [];
+  const add = (label, to) => {
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.addEventListener('click', () => go(to));
+    items.push(b);
+  };
+  add(top, '');
+  parts.forEach((part, i) => {
+    const sep = document.createElement('span'); sep.className = 'sep'; sep.textContent = '/';
+    items.push(sep);
+    add(part, parts.slice(0, i + 1).join('/'));
+  });
+  return items;
+}
+
+function parentOf(dir) {
+  return dir.includes('/') ? dir.slice(0, dir.lastIndexOf('/')) : '';
+}
+
+// the first row below the top folder: back up one level
+function upRow(dir, go) {
+  const item = li('↑', '..', 'up one folder');
+  item.classList.add('up');
+  item.addEventListener('click', () => go(parentOf(dir)));
+  return item;
+}
+
 export class FileBrowser {
   // callbacks: open(uri), openGrid(root, dir), error(e)
   constructor(api, callbacks) {
@@ -113,21 +145,7 @@ export class FileBrowser {
   }
 
   drawCrumbs() {
-    const parts = this.dir ? this.dir.split('/') : [];
-    const crumbs = [];
-    const add = (label, dir) => {
-      const b = document.createElement('button');
-      b.textContent = label;
-      b.addEventListener('click', () => this.navigate(this.root, dir));
-      crumbs.push(b);
-    };
-    add(this.root, '');
-    parts.forEach((part, i) => {
-      const sep = document.createElement('span'); sep.className = 'sep'; sep.textContent = '/';
-      crumbs.push(sep);
-      add(part, parts.slice(0, i + 1).join('/'));
-    });
-    this.crumbsEl.replaceChildren(...crumbs);
+    this.crumbsEl.replaceChildren(...crumbs(this.root, this.dir, (dir) => this.navigate(this.root, dir)));
   }
 
   async load(more) {
@@ -177,6 +195,7 @@ export class FileBrowser {
     });
 
     if (!items.length) items.push(this.row('No folders or files the wall can open here.'));
+    if (this.dir) items.unshift(upRow(this.dir, (dir) => this.navigate(this.root, dir)));
     this.listEl.replaceChildren(...items);
     this.moreEl.hidden = this.entries.length >= this.total;
     this.statusEl.textContent = this.total > this.entries.length ? `${this.entries.length} of ${this.total}` : '';
@@ -185,7 +204,8 @@ export class FileBrowser {
   select(entry) {
     this.selected = entry;
     this.openEl.disabled = !entry || !entry.uri;
-    for (const [i, item] of [...this.listEl.children].entries()) {
+    const rows = [...this.listEl.children].filter((item) => !item.classList.contains('up'));
+    for (const [i, item] of rows.entries()) {
       item.classList.toggle('selected', this.entries[i] === entry);
     }
   }
@@ -198,60 +218,82 @@ export class FileBrowser {
 }
 
 export class StateDialog {
-  // callbacks: load(file), save(file)
+  // callbacks: load(file), save(file); file is relative to the state directory
   constructor(api, callbacks) {
     this.api = api;
     this.cb = callbacks;
     this.dialog = document.getElementById('state-dialog');
     this.titleEl = document.getElementById('state-title');
+    this.crumbsEl = document.getElementById('state-crumbs');
     this.saveEl = document.getElementById('state-save');
     this.nameEl = document.getElementById('state-name');
     this.listEl = document.getElementById('state-list');
     this.okEl = document.getElementById('state-ok');
     this.mode = 'load';
+    this.dir = '';
     this.selected = null;
 
     this.okEl.addEventListener('click', () => this.confirm());
     this.nameEl.addEventListener('input', () => { this.okEl.disabled = !this.nameEl.value.trim(); });
-    this.nameEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') this.confirm(); });
+    // preventDefault, or the Enter goes on to click the button focus returns to,
+    // Save state…, and the dialog opens again
+    this.nameEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); this.confirm(); } });
   }
 
-  async show(mode) {
+  // opens in the folder last used, so a series of saves lands together
+  show(mode) {
     this.mode = mode;
-    this.selected = null;
     this.titleEl.textContent = mode === 'save' ? 'Save state' : 'Load state';
     this.okEl.textContent = mode === 'save' ? 'Save' : 'Load';
     this.saveEl.hidden = mode !== 'save';
     this.nameEl.value = '';
-    this.okEl.disabled = true;
-    this.listEl.replaceChildren();
     this.dialog.showModal();
     if (mode === 'save') this.nameEl.focus();
+    this.navigate(this.dir);
+  }
 
-    let states = [];
+  async navigate(dir) {
+    this.dir = dir;
+    this.selected = null;
+    this.okEl.disabled = this.mode === 'save' ? !this.nameEl.value.trim() : true;
+    this.crumbsEl.replaceChildren(...crumbs('states', dir, (to) => this.navigate(to)));
+    this.listEl.replaceChildren(this.row('Loading…'));
+
+    let entries;
     try {
-      states = await this.api.get('/state');
+      entries = await this.api.get('/state?' + new URLSearchParams({ dir }));
     } catch (e) {
-      this.listEl.append(this.row(e.message));
+      // the folder may have gone; start again from the top
+      if (dir && e.status === 404) return this.navigate('');
+      this.listEl.replaceChildren(this.row(e.message));
       return;
     }
+    if (dir !== this.dir) return;   // navigated elsewhere meanwhile
 
-    if (!states.length) {
-      this.listEl.append(this.row(mode === 'save' ? 'No saved states yet.' : 'No saved states yet. Save one first.'));
-      return;
-    }
-
-    this.listEl.replaceChildren(...states.map((s) => {
-      const item = li('▤', s.file.replace(/\.dcx$/, ''), formatDate(s.modified));
+    const items = entries.map((s) => {
+      if (s.type === 'directory') {
+        const item = li(typeIcon('directory'), s.name, formatDate(s.modified));
+        item.addEventListener('click', () => this.navigate(s.dir));
+        return item;
+      }
+      const name = s.name.replace(/\.dcx$/, '');
+      const item = li('▤', name, formatDate(s.modified));
       item.addEventListener('click', () => {
         this.selected = s.file;
         for (const other of this.listEl.children) other.classList.toggle('selected', other === item);
-        if (mode === 'save') this.nameEl.value = s.file.replace(/\.dcx$/, '');
+        if (this.mode === 'save') this.nameEl.value = name;
         this.okEl.disabled = false;
       });
       item.addEventListener('dblclick', () => { this.selected = s.file; this.confirm(); });
       return item;
-    }));
+    });
+
+    if (!items.length) {
+      items.push(this.row(dir ? 'This folder is empty.'
+        : this.mode === 'save' ? 'No saved states yet.' : 'No saved states yet. Save one first.'));
+    }
+    if (dir) items.unshift(upRow(dir, (to) => this.navigate(to)));
+    this.listEl.replaceChildren(...items);
   }
 
   row(text) {
@@ -263,10 +305,11 @@ export class StateDialog {
 
   confirm() {
     if (this.mode === 'save') {
-      const name = this.nameEl.value.trim();
+      // a name with slashes makes folders, relative to the one shown
+      const name = this.nameEl.value.trim().replace(/^\/+/, '');
       if (!name) return;
       this.dialog.close();
-      this.cb.save(name);
+      this.cb.save(this.dir ? `${this.dir}/${name}` : name);
     } else if (this.selected) {
       this.dialog.close();
       this.cb.load(this.selected);

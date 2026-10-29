@@ -426,7 +426,7 @@ void RestServer::setupRoutes()
             "GET /windows/{name}", "PATCH /windows/{name}", "DELETE /windows/{name}", "GET /windows/{name}/thumbnail",
             "GET /options", "PATCH /options",
             "GET /sensors", "PUT /sensors",
-            "GET /state", "POST /state/load", "POST /state/save",
+            "GET /state?dir=", "POST /state/load", "POST /state/save",
             "POST /windows/directory",
             "GET /media", "GET /media/{root}?dir=&sort=name|modified|size&order=asc|desc&offset=&limit=&all=",
             "WebSocket /stream/{name}"
@@ -666,9 +666,10 @@ void RestServer::setupRoutes()
         }
     });
 
-    s.Get("/state", [c](const httplib::Request &, httplib::Response & res)
+    s.Get("/state", [c](const httplib::Request & req, httplib::Response & res)
     {
-        respond(res, onGuiThread([c]() { return c->listStates(); }));
+        std::string dir = req.get_param_value("dir");
+        respond(res, onGuiThread([c, dir]() { return c->listStates(dir); }));
     });
 
     s.Post("/state/load", [c, change](const httplib::Request & req, httplib::Response & res)

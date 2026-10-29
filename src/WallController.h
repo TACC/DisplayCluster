@@ -61,8 +61,9 @@ class WallController
         // it's not given). Sensor-controlled windows follow at once.
         Result setSensors(const json & params);
 
-        // the state files in the state directory, newest first
-        Result listStates();
+        // the folders in dir (relative to the state directory; "" for the
+        // directory itself), by name, then its state files, newest first
+        Result listStates(std::string dir);
 
         // file is relative to the state directory
         Result loadState(std::string file);
