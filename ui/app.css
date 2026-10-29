@@ -18,6 +18,9 @@
   /* the wall view is dark in both themes, like the wall itself */
   --wall-accent: #5b9bf0;
   --touch: 44px;
+  --folder: #d79b2b;
+  --state: #2f6fd0;
+  --state-bg: #d5e3f7;
   color-scheme: light;
 }
 
@@ -38,6 +41,9 @@
     --warn-bg: #4a3610;
     --warn-text: #f3d39a;
     --danger: #f08a86;
+    --folder: #e2b04f;
+    --state: #8db8f2;
+    --state-bg: #2b4466;
     color-scheme: dark;
   }
 }
@@ -439,6 +445,12 @@ input:focus, button:focus-visible, select:focus-visible {
 .file-list li:hover { background: var(--surface-2); }
 .file-list li.selected { background: var(--accent-bg); color: var(--accent-text); }
 .file-list .type { width: 20px; text-align: center; color: var(--muted); }
+.file-list .type.drawn { display: flex; align-items: center; justify-content: center; }
+.file-list .type svg { display: block; }
+.fill-folder { fill: var(--folder); }
+.fill-state { fill: var(--state); }
+.fill-state-bg { fill: var(--state-bg); }
+.file-list li.up .type { font-weight: 600; }
 .file-list .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .file-list .meta { font-size: 12px; color: var(--muted); white-space: nowrap; }
 .file-list .empty-row { cursor: default; color: var(--muted); }

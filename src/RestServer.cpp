@@ -289,7 +289,10 @@ void RestServer::mountUi()
         {
             std::string dir = QDir(candidate).canonicalPath().toStdString();
 
-            server_->set_mount_point("/ui/", dir);
+            // no-cache: browsers check back (a cheap 304, by ETag) instead of
+            // guessing how long a file stays fresh, so after an update they
+            // don't run old scripts against the new API
+            server_->set_mount_point("/ui/", dir, { { "Cache-Control", "no-cache" } });
 
             // the web app manifest, named for the wall as the browser reached
             // it, so a home-screen app is called e.g. "rattler": the template,

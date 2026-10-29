@@ -36,9 +36,33 @@ export function formatDate(iso) {
   return d.toLocaleDateString([], opts);
 }
 
+// drawn icons for the rows that most need telling apart: a folder, and a
+// saved state (a wall with windows on it)
+const SVG_ICONS = {
+  directory: '<path class="fill-folder" d="M2.5 6.5A1.5 1.5 0 0 1 4 5h5l2 2.2h9A1.5 1.5 0 0 1 21.5 8.7v9.8A1.5 1.5 0 0 1 20 20H4a1.5 1.5 0 0 1-1.5-1.5z"/>',
+  state: '<rect class="fill-state-bg" x="2.5" y="4.5" width="19" height="15" rx="2"/>' +
+         '<rect class="fill-state" x="5" y="7" width="8" height="5" rx="0.8"/>' +
+         '<rect class="fill-state" x="14.5" y="7" width="4.5" height="10" rx="0.8"/>' +
+         '<rect class="fill-state" x="5" y="13.5" width="8" height="3.5" rx="0.8"/>',
+};
+
+function iconElement(icon) {
+  const i = document.createElement('span');
+  i.className = 'type';
+  i.setAttribute('aria-hidden', 'true');
+  if (SVG_ICONS[icon]) {
+    i.classList.add('drawn', icon);
+    i.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20">${SVG_ICONS[icon]}</svg>`;
+  } else {
+    i.textContent = icon;
+  }
+  return i;
+}
+
+// icon: a key of SVG_ICONS, or a character
 function li(icon, name, meta) {
   const item = document.createElement('li');
-  const i = document.createElement('span'); i.className = 'type'; i.textContent = icon; i.setAttribute('aria-hidden', 'true');
+  const i = iconElement(icon);
   const n = document.createElement('span'); n.className = 'name'; n.textContent = name; n.title = name;
   const m = document.createElement('span'); m.className = 'meta'; m.textContent = meta || '';
   item.append(i, n, m);
@@ -182,7 +206,7 @@ export class FileBrowser {
   draw() {
     const items = this.entries.map((e) => {
       const meta = e.type === 'directory' ? formatDate(e.modified) : `${formatSize(e.size)} · ${formatDate(e.modified)}`;
-      const item = li(typeIcon(e.type), e.name, meta);
+      const item = li(e.type === 'directory' ? 'directory' : typeIcon(e.type), e.name, meta);
       if (this.selected === e) item.classList.add('selected');
       item.addEventListener('click', () => {
         if (e.type === 'directory') this.navigate(this.root, e.dir);
@@ -272,12 +296,12 @@ export class StateDialog {
 
     const items = entries.map((s) => {
       if (s.type === 'directory') {
-        const item = li(typeIcon('directory'), s.name, formatDate(s.modified));
+        const item = li('directory', s.name, formatDate(s.modified));
         item.addEventListener('click', () => this.navigate(s.dir));
         return item;
       }
       const name = s.name.replace(/\.dcx$/, '');
-      const item = li('▤', name, formatDate(s.modified));
+      const item = li('state', name, formatDate(s.modified));
       item.addEventListener('click', () => {
         this.selected = s.file;
         for (const other of this.listEl.children) other.classList.toggle('selected', other === item);
