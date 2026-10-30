@@ -1,3 +1,5 @@
 build/
 __pycache__/
 *.sif
+build-streamer/
+streamer/dist/

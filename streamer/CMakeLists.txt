@@ -110,3 +110,9 @@ if(APPLE)
         MACOSX_BUNDLE_BUNDLE_NAME DesktopStreamer
     )
 endif()
+
+# cmake --install puts DesktopStreamer in <prefix>/bin (the .app in <prefix>
+# on macOS). It still uses the Qt it was built against; a copy to hand to
+# presenters is made with windeployqt on Windows and package-macos.sh on
+# macOS (see doc/setup.md, "DesktopStreamer")
+install(TARGETS DesktopStreamer RUNTIME DESTINATION bin BUNDLE DESTINATION .)

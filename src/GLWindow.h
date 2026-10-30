@@ -92,6 +92,9 @@ class GLWindow : public QWindow
 
         void finalize();
 
+        // make this window's context current, without drawing
+        bool makeCurrent();
+
         // make the context current, run resizeGL()+paintGL(), but don't present
         void updateGL();
 

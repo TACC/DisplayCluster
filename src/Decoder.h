@@ -170,6 +170,9 @@ public:
         Signal();
     }
 
+    // the CUDA device (ordinal) to decode on; call before Setup()
+    void setCudaDevice(int device) { cudaDevice_ = device; }
+
     bool
     Setup(std::string uri)
     {
@@ -298,6 +301,7 @@ private:
     int current_frame_ = -1;
     bool newFrame_;
     bool hwDecode_ = true;
+    int cudaDevice_ = 0;
     SwsContext *swsContext_ = nullptr;
     // starts false, not true: a freshly-created decoder hasn't run
     // _decode() even once yet, and defaulting to "synced" would let the

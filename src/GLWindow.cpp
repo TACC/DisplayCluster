@@ -160,6 +160,11 @@ void GLWindow::purgeTextures()
     purgeTextureIds_.clear();
 }
 
+bool GLWindow::makeCurrent()
+{
+    return context_ != NULL && context_->makeCurrent(this);
+}
+
 void GLWindow::updateGL()
 {
     context_->makeCurrent(this);

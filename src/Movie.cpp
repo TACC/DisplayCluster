@@ -38,6 +38,8 @@
 
 #include "Movie.h"
 #include "main.h"
+#include "MainWindow.h"
+#include "GLWindow.h"
 #include "log.h"
 
 #include <QOpenGLContext>
@@ -53,6 +55,69 @@ namespace
 // on a GPU are valid in any other context on the same GPU
 CUcontext g_cudaContext = nullptr;
 
+// the CUDA ordinal of the GPU this process's windows are on, so movies are
+// decoded and handed to OpenGL on the GPU that shows them. Device 0 isn't
+// necessarily that GPU: a node with a GPU per screen runs a process per
+// screen, and each one's screen is on a different GPU. -1 until known.
+int g_cudaDevice = -1;
+
+int displayCudaDevice()
+{
+    if (g_cudaDevice >= 0)
+    {
+        return g_cudaDevice;
+    }
+
+    cuInit(0);
+
+    // cuGLGetDevices() asks about the current GL context; make one current
+    // if need be (a Movie can be made outside paintGL())
+    if (QOpenGLContext::currentContext() == nullptr
+        && (g_mainWindow->getGLWindows().empty() || !g_mainWindow->getGLWindow()->makeCurrent()))
+    {
+        return 0;   // not known yet; ask again next time
+    }
+
+    unsigned int count = 0;
+    CUdevice glDevices[8];
+
+    if (cuGLGetDevices(&count, glDevices, 8, CU_GL_DEVICE_LIST_ALL) != CUDA_SUCCESS || count == 0)
+    {
+        put_flog(LOG_WARN, "couldn't tell which GPU OpenGL is on; decoding movies on CUDA device 0");
+        g_cudaDevice = 0;
+        return g_cudaDevice;
+    }
+
+    // a CUdevice is a handle; FFmpeg wants the ordinal
+    int ordinals = 0;
+    cuDeviceGetCount(&ordinals);
+
+    g_cudaDevice = 0;
+
+    for (int i = 0; i < ordinals; i++)
+    {
+        CUdevice device;
+
+        if (cuDeviceGet(&device, i) == CUDA_SUCCESS && device == glDevices[0])
+        {
+            g_cudaDevice = i;
+            break;
+        }
+    }
+
+    char name[128] = "";
+    char busId[32] = "";
+    CUdevice device;
+    cuDeviceGet(&device, g_cudaDevice);
+    cuDeviceGetName(name, sizeof(name), device);
+    cuDeviceGetPCIBusId(busId, sizeof(busId), device);
+
+    put_flog(LOG_INFO, "movies decode on CUDA device %i, %s (%s), the GPU showing this process's windows",
+             g_cudaDevice, name, busId);
+
+    return g_cudaDevice;
+}
+
 void ensureCudaContext()
 {
     if (g_cudaContext)
@@ -63,7 +128,7 @@ void ensureCudaContext()
 
     cuInit(0);
     CUdevice device;
-    cuDeviceGet(&device, 0);
+    cuDeviceGet(&device, displayCudaDevice());
     // cuCtxCreate() is the wrong tool here: cuda.h redirects the bare name
     // to whatever versioned symbol (_v2/_v3/_v4/...) is current for the
     // CUDA version this was BUILT against, but that's a compile-time
@@ -161,6 +226,9 @@ Movie::Movie(std::string uri)
     initialized_ = false;
     paused_ = false;
     decoder = new Decoder();
+#ifdef DISPLAYCLUSTER_CUDA
+    decoder->setCudaDevice(displayCudaDevice());
+#endif
     decoder->Setup(uri);
 }
 

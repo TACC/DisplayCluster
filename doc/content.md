@@ -25,6 +25,14 @@ content lives on a filesystem shared by all of them, such as the home
 directories. A file on one machine's local disk shows on that machine's tiles
 only, and every other tile shows the error image.
 
+This is what a shared filesystem already gives you. On a cluster whose home
+directories (or other folders) are on NFS, or an equivalent such as Lustre,
+GPFS or BeeGFS, every node sees the same files at the same paths, so content
+put there just works and nothing needs copying to the nodes. Stallion's `/home`, for
+example, is NFS. Only content on a disk that isn't
+shared needs thought: copy it to the same path on every node, or move it to a
+shared folder.
+
 **In the container, the folder has to be visible inside the image.** The
 container (apptainer) sees your home directory, `/tmp` and the folder the wall
 starts in, plus whatever the site's apptainer configuration adds. A folder
@@ -180,7 +188,8 @@ What it does, in detail:
 - **Running it again updates the copy.** Unchanged files are skipped. If
   `folder/file.dcx` exists already and the new one differs, the old one is kept
   as `file.dcx.orig`.
-- **It doesn't need the wall to be running.** Python 3 is all it needs.
+- **It doesn't need the wall to be running**, or the container: it runs on
+  the host, with Python 3 ([below](#running-the-scripts)).
 
 To copy a gathered folder to another wall, copy the whole folder and load it
 from that wall's state directory. `rsync -aH` keeps the pyramid tiles hard
@@ -234,14 +243,27 @@ done
 
 ## Running the scripts
 
-Both scripts are in `scripts/` in the source, and installed in the image. With
-the image and no checkout, run them through apptainer:
+Both scripts run on the host, like any other command: they're plain Python 3,
+using only its standard library, and don't talk to the wall, so they don't
+need the container. Run them on any machine that sees the files, usually the
+head node.
+
+Put a copy where your shell finds it, such as `~/bin`. From a checkout, copy
+them from `scripts/`. With only the image, copy them out of it:
+
+```bash
+mkdir -p ~/bin
+for s in check-dcx localize-dcx; do
+    apptainer exec displaycluster.sif cat /usr/local/bin/$s > ~/bin/$s
+    chmod +x ~/bin/$s
+done
+```
+
+Copy them again after installing a new image, to get any fixes.
+
+On a machine without Python 3, run them in the container instead. It sees your
+home directory and the current folder; a folder elsewhere needs `--bind`:
 
 ```bash
 apptainer exec displaycluster.sif check-dcx talk.dcx
-apptainer exec displaycluster.sif localize-dcx talks/morning talk.dcx
 ```
-
-The image sees your home directory and the current folder; a folder elsewhere
-needs `--bind`, as with the wall. With a checkout, or a copy of the scripts in
-`~/bin`, run them directly. They need only Python 3.

@@ -250,6 +250,7 @@ Otherwise, copy it to the same path on every node.
 |---|---|
 | `/usr/local/bin/displaycluster` | the program |
 | `/usr/local/ui`, `/usr/local/data`, `/usr/local/examples` | web UI, images, examples |
+| `/usr/local/bin/check-dcx`, `localize-dcx` | state file tools; they run on the host too ([content.md](content.md#running-the-scripts)) |
 | `/usr/local/src/DisplayCluster` | the source it was built from, including `scripts/` |
 
 The host's NVIDIA driver is mapped into the container at run time
@@ -666,6 +667,48 @@ To try the software before the wall hardware is ready, put every process on
 `localhost` with `"fullscreen": 0` and small `screenWidth`/`screenHeight`.
 The wall then appears as windows on your desktop.
 
+### Several screens on a node: one process or one per GPU
+
+A node driving more than one screen can run a single process with a tile for
+each screen, or a process per screen. Which is right depends on how many
+GPUs drive the screens. The two set up X differently, and handle content
+differently.
+
+**One GPU driving several screens: one process.** Make a single X screen
+that spans the monitors, and give the process a tile for each, at its pixel
+offset in that X screen, as in the example above. The process's windows share
+one OpenGL context, so each image is loaded once, and each movie decoded once,
+however many of its screens show it. The tiles are drawn one after another,
+then swapped one after another.
+
+**A GPU per screen: one process per GPU.** Run each GPU as its own X screen
+(`:0`, `:0.1`, ...), and give each its own process with one tile. This is
+Stallion's setup: two GPUs per node, two processes per node. Don't make one X
+screen span several GPUs (with Xinerama or NVIDIA Mosaic) to run one process.
+The process's shared OpenGL context assumes a single GPU, so drawing would be
+slow at best.
+
+With a process per GPU, nothing is shared between the processes. Each one
+loads every image and decodes every movie that its tile shows, by itself.
+- **Each process decodes the whole movie, not just the part on its tile.** A
+  movie spanning both of a node's screens is decoded twice on that node, once
+  on each GPU. One spanning Stallion's whole wall is decoded 18 times, once
+  per process.
+- **Each process decodes on its own screen's GPU.** It decodes with that
+  GPU's NVDEC decoder and hands frames straight to the OpenGL textures on the
+  same GPU. Its log names the GPU at the first movie:
+  `movies decode on CUDA device 1, ... (0001:C5:00.0)`.
+- **Older builds decoded every movie on CUDA device 0.** Before this was
+  fixed, a node's second process decoded on the first GPU too. Its frames
+  then crossed to its own GPU through system memory, and the second GPU's
+  decoder sat idle.
+- **Check that the decoding is spread out.** With a movie on both of a node's
+  screens, run `nvidia-smi dmon -s u` there: the `dec` column should show load
+  on both GPUs.
+
+Heavy movie use is limited by the decoders: count how many processes show
+each movie, not how many movies there are.
+
 ## The launcher: startdisplaycluster
 
 `scripts/startdisplaycluster` starts a containerized wall. It's the one file a
@@ -1027,6 +1070,44 @@ it, and try again.
 [README](../README.md#building-desktopstreamer). It's a vcpkg build, like the
 main program, but with no MPI, CUDA or FFmpeg.
 
+**Handing it to presenters.** A build runs on the machine it was built on,
+using the Qt it was built against. To give it to someone without a build
+setup, package it with its Qt first:
+
+- **Windows:** from the "x64 Native Tools Command Prompt for VS 2022", in
+  `streamer`, after building:
+  ```
+  mkdir dist\DesktopStreamer
+  copy build\Release\DesktopStreamer.exe dist\DesktopStreamer\
+  copy build\Release\*.dll dist\DesktopStreamer\
+  build\vcpkg_installed\x64-windows\tools\Qt6\bin\windeployqt.exe --release --no-translations dist\DesktopStreamer\DesktopStreamer.exe
+  ```
+  `windeployqt` adds Qt's plugins, and Microsoft's `vc_redist.x64.exe`,
+  which installs the Visual C++ runtime on a computer that lacks it. Zip
+  `dist\DesktopStreamer` and hand it out; the presenter unzips it and runs
+  `DesktopStreamer.exe`, with no `QT_PLUGIN_PATH` needed. The folder is
+  about 110 MB before zipping.
+- **macOS:** after building, run
+  ```bash
+  streamer/package-macos.sh build-streamer/DesktopStreamer.app
+  ```
+  It makes the app self-contained and writes `build-streamer/DesktopStreamer.dmg`
+  (about 40 MB) to hand out. Plain `macdeployqt` isn't enough with Homebrew's
+  Qt: the app it makes still loads Homebrew's Qt as well as its own, and
+  doesn't start on a Mac without Homebrew. The script fixes that, and checks
+  that nothing in the app refers outside it. The app isn't signed with a
+  developer ID, so the first time, the presenter opens it with right-click →
+  Open (or System Settings → Privacy & Security → Open Anyway). It runs on
+  the kind of Mac it was built on; an Intel build also runs on Apple silicon,
+  under Rosetta.
+- **Linux:** `cmake --install build-streamer --prefix /usr/local` (or another
+  prefix) installs `bin/DesktopStreamer`. It uses the system's Qt, so install
+  it on machines running the same distribution, with the packages listed
+  above.
+
+Build the copy you hand out from the same revision as the wall, so the two
+agree on how frames are sent.
+
 **Using it:**
 
 1. **Hostname:** the wall's head node.
@@ -1044,15 +1125,64 @@ It always connects to port 1701, so leave `DISPLAYCLUSTER_NETWORKPORT` at its
 default. It sends JPEG frames with no encryption: don't show anything
 confidential over a network you don't trust.
 
+## A wall account's files: checklist
+
+Everything a containerized wall needs lives in the wall account's home
+directory, at the paths the launcher expects unless you change them. Use
+this list to set up a new wall, a second wall, or a replacement account. On
+an existing wall, use it to check what's where.
+
+| What | Default place | Set by | Notes |
+|---|---|---|---|
+| the image | `~/displaycluster.sif` | `DISPLAYCLUSTER_SIF` in the launcher | one copy, where the launcher looks; see below |
+| the launcher | `~/bin/startdisplaycluster` | | your edited copy of `scripts/startdisplaycluster` |
+| the wall's layout | `~/wall.json` | `DISPLAYCLUSTER_CONFIG` | [configuration.json](#describing-the-wall-configurationjson) |
+| content | `~/Content` | `CONTENT_DIR`, `DISPLAYCLUSTER_MEDIA_DIRS` | readable from every node; see [content.md](content.md) |
+| saved states | `~/.displaycluster/states` | `DISPLAYCLUSTER_STATE_DIR` | made by the first save |
+| API token | `~/.displaycluster/api_token` | `DISPLAYCLUSTER_API_TOKEN` | mode 600; see [remote-control.md](remote-control.md#the-token) |
+| HTTPS certificate and key | `~/.displaycluster/api_cert.pem`, `api_key.pem` | `DISPLAYCLUSTER_API_CERT`, `_KEY` | an RSA certificate, key mode 600; read only at startup |
+| state file tools (optional) | `~/bin/check-dcx`, `~/bin/localize-dcx` | | copied out of the image; see [content.md](content.md#running-the-scripts) |
+| starting and stopping | a systemd unit, or cron jobs | | [Running it unattended](#running-it-unattended) |
+
+**Keep one image, where the launcher looks for it.** An image copied
+anywhere else isn't used, however new it is, so don't keep spares beside
+the real one. To keep the previous image for going back, rename it
+(`displaycluster.sif.old`) rather than putting it in another folder.
+
+**After installing, confirm what's running.** Check the version, which is
+the git commit the image was built from, in any of these places:
+- the control window;
+- each process's startup log line (`version ...`), with
+  `DISPLAYCLUSTER_LOG_THRESHOLD=2`;
+- `GET /config`:
+  ```bash
+  curl -s -H "Authorization: Bearer $(cat ~/.displaycluster/api_token)" https://wallhost:1910/config
+  ```
+
+To check that a copied image arrived intact, compare `sha256sum
+displaycluster.sif` with the same on the build machine.
+
 ## Updating
 
 **Container:**
 ```bash
 cd DisplayCluster && git pull && ./build-sif.sh
 ```
-Stop the wall, copy the new `displaycluster.sif` into place if it lives
-elsewhere, and start the wall again. Check the new launcher in `scripts/` for
-new settings now and then, but your edited copy keeps working.
+Stop the wall, copy the new `displaycluster.sif` over the one the launcher
+uses, start the wall again, and [confirm the version](#a-wall-accounts-files-checklist).
+
+Your edited launcher keeps working with a new image, but a new image can
+bring a new launcher, with new settings or fixes. Compare yours with the one
+in the image now and then:
+
+```bash
+apptainer exec displaycluster.sif cat /usr/local/src/DisplayCluster/scripts/startdisplaycluster > /tmp/startdisplaycluster.new
+diff ~/bin/startdisplaycluster /tmp/startdisplaycluster.new
+```
+
+The differences are your own settings and whatever changed upstream. Copy
+the upstream changes into your copy, or copy your settings into the new one
+and replace yours. Your settings are all at the top, under "site settings".
 
 **Native:** `git pull`, rebuild, `cmake --install` on every node (or the
 shared prefix), and restart the wall.

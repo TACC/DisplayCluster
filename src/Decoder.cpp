@@ -187,7 +187,11 @@ Decoder::_setup()
 
     if (hwDecode_)
     {
-        if (av_hwdevice_ctx_create(&hwDeviceCtx_, AV_HWDEVICE_TYPE_CUDA, NULL, NULL, 0) < 0)
+        // the GPU showing this process's windows (see Movie.cpp's
+        // displayCudaDevice()), not just the first one
+        std::string device = std::to_string(cudaDevice_);
+
+        if (av_hwdevice_ctx_create(&hwDeviceCtx_, AV_HWDEVICE_TYPE_CUDA, device.c_str(), NULL, 0) < 0)
         {
             std::cerr << "could not create CUDA hw device context\n";
             return false;

@@ -29,7 +29,9 @@ launcher, remote control, and troubleshooting.
   afterward, so every later `>> same.log` fails and its command silently
   doesn't run.
 - Git for Windows
-- CMake 3.16+ (bundled with VS2022, or install standalone)
+- CMake 3.16+ (bundled with VS2022 as the workload's "C++ CMake tools for
+  Windows" component, or install standalone). If `cmake` isn't found in the
+  Native Tools prompt, add that component in the Visual Studio Installer.
 
 #### Package manager
 
@@ -187,6 +189,17 @@ the `dec` column should be above 0. `nvidia-smi` should list the render rank's
 `displaycluster.exe` with type `C+G` (CUDA and graphics on that GPU), and
 the "can't share GL textures" line shouldn't appear. Task Manager's GPU tab
 shows the decoder's load as "Video Decode".
+
+On a node with several GPUs, each running its own X screen and its own
+DisplayCluster process (as on Stallion), each process decodes on the GPU
+behind its own windows, not on the first GPU. Its log says which:
+
+```
+movies decode on CUDA device 1, NVIDIA RTX PRO 6000 Blackwell Server Edition (0001:C5:00.0), the GPU showing this process's windows
+```
+
+There, `nvidia-smi dmon -s u` should show `dec` load on every GPU whose
+screens show a movie.
 
 ### Ubuntu
 
