@@ -454,3 +454,7 @@ on the wall, live, through the same port.
 
 [doc/remote-control.md](doc/remote-control.md) covers setting it up, the web
 UI, the phone app, the browser extension, scripting with `DC.py`, and the API.
+
+[doc/content.md](doc/content.md) covers where content can live, how saved
+layouts (`.dcx` files) name it, and `localize-dcx` and `check-dcx`, for keeping
+a layout and its content together and repairing broken ones.

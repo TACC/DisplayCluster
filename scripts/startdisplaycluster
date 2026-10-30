@@ -69,8 +69,10 @@ import json, sys
 print(",".join(["localhost"] + [p["host"] for p in json.load(open(sys.argv[1]))["processes"]]))
 ' "$DISPLAYCLUSTER_CONFIG") || { echo "startdisplaycluster: can't read the hosts from $DISPLAYCLUSTER_CONFIG" >&2; exit 1; }
 
+# pass these on to every node; APPTAINER_BINDPATH names host folders (outside
+# home) that the container should see, e.g. /scratch,/corral
 FORWARD=()
-for v in $(compgen -e | grep '^DISPLAYCLUSTER_'); do
+for v in $(compgen -e | grep -E '^(DISPLAYCLUSTER_|APPTAINER_BINDPATH$)'); do
     FORWARD+=(-x "$v")
 done
 

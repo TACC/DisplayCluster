@@ -213,7 +213,7 @@ the state file's own folder, so a folder holding a talk's state and its
 media (`talks/morning.dcx` naming `morning/map.png`, say) can be moved or
 copied as a whole. This holds however the state is loaded. `localize-dcx`
 makes such a folder from any state file, and `check-dcx` finds broken
-references; see [setup.md](setup.md#checking-and-moving-state-files).
+references; see [content.md](content.md).
 
 ## The web UI
 
