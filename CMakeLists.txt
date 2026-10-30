@@ -293,7 +293,7 @@ INSTALL(PROGRAMS scripts/displaycluster.py DESTINATION bin)
 INSTALL(PROGRAMS scripts/displaycluster.sh DESTINATION bin)
 
 # install state file tools
-INSTALL(PROGRAMS scripts/check-dcx scripts/localize-dcx DESTINATION bin)
+INSTALL(PROGRAMS scripts/check-dcx scripts/localize-dcx scripts/cyclestates DESTINATION bin)
 
 # install remote controller
 INSTALL(DIRECTORY remote DESTINATION .)

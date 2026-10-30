@@ -485,6 +485,7 @@ dc.run_events(dc.create_event_list('show.json'))   # or a list instead of a file
 | `examples/sensors.py` | sets sensors from the keyboard (`s 4 on`, `t 2`, `a off`) and shows them in red and green; `setup` lays out a red and a green window for each sensor |
 | `python/Bounce.ipynb` | a Jupyter notebook that bounces every open window around the wall, then puts them back |
 | `python/reposition_test.py` | opens a movie, waits, then moves and resizes it |
+| `scripts/cyclestates` | shows saved layouts in turn; [below](#cycling-through-states-cyclestates) |
 
 ### Control in scripts
 
@@ -511,6 +512,53 @@ while True:
         dc.loadState(state)
         dc.releaseControl()
         sleep(900)
+```
+
+### Cycling through states: cyclestates
+
+`scripts/cyclestates` shows a list of saved layouts in turn, for ever, as a
+gallery or lobby loop:
+
+```bash
+cyclestates -f states.txt                         # from a list, 15 minutes each
+cyclestates -t 60 antarctic.dcx Gulf.dcx webb3.dcx
+cyclestates -H wallhost -f states.txt             # a wall elsewhere, or over HTTPS
+```
+
+| Option | Means |
+|---|---|
+| `-H host` | the wall's head node; by default `localhost`. Over HTTPS, use the name on its certificate |
+| `-t seconds` | how long to show each state; by default 900 |
+| `-f listfile` | take the states from a file, one per line; `#` starts a comment. `config/states_stallion.txt` is an example |
+| `--force` | take control even if someone else has it |
+| `--once` | go through the list once, then stop |
+
+States are named relative to the state directory, as with `loadState()`. The
+token and HTTPS come from the same places as for `DC.py`, so over HTTPS set
+`DISPLAYCLUSTER_API_HTTPS=1`.
+
+It logs each state and its windows, with the time. It's built to run for days:
+- **It lets people use the wall.** It holds control only while loading. If
+  someone else has control when a state's turn comes, the state is skipped and
+  the wall left alone, and the next one is tried when that time is up. `--force`
+  takes control anyway.
+- **A missing state doesn't blank the wall.** It's logged and skipped, and what
+  was showing stays up for that state's time.
+- **It survives the wall stopping.** While the wall is down it says so and tries
+  every 30 seconds, so it can start before the wall and carry on after a restart.
+
+Stop it with Ctrl-C, or `pkill -f '[c]yclestates'`. To run it after you log out,
+start it in [tmux](setup.md#in-tmux). To run it at set times, see
+[On a schedule](setup.md#on-a-schedule).
+
+It runs on any machine that can reach the wall, with Python 3 and `DC.py`, which
+it looks for beside itself, in `../python`, and on `PYTHONPATH`. To copy both out
+of the image into `~/bin`:
+
+```bash
+apptainer exec displaycluster.sif cat /usr/local/bin/cyclestates > ~/bin/cyclestates
+apptainer exec displaycluster.sif cat /usr/local/python/DC.py > ~/bin/DC.py
+chmod +x ~/bin/cyclestates
 ```
 
 ## Control: one at a time

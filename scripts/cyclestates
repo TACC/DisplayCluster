@@ -1,0 +1,100 @@
+#! /usr/bin/env python3
+
+# shows a list of state (.dcx) files on the wall in turn, for ever: a gallery
+# or lobby loop.
+#
+#   cyclestates [-H host] [-t seconds] [--force] [--once] (-f listfile | state.dcx ...)
+#
+# -H host      the wall's head node (default localhost). Over HTTPS, use the
+#              name on its certificate.
+# -t seconds   how long to show each state (default 900)
+# -f listfile  take the states from a file, one per line; # starts a comment
+# --force      take control even if someone else has it
+# --once       go through the list once, then stop
+#
+# States are named relative to the wall's state directory, as for DC.py. The
+# token and HTTPS come from the same places as for DC.py: ~/.displaycluster/
+# api_token or $DISPLAYCLUSTER_API_TOKEN, and $DISPLAYCLUSTER_API_HTTPS=1.
+#
+# Control is released after each load, so people can use the wall between
+# states. While someone else has control, states are skipped rather than taken
+# from them (unless --force). The wall may be down: it says so, and keeps
+# trying, so this can be started before the wall and survive a restart.
+#
+# Needs DC.py: beside this script, in ../python, or on PYTHONPATH.
+
+import argparse
+import os
+import sys
+from time import sleep, strftime
+
+here = os.path.dirname(os.path.realpath(__file__))
+sys.path += [os.path.join(here, '..', 'python'), '/usr/local/python']
+
+from DC import DC, DCError
+
+RETRY_SECONDS = 30
+
+
+def log(message):
+    print('%s %s' % (strftime('%Y-%m-%d %H:%M:%S'), message), flush=True)
+
+
+def read_list(path):
+    with open(path) as f:
+        lines = (line.split('#')[0].strip() for line in f)
+        return [line for line in lines if line]
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Show state files on the wall in turn.')
+    parser.add_argument('-H', '--host', default='localhost')
+    parser.add_argument('-t', '--time', type=float, default=900, metavar='SECONDS')
+    parser.add_argument('-f', '--file', metavar='LISTFILE')
+    parser.add_argument('--force', action='store_true')
+    parser.add_argument('--once', action='store_true')
+    parser.add_argument('states', nargs='*')
+    args = parser.parse_args()
+
+    states = args.states + (read_list(args.file) if args.file else [])
+    if not states:
+        parser.error('no states: name some, or give a list with -f')
+
+    dc = None
+
+    while True:
+        for state in states:
+            shown = False
+
+            # a connection problem means the wall is down, or restarting
+            while not shown:
+                try:
+                    if dc is None:
+                        dc = DC(host=args.host, strict=True, label='cyclestates', force=args.force)
+                    log('state: %s' % state)
+                    dc.loadState(state)
+                    dc.releaseControl()
+                    for name in dc.content:
+                        log('content: %s' % name)
+                    shown = True
+                except DCError as e:
+                    # someone has control, or there's no such state: try the
+                    # next one when this one's turn is over
+                    log('skipped %s: %s' % (state, e))
+                    shown = True
+                except OSError as e:
+                    log('no wall at %s: %s; trying again in %d s' % (args.host, e, RETRY_SECONDS))
+                    dc = None
+                    sleep(RETRY_SECONDS)
+
+            sleep(args.time)
+
+        if args.once:
+            return
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass

@@ -175,6 +175,7 @@ meet in this guide:
 | `build-sif.sh` | builds the container image |
 | `scripts/startdisplaycluster` | the launcher you copy and edit for your wall |
 | `scripts/displaycluster.sh`, `displaycluster.py` | run each rank. The launcher calls them; you don't edit them. |
+| `scripts/cyclestates` | shows a list of saved layouts in turn ([remote-control.md](remote-control.md#cycling-through-states-cyclestates)) |
 | `scripts/check-dcx`, `localize-dcx` | check and repair state files, and make self-contained copies of them ([content.md](content.md)) |
 | `config/`, `examples/configuration.json` | example wall configurations |
 | `ui/` | the web UI |
@@ -251,6 +252,7 @@ Otherwise, copy it to the same path on every node.
 | `/usr/local/bin/displaycluster` | the program |
 | `/usr/local/ui`, `/usr/local/data`, `/usr/local/examples` | web UI, images, examples |
 | `/usr/local/bin/check-dcx`, `localize-dcx` | state file tools; they run on the host too ([content.md](content.md#running-the-scripts)) |
+| `/usr/local/bin/cyclestates`, `/usr/local/python/DC.py` | shows saved layouts in turn ([remote-control.md](remote-control.md#cycling-through-states-cyclestates)), and the Python client it uses |
 | `/usr/local/src/DisplayCluster` | the source it was built from, including `scripts/` |
 
 The host's NVIDIA driver is mapped into the container at run time
@@ -914,6 +916,134 @@ When the display nodes boot at the same time, their X servers may not be up
 when the wall starts. The wall then fails, and systemd tries again 10 seconds
 later until they are.
 
+### On a schedule
+
+To have the wall on during the day and off at night, start and stop it with
+the system's scheduler. Stopping means ending `mpirun` (`mpiexec` on Windows),
+which stops every process of the wall.
+
+If systemd runs the wall, use one or the other: schedule `systemctl start` and
+`systemctl stop` (as root) rather than the commands below. If you only want a
+dark wall at night, you can leave it running and put it to sleep
+(`sleepWall()` in `DC.py`, or **Sleep** in the web UI).
+
+The same schedule can start [cyclestates](remote-control.md#cycling-through-states-cyclestates),
+which shows a list of saved layouts in turn.
+
+**Linux: cron.** As the wall's account, run `crontab -e` and add:
+
+```
+PATH=/home/vislab/bin:/usr/lib64/openmpi/bin:/usr/local/bin:/usr/bin:/bin
+DISPLAY=:0
+DISPLAYCLUSTER_API_HTTPS=1
+
+# weekdays: the wall on at 7:00, off at 20:00
+0 7 * * 1-5   pgrep -x mpirun -u $LOGNAME > /dev/null || startdisplaycluster >> $HOME/displaycluster.log 2>&1
+0 20 * * 1-5  pkill -TERM -x mpirun -u $LOGNAME
+
+# cycle through states while it's on
+1 7 * * 1-5   pgrep -f '[c]yclestates' > /dev/null || cyclestates -H wallhost -f $HOME/states.txt >> $HOME/cyclestates.log 2>&1
+0 20 * * 1-5  pkill -f '[c]yclestates'
+```
+
+- Cron's environment is minimal, so set `PATH` to include the launcher,
+  `mpirun`, `apptainer` and `python3`, and `DISPLAY` as in
+  [Running it unattended](#running-it-unattended). A cron file doesn't expand
+  variables in these settings, so write them out in full.
+- The `pgrep` keeps a second wall from starting if one is already running.
+- The brackets in `[c]yclestates` stop the pattern from matching the shell
+  cron runs the line in.
+- `-H wallhost` and `DISPLAYCLUSTER_API_HTTPS=1` apply when the wall uses
+  HTTPS. The host must be the name on its certificate, not `localhost`.
+- Cron won't bring the wall back after a crash or a reboot during the day. For
+  that, make the first line `*/10 7-19 * * 1-5`, which checks every 10 minutes.
+  It also restarts a wall someone quit on purpose.
+- The logs keep growing, so empty them now and then.
+
+**macOS: launchd.** A wall needs a logged-in session to show windows, so use a
+LaunchAgent. Create `~/Library/LaunchAgents/org.tacc.displaycluster.start.plist`,
+changing the paths:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>org.tacc.displaycluster.start</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/you/DisplayCluster/scripts/run-macos.sh</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
+    </dict>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key><integer>7</integer>
+        <key>Minute</key><integer>0</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>/Users/you/Library/Logs/displaycluster.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/you/Library/Logs/displaycluster.log</string>
+</dict>
+</plist>
+```
+
+For the stop, make a second file, `org.tacc.displaycluster.stop.plist`, with its
+own `Label`, an `Hour` of 20, no logs or `EnvironmentVariables`, and these
+`ProgramArguments`:
+
+```xml
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/pkill</string>
+        <string>-TERM</string>
+        <string>-x</string>
+        <string>mpirun</string>
+    </array>
+```
+
+Then load both:
+
+```bash
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/org.tacc.displaycluster.start.plist
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/org.tacc.displaycluster.stop.plist
+```
+
+To limit a job to certain days, make `StartCalendarInterval` an array of those
+dictionaries, each with a `Weekday` (0 is Sunday). The account must be logged
+in. If the Mac is asleep at the set time, the job runs when it wakes; to keep
+it awake, use **System Settings → Energy** or `pmset`. To remove a job,
+use `launchctl bootout` with the same arguments.
+
+**Windows: Task Scheduler.** Put the commands from the README's
+["Running"](../README.md#running) section in a batch file, such as
+`C:\src\start-wall.bat`:
+
+```bat
+set DISPLAYCLUSTER_DIR=C:\src\DisplayCluster
+set DISPLAYCLUSTER_CONFIG=C:\src\DisplayCluster\configuration.json
+set QT_PLUGIN_PATH=C:\src\DisplayCluster\build\vcpkg_installed\x64-windows\Qt6\plugins
+mpiexec -n 2 C:\src\DisplayCluster\build\Release\displaycluster.exe >> C:\src\displaycluster.log 2>&1
+```
+
+Then create the two tasks, from a prompt as the wall's account:
+
+```bat
+schtasks /Create /TN "DisplayCluster start" /SC WEEKLY /D MON,TUE,WED,THU,FRI /ST 07:00 /IT /TR "C:\src\start-wall.bat"
+schtasks /Create /TN "DisplayCluster stop" /SC WEEKLY /D MON,TUE,WED,THU,FRI /ST 20:00 /IT /TR "taskkill /IM mpiexec.exe /T /F"
+```
+
+`/IT` runs a task only while the account is logged in, which the wall needs to
+show its windows. To run `cyclestates` too, add a task that runs
+`python C:\src\DisplayCluster\scripts\cyclestates -f C:\src\states.txt`, and end it the
+same way by its window or process. To remove a task, use
+`schtasks /Delete /TN "DisplayCluster start"`.
+
 ## Remote control and the web UI
 
 The control process serves a web UI, and an API for scripts, at
@@ -1142,7 +1272,7 @@ an existing wall, use it to check what's where.
 | API token | `~/.displaycluster/api_token` | `DISPLAYCLUSTER_API_TOKEN` | mode 600; see [remote-control.md](remote-control.md#the-token) |
 | HTTPS certificate and key | `~/.displaycluster/api_cert.pem`, `api_key.pem` | `DISPLAYCLUSTER_API_CERT`, `_KEY` | an RSA certificate, key mode 600; read only at startup |
 | state file tools (optional) | `~/bin/check-dcx`, `~/bin/localize-dcx` | | copied out of the image; see [content.md](content.md#running-the-scripts) |
-| starting and stopping | a systemd unit, or cron jobs | | [Running it unattended](#running-it-unattended) |
+| starting and stopping | a systemd unit, or [a schedule](#on-a-schedule) | | [Running it unattended](#running-it-unattended) |
 
 **Keep one image, where the launcher looks for it.** An image copied
 anywhere else isn't used, however new it is, so don't keep spares beside

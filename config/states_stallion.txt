@@ -1,0 +1,15 @@
+# the states Stallion's scripts/cyclestates shows, in order
+antarctic.dcx
+Arctic-HiLat.dcx
+AstroSim.dcx
+bigwig.dcx
+dieselJet.dcx
+E3SM.dcx
+FIGS-KXAN.dcx
+Gulf.dcx
+kxan.dcx
+Sampler5.dcx
+SandiaRonne.dcx
+TACCSTER-9-25-2024.dcx
+webb3.dcx
+WH_ScienceAdvisor.dcx
