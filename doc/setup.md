@@ -175,6 +175,7 @@ meet in this guide:
 | `build-sif.sh` | builds the container image |
 | `scripts/startdisplaycluster` | the launcher you copy and edit for your wall |
 | `scripts/displaycluster.sh`, `displaycluster.py` | run each rank. The launcher calls them; you don't edit them. |
+| `scripts/check-dcx`, `localize-dcx` | check and repair state files, and make self-contained copies of them ([below](#checking-and-moving-state-files)) |
 | `config/`, `examples/configuration.json` | example wall configurations |
 | `ui/` | the web UI |
 | `python/DC.py` | Python client for the remote API |
@@ -750,7 +751,7 @@ API, the control window shows who, and a **Take control** button.
 | Open Content | opens a file in a new window. Images (anything Qt reads: PNG, JPEG, TIFF, ...), SVG, movies (`.mov .avi .mp4 .mkv .mpg .flv .wmv`) and image pyramids (`.pyr`) |
 | Open Contents Directory | opens every file in a folder, laid out in a grid; it asks for the grid's columns and rows |
 | Clear | closes every window |
-| Save State, Load State | save the layout of every window to a `.dcx` file, and restore it |
+| Save State, Load State | save the layout of every window to a `.dcx` file, and restore it. Saved files name content by full path; in a file written by hand, a relative path is taken relative to the `.dcx` file's own folder |
 | Compute Image Pyramid | prepares a very large image for fast display (below) |
 | Quit | stops the whole wall |
 
@@ -789,7 +790,38 @@ For an image you'll show more than once, build the pyramid ahead of time:
 
 The `.pyr` file holds the pyramid folder's full path. You can rename or move
 the `.pyr` file. If you move the folder, edit the path in the `.pyr` file to
-match.
+match. A relative path there is taken relative to the `.pyr` file's own
+folder, so `"photo.pyramid" 40000 30000` keeps working wherever the two are
+moved together.
+
+### Checking and moving state files
+
+A state (`.dcx`) file names its content by path, so it breaks when content is
+moved or renamed. Two scripts in `scripts/` help; they're also in the image,
+so `apptainer exec displaycluster.sif check-dcx talk.dcx` works with no
+checkout. Both need only Python 3.
+
+**`check-dcx [-f] file.dcx`** checks that the wall can open every window's
+content, reading paths as the wall does: literally, and a relative path
+relative to the `.dcx` file's folder. For a `.pyr` file it checks the tiles
+too. A missing file is looked for by name under the `.dcx` file's folder, and
+a `file://` or `%20`-encoded reference, which the wall can't read, is matched
+to the file it means. With `-f`, and only if every bad reference can be
+fixed, it rewrites the `.dcx` file, keeping the original as `file.dcx.orig`.
+It exits 0 if the file was fine or fixed, so it can check a whole folder:
+
+```bash
+for f in ~/.displaycluster/states/*.dcx; do check-dcx "$f" > /dev/null || echo "$f"; done
+```
+
+**`localize-dcx [folder] file.dcx`** makes a self-contained copy of a state:
+it copies the content into `folder/Content/` and writes `folder/file.dcx`
+naming it relatively, so the folder can be moved or copied to another wall
+and still load. Put the folder in the state directory to load it from the
+web UI. Pyramid tiles are hard linked (copied if they're on another
+filesystem), files of the same name from different places get different
+names, and running it again updates the copy. If any content is missing it
+writes nothing; run `check-dcx` first.
 
 ## Running it unattended
 

@@ -180,7 +180,10 @@ export class FileBrowser {
     if (!more) {
       this.entries = [];
       this.select(null);
-      this.listEl.replaceChildren(this.row('Loading…'));
+      const pending = this.listEl.querySelector('li.new-folder');
+    this.listEl.replaceChildren(this.row('Loading…'));
+    // a new folder's name being typed survives reloading the same folder
+    if (pending && pending.dataset.dir === dir) this.listEl.prepend(pending);
     }
 
     let result;
@@ -253,11 +256,13 @@ export class StateDialog {
     this.nameEl = document.getElementById('state-name');
     this.listEl = document.getElementById('state-list');
     this.okEl = document.getElementById('state-ok');
+    this.newFolderEl = document.getElementById('state-new-folder');
     this.mode = 'load';
     this.dir = '';
     this.selected = null;
 
     this.okEl.addEventListener('click', () => this.confirm());
+    this.newFolderEl.addEventListener('click', () => this.askFolderName());
     this.nameEl.addEventListener('input', () => { this.okEl.disabled = !this.nameEl.value.trim(); });
     // preventDefault, or the Enter goes on to click the button focus returns to,
     // Save state…, and the dialog opens again
@@ -270,7 +275,9 @@ export class StateDialog {
     this.titleEl.textContent = mode === 'save' ? 'Save state' : 'Load state';
     this.okEl.textContent = mode === 'save' ? 'Save' : 'Load';
     this.saveEl.hidden = mode !== 'save';
+    this.newFolderEl.hidden = mode !== 'save';
     this.nameEl.value = '';
+    this.listEl.replaceChildren();   // drop a folder name left half-typed
     this.dialog.showModal();
     if (mode === 'save') this.nameEl.focus();
     this.navigate(this.dir);
@@ -316,8 +323,71 @@ export class StateDialog {
       items.push(this.row(dir ? 'This folder is empty.'
         : this.mode === 'save' ? 'No saved states yet.' : 'No saved states yet. Save one first.'));
     }
+    // keep a new folder's name being typed while the listing came in
+    const naming = this.listEl.querySelector('li.new-folder');
+    if (naming) {
+      if (!entries.length) items.length = 0;
+      items.unshift(naming);
+    }
     if (dir) items.unshift(upRow(dir, (to) => this.navigate(to)));
     this.listEl.replaceChildren(...items);
+    if (naming) naming.querySelector('input').focus();
+  }
+
+  // a row at the top of the list for the new folder's name; Enter makes it
+  // and opens it, Escape (or leaving the field empty) drops it
+  askFolderName() {
+    const existing = this.listEl.querySelector('.new-folder input');
+    if (existing) { existing.focus(); return; }
+
+    const item = document.createElement('li');
+    item.className = 'new-folder';
+    item.dataset.dir = this.dir;
+    item.append(iconElement('directory'));
+    const input = document.createElement('input');
+    input.spellcheck = false;
+    input.placeholder = 'folder name';
+    const create = document.createElement('button');
+    create.className = 'small primary';
+    create.textContent = 'Create';
+    item.append(input, create);
+
+    const dir = this.dir;
+    const make = async () => {
+      const name = input.value.trim().replace(/^\/+|\/+$/g, '');
+      if (!name) { item.remove(); return; }
+      const folder = dir ? `${dir}/${name}` : name;
+      create.disabled = input.disabled = true;
+      try {
+        await this.api.request('POST', '/state/folder', { dir: folder });
+      } catch (e) {
+        create.disabled = input.disabled = false;
+        input.setCustomValidity(e.message);
+        input.reportValidity();
+        input.focus();
+        return;
+      }
+      if (this.dir === dir) {
+        this.navigate(folder);
+        this.nameEl.focus();
+      }
+    };
+
+    create.addEventListener('click', make);
+    input.addEventListener('input', () => input.setCustomValidity(''));
+    input.addEventListener('keydown', (e) => {
+      // preventDefault, or Escape closes the whole dialog and Enter goes on
+      // to click a button
+      if (e.key === 'Enter') { e.preventDefault(); make(); }
+      if (e.key === 'Escape') { e.preventDefault(); item.remove(); this.nameEl.focus(); }
+    });
+
+    // below the up row, above the folders
+    const up = this.listEl.querySelector('li.up');
+    if (up) up.after(item); else this.listEl.prepend(item);
+    // the empty-folder note no longer applies
+    for (const note of this.listEl.querySelectorAll('.empty-row')) note.remove();
+    input.focus();
   }
 
   row(text) {

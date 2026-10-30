@@ -360,6 +360,24 @@ void RestServer::stop()
     }
 }
 
+namespace
+{
+    // the 423 for a request whose lease isn't (or is no longer) control: who
+    // has it, if anyone, and whether this lease merely timed out, so its
+    // client can take control back (see RemoteSession::lapsed())
+    WallController::Result notInControl(RemoteSession * session, const std::string & lease)
+    {
+        json holder = session->holder();
+        bool lapsed = holder.is_null() && session->lapsed(lease);
+
+        std::string error = !holder.is_null() ? "the wall is controlled by " + holder["label"].get<std::string>()
+                          : lapsed ? "your control lapsed; take control again (POST /control)"
+                          : "take control of the wall first (POST /control)";
+
+        return { 423, { { "error", error }, { "controller", holder }, { "lapsed", lapsed } } };
+    }
+}
+
 void RestServer::setupRoutes()
 {
     httplib::Server & s = *server_;
@@ -369,14 +387,11 @@ void RestServer::setupRoutes()
     // runs a change to the wall, if the request holds control (see RemoteSession)
     auto change = [session](const httplib::Request & req, httplib::Response & res, std::function<WallController::Result()> f)
     {
-        if(!session->renew(req.get_header_value(LEASE_HEADER)))
-        {
-            json holder = session->holder();
+        std::string lease = req.get_header_value(LEASE_HEADER);
 
-            respond(res, { 423, {
-                { "error", holder.is_null() ? "take control of the wall first (POST /control)"
-                                            : "the wall is controlled by " + holder["label"].get<std::string>() },
-                { "controller", holder } } });
+        if(!session->renew(lease))
+        {
+            respond(res, notInControl(session, lease));
             return;
         }
 
@@ -429,7 +444,7 @@ void RestServer::setupRoutes()
             "GET /windows/{name}", "PATCH /windows/{name}", "DELETE /windows/{name}", "GET /windows/{name}/thumbnail",
             "GET /options", "PATCH /options",
             "GET /sensors", "PUT /sensors",
-            "GET /state?dir=", "POST /state/load", "POST /state/save",
+            "GET /state?dir=", "POST /state/load", "POST /state/save", "POST /state/folder",
             "POST /windows/directory",
             "GET /media", "GET /media/{root}?dir=&sort=name|modified|size&order=asc|desc&offset=&limit=&all=",
             "WebSocket /stream/{name}"
@@ -474,7 +489,7 @@ void RestServer::setupRoutes()
         }
         else
         {
-            respond(res, { 423, { { "error", "you don't have control" }, { "controller", session->holder() } } });
+            respond(res, notInControl(session, req.get_header_value(LEASE_HEADER)));
         }
     });
 
@@ -697,6 +712,20 @@ void RestServer::setupRoutes()
             if(stringParam(body, "file", file, res))
             {
                 respond(res, onGuiThread([c, file]() { return c->saveState(file); }));
+            }
+        }
+    });
+
+    // like saving, making a folder for states needs no control
+    s.Post("/state/folder", [c](const httplib::Request & req, httplib::Response & res)
+    {
+        json body;
+        if(parseBody(req, res, body))
+        {
+            std::string dir;
+            if(stringParam(body, "dir", dir, res))
+            {
+                respond(res, onGuiThread([c, dir]() { return c->makeStateFolder(dir); }));
             }
         }
     });

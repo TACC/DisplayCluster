@@ -292,6 +292,9 @@ INSTALL(TARGETS displaycluster RUNTIME DESTINATION bin)
 INSTALL(PROGRAMS scripts/displaycluster.py DESTINATION bin)
 INSTALL(PROGRAMS scripts/displaycluster.sh DESTINATION bin)
 
+# install state file tools
+INSTALL(PROGRAMS scripts/check-dcx scripts/localize-dcx DESTINATION bin)
+
 # install remote controller
 INSTALL(DIRECTORY remote DESTINATION .)
 

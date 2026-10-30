@@ -207,6 +207,14 @@ State files loaded and saved remotely are confined to
 `talks/demo.dcx`, not `/home/vislab/Content/demo.dcx`). The control window's own Load State and
 Save State aren't limited this way.
 
+Content in a state file is named by full path when the wall saves it. In a
+state file written or edited by hand, a relative path is taken relative to
+the state file's own folder, so a folder holding a talk's state and its
+media (`talks/morning.dcx` naming `morning/map.png`, say) can be moved or
+copied as a whole. This holds however the state is loaded. `localize-dcx`
+makes such a folder from any state file, and `check-dcx` finds broken
+references; see [setup.md](setup.md#checking-and-moving-state-files).
+
 ## The web UI
 
 Open `http://wallhost:1910/ui/` in a browser and enter the token. With
@@ -274,7 +282,8 @@ window's Open Contents Directory.
 **Load state…** and **Save state…** list and write state files in the state
 directory, which can have folders. They're navigated the same way, and
 both dialogs open in the folder last used. Save puts the file in the folder
-shown; a name with a slash, like `talks/morning`, makes a new folder.
+shown. **New folder** (in Save state…) makes a folder in the one shown and
+opens it; a name with a slash, like `talks/morning`, also makes a new folder.
 
 ### Options
 
@@ -436,6 +445,7 @@ refreshed after every change or by `dc.updateContent()`.
 | `openDirectory(root, dir, cols, rows)` | a folder's files tiled across the wall |
 | `mediaRoots()`, `listMedia(root, dir, sort, descending, offset, limit)` | browsing the media directories |
 | `loadState(file)`, `saveState(file)`, `clearState()` | state files, relative to the state directory |
+| `makeStateFolder(dir)` | make a folder in the state directory |
 | `setSensors(value, mask)`, `getSensors()`, `setSensorControl(name, sensorMask, showWhenLit)` | [sensors](#sensors) |
 | `getOptions()`, `setOptions(**options)`, and `setConstrainAspectRatio`, `setShowWindowBorders`, `setShowContentLabels` | display options |
 | `sleepWall()`, `wakeWall()`, `status()` | the screensaver, and who has control |
@@ -511,6 +521,12 @@ control window.
 - A client **takes control**, and then holds it for as long as it's active.
   Control **lapses after 30 seconds** without a request from it (an open web
   UI keeps it alive through its live connection).
+- A web UI whose control lapsed — its tab was in the background, or the
+  computer slept — takes it back without asking, as long as nobody else has
+  taken control meanwhile. It does that when the page is shown again, if it
+  was in use within the last 10 minutes (after longer it just shows **Take
+  control**), and whenever a change you make is refused because of the lapse.
+  Control released, or taken back at the control window, isn't retaken.
 - Taking control from someone who has it asks for confirmation in the web UI,
   and takes `force=True` in `DC.py`.
 - While a remote client has control, the **control window is read-only** but
@@ -669,6 +685,7 @@ images too big to decode cheaply); its URL changes when the file does.
 | `GET /state?dir=` | | a folder of the state directory (default its top): subfolders by name, `{type: "directory", name, dir, modified}`, then state files newest first, `{type: "state", name, file, modified}`. `dir` and `file` are relative to the state directory |
 | `POST /state/load` | `{file}` | load a state file |
 | `POST /state/save` | `{file}` | save one (`.dcx` is added if missing); folders in `file` are made as needed |
+| `POST /state/folder` | `{dir}` | make a folder in the state directory, and any above it; `{dir, existed}`. Like saving, it needs no control |
 
 ### Browsing
 
@@ -719,6 +736,13 @@ ws.close()              # the window closes
 
 `POST`, `PATCH` and `DELETE` on `/windows…` and `/options`, and
 `POST /state/load` and `/sleep`, need control. Everything else doesn't.
+
+Without it they're refused with `423` and `{error, controller, lapsed}`:
+`controller` is whoever has control, or `null`, and `lapsed` is true when the
+request's lease is one that timed out and no one has taken control since, so
+its client can take control again without displacing anyone. A lease ended by
+`DELETE /control` or by the control window's Take control doesn't count as
+lapsed.
 
 ### With curl
 

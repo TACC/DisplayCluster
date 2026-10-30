@@ -48,6 +48,12 @@ class RemoteSession : public QObject
         // true if secret is the current lease, which it also renews
         bool renew(std::string secret);
 
+        // true if secret is the lease that last timed out, and no one has
+        // taken control since: its holder went quiet (a suspended tab, a
+        // sleeping laptop) and can take control back without displacing
+        // anyone. Not after a release or the control window taking it back.
+        bool lapsed(std::string secret);
+
         // the current holder as {id, label}, or null
         json holder();
 
@@ -86,6 +92,7 @@ class RemoteSession : public QObject
         std::condition_variable snapshotChanged_;
 
         std::string secret_;
+        std::string lapsedSecret_;
         std::string id_;
         std::string label_;
         std::chrono::steady_clock::time_point lastSeen_;

@@ -104,8 +104,10 @@ class DC:
         if change and not self.lease and not self.takeControl():
             return None
         status, reply = self._send(method, path, body)
-        if status == 423 and change and reply.get('controller') is None:
-            # our control lapsed and nobody else has it: take it back and retry
+        # our control lapsed (not taken back at the control window) and nobody
+        # else has it: take it back and retry. A wall older than 'lapsed' only
+        # says that nobody has it.
+        if status == 423 and change and reply.get('lapsed', reply.get('controller') is None):
             self.lease = None
             if not self.takeControl():
                 return None
@@ -271,6 +273,10 @@ class DC:
 
     def saveState(self, state):
         self._request('POST', '/state/save', { 'file': state })
+
+    # makes a folder (and any above it) in the wall's state directory
+    def makeStateFolder(self, folder):
+        self._request('POST', '/state/folder', { 'dir': folder })
 
     # any of the display options /options reports, e.g. setOptions(showTestPattern = True)
     def setOptions(self, **options):

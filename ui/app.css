@@ -415,7 +415,9 @@ input:focus, button:focus-visible, select:focus-visible {
 .crumbs { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px; }
 .crumbs button { border: none; background: none; padding: 2px 6px; min-height: 30px; }
 .crumbs .sep { color: var(--muted); }
-.state-crumbs { flex: none; padding: 8px 10px 0; }
+.state-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px 0 10px; }
+.file-list li.new-folder { display: flex; gap: 8px; align-items: center; }
+.file-list li.new-folder input { flex: 1; min-width: 0; }
 .file-list li.up .name { color: var(--muted); }
 
 .file-list {

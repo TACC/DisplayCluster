@@ -1,0 +1,160 @@
+#! /usr/bin/env python3
+
+# checks that every window in a state (.dcx) file names content the wall can
+# open, and with -f fixes the ones it can find again.
+#
+#   check-dcx [-f] file.dcx
+#
+# Paths are checked the way the wall reads them: literally (it doesn't decode
+# file:// URIs or %20), and a relative path relative to the .dcx file's folder.
+# For an image pyramid (.pyr), the folder of tiles it names is checked too.
+#
+# A file that's missing is looked for by name anywhere under the .dcx file's
+# folder. A reference in a form the wall can't read, like file:///a/b%20c.png,
+# is fixed if the file it means exists. With -f, and only if every bad
+# reference can be fixed, the .dcx file is rewritten - a path under its folder
+# relative to it, so the folder stays movable - and the original kept as
+# file.dcx.orig (which, not ending in .dcx, isn't listed as a state).
+#
+# Exits 0 if the file was fine or was fixed, 1 otherwise.
+
+import sys
+import os
+import shlex
+import shutil
+from urllib.parse import unquote, urlparse
+from xml.etree import ElementTree as ET
+
+
+def usage():
+    print('usage: check-dcx [-f] file.dcx')
+    sys.exit(1)
+
+
+def decoded(text):
+    # what a file:// URI or %-encoded path means, or None if it's neither
+    if text.startswith('file:'):
+        return unquote(urlparse(text).path)
+    plain = unquote(text)
+    return plain if plain != text else None
+
+
+def find_by_name(top, name):
+    # compare names directly rather than using rglob(name), so names with
+    # glob characters like [ ] * ? are matched literally
+    found = []
+    for dirpath, dirnames, filenames in os.walk(top):
+        dirnames.sort()
+        if name in filenames:
+            found.append(os.path.join(dirpath, name))
+    return found
+
+
+def pyramid_problem(pyr):
+    # what's wrong with the tiles a .pyr names, or None
+    try:
+        with open(pyr) as f:
+            fields = shlex.split(f.readline())
+    except (OSError, ValueError) as e:
+        return 'could not read it: %s' % e
+    if len(fields) < 3:
+        return 'its first line should be: "tile folder" width height'
+    tiles = os.path.join(os.path.dirname(pyr), fields[0])
+    if not os.path.isfile(os.path.join(tiles, '0.jpg')):
+        return "its tile folder '%s' is missing or has no 0.jpg" % os.path.normpath(tiles)
+    return None
+
+
+def written(path, top):
+    # how to name path in the .dcx file: relative to top if it's under it
+    relative = os.path.relpath(path, top)
+    return path if relative.startswith('..') else relative
+
+
+def main():
+    args = sys.argv[1:]
+    fix = bool(args) and args[0] == '-f'
+    if fix:
+        args = args[1:]
+    if not args:
+        usage()
+
+    # tolerate an unquoted filename with spaces: rejoin the leftover args
+    dcx = ' '.join(args)
+    top = os.path.dirname(os.path.abspath(dcx))
+
+    try:
+        tree = ET.parse(dcx)
+    except FileNotFoundError:
+        print("no such file '%s'" % dcx)
+        return 1
+    except PermissionError:
+        print("not allowed to read '%s'" % dcx)
+        return 1
+    except ET.ParseError as e:
+        print("'%s' isn't valid XML: %s" % (dcx, e))
+        return 1
+
+    bad = 0
+    unfixable = 0
+
+    for uri in tree.getroot().iter('URI'):
+        text = (uri.text or '').strip()
+        if not text:
+            continue
+
+        path = os.path.normpath(os.path.join(top, text))
+
+        if os.path.isfile(path):
+            if path.lower().endswith('.pyr'):
+                problem = pyramid_problem(path)
+                if problem:
+                    print("pyramid '%s': %s" % (text, problem))
+                    bad += 1
+                    unfixable += 1
+            continue
+
+        bad += 1
+        meant = decoded(text)
+
+        if meant is not None and os.path.isfile(os.path.join(top, meant)):
+            match = os.path.normpath(os.path.join(top, meant))
+            print("'%s' is in a form the wall can't read; it should be '%s'" % (text, written(match, top)))
+        else:
+            matches = find_by_name(top, os.path.basename(meant or text))
+            if not matches:
+                print("'%s' not found" % text)
+                unfixable += 1
+                continue
+            match = matches[0]
+            more = ' (one of %i with that name)' % len(matches) if len(matches) > 1 else ''
+            print("'%s' not found ... might be '%s'%s" % (text, written(match, top), more))
+
+        uri.text = written(match, top)
+
+    if bad == 0:
+        print('dcx file is fine')
+        return 0
+
+    if not fix:
+        print('dcx file has %i bad reference%s%s' % (bad, '' if bad == 1 else 's',
+              '' if unfixable else '; check-dcx -f would fix %s' % ('it' if bad == 1 else 'them')))
+        return 1
+
+    if unfixable:
+        print('dcx file not changed: %i reference%s can\'t be fixed' % (unfixable, '' if unfixable == 1 else 's'))
+        return 1
+
+    backup = dcx + '.orig'
+    n = 1
+    while os.path.exists(backup):
+        backup = '%s.orig.%i' % (dcx, n)
+        n += 1
+    shutil.copy2(dcx, backup)
+    tree.write(dcx, encoding='utf-8', xml_declaration=True)
+    print("dcx file fixed; the original is '%s'" % backup)
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

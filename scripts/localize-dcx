@@ -1,0 +1,170 @@
+#! /usr/bin/env python3
+
+# makes a self-contained copy of a state (.dcx) file: the content it uses is
+# copied into a Content folder beside the new .dcx file, which names it
+# relatively, so the folder can be moved or copied anywhere - to another wall,
+# say - and still load.
+#
+#   localize-dcx [folder] file.dcx
+#
+# folder (by default the current one) gets file.dcx and Content/. Paths in
+# file.dcx are read the way the wall reads them: a relative path is relative
+# to file.dcx's folder. An image pyramid's .pyr gets a new copy naming its
+# tiles relatively, and the tiles are hard linked, or copied if they're on
+# another filesystem. Files already in Content/ from an earlier run are kept
+# if they're unchanged. Two different files with the same name get different
+# names. If folder/file.dcx exists already, it's kept as file.dcx.orig.
+#
+# Nothing is written if any content is missing; check-dcx finds it.
+
+import sys
+import os
+import shlex
+import shutil
+from xml.etree import ElementTree as ET
+
+
+def usage():
+    print('usage: localize-dcx [folder] file.dcx')
+    sys.exit(1)
+
+
+def same(a, b):
+    try:
+        return os.path.samefile(a, b) or (os.path.getsize(a) == os.path.getsize(b)
+                                           and int(os.path.getmtime(a)) == int(os.path.getmtime(b)))
+    except OSError:
+        return False
+
+
+def link_or_copy(src, dst):
+    if os.path.exists(dst):
+        if same(src, dst):
+            return
+        os.remove(dst)
+    try:
+        os.link(src, dst)
+    except OSError:
+        shutil.copy2(src, dst)
+
+
+class Names:
+    # names in Content/: each source file (or tile folder) gets one, and two
+    # different sources with the same name get name, name-2, name-3...
+    def __init__(self):
+        self.taken = {}
+
+    def get(self, source):
+        source = os.path.realpath(source)
+        base, ext = os.path.splitext(os.path.basename(source.rstrip('/')))
+        name, n = base + ext, 2
+        while self.taken.get(name, source) != source:
+            name, n = '%s-%i%s' % (base, n, ext), n + 1
+        self.taken[name] = source
+        return name
+
+
+def read_pyr(pyr):
+    with open(pyr) as f:
+        fields = shlex.split(f.readline())
+    if len(fields) < 3:
+        raise ValueError('its first line should be: "tile folder" width height')
+    tiles = os.path.normpath(os.path.join(os.path.dirname(pyr), fields[0]))
+    if not os.path.isdir(tiles):
+        raise ValueError("its tile folder '%s' is missing" % tiles)
+    return tiles, fields[1:]
+
+
+def main():
+    args = sys.argv[1:]
+    if len(args) == 1:
+        folder, dcx = '.', args[0]
+    elif len(args) == 2:
+        folder, dcx = args
+    else:
+        usage()
+
+    source_dir = os.path.dirname(os.path.abspath(dcx))
+    try:
+        tree = ET.parse(dcx)
+    except (OSError, ET.ParseError) as e:
+        print("could not read '%s': %s" % (dcx, e))
+        return 1
+
+    # find everything first, so nothing is written for a state that can't be
+    # localized
+    work = []
+    missing = []
+    for uri in tree.getroot().iter('URI'):
+        text = (uri.text or '').strip()
+        if not text:
+            continue
+        path = os.path.normpath(os.path.join(source_dir, text))
+        if not os.path.isfile(path):
+            missing.append("'%s' not found" % text)
+            continue
+        tiles = None
+        if path.lower().endswith('.pyr'):
+            try:
+                tiles = read_pyr(path)
+            except (OSError, ValueError) as e:
+                missing.append("pyramid '%s': %s" % (text, e))
+                continue
+        work.append((uri, path, tiles))
+
+    if missing:
+        print('\n'.join(missing))
+        print('nothing written; check-dcx may find what\'s missing')
+        return 1
+
+    content = os.path.join(folder, 'Content')
+    os.makedirs(content, exist_ok=True)
+    names = Names()
+
+    for uri, path, tiles in work:
+        name = names.get(path)
+        dest = os.path.join(content, name)
+
+        if tiles:
+            folder_name = names.get(tiles[0])
+            dest_tiles = os.path.join(content, folder_name)
+            os.makedirs(dest_tiles, exist_ok=True)
+            count = 0
+            for tile in sorted(os.listdir(tiles[0])):
+                src = os.path.join(tiles[0], tile)
+                if os.path.isfile(src):
+                    link_or_copy(src, os.path.join(dest_tiles, tile))
+                    count += 1
+            with open(dest, 'w') as f:
+                f.write(' '.join([shlex.quote(folder_name)] + tiles[1]) + '\n')
+            print('pyramid %s -> Content/%s (%i tiles in Content/%s)' % (path, name, count, folder_name))
+        elif os.path.exists(dest) and same(path, dest):
+            print('%s -> Content/%s (already there)' % (path, name))
+        else:
+            shutil.copy2(path, dest)
+            print('%s -> Content/%s' % (path, name))
+
+        uri.text = 'Content/' + name
+
+    out = os.path.join(folder, os.path.basename(dcx))
+    text = ET.tostring(tree.getroot(), encoding='utf-8', xml_declaration=True)
+    if os.path.exists(out):
+        with open(out, 'rb') as f:
+            if f.read() == text:
+                print("'%s' is up to date" % out)
+                return 0
+        backup = out + '.orig'
+        n = 1
+        while os.path.exists(backup):
+            backup = '%s.orig.%i' % (out, n)
+            n += 1
+        shutil.copy2(out, backup)
+        print("kept the existing '%s' as '%s'" % (out, backup))
+    with open(out, 'wb') as f:
+        f.write(text)
+    print("wrote '%s'" % out)
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

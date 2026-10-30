@@ -65,6 +65,10 @@ class WallController
         // directory itself), by name, then its state files, newest first
         Result listStates(std::string dir);
 
+        // makes dir (relative to the state directory) and any folders above it;
+        // it's not an error for it to exist already
+        Result makeStateFolder(std::string dir);
+
         // file is relative to the state directory
         Result loadState(std::string file);
         Result saveState(std::string file);

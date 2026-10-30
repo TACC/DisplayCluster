@@ -60,6 +60,8 @@
 #include <boost/algorithm/string.hpp>
 #include <mpi.h>
 #include <QDomDocument>
+#include <QDir>
+#include <QFileInfo>
 #include <fstream>
 
 #include <mutex>
@@ -361,7 +363,7 @@ bool DisplayGroupManager::saveStateXMLFile(std::string filename)
     }
 }
 
-bool DisplayGroupManager::loadStateXML(QString xml)
+bool DisplayGroupManager::loadStateXML(QString xml, QString baseDir)
 {
     QDomDocument doc;
 
@@ -394,6 +396,13 @@ bool DisplayGroupManager::loadStateXML(QString xml)
 
             // remove any whitespace
             boost::trim(uri);
+
+            // a relative path is relative to the state file's folder, so a
+            // folder holding a state and its media can be moved as a whole
+            if(!baseDir.isEmpty() && !uri.empty() && QDir::isRelativePath(QString::fromStdString(uri)))
+            {
+                uri = QDir::cleanPath(baseDir + "/" + QString::fromStdString(uri)).toStdString();
+            }
 
             put_flog(LOG_DEBUG, "found content window with URI %s", uri.c_str());
         }
@@ -562,7 +571,7 @@ bool DisplayGroupManager::loadStateXMLFile(std::string filename)
 		QByteArray barray = file.readAll();
 		QString str(barray);
 
-		return loadStateXML(str);
+		return loadStateXML(str, QFileInfo(file).absolutePath());
 }
 
 void DisplayGroupManager::receiveMessages()

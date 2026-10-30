@@ -696,13 +696,20 @@ bool WallController::resolveUnder(std::string root, std::string relative, std::s
         return false;
     }
 
-    // a symlink inside root could still point outside it
-    QFileInfo info(path);
+    // a symlink inside root could still point outside it. Check the path, or
+    // for a path still to be made, the nearest folder above it that exists -
+    // otherwise a save or new folder could go through such a link.
+    QString existing = path;
 
-    if(info.exists())
+    while(!QFileInfo::exists(existing) && existing.length() > rootPath.length())
+    {
+        existing = QFileInfo(existing).path();
+    }
+
+    if(QFileInfo::exists(existing))
     {
         QString canonicalRoot = QFileInfo(rootPath).canonicalFilePath();
-        QString canonicalPath = info.canonicalFilePath();
+        QString canonicalPath = QFileInfo(existing).canonicalFilePath();
 
         if(canonicalPath != canonicalRoot && !canonicalPath.startsWith(canonicalRoot + "/"))
         {
@@ -772,6 +779,33 @@ WallController::Result WallController::listStates(std::string dir)
     }
 
     return ok(states);
+}
+
+WallController::Result WallController::makeStateFolder(std::string dir)
+{
+    std::string path;
+
+    if(QDir::cleanPath(QString::fromStdString(dir)).isEmpty() || !resolveUnder(stateDir_, dir, path)
+       || path == QDir::cleanPath(QDir(QString::fromStdString(stateDir_)).absolutePath()).toStdString())
+    {
+        return error(400, "folders must be given relative to the state directory, " + stateDir_);
+    }
+
+    QFileInfo info(QString::fromStdString(path));
+
+    if(info.exists() && !info.isDir())
+    {
+        return error(409, "not a folder: " + dir);
+    }
+
+    bool existed = info.exists();
+
+    if(!existed && !QDir().mkpath(info.absoluteFilePath()))
+    {
+        return error(500, "could not make folder: " + dir);
+    }
+
+    return ok({ { "dir", QDir::cleanPath(QString::fromStdString(dir)).toStdString() }, { "existed", existed } });
 }
 
 WallController::Result WallController::loadState(std::string file)

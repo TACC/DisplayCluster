@@ -64,14 +64,28 @@ function canEdit() {
   return !!api.lease && (api.hasControl(state.status) || controlConfirmed);
 }
 
-// a snapshot says someone else has control: ask the wall whether that's so
+// control that lapsed while this page was in the background is taken back
+// quietly if it was in use this recently; after longer, whoever comes back
+// takes control again themselves
+const RETAKE_WITHIN_MS = 10 * 60 * 1000;
+
+// a snapshot says someone else has control, or the page is back from the
+// background: ask the wall whether we still have it
 function verifyControl() {
   if (verifying || !api.lease) return;
   controlConfirmed = false;
   verifying = api.request('POST', '/control/heartbeat')
     .then(() => { controlConfirmed = true; })
-    .catch((e) => {
+    .catch(async (e) => {
       if (!(e instanceof ApiError) || e.status !== 423) return;
+      if (e.body.lapsed && Date.now() - lastActivity < RETAKE_WITHIN_MS) {
+        try {
+          await api.retake();
+          return;
+        } catch (e2) {
+          if (e2 instanceof ApiError && e2.status === 423) e = e2;   // someone beat us to it
+        }
+      }
       const holder = e.body.controller;
       api.setLease(null, null);
       toast(holder ? `${holder.label} took control of the wall.` : 'Your control of the wall lapsed.');
@@ -544,11 +558,13 @@ async function start() {
 }
 
 // iOS suspends a home-screen app in the background and drops its event
-// stream; reconnect as soon as it's back rather than waiting on the retry
+// stream (Chrome can do the same to a background tab); reconnect as soon as
+// it's back rather than waiting on the retry. Control may have lapsed
+// meanwhile, so check that too, rather than wait for the snapshot that says so.
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && config && api.events && api.events.readyState !== EventSource.OPEN) {
-    api.connectEvents();
-  }
+  if (document.visibilityState !== 'visible' || !config) return;
+  if (api.events && api.events.readyState !== EventSource.OPEN) api.connectEvents();
+  verifyControl();
 });
 
 // the name a home-screen app gets: the wall's host name up to the first dot
@@ -570,6 +586,7 @@ function init() {
   }
 
   api.onUnauthorized = () => showLogin("That token didn't work.");
+  api.onControlRetaken = () => { controlConfirmed = true; onSnapshot(state); };
 
   $('login-form').addEventListener('submit', (e) => {
     e.preventDefault();

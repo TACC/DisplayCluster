@@ -44,6 +44,8 @@
 #include <fstream>
 #include <string>
 #include <boost/tokenizer.hpp>
+#include <QDir>
+#include <QFileInfo>
 
 #ifdef __APPLE__
     #include <OpenGL/glu.h>
@@ -118,6 +120,14 @@ DynamicTexture::DynamicTexture(std::string uri, boost::shared_ptr<DynamicTexture
             }
 
             imagePyramidPath_ = tokVector[0];
+
+            // a relative tile folder is relative to the .pyr file's own
+            // folder, so a pyramid can be moved along with its .pyr
+            if(QDir::isRelativePath(QString::fromStdString(imagePyramidPath_)))
+            {
+                imagePyramidPath_ = QDir::cleanPath(QFileInfo(QString::fromStdString(uri)).absolutePath()
+                                                    + "/" + QString::fromStdString(imagePyramidPath_)).toStdString();
+            }
             imageWidth_ = atoi(tokVector[1].c_str());
             imageHeight_ = atoi(tokVector[2].c_str());
 

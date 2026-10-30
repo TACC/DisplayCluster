@@ -70,6 +70,7 @@ bool RemoteSession::acquire(std::string label, bool force, json & lease, json & 
         }
 
         secret_ = randomHex(16);
+        lapsedSecret_.clear();
         id_ = randomHex(4);
         label_ = label.empty() ? "unnamed client" : label;
         lastSeen_ = std::chrono::steady_clock::now();
@@ -94,12 +95,20 @@ bool RemoteSession::release(std::string secret)
         }
 
         secret_.clear();
+        lapsedSecret_.clear();
     }
 
     put_flog(LOG_INFO, "remote control released");
 
     emit leaseChanged();
     return true;
+}
+
+bool RemoteSession::lapsed(std::string secret)
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    return !secret.empty() && secret == lapsedSecret_ && secret_.empty();
 }
 
 bool RemoteSession::renew(std::string secret)
@@ -126,6 +135,7 @@ void RemoteSession::revoke()
         }
 
         secret_.clear();
+        lapsedSecret_.clear();
     }
 
     put_flog(LOG_INFO, "remote control taken back at the control window");
@@ -143,6 +153,7 @@ void RemoteSession::expireStaleLease()
             return;
         }
 
+        lapsedSecret_ = secret_;
         secret_.clear();
     }
 

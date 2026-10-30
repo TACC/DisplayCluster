@@ -118,7 +118,8 @@ class DisplayGroupManager : public DisplayGroupInterface, public boost::enable_s
         bool saveStateXMLFile(std::string filename);
         bool loadStateXMLFile(std::string filename);
 
-				bool loadStateXML(QString);
+				// relative content paths are taken relative to baseDir when it's given
+				bool loadStateXML(QString xml, QString baseDir = QString());
 				bool saveStateXML(QString&);
 
         void receiveMessages();

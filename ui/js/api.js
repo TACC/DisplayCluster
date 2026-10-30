@@ -37,6 +37,8 @@ export class Api {
     this.onSnapshot = () => {};
     this.onConnection = () => {};
     this.onUnauthorized = () => {};
+    this.onControlRetaken = () => {};
+    this.retaking = null;
   }
 
   setToken(token, remember) {
@@ -51,7 +53,43 @@ export class Api {
     storageSet(localStorage, TOKEN_KEY, null);
   }
 
-  async request(method, path, body) {
+  // A change refused because our control merely lapsed (this tab was
+  // suspended, the computer slept) takes control back - only if no one else
+  // has it - and goes again. So does one that raced such a retake and went
+  // out with the old lease.
+  async request(method, path, body, retried) {
+    const lease = this.lease;
+    try {
+      return await this.send(method, path, body);
+    } catch (e) {
+      // not for taking control itself, nor the heartbeat: the app decides
+      // whether to take control back when it merely checks (see app.js)
+      if (retried || !(e instanceof ApiError) || e.status !== 423 || !lease ||
+          path === '/control' || path === '/control/heartbeat') throw e;
+      if (e.body.lapsed && lease === this.lease) {
+        try {
+          await this.retake();
+        } catch (e2) {
+          throw e2 instanceof ApiError && e2.status === 423 ? e2 : e;
+        }
+      } else if (!this.lease || lease === this.lease) {
+        throw e;
+      }
+      return this.request(method, path, body, true);
+    }
+  }
+
+  // one retake however many requests find the lease lapsed at once
+  retake() {
+    if (!this.retaking) {
+      this.retaking = this.takeControl(false)
+        .then((reply) => { this.onControlRetaken(); return reply; })
+        .finally(() => { this.retaking = null; });
+    }
+    return this.retaking;
+  }
+
+  async send(method, path, body) {
     const headers = {};
     if (this.token) headers['Authorization'] = 'Bearer ' + this.token;
     if (this.lease) headers['X-DC-Lease'] = this.lease;

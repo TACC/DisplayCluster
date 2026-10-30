@@ -155,11 +155,14 @@
     <h2 id="state-title">Load state</h2>
     <button class="small icon" value="cancel" aria-label="Close">✕</button>
   </form>
-  <div id="state-crumbs" class="crumbs state-crumbs"></div>
+  <div class="state-bar">
+    <div id="state-crumbs" class="crumbs"></div>
+    <button id="state-new-folder" class="small" hidden>New folder</button>
+  </div>
   <div id="state-save" class="state-save" hidden>
     <label for="state-name" class="field-label">Name</label>
     <input id="state-name" spellcheck="false" placeholder="morning-layout">
-    <p class="muted small-text">Saved in the folder shown above; a name with a slash, like <code>talks/morning</code>, makes a new folder there. An existing file with that name is replaced.</p>
+    <p class="muted small-text">Saved in the folder shown above. An existing state with that name is replaced.</p>
   </div>
   <ul id="state-list" class="file-list"></ul>
   <div class="dialog-foot">
