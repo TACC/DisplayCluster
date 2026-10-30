@@ -733,6 +733,7 @@ The settings are at the top, each with a comment. You'll usually change:
 | `CONTENT_DIR` | `~/Content` | the wall's working directory, where your media lives |
 | `DISPLAYCLUSTER_MEDIA_DIRS` | `content=$CONTENT_DIR` | the folders the web UI's file browser shows |
 | `DISPLAYCLUSTER_TIMEOUT` | `10800` | seconds idle before the screensaver starts |
+| `DISPLAYCLUSTER_SENSORS` | `0` | the number of [sensors](remote-control.md#sensors); the web UI shows no sensor controls at 0 |
 | `DISPLAYCLUSTER_MPIARGS` | `-bind-to none` | add `--mca btl_tcp_if_include <interface>` if MPI picks the wrong network |
 
 Each setting can also be given in the environment, which wins over the file.
@@ -1347,6 +1348,7 @@ control window, which is the git commit it was built from. With
 | Log: `can't share GL textures with CUDA`, naming a non-NVIDIA (or Mesa) GL renderer | the tiles are drawn by a GPU CUDA can't share with: a laptop's integrated GPU, or a VNC/Mesa desktop | Windows: give `displaycluster.exe` the NVIDIA GPU in Settings → System → Display → Graphics; Linux: run on the NVIDIA X server |
 | Windows: "`<name>.dll` was not found" when starting | `msmpi.dll`: the MS-MPI runtime isn't installed; anything else: an exe built before the DLL-copy step | install `msmpisetup.exe`; rebuild |
 | Windows: CMake can't find MPI | the prompt was opened before the MS-MPI SDK was installed | open a new prompt and configure again |
+| No sensor controls in the web UI | `DISPLAYCLUSTER_SENSORS` is 0, the default | set it to the number of sensors in the launcher, and restart the wall ([Sensors](remote-control.md#sensors)) |
 | Windows: a batch build stops after `vcvars64.bat` but exits 0 | vcvars' output and later commands share one log file, which a process vcvars starts keeps open | send vcvars' output to its own file |
 
 ## Environment variable reference
@@ -1373,6 +1375,6 @@ The launcher passes every one of these to every process.
 | `DISPLAYCLUSTER_STATE_DIR` | `~/.displaycluster/states` | where saved layouts go |
 | `DISPLAYCLUSTER_MEDIA_DIRS` | home directory | folders the web UI browses, `name=path:name=path` (`;` between them on Windows) |
 | `DISPLAYCLUSTER_UI_DIR` | `$DISPLAYCLUSTER_DIR/ui` | the web UI's files |
-| `DISPLAYCLUSTER_SENSORS` | `0` | sensors offered in the web UI |
+| `DISPLAYCLUSTER_SENSORS` | `0` | sensors offered in the web UI; at 0 it shows no sensor controls. Read at startup |
 | `DISPLAYCLUSTER_DRAG_SYNC_MS` | `0` | while dragging in the control window, update the wall this often (ms); 0 moves it only on release |
 | `DISPLAYCLUSTER_FRAME_STATS` | unset | set to log each rank's frame rate |

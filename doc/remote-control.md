@@ -606,6 +606,17 @@ value**: bit *i* is set when sensor *i* is on ("lit"). Whatever reads the
 sensors sends the value with `PUT /sensors`, and the wall updates every window
 under sensor control at once, on the same frame, however many there are.
 
+**Turning them on in the web UI.** The web UI shows no sensor controls until
+you tell the wall how many sensors there are. `DISPLAYCLUSTER_SENSORS` is 0 by
+default, so set it to the number of sensors (up to 32), in the launcher or the
+environment, and restart the wall, which reads it only at startup:
+
+```bash
+export DISPLAYCLUSTER_SENSORS=${DISPLAYCLUSTER_SENSORS:-6}
+```
+
+The API and `DC.py` work whatever it's set to.
+
 A window is under sensor control when its **`sensorMask`** isn't 0. Bit *i*
 of the mask makes it follow sensor *i*, and **`showWhenLit`** says how:
 
@@ -657,8 +668,8 @@ sensors> t 2
 ```
 
 In the web UI, the window inspector has a checkbox per sensor and a
-**Lit / Dark** choice (set `DISPLAYCLUSTER_SENSORS` to the number of sensors),
-and the top bar shows the sensor value.
+**Lit / Dark** choice, and the top bar shows the sensor value, once
+`DISPLAYCLUSTER_SENSORS` [is set](#sensors).
 
 ## API reference
 
