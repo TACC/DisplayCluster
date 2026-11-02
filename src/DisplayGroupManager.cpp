@@ -335,8 +335,8 @@ bool DisplayGroupManager::saveStateXML(QString& xml)
             n.appendChild(doc.createTextNode(QString::number(sensorMask)));
             cwmNode.appendChild(n);
 
-            n = doc.createElement("showWhenLit");
-            n.appendChild(doc.createTextNode(QString::number(contentWindowManagers[i]->getShowWhenLit())));
+            n = doc.createElement("sensorPattern");
+            n.appendChild(doc.createTextNode(QString::number(contentWindowManagers[i]->getSensorPattern())));
             cwmNode.appendChild(n);
         }
     }
@@ -479,7 +479,7 @@ bool DisplayGroupManager::loadStateXML(QString xml, QString baseDir)
         }
 
         uint32_t sensorMask = 0;
-        bool showWhenLit = true;
+        uint32_t sensorPattern = 0;
 
         elem = cwmNode.firstChildElement("sensorMask");
         if(elem.isNull() == false)
@@ -487,10 +487,19 @@ bool DisplayGroupManager::loadStateXML(QString xml, QString baseDir)
             sensorMask = elem.text().trimmed().toUInt();
         }
 
-        elem = cwmNode.firstChildElement("showWhenLit");
+        elem = cwmNode.firstChildElement("sensorPattern");
         if(elem.isNull() == false)
         {
-            showWhenLit = (bool)elem.text().toInt();
+            sensorPattern = elem.text().trimmed().toUInt();
+        }
+        else
+        {
+            // files saved before sensorPattern: showWhenLit 1 means lit, 0 dark
+            elem = cwmNode.firstChildElement("showWhenLit");
+            if(elem.isNull() == false && elem.text().toInt() != 0)
+            {
+                sensorPattern = sensorMask;
+            }
         }
 
         // add the window if we have a valid URI
@@ -533,7 +542,7 @@ bool DisplayGroupManager::loadStateXML(QString xml, QString baseDir)
                 // whatever the file says
                 if(sensorMask != 0)
                 {
-                    cwm->setSensorControl(sensorMask, showWhenLit);
+                    cwm->setSensorControl(sensorMask, sensorPattern);
                     hidden = cwm->hiddenForSensors(sensors_);
                 }
 

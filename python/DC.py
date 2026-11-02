@@ -150,7 +150,7 @@ class DC:
         for w in windows or []:
             self.content[w['name']] = { 'uri': w['uri'], 'x': w['x'], 'y': w['y'], 'w': w['w'], 'h': w['h'], 'hidden': w['hidden'],
                                         'filled': w.get('filled', False),
-                                        'sensorMask': w.get('sensorMask', 0), 'showWhenLit': w.get('showWhenLit', True),
+                                        'sensorMask': w.get('sensorMask', 0), 'sensorPattern': w.get('sensorPattern', 0),
                                         'zoom': w.get('zoom', 1.0), 'centerX': w.get('centerX', 0.5), 'centerY': w.get('centerY', 0.5) }
 
     def getConfiguration(self):
@@ -165,15 +165,15 @@ class DC:
 
     # returns the new window's name - the file's path unless name is given (or
     # the file is already open, in which case #2, #3, ... is appended).
-    # sensorMask and showWhenLit put it under sensor control (see setSensorControl)
-    def open(self, uri, x = 0, y = 0, w = 1, h = 1, name = None, sensorMask = None, showWhenLit = None):
+    # sensorMask and sensorPattern put it under sensor control (see setSensorControl)
+    def open(self, uri, x = 0, y = 0, w = 1, h = 1, name = None, sensorMask = None, sensorPattern = None):
         params = { 'uri': uri, 'x': x, 'y': y, 'w': w, 'h': h }
         if name:
             params['name'] = name
         if sensorMask is not None:
             params['sensorMask'] = int(sensorMask)
-        if showWhenLit is not None:
-            params['showWhenLit'] = bool(showWhenLit)
+        if sensorPattern is not None:
+            params['sensorPattern'] = int(sensorPattern)
         window = self._request('POST', '/windows', params, change = True)
         self.updateContent()
         return window['name'] if window else None
@@ -205,11 +205,11 @@ class DC:
         self._request('PATCH', self._window_path(name), { 'hidden': False }, change = True)
         self.updateContent()
 
-    # puts the window under sensor control: bit i of sensorMask is sensor i. It
-    # shows when any of those sensors is lit if showWhenLit, or when none is
-    # if not; sensorMask 0 takes it out of sensor control
-    def setSensorControl(self, name, sensorMask, showWhenLit = True):
-        self._request('PATCH', self._window_path(name), { 'sensorMask': int(sensorMask), 'showWhenLit': bool(showWhenLit) }, change = True)
+    # puts the window under sensor control: bit i of each is sensor i. It shows
+    # when (sensor value & sensorMask) == sensorPattern; sensorMask 0 takes it
+    # out of sensor control
+    def setSensorControl(self, name, sensorMask, sensorPattern = 0):
+        self._request('PATCH', self._window_path(name), { 'sensorMask': int(sensorMask), 'sensorPattern': int(sensorPattern) }, change = True)
         self.updateContent()
 
     # how many sensors the wall offers (its DISPLAYCLUSTER_SENSORS)

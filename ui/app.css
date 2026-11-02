@@ -335,9 +335,10 @@ input:focus, button:focus-visible, select:focus-visible {
 
 .sensors-pill { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 1px; }
 .sensors { margin-top: 10px; }
-.sensor-bits { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 4px 0 8px; }
-.sensor-bits .check { font-size: 12px; gap: 4px; }
-.sensor-when { font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
+.sensor-bits { display: flex; flex-direction: column; gap: 4px; margin: 4px 0 8px; }
+.sensor-row { font-size: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sensor-row select { flex: 1; max-width: 60%; }
+.sensor-code { font-size: 12px; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .sensor-badge { font-size: 11px; color: var(--muted); }
 
 /* ---- menus ---- */

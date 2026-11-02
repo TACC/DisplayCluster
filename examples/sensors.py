@@ -68,9 +68,9 @@ def setup(dc, count):
     for n in range(count):
         x = (n // 2) * w + pad
         y = (n % 2) * h + pad
-        for uri, showWhenLit in ((RED, False), (GREEN, True)):
-            dc.open(uri, x, y, w - 2 * pad, h - 2 * pad, name = 'sensor %d %s' % (n, 'green' if showWhenLit else 'red'),
-                    sensorMask = 1 << n, showWhenLit = showWhenLit)
+        for uri, color, pattern in ((RED, 'red', 0), (GREEN, 'green', 1 << n)):
+            dc.open(uri, x, y, w - 2 * pad, h - 2 * pad, name = 'sensor %d %s' % (n, color),
+                    sensorMask = 1 << n, sensorPattern = pattern)
     dc.releaseControl()
 
 def sensor(word, count):

@@ -246,7 +246,7 @@ function renderList() {
       const badge = document.createElement('span');
       badge.className = 'sensor-badge';
       badge.textContent = '◐';
-      badge.title = `Sensor-controlled: shown when ${w.showWhenLit ? 'any is lit' : 'none is lit'} of ${sensorList(w.sensorMask)}`;
+      badge.title = `Sensor-controlled: shown when ${sensorCondition(w.sensorMask, w.sensorPattern)}`;
       item.append(badge);
     }
     item.append(eye);
@@ -255,11 +255,13 @@ function renderList() {
   }));
 }
 
-// e.g. "sensors 0, 2"
-function sensorList(mask) {
-  const bits = [];
-  for (let i = 0; i < 32; i++) if ((mask >>> i) & 1) bits.push(i);
-  return (bits.length === 1 ? 'sensor ' : 'sensors ') + bits.join(', ');
+// e.g. "sensor 0 is lit, sensor 2 is dark"
+function sensorCondition(mask, pattern) {
+  const parts = [];
+  for (let i = 0; i < 32; i++) {
+    if ((mask >>> i) & 1) parts.push(`sensor ${i} is ${(pattern >>> i) & 1 ? 'lit' : 'dark'}`);
+  }
+  return parts.join(', ');
 }
 
 function fmt(n) {
@@ -305,30 +307,51 @@ function renderInspector() {
 
 function renderInspectorSensors(w, edit) {
   const mask = w.sensorMask || 0;
+  const pattern = w.sensorPattern || 0;
   const count = sensorSlots(mask);
   $('insp-sensors').hidden = count === 0;
   if (count === 0) return;
 
+  // kept between renders, as rebuilding would close a list that's open
   const bits = $('insp-sensor-bits');
-  bits.replaceChildren(...Array.from({ length: count }, (_, i) => {
-    const label = document.createElement('label');
-    label.className = 'check';
-    const box = document.createElement('input');
-    box.type = 'checkbox';
-    box.checked = !!((mask >>> i) & 1);
-    box.disabled = !edit;
-    box.addEventListener('change', () => {
-      const bit = (1 << i) >>> 0;
-      const newMask = (box.checked ? (mask | bit) : (mask & ~bit)) >>> 0;
-      call('PATCH', windowPath(w.name), { sensorMask: newMask });
-    });
-    label.append(box, String(i));
-    return label;
-  }));
+  if (bits.children.length !== count) {
+    bits.replaceChildren(...Array.from({ length: count }, (_, i) => {
+      const label = document.createElement('label');
+      label.className = 'sensor-row';
+      const select = document.createElement('select');
+      for (const [value, text] of [['ignore', 'Ignore'], ['lit', 'Lit'], ['dark', 'Dark']]) {
+        select.add(new Option(text, value));
+      }
+      select.addEventListener('change', changeSensorControl);
+      label.append(`Sensor ${i}`, select);
+      return label;
+    }));
+  }
 
-  const when = $('insp-show-when');
-  if (document.activeElement !== when) when.value = w.showWhenLit === false ? 'dark' : 'lit';
-  when.disabled = !edit;
+  bits.querySelectorAll('select').forEach((select, i) => {
+    if (document.activeElement !== select) {
+      select.value = !((mask >>> i) & 1) ? 'ignore' : (pattern >>> i) & 1 ? 'lit' : 'dark';
+    }
+    select.disabled = !edit;
+  });
+
+  const binary = (n) => n.toString(2).padStart(count, '0');
+  $('insp-sensor-code').textContent = `mask ${binary(mask)} pattern ${binary(pattern)}`;
+}
+
+// sends all the sensors' settings, which say the whole mask and pattern
+function changeSensorControl() {
+  const w = wall.selected && wall.window(wall.selected);
+  if (!w) return;
+
+  let sensorMask = 0;
+  let sensorPattern = 0;
+  $('insp-sensor-bits').querySelectorAll('select').forEach((select, i) => {
+    const bit = (1 << i) >>> 0;
+    if (select.value !== 'ignore') sensorMask = (sensorMask | bit) >>> 0;
+    if (select.value === 'lit') sensorPattern = (sensorPattern | bit) >>> 0;
+  });
+  call('PATCH', windowPath(w.name), { sensorMask, sensorPattern });
 }
 
 function renderOptions() {
@@ -422,10 +445,6 @@ function wireInspector() {
   $('insp-view').addEventListener('click', () => { const w = selected(); if (w) { wall.setViewing(wall.viewing === w.name ? null : w.name); renderInspector(); } });
   $('insp-reset-view').addEventListener('click', () => { const w = selected(); if (w) call('PATCH', windowPath(w.name), { zoom: 1, centerX: 0.5, centerY: 0.5 }); });
   $('insp-close').addEventListener('click', () => { const w = selected(); if (w) call('DELETE', windowPath(w.name)); });
-  $('insp-show-when').addEventListener('change', () => {
-    const w = selected();
-    if (w) call('PATCH', windowPath(w.name), { showWhenLit: $('insp-show-when').value === 'lit' });
-  });
 }
 
 // ---- sleeping and waking ----

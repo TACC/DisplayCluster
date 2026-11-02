@@ -136,7 +136,7 @@ json WallController::describe(boost::shared_ptr<ContentWindowManager> cwm, int z
         { "h", h * tilesHigh() },
         { "hidden", cwm->getHidden() },
         { "sensorMask", cwm->getSensorMask() },
-        { "showWhenLit", cwm->getShowWhenLit() },
+        { "sensorPattern", cwm->getSensorPattern() },
         { "filled", isFilled(cwm) },
         { "zoom", cwm->getZoom() },
         { "centerX", centerX },
@@ -232,7 +232,7 @@ json WallController::stashedWindows(QString xml)
             { "h", number(node, "h", 0) * tilesHigh() },
             { "hidden", number(node, "hidden", 0) != 0 },
             { "sensorMask", (uint32_t)number(node, "sensorMask", 0) },
-            { "showWhenLit", number(node, "showWhenLit", 1) != 0 },
+            { "sensorPattern", (uint32_t)number(node, "sensorPattern", 0) },
             { "filled", fills_.count(name) > 0 },
             { "zoom", number(node, "zoom", 1) },
             { "centerX", number(node, "centerX", 0.5) },
@@ -301,12 +301,11 @@ WallController::Result WallController::openWindow(const json & params)
         return error(400, "'w' and 'h' must be positive");
     }
 
-    bool hasSensorMask, hasShowWhenLit;
-    uint32_t sensorMask = 0;
-    bool showWhenLit = true;
+    bool hasSensorMask, hasSensorPattern;
+    uint32_t sensorMask = 0, sensorPattern = 0;
 
     if(!optionalBits(params, "sensorMask", hasSensorMask, sensorMask, err) ||
-       !optionalBool(params, "showWhenLit", hasShowWhenLit, showWhenLit, err))
+       !optionalBits(params, "sensorPattern", hasSensorPattern, sensorPattern, err))
     {
         return err;
     }
@@ -337,7 +336,7 @@ WallController::Result WallController::openWindow(const json & params)
     // set up before it's added, so it first appears as the sensors say
     if(sensorMask != 0)
     {
-        cwm->setSensorControl(sensorMask, showWhenLit);
+        cwm->setSensorControl(sensorMask, sensorPattern);
 
         if(cwm->hiddenForSensors(g_displayGroupManager->getSensors()))
         {
@@ -366,10 +365,10 @@ WallController::Result WallController::updateWindow(std::string name, const json
     // validate everything before changing anything
     Result err;
     bool hasX, hasY, hasW, hasH, hasZoom, hasCenterX, hasCenterY, hasHidden, hasFront, hasFilled;
-    bool hasSensorMask, hasShowWhenLit;
+    bool hasSensorMask, hasSensorPattern;
     double x = 0, y = 0, w = 0, h = 0, zoom = 0, centerX = 0, centerY = 0;
-    bool hidden = false, front = false, filled = false, showWhenLit = true;
-    uint32_t sensorMask = 0;
+    bool hidden = false, front = false, filled = false;
+    uint32_t sensorMask = 0, sensorPattern = 0;
 
     if(!optionalNumber(params, "x", hasX, x, err) || !optionalNumber(params, "y", hasY, y, err) ||
        !optionalNumber(params, "w", hasW, w, err) || !optionalNumber(params, "h", hasH, h, err) ||
@@ -380,7 +379,7 @@ WallController::Result WallController::updateWindow(std::string name, const json
        !optionalBool(params, "front", hasFront, front, err) ||
        !optionalBool(params, "filled", hasFilled, filled, err) ||
        !optionalBits(params, "sensorMask", hasSensorMask, sensorMask, err) ||
-       !optionalBool(params, "showWhenLit", hasShowWhenLit, showWhenLit, err))
+       !optionalBits(params, "sensorPattern", hasSensorPattern, sensorPattern, err))
     {
         return err;
     }
@@ -493,10 +492,10 @@ WallController::Result WallController::updateWindow(std::string name, const json
 
     // after hidden, so a window put under sensor control follows the sensors
     // straight away; one taken out of it keeps whatever visibility it has
-    if(hasSensorMask || hasShowWhenLit)
+    if(hasSensorMask || hasSensorPattern)
     {
         cwm->setSensorControl(hasSensorMask ? sensorMask : cwm->getSensorMask(),
-                              hasShowWhenLit ? showWhenLit : cwm->getShowWhenLit());
+                              hasSensorPattern ? sensorPattern : cwm->getSensorPattern());
 
         if(cwm->getSensorMask() != 0)
         {

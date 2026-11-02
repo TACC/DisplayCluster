@@ -434,7 +434,7 @@ copy of the certificate to trust: `DC('wallhost', cafile='api_cert.pem')`
 Windows are named by their file's path unless given a name
 (`dc.open(uri, name='mars')`); a file opened twice gets `#2`, `#3`, … on the
 end. `open()` returns the name the window got. `dc.content` holds every window
-by name: `{uri, x, y, w, h, hidden, filled, sensorMask, showWhenLit, zoom,
+by name: `{uri, x, y, w, h, hidden, filled, sensorMask, sensorPattern, zoom,
 centerX, centerY}`,
 refreshed after every change or by `dc.updateContent()`.
 
@@ -446,7 +446,7 @@ refreshed after every change or by `dc.updateContent()`.
 | `mediaRoots()`, `listMedia(root, dir, sort, descending, offset, limit)` | browsing the media directories |
 | `loadState(file)`, `saveState(file)`, `clearState()` | state files, relative to the state directory |
 | `makeStateFolder(dir)` | make a folder in the state directory |
-| `setSensors(value, mask)`, `getSensors()`, `setSensorControl(name, sensorMask, showWhenLit)` | [sensors](#sensors) |
+| `setSensors(value, mask)`, `getSensors()`, `setSensorControl(name, sensorMask, sensorPattern)` | [sensors](#sensors) |
 | `getOptions()`, `setOptions(**options)`, and `setConstrainAspectRatio`, `setShowWindowBorders`, `setShowContentLabels` | display options |
 | `sleepWall()`, `wakeWall()`, `status()` | the screensaver, and who has control |
 | `takeControl(force)`, `releaseControl()`, `disconnect()` | control, by hand |
@@ -617,24 +617,32 @@ export DISPLAYCLUSTER_SENSORS=${DISPLAYCLUSTER_SENSORS:-6}
 
 The API and `DC.py` work whatever it's set to.
 
-A window is under sensor control when its **`sensorMask`** isn't 0. Bit *i*
-of the mask makes it follow sensor *i*, and **`showWhenLit`** says how:
-
-- `showWhenLit: true` - shown when any of its sensors is lit, hidden otherwise
-- `showWhenLit: false` - shown when none of its sensors is lit
+A window is under sensor control when its **`sensorMask`** isn't 0. It's
+shown when `(sensor value & sensorMask) == sensorPattern`, and hidden
+otherwise. Bit *i* of each is sensor *i*: the mask says which sensors the
+window looks at, and **`sensorPattern`** says which of those must be lit (1)
+and which dark (0).
 
 So a red window and a green one stacked in the same place, both with mask
-`4` (sensor 2) and `showWhenLit` `false` and `true`, show green while sensor 2
-is lit and red while it isn't.
+`0b000100` (sensor 2) and patterns `0` and `0b000100`, show green while sensor
+2 is lit and red while it isn't. Four windows stacked with mask `0b000011` and
+patterns `0b00`, `0b01`, `0b10` and `0b11` show one for each combination of
+sensors 0 and 1. In the web UI, each sensor is **Ignore**, **Lit** or **Dark**
+for the selected window.
 
 - Windows start out with `sensorMask` 0, and sensors leave them alone.
+- `sensorPattern` defaults to 0. Bits of it outside the mask are dropped, since
+  they could never match.
 - A window put under sensor control, opened with a mask, or loaded from a
   state file follows the current value straight away.
 - Hiding or showing a sensor-controlled window by hand lasts until the
   sensors next change. Setting its mask to 0 leaves it as it is.
-- State files keep each window's `sensorMask` and `showWhenLit` (as
-  `<sensorMask>` and `<showWhenLit>`, written only for windows that have a
-  mask). The sensor value itself isn't saved; it starts at 0.
+- State files keep each window's `sensorMask` and `sensorPattern` (as
+  `<sensorMask>` and `<sensorPattern>`, written only for windows that have a
+  mask). The sensor value itself isn't saved; it starts at 0. An older file's
+  `<showWhenLit>` still loads: 1 becomes a pattern equal to the mask, 0 a
+  pattern of 0. With several sensors in the mask, 1 now means all of them lit,
+  not any.
 - Setting the sensors needs the token but **not control**, so whatever reports
   them doesn't lock people out of arranging the wall, or get locked out by
   them. It doesn't wake the wall or keep it awake either: asleep, the value is
@@ -645,10 +653,10 @@ is lit and red while it isn't.
 In `DC.py`:
 
 ```python
-dc.setSensorControl('b1s0-green', 0b000100)                     # sensor 2, shown when lit
-dc.setSensorControl('b1s0-red', 0b000100, showWhenLit = False)  # shown when it isn't
-dc.setSensors(0b000100)                                         # sensor 2 lit, the rest not
-dc.setSensors(0b01, mask = 0b11)                                # just sensors 0 and 1
+dc.setSensorControl('b1s0-green', 0b000100, 0b000100)   # sensor 2, shown when lit
+dc.setSensorControl('b1s0-red', 0b000100, 0)            # shown when it isn't
+dc.setSensors(0b000100)                                 # sensor 2 lit, the rest not
+dc.setSensors(0b01, mask = 0b11)                        # just sensors 0 and 1
 ```
 
 `getSensorCount()` says how many sensors the wall offers.
@@ -701,11 +709,11 @@ Coordinates are in tile units: `(0, 0)` is the wall's top-left corner and
 |---|---|---|
 | `GET /config` | | size in tiles and pixels, screen and mullion sizes, `sensorCount`, version |
 | `GET /windows` | | every window, back to front (while asleep, the layout waking will restore) |
-| `POST /windows` | `{uri, name?, x?, y?, w?, h?, sensorMask?, showWhenLit?}` | open a file |
+| `POST /windows` | `{uri, name?, x?, y?, w?, h?, sensorMask?, sensorPattern?}` | open a file |
 | `POST /windows/directory` | `{root, dir?, cols?, rows?}` | open a folder's files tiled across the wall; without `cols`/`rows`, a grid that fits them (up to 36) |
 | `DELETE /windows` | | close every window |
 | `GET /windows/{name}` | | one window |
-| `PATCH /windows/{name}` | any of `{x, y, w, h, hidden, front, zoom, centerX, centerY, name, filled, sensorMask, showWhenLit}` | change a window |
+| `PATCH /windows/{name}` | any of `{x, y, w, h, hidden, front, zoom, centerX, centerY, name, filled, sensorMask, sensorPattern}` | change a window |
 | `DELETE /windows/{name}` | | close a window |
 | `GET /windows/{name}/thumbnail` | | a small JPEG of its content |
 
@@ -715,7 +723,7 @@ A window is:
 {"name": "mars", "uri": "/data/images/mars.jpg",
  "x": 0.0, "y": 0.0, "w": 2.0, "h": 1.5, "z": 3,
  "hidden": false, "filled": false,
- "sensorMask": 0, "showWhenLit": true,
+ "sensorMask": 0, "sensorPattern": 0,
  "zoom": 1.0, "centerX": 0.5, "centerY": 0.5,
  "contentWidth": 4096, "contentHeight": 3072,
  "thumbnail": "/windows/mars/thumbnail?v=1727541234000"}
@@ -725,7 +733,7 @@ A window is:
 `centerY` are the view of its content: `zoom` 1 shows all of it, and the
 center is in content fractions. `filled: true` makes a window as large as
 fits, centered and in front, remembering where it was; `false` puts it back.
-`sensorMask` and `showWhenLit` are its [sensor control](#sensors).
+`sensorMask` and `sensorPattern` are its [sensor control](#sensors).
 `thumbnail` is null for content that has none (image pyramids, streams, and
 images too big to decode cheaply); its URL changes when the file does.
 

@@ -38,12 +38,12 @@ class WallController
         Result listWindows();
         Result getWindow(std::string name);
 
-        // params: uri (required), name, x, y, w, h, sensorMask, showWhenLit
+        // params: uri (required), name, x, y, w, h, sensorMask, sensorPattern
         Result openWindow(const json & params);
 
         // params: any of x, y, w, h, hidden, front, zoom, centerX, centerY, name,
         // filled - true makes the window as big as fits, centered and in front,
-        // remembering where it was; false puts it back - sensorMask, showWhenLit
+        // remembering where it was; false puts it back - sensorMask, sensorPattern
         Result updateWindow(std::string name, const json & params);
 
         Result closeWindow(std::string name);
