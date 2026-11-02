@@ -627,8 +627,7 @@ So a red window and a green one stacked in the same place, both with mask
 `0b000100` (sensor 2) and patterns `0` and `0b000100`, show green while sensor
 2 is lit and red while it isn't. Four windows stacked with mask `0b000011` and
 patterns `0b00`, `0b01`, `0b10` and `0b11` show one for each combination of
-sensors 0 and 1. In the web UI, each sensor is **Ignore**, **Lit** or **Dark**
-for the selected window.
+sensors 0 and 1.
 
 - Windows start out with `sensorMask` 0, and sensors leave them alone.
 - `sensorPattern` defaults to 0. Bits of it outside the mask are dropped, since
@@ -675,8 +674,9 @@ $ python3 examples/sensors.py wallhost
 sensors> t 2
 ```
 
-In the web UI, the window inspector has a checkbox per sensor and a
-**Lit / Dark** choice, and the top bar shows the sensor value, once
+In the web UI, the window inspector sets each sensor to **Ignore**, **Lit** or
+**Dark** and shows the resulting mask and pattern, with sensor 0 as the
+rightmost bit, and the top bar shows the sensor value, once
 `DISPLAYCLUSTER_SENSORS` [is set](#sensors).
 
 ## API reference
