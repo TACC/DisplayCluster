@@ -49,7 +49,7 @@ error image.
 
 **Folders the web UI browses.** The web UI's file browser shows only the
 folders in `DISPLAYCLUSTER_MEDIA_DIRS`. The launcher sets this to
-`content=$CONTENT_DIR`, which is `~/Content` by default. Add more as
+`content=$CONTENT_DIR`, the DisplayCluster directory's `Content/` by default. Add more as
 `name=path` pairs separated by colons:
 
 ```bash
@@ -65,11 +65,11 @@ the page and the control window always use full paths. Give `DC.py` full paths
 too.
 
 **Where state files are kept.** Layouts saved and loaded from the web UI or
-`DC.py` live in the state directory, `DISPLAYCLUSTER_STATE_DIR`, which is
-`~/.displaycluster/states` by default. It can have folders. The web UI and
-`DC.py` can't load or save outside it. The control window's Load State and Save
-State can use any folder. To keep layouts with the media, point it into the
-content folder, for example `DISPLAYCLUSTER_STATE_DIR=$HOME/Content/states`.
+`DC.py` live in the state directory, `DISPLAYCLUSTER_STATE_DIR`. The launcher
+makes it the content folder itself, so a project's layouts sit beside its
+media, in folders such as `Content/talks/morning/`. The web UI and `DC.py` can't
+load or save outside it. The control window's Load State and Save State can use
+any folder. (Run without the launcher, the wall uses `~/.displaycluster/states`.)
 
 ## What a state file holds
 
@@ -97,9 +97,9 @@ each path afresh.
 - **A full path** (starting with `/`) means exactly that file, wherever the
   state file is. The wall always saves full paths.
 - **A relative path** is relative to the folder the state file is in. In
-  `/home/vislab/.displaycluster/states/talks/morning.dcx`, the path
+  `/home/vislab/DisplayCluster/Content/talks/morning.dcx`, the path
   `morning/map.png` means
-  `/home/vislab/.displaycluster/states/talks/morning/map.png`.
+  `/home/vislab/DisplayCluster/Content/talks/morning/map.png`.
   That's so whatever loads it (the web UI, `DC.py` or the control window).
 - **Paths are taken literally.** A `file://` URI or a `%20`-encoded name, as
   some tools write, is not decoded. The wall looks for a file with that exact
@@ -166,7 +166,7 @@ are, and save it. Then gather it into its own folder in the state directory, so
 it's listed under Load state… and can't be broken by later tidying:
 
 ```bash
-cd ~/.displaycluster/states
+cd /home/vislab/DisplayCluster/Content
 localize-dcx talks/morning morning.dcx
 ```
 
@@ -196,7 +196,7 @@ from that wall's state directory. `rsync -aH` keeps the pyramid tiles hard
 linked:
 
 ```bash
-rsync -aH ~/.displaycluster/states/talks/morning/ otherwall:.displaycluster/states/talks/morning/
+rsync -aH /home/vislab/DisplayCluster/Content/talks/morning/ otherwall:DisplayCluster/Content/talks/morning/
 ```
 
 ## check-dcx: finding and repairing broken layouts
@@ -236,7 +236,7 @@ It exits 0 if the state file was fine or was fixed, and 1 otherwise. That lets
 it check a whole state directory:
 
 ```bash
-find ~/.displaycluster/states -name '*.dcx' | while read -r f; do
+find /home/vislab/DisplayCluster/Content -name '*.dcx' | while read -r f; do
     check-dcx "$f" > /dev/null || echo "broken: $f"
 done
 ```
@@ -248,18 +248,9 @@ using only its standard library, and don't talk to the wall, so they don't
 need the container. Run them on any machine that sees the files, usually the
 head node.
 
-Put a copy where your shell finds it, such as `~/bin`. From a checkout, copy
-them from `scripts/`. With only the image, copy them out of it:
-
-```bash
-mkdir -p ~/bin
-for s in check-dcx localize-dcx; do
-    apptainer exec displaycluster.sif cat /usr/local/bin/$s > ~/bin/$s
-    chmod +x ~/bin/$s
-done
-```
-
-Copy them again after installing a new image, to get any fixes.
+They're installed in the DisplayCluster directory's `bin/`, with the
+launcher (see [setup.md](setup.md#the-displaycluster-directory)), and updated
+with it. On another machine, copy them from a checkout's `scripts/`.
 
 On a machine without Python 3, run them in the container instead. It sees your
 home directory and the current folder; a folder elsewhere needs `--bind`:

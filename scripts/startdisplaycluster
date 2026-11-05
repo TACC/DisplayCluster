@@ -1,32 +1,61 @@
 #!/bin/bash
-# Starts a DisplayCluster wall from its apptainer image (displaycluster.sif).
+# Starts a DisplayCluster wall from its apptainer image.
 #
-# This is the one file a wall needs outside the image: copy it somewhere on
-# the PATH (e.g. ~/bin) and edit the settings below for the site. A copy is
-# in every image too, so a site needs no checkout of the repo to get one:
+# It lives in the bin/ folder of a DisplayCluster directory, on a filesystem
+# every node of the wall can see, and finds everything else from there:
 #
-#   apptainer exec displaycluster.sif cat /usr/local/src/DisplayCluster/scripts/startdisplaycluster > ~/bin/startdisplaycluster
+#   DisplayCluster/                     $DISPLAYCLUSTER_ROOT
+#     bin/startdisplaycluster           this script, killdc, cyclestates, ...
+#     images/displaycluster.sif         the image (or a symlink to the current one)
+#     wall.json                         the wall's layout
+#     Content/                          media and saved states; the working directory
+#     python/                           DC.py
+#     site.sh                           optional: this site's settings
 #
-# Every setting is an environment variable, and one already set in the
-# environment wins over the value here. Every DISPLAYCLUSTER_* variable is
-# passed on to all of the wall's processes, so others can be added freely;
-# doc/remote-control.md lists those for the remote API and web UI.
+# So it needs no editing. Each setting below is an environment variable. Put
+# the site's own in site.sh (e.g. DISPLAYCLUSTER_SENSORS=6), so an update that
+# replaces this script keeps them; one set in the environment wins over both,
+# e.g. DISPLAYCLUSTER_TIMEOUT=60 startdisplaycluster. DISPLAYCLUSTER_ROOT set in
+# the environment picks another DisplayCluster directory.
+#
+# Every DISPLAYCLUSTER_* variable is passed on to all of the wall's processes,
+# so others can be added freely; doc/remote-control.md lists those for the
+# remote API and web UI.
 #
 # MPI runs rank 0 (the control process, which also serves the remote API) on
 # this machine and one rank per "processes" entry in the configuration, on
 # that entry's host. The host's Open MPI must match the image's (see README).
 
-# --- site settings -----------------------------------------------------------
+# --- where everything is -----------------------------------------------------
+
+# the folder above the bin/ this script is in, following any symlink to it
+DISPLAYCLUSTER_ROOT=${DISPLAYCLUSTER_ROOT:-$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)}
+export DISPLAYCLUSTER_ROOT
+
+# the site's settings; any already set in the environment win over them
+if [ -r "$DISPLAYCLUSTER_ROOT/site.sh" ]; then
+    SET=$(export -p | grep -E '^declare -x (DISPLAYCLUSTER_[A-Z_]*|CONTENT_DIR|APPTAINER_BINDPATH)=')
+    # set -a exports what it sets, so every setting there reaches the wall's processes
+    set -a
+    . "$DISPLAYCLUSTER_ROOT/site.sh"
+    set +a
+    eval "$SET"
+fi
+
+# --- settings ----------------------------------------------------------------
 
 # the image, and the wall's layout
-export DISPLAYCLUSTER_SIF=${DISPLAYCLUSTER_SIF:-$HOME/displaycluster.sif}
-export DISPLAYCLUSTER_CONFIG=${DISPLAYCLUSTER_CONFIG:-$HOME/wall.json}
+export DISPLAYCLUSTER_SIF=${DISPLAYCLUSTER_SIF:-$DISPLAYCLUSTER_ROOT/images/displaycluster.sif}
+export DISPLAYCLUSTER_CONFIG=${DISPLAYCLUSTER_CONFIG:-$DISPLAYCLUSTER_ROOT/wall.json}
 
-# the wall's working directory
-CONTENT_DIR=${CONTENT_DIR:-$HOME/Content}
+# the wall's working directory, where media and saved states live together
+CONTENT_DIR=${CONTENT_DIR:-$DISPLAYCLUSTER_ROOT/Content}
 
 # folders the web UI's file browser shows, as name=path pairs separated by colons
 export DISPLAYCLUSTER_MEDIA_DIRS=${DISPLAYCLUSTER_MEDIA_DIRS:-content=$CONTENT_DIR}
+
+# where states are saved and loaded, named relative to it
+export DISPLAYCLUSTER_STATE_DIR=${DISPLAYCLUSTER_STATE_DIR:-$CONTENT_DIR}
 
 # remote API and web UI port; the token, certificate and key are read from
 # ~/.displaycluster/ (api_token, api_cert.pem, api_key.pem) if they're there
@@ -61,6 +90,20 @@ for f in "$DISPLAYCLUSTER_SIF" "$DISPLAYCLUSTER_CONFIG"; do
     fi
 done
 
+if [ ! -d "$CONTENT_DIR" ]; then
+    echo "startdisplaycluster: no content folder $CONTENT_DIR" >&2
+    exit 1
+fi
+
+# states used to be kept in ~/.displaycluster/states: say so if some are still
+# there, since the wall no longer looks for them
+OLD_STATES=$HOME/.displaycluster/states
+if [ "$(readlink -f "$DISPLAYCLUSTER_STATE_DIR")" != "$(readlink -f "$OLD_STATES")" ] &&
+   [ -n "$(find "$OLD_STATES" -name '*.dcx' -print -quit 2> /dev/null)" ]; then
+    echo "startdisplaycluster: states in $OLD_STATES aren't shown; the wall uses $DISPLAYCLUSTER_STATE_DIR." >&2
+    echo "  Move them there, or set DISPLAYCLUSTER_STATE_DIR=$OLD_STATES in $DISPLAYCLUSTER_ROOT/site.sh" >&2
+fi
+
 MPIRUN=$(command -v mpirun) || { echo "startdisplaycluster: no mpirun on the PATH" >&2; exit 1; }
 
 # rank 0 here, then one rank per process in the configuration
@@ -68,6 +111,13 @@ HOSTS=$(python3 -c '
 import json, sys
 print(",".join(["localhost"] + [p["host"] for p in json.load(open(sys.argv[1]))["processes"]]))
 ' "$DISPLAYCLUSTER_CONFIG") || { echo "startdisplaycluster: can't read the hosts from $DISPLAYCLUSTER_CONFIG" >&2; exit 1; }
+
+# the container sees the home directory by itself, but not a DisplayCluster
+# directory elsewhere, so bind that in too
+case $DISPLAYCLUSTER_ROOT in
+    "$HOME"|"$HOME"/*) ;;
+    *) export APPTAINER_BINDPATH=${APPTAINER_BINDPATH:+$APPTAINER_BINDPATH,}$DISPLAYCLUSTER_ROOT ;;
+esac
 
 # pass these on to every node; APPTAINER_BINDPATH names host folders (outside
 # home) that the container should see, e.g. /scratch,/corral

@@ -6,8 +6,8 @@
 #
 #   killdc [-c wall.json] [-u user] [-t seconds] [-n]
 #
-# -c wall.json  the wall's configuration (default $DISPLAYCLUSTER_CONFIG, or
-#               ~/wall.json as for startdisplaycluster)
+# -c wall.json  the wall's configuration (default as for startdisplaycluster:
+#               $DISPLAYCLUSTER_CONFIG, or wall.json in the DisplayCluster directory)
 # -u user       whose processes to stop (default you)
 # -t seconds    how long to wait after SIGTERM before SIGKILL (default 5)
 # -n            only show what would be stopped
@@ -24,7 +24,18 @@
 # it without a password, as mpirun does. A host that can't be reached is reported, and
 # killdc exits non-zero; so does a host where something wouldn't die.
 
-CONFIG=${DISPLAYCLUSTER_CONFIG:-$HOME/wall.json}
+# the DisplayCluster directory, and its settings, as startdisplaycluster finds them
+DISPLAYCLUSTER_ROOT=${DISPLAYCLUSTER_ROOT:-$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)}
+if [ -r "$DISPLAYCLUSTER_ROOT/site.sh" ]; then
+    SET=$(export -p | grep -E '^declare -x DISPLAYCLUSTER_[A-Z_]*=')
+    # set -a exports what it sets, so every setting there reaches the wall's processes
+    set -a
+    . "$DISPLAYCLUSTER_ROOT/site.sh"
+    set +a
+    eval "$SET"
+fi
+
+CONFIG=${DISPLAYCLUSTER_CONFIG:-$DISPLAYCLUSTER_ROOT/wall.json}
 TARGET_USER=${USER:-$(id -un)}
 GRACE=5
 DRY_RUN=0
@@ -67,18 +78,19 @@ print(" ".join(hosts))
 read -r -d '' CLEANUP <<'EOF'
 role=$1 user=$2 grace=$3 dry_run=$4
 
-# the wall's processes, by command line. Each pattern needs the command as well
-# as the file, so an editor or pager open on displaycluster.py isn't matched.
-pattern='(^|/)mpirun .*displaycluster'
-pattern+='|(^|/)(apptainer|singularity) .*displaycluster\.(sh|py)'
+# the wall's processes, by command line: each pattern must match the command
+# itself, at the start, as well as the file, so an editor or pager open on
+# displaycluster.py, or a shell command that mentions mpirun, isn't matched.
+pattern='^([^ ]*/)?mpirun .*displaycluster'
+pattern+='|^([^ ]*/)?(apptainer|singularity) .*displaycluster\.(sh|py)'
 pattern+='|^(Apptainer|Singularity) runtime parent: .*displaycluster'
-pattern+='|(^|/)sh .*displaycluster\.sh'
-pattern+='|(^|/)python[0-9.]* .*displaycluster\.py'
-pattern+='|^(/[^ ]*/)?displaycluster( |$)'
+pattern+='|^([^ ]*/)?sh .*displaycluster\.sh'
+pattern+='|^([^ ]*/)?python[0-9.]* .*displaycluster\.py'
+pattern+='|^([^ ]*/)?displaycluster( |$)'
 # Open MPI's daemons: on the wall's own hosts they can only be the wall's.
 # Here, the user may be running other MPI jobs, and stopping mpirun stops ours.
 if [ "$role" = wall ]; then
-    pattern+='|^(/[^ ]*/)?(orted|prted)( |$)'
+    pattern+='|^([^ ]*/)?(orted|prted)( |$)'
 fi
 
 find_pids() {

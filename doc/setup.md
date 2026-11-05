@@ -576,8 +576,8 @@ that goes in `DISPLAYCLUSTER_MPIARGS`.
 ## Describing the wall: configuration.json
 
 The configuration file describes the wall's geometry and which process draws
-which tiles. It's specific to your wall, so keep it outside the repo, e.g. in
-the wall account's home directory as `~/wall.json`.
+which tiles. It's specific to your wall, so keep it outside the repo, as
+`wall.json` in the [DisplayCluster directory](#the-displaycluster-directory).
 
 ```json
 {
@@ -712,48 +712,107 @@ loads every image and decodes every movie that its tile shows, by itself.
 Heavy movie use is limited by the decoders: count how many processes show
 each movie, not how many movies there are.
 
-## The launcher: startdisplaycluster
+## The DisplayCluster directory
 
-`scripts/startdisplaycluster` starts a containerized wall. It's the one file a
-wall needs outside the image. Copy it somewhere on the wall account's `PATH`
-and edit it:
+A wall's files all live in one directory, on a filesystem that every node of
+the wall sees at the same path (a shared home directory works; on a single
+machine, any local folder does):
 
-```bash
-mkdir -p ~/bin
-cp scripts/startdisplaycluster ~/bin/          # or, with no checkout:
-apptainer exec displaycluster.sif cat /usr/local/src/DisplayCluster/scripts/startdisplaycluster > ~/bin/startdisplaycluster
-chmod +x ~/bin/startdisplaycluster
+```
+DisplayCluster/                   DISPLAYCLUSTER_ROOT
+  bin/                            startdisplaycluster, killdc, cyclestates, check-dcx, localize-dcx
+  images/displaycluster.sif       the image
+  python/                         DC.py
+  wall.json                       the wall's layout
+  site.sh                         optional: this site's settings
+  Content/                        media and saved states; the wall's working directory
 ```
 
-The settings are at the top, each with a comment. You'll usually change:
+The scripts in `bin/` find the directory from where they are, as the folder
+above `bin/`, so they need no editing and a symlink to one (in `~/bin`, say)
+works too. Setting `DISPLAYCLUSTER_ROOT` picks another directory, for example
+a test install beside the real one.
+
+`Content/` holds both the media and the states saved from the web UI or
+`DC.py`, so a project can keep its files and its layouts in one folder, such as
+`Content/talks/morning/`. Only the API token and the HTTPS certificate and key
+stay in the wall account's `~/.displaycluster/`, since they're private.
+
+To set it up from an image (the copy commands run inside it, since that's
+where the scripts are; `--bind` lets it see the directory):
+
+```bash
+ROOT=/shared/DisplayCluster
+mkdir -p $ROOT/bin $ROOT/images $ROOT/python $ROOT/Content
+cp displaycluster.sif $ROOT/images/
+apptainer exec --bind $ROOT $ROOT/images/displaycluster.sif sh -c '
+    cd /usr/local/src/DisplayCluster || exit 1
+    cp scripts/startdisplaycluster scripts/killdc scripts/cyclestates scripts/check-dcx scripts/localize-dcx "$0/bin/"
+    cp python/*.py "$0/python/"
+    [ -e "$0/wall.json" ] || cp examples/configuration.json "$0/wall.json"' $ROOT
+```
+
+An image built before November 2026 has no `killdc`; `cp` says so and copies
+the rest.
+
+Then edit `wall.json` ([above](#describing-the-wall-configurationjson)), and
+put `$ROOT/bin` on the wall account's `PATH`.
+
+## The launcher: startdisplaycluster
+
+`bin/startdisplaycluster` starts a containerized wall. It runs the image in
+`images/`, with `wall.json`, and starts the wall in `Content/`, which is also
+where the web UI browses and saves states.
+
+Its settings are environment variables, each with a comment and a default at
+the top of the script. Rather than edit the script, put the ones you change in
+`site.sh` in the DisplayCluster directory, which it reads first, so an update
+that replaces the script keeps them:
+
+```bash
+# DisplayCluster/site.sh
+DISPLAYCLUSTER_SENSORS=6
+DISPLAYCLUSTER_MPIARGS="-bind-to none --mca btl_tcp_if_include enp0s25"
+```
+
+You'll usually set only a few:
 
 | Setting | Default | Set it to |
 |---|---|---|
-| `DISPLAYCLUSTER_SIF` | `~/displaycluster.sif` | where you put the image |
-| `DISPLAYCLUSTER_CONFIG` | `~/wall.json` | your configuration file |
-| `CONTENT_DIR` | `~/Content` | the wall's working directory, where your media lives |
+| `DISPLAYCLUSTER_SIF` | `images/displaycluster.sif` | another image |
+| `DISPLAYCLUSTER_CONFIG` | `wall.json` | another configuration file |
+| `CONTENT_DIR` | `Content` | the wall's working directory, where your media lives |
 | `DISPLAYCLUSTER_MEDIA_DIRS` | `content=$CONTENT_DIR` | the folders the web UI's file browser shows |
+| `DISPLAYCLUSTER_STATE_DIR` | `$CONTENT_DIR` | where states are saved and loaded |
 | `DISPLAYCLUSTER_TIMEOUT` | `10800` | seconds idle before the screensaver starts |
 | `DISPLAYCLUSTER_SENSORS` | `0` | the number of [sensors](remote-control.md#sensors); the web UI shows no sensor controls at 0 |
 | `DISPLAYCLUSTER_MPIARGS` | `-bind-to none` | add `--mca btl_tcp_if_include <interface>` if MPI picks the wrong network |
 
-Each setting can also be given in the environment, which wins over the file.
-For example, `DISPLAYCLUSTER_TIMEOUT=60 startdisplaycluster` is handy while
-testing. Any other `DISPLAYCLUSTER_*` variable you add is passed to every
-process automatically; see the
+The paths are in the DisplayCluster directory. A setting given in the
+environment wins over both `site.sh` and the default, which is handy while
+testing: `DISPLAYCLUSTER_TIMEOUT=60 startdisplaycluster`. Any other `DISPLAYCLUSTER_*`
+variable you add is passed to every process automatically; see the
 [reference](#environment-variable-reference). So is `APPTAINER_BINDPATH`,
 which makes folders outside your home directory visible in the container
-(see [content.md](content.md#where-content-can-live)).
+(see [content.md](content.md#where-content-can-live)). The launcher adds the
+DisplayCluster directory to it when that's outside your home directory.
 
 When it runs, the launcher:
-1. checks that the image and configuration can be read;
-2. builds the host list: `localhost` for rank 0, then each process's `host`;
-3. changes to `CONTENT_DIR`;
-4. prints the `mpirun` command and runs it.
+1. reads `site.sh`, then checks that the image, the configuration and the
+   content folder are there;
+2. warns if states are still in `~/.displaycluster/states`, where earlier
+   versions kept them, since the wall no longer shows them. Move them into
+   `Content/`, or keep them where they are with
+   `DISPLAYCLUSTER_STATE_DIR=$HOME/.displaycluster/states` in `site.sh`;
+3. builds the host list: `localhost` for rank 0, then each process's `host`;
+4. changes to `CONTENT_DIR`;
+5. prints the `mpirun` command and runs it.
 
 Each rank runs inside the container. `displaycluster.py` sets `DISPLAY` from
 the configuration and starts the program. Ctrl-C, or killing the launcher,
-stops the whole wall.
+stops the whole wall. If ranks are left behind (after a crash, say), `killdc`
+stops whatever's left on every host in `wall.json`; `killdc -n` shows what it
+would stop.
 
 ## First run
 
@@ -893,7 +952,7 @@ User=vislab
 Environment=DISPLAY=:0
 # systemd's PATH is minimal: add where mpirun is (on Rocky, /usr/lib64/openmpi/bin)
 Environment=PATH=/usr/lib64/openmpi/bin:/usr/local/bin:/usr/bin:/bin
-ExecStart=/home/vislab/bin/startdisplaycluster
+ExecStart=/home/vislab/DisplayCluster/bin/startdisplaycluster
 Restart=on-failure
 RestartSec=10
 
@@ -935,7 +994,7 @@ which shows a list of saved layouts in turn.
 **Linux: cron.** As the wall's account, run `crontab -e` and add:
 
 ```
-PATH=/home/vislab/bin:/usr/lib64/openmpi/bin:/usr/local/bin:/usr/bin:/bin
+PATH=/home/vislab/DisplayCluster/bin:/usr/lib64/openmpi/bin:/usr/local/bin:/usr/bin:/bin
 DISPLAY=:0
 DISPLAYCLUSTER_API_HTTPS=1
 
@@ -1259,27 +1318,30 @@ confidential over a network you don't trust.
 
 ## A wall account's files: checklist
 
-Everything a containerized wall needs lives in the wall account's home
-directory, at the paths the launcher expects unless you change them. Use
-this list to set up a new wall, a second wall, or a replacement account. On
-an existing wall, use it to check what's where.
+Everything a containerized wall needs is in the
+[DisplayCluster directory](#the-displaycluster-directory), apart from the
+wall account's private files in `~/.displaycluster/`. Use this list to set up
+a new wall, a second wall, or a replacement account. On an existing wall, use
+it to check what's where. Paths without `~` are in the DisplayCluster
+directory.
 
 | What | Default place | Set by | Notes |
 |---|---|---|---|
-| the image | `~/displaycluster.sif` | `DISPLAYCLUSTER_SIF` in the launcher | one copy, where the launcher looks; see below |
-| the launcher | `~/bin/startdisplaycluster` | | your edited copy of `scripts/startdisplaycluster` |
-| the wall's layout | `~/wall.json` | `DISPLAYCLUSTER_CONFIG` | [configuration.json](#describing-the-wall-configurationjson) |
-| content | `~/Content` | `CONTENT_DIR`, `DISPLAYCLUSTER_MEDIA_DIRS` | readable from every node; see [content.md](content.md) |
-| saved states | `~/.displaycluster/states` | `DISPLAYCLUSTER_STATE_DIR` | made by the first save |
+| the image | `images/displaycluster.sif` | `DISPLAYCLUSTER_SIF` | the one the launcher runs; see below |
+| the launcher, `killdc` | `bin/` | | copied from the image, unedited |
+| the site's settings | `site.sh` | | optional; read by the launcher and `killdc` |
+| the wall's layout | `wall.json` | `DISPLAYCLUSTER_CONFIG` | [configuration.json](#describing-the-wall-configurationjson) |
+| content | `Content/` | `CONTENT_DIR`, `DISPLAYCLUSTER_MEDIA_DIRS` | readable from every node; see [content.md](content.md) |
+| saved states | `Content/` | `DISPLAYCLUSTER_STATE_DIR` | beside the media they show |
+| `DC.py` | `python/` | | for `cyclestates` and your own scripts |
+| state file tools | `bin/check-dcx`, `bin/localize-dcx` | | see [content.md](content.md#running-the-scripts) |
 | API token | `~/.displaycluster/api_token` | `DISPLAYCLUSTER_API_TOKEN` | mode 600; see [remote-control.md](remote-control.md#the-token) |
 | HTTPS certificate and key | `~/.displaycluster/api_cert.pem`, `api_key.pem` | `DISPLAYCLUSTER_API_CERT`, `_KEY` | an RSA certificate, key mode 600; read only at startup |
-| state file tools (optional) | `~/bin/check-dcx`, `~/bin/localize-dcx` | | copied out of the image; see [content.md](content.md#running-the-scripts) |
 | starting and stopping | a systemd unit, or [a schedule](#on-a-schedule) | | [Running it unattended](#running-it-unattended) |
 
-**Keep one image, where the launcher looks for it.** An image copied
-anywhere else isn't used, however new it is, so don't keep spares beside
-the real one. To keep the previous image for going back, rename it
-(`displaycluster.sif.old`) rather than putting it in another folder.
+**The launcher runs `images/displaycluster.sif`, whatever else is there.** To
+keep the previous image for going back, rename it in `images/`
+(`displaycluster.sif.old`) before putting the new one in its place.
 
 **After installing, confirm what's running.** Check the version, which is
 the git commit the image was built from, in any of these places:
@@ -1300,21 +1362,23 @@ displaycluster.sif` with the same on the build machine.
 ```bash
 cd DisplayCluster && git pull && ./build-sif.sh
 ```
-Stop the wall, copy the new `displaycluster.sif` over the one the launcher
-uses, start the wall again, and [confirm the version](#a-wall-accounts-files-checklist).
+Stop the wall, put the new `displaycluster.sif` in the DisplayCluster
+directory's `images/` (renaming the old one if you want to keep it), start the
+wall again, and [confirm the version](#a-wall-accounts-files-checklist).
 
-Your edited launcher keeps working with a new image, but a new image can
-bring a new launcher, with new settings or fixes. Compare yours with the one
-in the image now and then:
+A new image can bring new scripts too, with new settings or fixes. Since the
+site's settings are in `site.sh`, not in the scripts, replace them with the
+image's: run the copy commands in [The DisplayCluster
+directory](#the-displaycluster-directory) again. They leave `wall.json`,
+`site.sh` and `Content/` alone.
 
-```bash
-apptainer exec displaycluster.sif cat /usr/local/src/DisplayCluster/scripts/startdisplaycluster > /tmp/startdisplaycluster.new
-diff ~/bin/startdisplaycluster /tmp/startdisplaycluster.new
-```
-
-The differences are your own settings and whatever changed upstream. Copy
-the upstream changes into your copy, or copy your settings into the new one
-and replace yours. Your settings are all at the top, under "site settings".
+**Moving from a launcher you edited.** Earlier versions had you edit a copy
+of the launcher, usually `~/bin/startdisplaycluster`, and kept the image,
+`wall.json`, `Content` and states in the home directory. To move: set up the
+DisplayCluster directory, move the image into `images/`, `wall.json` and
+`Content/` into it, and the states from `~/.displaycluster/states` into
+`Content/`. Copy any settings you'd changed at the top of the old launcher
+into `site.sh`, then delete the old launcher so it isn't run by mistake.
 
 **Native:** `git pull`, rebuild, `cmake --install` on every node (or the
 shared prefix), and restart the wall.
@@ -1358,7 +1422,8 @@ The launcher passes every one of these to every process.
 
 | Variable | Default | What it does |
 |---|---|---|
-| `DISPLAYCLUSTER_SIF` | (launcher) `~/displaycluster.sif` | the container image |
+| `DISPLAYCLUSTER_ROOT` | (launcher, `killdc`) the folder above their `bin/` | the [DisplayCluster directory](#the-displaycluster-directory) |
+| `DISPLAYCLUSTER_SIF` | (launcher) `$DISPLAYCLUSTER_ROOT/images/displaycluster.sif` | the container image |
 | `DISPLAYCLUSTER_CONFIG` | `$DISPLAYCLUSTER_DIR/configuration.json` | the wall's configuration file |
 | `DISPLAYCLUSTER_DIR` | required; launcher sets `/usr/local` | install prefix: where `data/` and `ui/` are |
 | `DISPLAYCLUSTER_INSTALL` | `/usr/local` | where `bin/displaycluster` is |
@@ -1373,8 +1438,8 @@ The launcher passes every one of these to every process.
 | `DISPLAYCLUSTER_API_TOKEN` | `~/.displaycluster/api_token` | the API token |
 | `DISPLAYCLUSTER_API_BIND` | `0.0.0.0` with a token, else `127.0.0.1` | the API's listening address |
 | `DISPLAYCLUSTER_API_CERT`, `_KEY` | `~/.displaycluster/api_cert.pem`, `api_key.pem` | HTTPS certificate and key |
-| `DISPLAYCLUSTER_STATE_DIR` | `~/.displaycluster/states` | where saved layouts go |
-| `DISPLAYCLUSTER_MEDIA_DIRS` | home directory | folders the web UI browses, `name=path:name=path` (`;` between them on Windows) |
+| `DISPLAYCLUSTER_STATE_DIR` | (launcher) `$DISPLAYCLUSTER_ROOT/Content`; otherwise `~/.displaycluster/states` | where saved layouts go |
+| `DISPLAYCLUSTER_MEDIA_DIRS` | (launcher) `content=$DISPLAYCLUSTER_ROOT/Content`; otherwise the home directory | folders the web UI browses, `name=path:name=path` (`;` between them on Windows) |
 | `DISPLAYCLUSTER_UI_DIR` | `$DISPLAYCLUSTER_DIR/ui` | the web UI's files |
 | `DISPLAYCLUSTER_SENSORS` | `0` | sensors offered in the web UI; at 0 it shows no sensor controls. Read at startup |
 | `DISPLAYCLUSTER_DRAG_SYNC_MS` | `0` | while dragging in the control window, update the wall this often (ms); 0 moves it only on release |

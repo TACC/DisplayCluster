@@ -27,7 +27,7 @@ started (`startdisplaycluster` passes them on to the wall's processes):
 | `DISPLAYCLUSTER_API_BIND` | all interfaces (`0.0.0.0`) with a token; `127.0.0.1` without | the address the API listens on |
 | `DISPLAYCLUSTER_API_CERT` | `~/.displaycluster/api_cert.pem`, if that exists | a certificate to serve HTTPS with; see [HTTPS](#https) |
 | `DISPLAYCLUSTER_API_KEY` | `~/.displaycluster/api_key.pem`, if that exists | the certificate's private key |
-| `DISPLAYCLUSTER_STATE_DIR` | `~/.displaycluster/states` | where state files are loaded from and saved to |
+| `DISPLAYCLUSTER_STATE_DIR` | the DisplayCluster directory's `Content/` (launcher); otherwise `~/.displaycluster/states` | where state files are loaded from and saved to |
 | `DISPLAYCLUSTER_MEDIA_DIRS` | your home directory | the directories the file browser shows |
 | `DISPLAYCLUSTER_UI_DIR` | `<install prefix>/ui` | where the web UI's files are |
 | `DISPLAYCLUSTER_TIMEOUT` | `5` | seconds without activity before the screensaver starts |
@@ -552,14 +552,10 @@ start it in [tmux](setup.md#in-tmux). To run it at set times, see
 [On a schedule](setup.md#on-a-schedule).
 
 It runs on any machine that can reach the wall, with Python 3 and `DC.py`, which
-it looks for beside itself, in `../python`, and on `PYTHONPATH`. To copy both out
-of the image into `~/bin`:
-
-```bash
-apptainer exec displaycluster.sif cat /usr/local/bin/cyclestates > ~/bin/cyclestates
-apptainer exec displaycluster.sif cat /usr/local/python/DC.py > ~/bin/DC.py
-chmod +x ~/bin/cyclestates
-```
+it looks for beside itself, in `../python`, and on `PYTHONPATH`. In the
+DisplayCluster directory both are installed already, in `bin/` and `python/`
+(see [setup.md](setup.md#the-displaycluster-directory)). On another machine,
+use a checkout's `scripts/cyclestates`, which finds `python/DC.py` beside it.
 
 ## Control: one at a time
 

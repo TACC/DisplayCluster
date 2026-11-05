@@ -393,32 +393,32 @@ involved at all, sidestepping the whole class of bug.
 ### Installing and starting it
 
 Nothing needs installing on the wall's machines but apptainer, the NVIDIA
-driver and a matching Open MPI (below). The wall needs three files, readable
-at the same paths on every machine (a shared home directory works):
+driver and a matching Open MPI (below). A wall's files all live in one
+**DisplayCluster directory**, readable at the same path on every machine (a
+shared home directory works):
 
-- **displaycluster.sif**
-- the wall's **configuration.json**, describing its tiles and which node
-  draws each one;
-- a copy of **scripts/startdisplaycluster**, edited for the site.
-
-`startdisplaycluster` is the one file a wall needs outside the image. Copy it
-somewhere on the `PATH` (e.g. `~/bin`) and edit the settings at its top:
-where the sif and `configuration.json` are, the content directory, the
-screensaver, extra `mpirun` arguments, and so on. A copy is in every image,
-so a site needs no checkout of the repo to get one:
-
-```bash
-apptainer exec displaycluster.sif cat /usr/local/src/DisplayCluster/scripts/startdisplaycluster > ~/bin/startdisplaycluster
+```
+DisplayCluster/
+  bin/            startdisplaycluster, killdc, cyclestates, check-dcx, localize-dcx
+  images/         displaycluster.sif
+  python/         DC.py
+  wall.json       the wall's configuration: its tiles, and which node draws each
+  site.sh         optional: the site's settings
+  Content/        media and saved states; the wall's working directory
 ```
 
-Every setting is an environment variable, and one already set in the
-environment wins. Every `DISPLAYCLUSTER_*` variable is passed on to all of the
-wall's processes, so others (see [doc/remote-control.md](doc/remote-control.md))
-can be added to the file or set before running it.
+The scripts are copied out of the image, and find everything else from where
+they are, so they need no editing. The site's settings (extra `mpirun`
+arguments, the screensaver, the number of sensors, and so on) go in `site.sh`
+as environment variables; one already set in the environment wins. Every
+`DISPLAYCLUSTER_*` variable is passed on to all of the wall's processes, so
+others (see [doc/remote-control.md](doc/remote-control.md)) can be added there
+too. [doc/setup.md](doc/setup.md#the-displaycluster-directory) has the
+commands that set the directory up.
 
 In some cases (like Rattler here at TACC) Open MPI doesn't find the correct
-network interface to use. Name it in `DISPLAYCLUSTER_MPIARGS` in
-`startdisplaycluster`, e.g. `--mca btl_tcp_if_include enp0s25`.
+network interface to use. Name it in `DISPLAYCLUSTER_MPIARGS` in `site.sh`,
+e.g. `--mca btl_tcp_if_include enp0s25`.
 
 [doc/setup.md](doc/setup.md) covers the rest: preparing the display nodes'
 X servers, writing `configuration.json`, and a first run.
