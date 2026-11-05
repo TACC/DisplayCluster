@@ -5,6 +5,9 @@ that control it. Each step links to the full instructions in
 [setup.md](setup.md), [content.md](content.md) and
 [remote-control.md](remote-control.md).
 
+For people using a wall that's already running, there's a one-page
+[cheat sheet](cheatsheet.md) to hand out.
+
 A wall is a head node, which runs the control process and serves the web UI,
 and display nodes, each drawing some of the wall's tiles. One machine can be
 both: the smallest wall is a single computer and its monitors.

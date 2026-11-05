@@ -8,7 +8,9 @@ produce the same application; pick whichever fits your situation.
 
 **New to DisplayCluster?** Start with [doc/quickstart.md](doc/quickstart.md):
 building, installing, starting the wall, the web UI and client machines, in
-two pages. [doc/setup.md](doc/setup.md) then walks through everything from
+two pages. Using a wall that's already running? See
+[doc/cheatsheet.md](doc/cheatsheet.md). [doc/setup.md](doc/setup.md) walks
+through everything from
 cloning the repo to a working wall in detail: both builds, the
 dependencies, preparing the display nodes, the configuration file, the
 launcher, remote control, and troubleshooting.

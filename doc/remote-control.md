@@ -4,7 +4,8 @@ DisplayCluster can be controlled from other machines: from a web browser
 (including as an app on a phone or tablet), from Python scripts, and from
 anything that speaks HTTP. All three go through the same HTTP/JSON API,
 served by the wall's master process (rank 0). A browser extension uses the
-same port to show a live browser tab on the wall.
+same port to show a live browser tab on the wall. A one-page summary for
+people using a wall is in [cheatsheet.md](cheatsheet.md).
 
 - [Setting up the wall](#setting-up-the-wall)
 - [The web UI](#the-web-ui)
