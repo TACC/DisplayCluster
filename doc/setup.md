@@ -1,7 +1,8 @@
 # Setting up DisplayCluster: from GitHub to a working wall
 
 This guide takes you from nothing to a running wall. It assumes you know your
-way around a Linux shell, but nothing about DisplayCluster.
+way around a Linux shell, but nothing about DisplayCluster. For the short
+version, see [quickstart.md](quickstart.md).
 
 - [How DisplayCluster works](#how-displaycluster-works)
 - [Choosing a build](#choosing-a-build)
@@ -11,6 +12,7 @@ way around a Linux shell, but nothing about DisplayCluster.
 - [Native build](#native-build)
 - [Preparing the display nodes](#preparing-the-display-nodes)
 - [Describing the wall: configuration.json](#describing-the-wall-configurationjson)
+- [The DisplayCluster directory](#the-displaycluster-directory)
 - [The launcher: startdisplaycluster](#the-launcher-startdisplaycluster)
 - [First run](#first-run)
 - [Using the control window](#using-the-control-window)
@@ -844,7 +846,8 @@ would stop.
 Do these in order. Each one rules out a layer.
 
 1. **The image runs.** On the head node:
-   `apptainer exec --nv displaycluster.sif nvidia-smi` lists the GPUs.
+   `apptainer exec --nv /shared/DisplayCluster/images/displaycluster.sif nvidia-smi`
+   lists the GPUs.
 2. **One machine, in windows.** Copy `examples/configuration.json` to a test
    file. Set every `host` to `localhost` and every `display` to your
    desktop's (`echo $DISPLAY`). Run:
@@ -859,7 +862,7 @@ Do these in order. Each one rules out a layer.
    tile with the wrong label, or lines that jump at a tile's edge, means its
    entry in the configuration is wrong. Turn the test pattern off again in the
    same menu.
-4. **Content.** Put an image in `CONTENT_DIR`. Open it from the control
+4. **Content.** Put an image in the directory's `Content/`. Open it from the control
    window's File menu, or from the web UI (below). Drag it across tile
    boundaries and check that lines stay straight across the bezels. If not,
    adjust the mullions. Any image with a grid of straight lines on it works

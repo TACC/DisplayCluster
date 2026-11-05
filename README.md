@@ -6,8 +6,10 @@ container, if you'd rather not — useful for reproducible deployment across
 cluster nodes without managing native dependencies on every worker. Both
 produce the same application; pick whichever fits your situation.
 
-**New to DisplayCluster?** [doc/setup.md](doc/setup.md) walks through
-everything from cloning the repo to a working wall: both builds, the
+**New to DisplayCluster?** Start with [doc/quickstart.md](doc/quickstart.md):
+building, installing, starting the wall, the web UI and client machines, in
+two pages. [doc/setup.md](doc/setup.md) then walks through everything from
+cloning the repo to a working wall in detail: both builds, the
 dependencies, preparing the display nodes, the configuration file, the
 launcher, remote control, and troubleshooting.
 

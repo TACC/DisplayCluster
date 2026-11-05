@@ -28,7 +28,7 @@ started (`startdisplaycluster` passes them on to the wall's processes):
 | `DISPLAYCLUSTER_API_CERT` | `~/.displaycluster/api_cert.pem`, if that exists | a certificate to serve HTTPS with; see [HTTPS](#https) |
 | `DISPLAYCLUSTER_API_KEY` | `~/.displaycluster/api_key.pem`, if that exists | the certificate's private key |
 | `DISPLAYCLUSTER_STATE_DIR` | the DisplayCluster directory's `Content/` (launcher); otherwise `~/.displaycluster/states` | where state files are loaded from and saved to |
-| `DISPLAYCLUSTER_MEDIA_DIRS` | your home directory | the directories the file browser shows |
+| `DISPLAYCLUSTER_MEDIA_DIRS` | the DisplayCluster directory's `Content/` (launcher); otherwise your home directory | the directories the file browser shows |
 | `DISPLAYCLUSTER_UI_DIR` | `<install prefix>/ui` | where the web UI's files are |
 | `DISPLAYCLUSTER_TIMEOUT` | `5` | seconds without activity before the screensaver starts |
 | `DISPLAYCLUSTER_SENSORS` | `0` | how many sensors the web UI offers for [sensor control](#sensors) |
