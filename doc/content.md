@@ -95,7 +95,12 @@ each path afresh.
 ### How paths in a state file are read
 
 - **A full path** (starting with `/`) means exactly that file, wherever the
-  state file is. The wall always saves full paths.
+  state file is.
+- **The wall saves a relative path for a file in the state file's folder or
+  below it**, and a full path for anything else. A state saved as
+  `Content/talks/morning.dcx` names `Content/talks/morning/map.png` as
+  `morning/map.png`, but `Content/logos/tacc.png` by its full path. A file
+  reached through a symlink still counts as in the folder.
 - **A relative path** is relative to the folder the state file is in. In
   `/home/vislab/DisplayCluster/Content/talks/morning.dcx`, the path
   `morning/map.png` means
@@ -118,24 +123,25 @@ image.
 
 ## Moving things, and what breaks
 
-Because a saved state names full paths, its windows depend on each file
-staying exactly where it was.
+A state's windows depend on each file staying where the state says it is:
+beside or below the state file for a relative path, exactly where it was for
+a full one.
 
 | You... | Then... |
 |---|---|
 | move or rename a content file | every state that uses it shows the error image there |
 | move or rename the folder it's in | the same, for everything in that folder |
-| move a state file (saved by the wall) | nothing breaks: its paths are full ones |
-| move a state file with relative paths, without its content | those windows break |
-| move a folder holding a state file and its content, all named relatively | nothing breaks |
-| copy a state file to another wall | it works only if every file is at the same path there |
+| move a state file without the content beside it | windows named relatively break; full paths still work |
+| move or copy a folder holding a state file and its content | nothing breaks: the wall saved that content relatively |
+| copy a state file to another wall | content in its folder comes along if you copy the folder; anything named by full path must be at the same path there |
 | move an image pyramid's tile folder | the `.pyr` file's full path no longer finds it; edit it, or use a relative path |
 | delete content that a state uses | that window breaks, and only a backup brings it back |
 
-**The safe arrangement is a self-contained folder.** Put a state file and its
-content in one folder, with the state naming the content relatively. That
+**The safe arrangement is a self-contained folder.** Put a project's content
+in a folder under `Content/`, open it on the wall from there, and save its
+states in the same folder. The wall then names everything relatively, and the
 folder can be moved, renamed, backed up or copied to another wall as a whole.
-`localize-dcx` makes such a folder from any state.
+`localize-dcx` makes such a folder from a state whose content is elsewhere.
 
 ## localize-dcx: gathering a layout into one place
 

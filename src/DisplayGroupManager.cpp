@@ -243,7 +243,41 @@ void DisplayGroupManager::calibrateTimestampOffset()
     }
 }
 
-bool DisplayGroupManager::saveStateXML(QString& xml)
+// uri relative to baseDir when it's a file in baseDir or below it, so a folder
+// holding a state and its media can be moved as a whole; otherwise uri as it
+// is. The paths are compared as given, then with symlinks resolved, so a file
+// opened through a link to the folder (or the folder through a link to it)
+// still comes out relative.
+static QString relativeToStateFolder(QString baseDir, std::string uri)
+{
+    QString path = QString::fromStdString(uri);
+
+    if(baseDir.isEmpty() || !QDir::isAbsolutePath(path))
+    {
+        return path;
+    }
+
+    QString base = QDir::cleanPath(baseDir);
+    path = QDir::cleanPath(path);
+
+    if(!path.startsWith(base + "/"))
+    {
+        QString canonicalBase = QFileInfo(base).canonicalFilePath();
+        QString canonicalPath = QFileInfo(path).canonicalFilePath();
+
+        if(canonicalBase.isEmpty() || canonicalPath.isEmpty() || !canonicalPath.startsWith(canonicalBase + "/"))
+        {
+            return QString::fromStdString(uri);
+        }
+
+        base = canonicalBase;
+        path = canonicalPath;
+    }
+
+    return path.mid(base.length() + 1);
+}
+
+bool DisplayGroupManager::saveStateXML(QString& xml, QString baseDir)
 {
     // get contents vector
     std::vector<boost::shared_ptr<ContentWindowManager> > contentWindowManagers = getContentWindowManagers();
@@ -282,7 +316,7 @@ bool DisplayGroupManager::saveStateXML(QString& xml)
         root.appendChild(cwmNode);
 
         QDomElement n = doc.createElement("URI");
-        n.appendChild(doc.createTextNode(QString(uri.c_str())));
+        n.appendChild(doc.createTextNode(relativeToStateFolder(baseDir, uri)));
         cwmNode.appendChild(n);
 
         n = doc.createElement("name");
@@ -348,7 +382,7 @@ bool DisplayGroupManager::saveStateXML(QString& xml)
 bool DisplayGroupManager::saveStateXMLFile(std::string filename)
 {
     QString xml;
-    saveStateXML(xml);
+    saveStateXML(xml, QFileInfo(QString::fromStdString(filename)).absolutePath());
 
     std::ofstream ofs(filename.c_str());
     if(ofs.good() == true)

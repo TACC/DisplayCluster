@@ -207,11 +207,11 @@ State files loaded and saved remotely are confined to
 `talks/demo.dcx`, not `/home/vislab/Content/demo.dcx`). The control window's own Load State and
 Save State aren't limited this way.
 
-Content in a state file is named by full path when the wall saves it. In a
-state file written or edited by hand, a relative path is taken relative to
-the state file's own folder, so a folder holding a talk's state and its
-media (`talks/morning.dcx` naming `morning/map.png`, say) can be moved or
-copied as a whole. This holds however the state is loaded. `localize-dcx`
+A relative path in a state file is taken relative to the state file's own
+folder, and the wall saves content in that folder or below it that way, so a
+folder holding a talk's state and its media (`talks/morning.dcx` naming
+`morning/map.png`, say) can be moved or copied as a whole. Other content is
+saved by full path. This holds however the state is loaded or saved. `localize-dcx`
 makes such a folder from any state file, and `check-dcx` finds broken
 references; see [content.md](content.md).
 
