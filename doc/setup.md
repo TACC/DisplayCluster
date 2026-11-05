@@ -175,6 +175,7 @@ meet in this guide:
 | `build-sif.sh` | builds the container image |
 | `scripts/startdisplaycluster` | the launcher you copy and edit for your wall |
 | `scripts/displaycluster.sh`, `displaycluster.py` | run each rank. The launcher calls them; you don't edit them. |
+| `scripts/killdc` | stops the wall and cleans up after it on every host in its configuration, when Ctrl-C or killing `mpirun` leaves ranks behind (`killdc -n` shows what it would stop) |
 | `scripts/cyclestates` | shows a list of saved layouts in turn ([remote-control.md](remote-control.md#cycling-through-states-cyclestates)) |
 | `scripts/check-dcx`, `localize-dcx` | check and repair state files, and make self-contained copies of them ([content.md](content.md)) |
 | `config/`, `examples/configuration.json` | example wall configurations |

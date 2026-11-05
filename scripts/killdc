@@ -1,0 +1,183 @@
+#!/bin/bash
+# Stops a DisplayCluster wall and cleans up after it on every host it runs on:
+# this machine (rank 0 and mpirun) and each host in the configuration's
+# "processes". Use it when Ctrl-C or killing mpirun leaves ranks behind, or
+# before starting the wall again after a crash.
+#
+#   killdc [-c wall.json] [-u user] [-t seconds] [-n]
+#
+# -c wall.json  the wall's configuration (default $DISPLAYCLUSTER_CONFIG, or
+#               ~/wall.json as for startdisplaycluster)
+# -u user       whose processes to stop (default you)
+# -t seconds    how long to wait after SIGTERM before SIGKILL (default 5)
+# -n            only show what would be stopped
+#
+# On each host it stops the user's wall processes: mpirun, apptainer, the rank
+# scripts (displaycluster.sh, displaycluster.py) and the displaycluster binary,
+# found by their command lines, and on the wall's other hosts Open MPI's
+# daemons (orted, prted) too. Each gets SIGTERM, then SIGKILL if it's still
+# there after the wait. Then, on a host where none of the user's MPI processes
+# are left, it removes their leftover Open MPI shared memory files in /dev/shm.
+#
+# Run it as the wall's account (e.g. vislab), on the machine that runs
+# startdisplaycluster. The hosts are reached with ssh, all at once, and must take
+# it without a password, as mpirun does. A host that can't be reached is reported, and
+# killdc exits non-zero; so does a host where something wouldn't die.
+
+CONFIG=${DISPLAYCLUSTER_CONFIG:-$HOME/wall.json}
+TARGET_USER=${USER:-$(id -un)}
+GRACE=5
+DRY_RUN=0
+
+usage() {
+    sed -n '7,13s/^# \{0,1\}//p' "$0" >&2
+    exit 2
+}
+
+while getopts c:u:t:nh opt; do
+    case $opt in
+        c) CONFIG=$OPTARG ;;
+        u) TARGET_USER=$OPTARG ;;
+        t) GRACE=$OPTARG ;;
+        n) DRY_RUN=1 ;;
+        *) usage ;;
+    esac
+done
+shift $((OPTIND - 1))
+[ $# -eq 0 ] || usage
+
+case $GRACE in
+    ''|*[!0-9]*) echo "killdc: -t takes a whole number of seconds" >&2; exit 2 ;;
+esac
+
+if [ ! -r "$CONFIG" ]; then
+    echo "killdc: can't read $CONFIG" >&2
+    exit 1
+fi
+
+# the configuration's hosts, each once, in order
+WALL_HOSTS=$(python3 -c '
+import json, sys
+hosts = sorted(set(p["host"] for p in json.load(open(sys.argv[1]))["processes"]))
+print(" ".join(hosts))
+' "$CONFIG") || { echo "killdc: can't read the hosts from $CONFIG" >&2; exit 1; }
+
+# The cleanup run on each host, as "bash -s ROLE USER GRACE DRY_RUN" with this
+# on its standard input; ROLE is "head" here and "wall" on the other hosts.
+read -r -d '' CLEANUP <<'EOF'
+role=$1 user=$2 grace=$3 dry_run=$4
+
+# the wall's processes, by command line. Each pattern needs the command as well
+# as the file, so an editor or pager open on displaycluster.py isn't matched.
+pattern='(^|/)mpirun .*displaycluster'
+pattern+='|(^|/)(apptainer|singularity) .*displaycluster\.(sh|py)'
+pattern+='|^(Apptainer|Singularity) runtime parent: .*displaycluster'
+pattern+='|(^|/)sh .*displaycluster\.sh'
+pattern+='|(^|/)python[0-9.]* .*displaycluster\.py'
+pattern+='|^(/[^ ]*/)?displaycluster( |$)'
+# Open MPI's daemons: on the wall's own hosts they can only be the wall's.
+# Here, the user may be running other MPI jobs, and stopping mpirun stops ours.
+if [ "$role" = wall ]; then
+    pattern+='|^(/[^ ]*/)?(orted|prted)( |$)'
+fi
+
+find_pids() {
+    pgrep -u "$user" -f -- "$pattern" | grep -vx -e "$$" -e "$PPID"
+}
+
+show() {
+    [ -n "$1" ] && ps -o pid=,args= -p "$(echo $1 | tr ' ' ,)" | cut -c1-150 | sed 's/^ */   /'
+}
+
+pids=$(find_pids | tr '\n' ' ')
+if [ -z "$pids" ]; then
+    echo "nothing running"
+elif [ "$dry_run" = 1 ]; then
+    echo "would stop:"
+    show "$pids"
+else
+    echo "stopping:"
+    show "$pids"
+    kill -TERM $pids 2> /dev/null
+    for ((i = 0; i < grace * 2; i++)); do
+        [ -z "$(find_pids)" ] && break
+        sleep 0.5
+    done
+    left=$(find_pids | tr '\n' ' ')
+    if [ -n "$left" ]; then
+        echo "still there after ${grace}s, killing:"
+        show "$left"
+        kill -KILL $left 2> /dev/null
+        sleep 1
+    fi
+fi
+
+# shared memory Open MPI leaves behind when its processes are killed; only when
+# none of the user's MPI processes are left here, so no live job loses its own
+status=0
+if [ "$dry_run" != 1 ]; then
+    left=$(find_pids | tr '\n' ' ')
+    if [ -n "$left" ]; then
+        echo "WOULDN'T STOP:"
+        show "$left"
+        status=1
+    elif ! pgrep -u "$user" -x 'mpirun|mpiexec|orted|prted|prterun' > /dev/null; then
+        segments=$(find /dev/shm -maxdepth 1 -user "$user" \
+                   \( -name 'vader_segment.*' -o -name 'sm_segment.*' -o -name 'ompi.*' -o -name 'pmix_*' \) 2> /dev/null)
+        if [ -n "$segments" ]; then
+            echo "removing $(echo "$segments" | wc -l) Open MPI shared memory files"
+            rm -f $segments
+        fi
+    fi
+fi
+exit $status
+EOF
+
+# run the cleanup on a host, its output prefixed with the host's name
+cleanup() {
+    local host=$1 role=$2
+    if [ "$role" = head ]; then
+        bash -s "$role" "$TARGET_USER" "$GRACE" "$DRY_RUN" <<< "$CLEANUP"
+    else
+        # LogLevel=ERROR leaves out the login banner, but not why ssh failed
+        ssh -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=5 -o ServerAliveCountMax=3 \
+            -o LogLevel=ERROR "$host" \
+            bash -s "$role" "$TARGET_USER" "$GRACE" "$DRY_RUN" <<< "$CLEANUP" 2>&1
+    fi
+    local status=$?
+    [ $status -eq 255 ] && echo "can't reach $host over ssh"
+    return $status
+}
+
+THIS_HOST=$(hostname -s)
+TMP=$(mktemp -d) || exit 1
+trap 'rm -rf "$TMP"' EXIT
+
+# This machine first: stopping mpirun lets it take the ranks down cleanly,
+# so there's less for the other hosts to do.
+echo "== $THIS_HOST"
+cleanup "$THIS_HOST" head
+STATUS=$?
+
+# then every other host at once, each into its own file so the output stays in order
+HOSTS=()
+for host in $WALL_HOSTS; do
+    case $host in
+        localhost|127.0.0.1|"$THIS_HOST"|"$THIS_HOST".*) continue ;;
+    esac
+    HOSTS+=("$host")
+    cleanup "$host" wall > "$TMP/$host" 2>&1 &
+done
+wait
+
+for host in "${HOSTS[@]}"; do
+    echo "== $host"
+    cat "$TMP/$host"
+done
+
+# a host's status is lost in the background, so look for its messages
+if grep -lqE "^(can't reach|WOULDN'T STOP)" "$TMP"/* 2> /dev/null; then
+    STATUS=1
+fi
+
+exit $STATUS
