@@ -172,9 +172,10 @@ meet in this guide:
 |---|---|
 | `src/` | the C++ source |
 | `docker/Dockerfile` | the container recipe |
-| `build-sif.sh` | builds the container image |
+| `build-sif.sh` | builds the container image, into a DisplayCluster directory with `-r` |
 | `scripts/startdisplaycluster` | the launcher you copy and edit for your wall |
 | `scripts/displaycluster.sh`, `displaycluster.py` | run each rank. The launcher calls them; you don't edit them. |
+| `scripts/install-displaycluster` | installs an image, and the scripts that came with it, in a [DisplayCluster directory](#the-displaycluster-directory) |
 | `scripts/killdc` | stops the wall and cleans up after it on every host in its configuration, when Ctrl-C or killing `mpirun` leaves ranks behind (`killdc -n` shows what it would stop) |
 | `scripts/cyclestates` | shows a list of saved layouts in turn ([remote-control.md](remote-control.md#cycling-through-states-cyclestates)) |
 | `scripts/check-dcx`, `localize-dcx` | check and repair state files, and make self-contained copies of them ([content.md](content.md)) |
@@ -205,13 +206,15 @@ image, plus 2.5 GB in `/tmp` (or `$TMPDIR`) while it runs.
 
 ### 2. Build
 
-From the top of the checkout (not from inside `docker/`):
+From the top of the checkout (not from inside `docker/`), naming the
+[DisplayCluster directory](#the-displaycluster-directory) to build into:
 
 ```bash
-./build-sif.sh
+./build-sif.sh -r /shared/DisplayCluster
 ```
 
-This runs three steps and stops at the first one that fails:
+(or set `DISPLAYCLUSTER_ROOT` instead of `-r`). This runs these steps and
+stops at the first one that fails:
 
 1. `docker build -f docker/Dockerfile -t displaycluster .` compiles
    DisplayCluster inside an Ubuntu 22.04 image with Qt 6, Boost, Open MPI,
@@ -219,8 +222,15 @@ This runs three steps and stops at the first one that fails:
    `nvidia/opengl` image. It copies your checkout, including any uncommitted
    changes, so what you build is what's in the directory.
 2. `docker save` writes the image to an archive in a temporary directory.
-3. `apptainer build` converts that archive to `displaycluster.sif` in the
-   checkout. Any old `displaycluster.sif` there is deleted first.
+3. `apptainer build` converts that archive to an image in the directory's
+   `images/`, named `displaycluster-<date>-<commit>.sif` (`-modified` after
+   the commit if you'd changed files without committing them).
+4. `install-displaycluster` makes it the image the wall runs from its next
+   start, installs the scripts and `DC.py` that came with it, and deletes all
+   but the three newest images (`-k` changes how many).
+
+Without a directory, it writes `displaycluster.sif` in the checkout instead,
+for you to install with `install-displaycluster`.
 
 It cleans up after itself: the archive is deleted however the script ends,
 and so are the images earlier builds left behind. Those are labelled as
@@ -236,15 +246,16 @@ builds reuse Docker's cache and take a few minutes. The result is about
 Check that it worked:
 
 ```bash
-ls -l displaycluster.sif                       # today's date
-apptainer exec displaycluster.sif ls /usr/local/bin/displaycluster
+ls -l /shared/DisplayCluster/images            # displaycluster.sif points at today's
+apptainer exec /shared/DisplayCluster/images/displaycluster.sif ls /usr/local/bin/displaycluster
 ```
 
-### 3. Put the image where the wall can read it
+### 3. If the build machine can't see the wall's directory
 
-Every machine in the wall must be able to read the `.sif` at the same path.
-On a shared filesystem, leave it where it is or copy it somewhere permanent.
-Otherwise, copy it to the same path on every node.
+Build without `-r`, copy `displaycluster.sif` to the wall's head node, and
+install it there with `install-displaycluster`, as in [The DisplayCluster
+directory](#the-displaycluster-directory). Every machine in the wall must be
+able to read the directory at the same path.
 
 ### What's inside the image
 
@@ -254,7 +265,7 @@ Otherwise, copy it to the same path on every node.
 | `/usr/local/ui`, `/usr/local/data`, `/usr/local/examples` | web UI, images, examples |
 | `/usr/local/bin/check-dcx`, `localize-dcx` | state file tools; they run on the host too ([content.md](content.md#running-the-scripts)) |
 | `/usr/local/bin/cyclestates`, `/usr/local/python/DC.py` | shows saved layouts in turn ([remote-control.md](remote-control.md#cycling-through-states-cyclestates)), and the Python client it uses |
-| `/usr/local/src/DisplayCluster` | the source it was built from, including `scripts/` |
+| `/usr/local/src/DisplayCluster` | the source it was built from, including `scripts/` (`install-displaycluster` copies the launcher and the other scripts from here) |
 
 The host's NVIDIA driver is mapped into the container at run time
 (`apptainer run --nv`), so the image works with whatever driver version the
@@ -408,33 +419,40 @@ Build outside the source tree. The container build copies the whole checkout,
 and a `build/` inside it gets dragged along by accident.
 
 ```bash
-cmake -S . -B ../dc-build -DCMAKE_INSTALL_PREFIX=/opt/displaycluster
+cmake -S . -B ../dc-build -DCMAKE_INSTALL_PREFIX=/shared/DisplayCluster
 cmake --build ../dc-build -j$(nproc)
-sudo cmake --install ../dc-build
+cmake --install ../dc-build
 ```
+
+The prefix is the [DisplayCluster directory](#the-displaycluster-directory)
+(with `DISPLAYCLUSTER_ROOT` set, it's the default).
 
 Things to check in CMake's output:
 - `remote API: HTTPS supported (OpenSSL 3.x)`. If it says "HTTP only",
   install the OpenSSL development package and configure again.
 - `Building without CUDA` appears only if you turned CUDA off.
 
-The install puts `bin/displaycluster`, `ui/`, `data/`, `examples/`,
-`python/` and `doc/` under the prefix. Set `DISPLAYCLUSTER_DIR` to that
-prefix when running. The program looks there for `data/` and `ui/`, and
-refuses to start without it. Install to the same path on every display node,
-or to a shared filesystem.
+The install puts `bin/displaycluster`, the launcher and the other scripts in
+`bin/`, and `ui/`, `data/`, `examples/`, `python/` and `doc/` beside it. The
+first time, it also makes `Content/` and writes an example `wall.json`; after
+that it leaves both alone. Install to a shared filesystem, or the same path on
+every display node. (`-DDISPLAYCLUSTER_WALL_DIRECTORY=OFF` leaves out
+`Content/` and `wall.json`, for a prefix that isn't a DisplayCluster
+directory.)
 
 The default build type is `RelWithDebInfo`: optimized, but with debugging
 symbols, so a crash gives a useful backtrace.
 
 ### Running a native build
 
-The launcher in `scripts/` starts the container. For a native build, run
-`mpirun` directly:
+`bin/startdisplaycluster` runs the native build installed beside it when the
+directory has no image (`images/displaycluster.sif`), with `DISPLAYCLUSTER_DIR`
+set to the directory. Everything else about it is as for the container. To run
+it by hand instead:
 
 ```bash
-export DISPLAYCLUSTER_DIR=/opt/displaycluster
-export DISPLAYCLUSTER_CONFIG=$HOME/wall.json
+export DISPLAYCLUSTER_DIR=/shared/DisplayCluster
+export DISPLAYCLUSTER_CONFIG=$DISPLAYCLUSTER_DIR/wall.json
 export DISPLAYCLUSTER_TIMEOUT=3600
 hosts=localhost,$(python3 -c 'import json,sys; print(",".join(p["host"] for p in json.load(open(sys.argv[1]))["processes"]))' $DISPLAYCLUSTER_CONFIG)
 mpirun -host $hosts $(for v in $(compgen -e | grep ^DISPLAYCLUSTER_); do echo -x $v; done) \
@@ -720,8 +738,10 @@ machine, any local folder does):
 
 ```
 DisplayCluster/                   DISPLAYCLUSTER_ROOT
-  bin/                            startdisplaycluster, killdc, cyclestates, check-dcx, localize-dcx
-  images/displaycluster.sif       the image
+  bin/                            startdisplaycluster, killdc, install-displaycluster,
+                                  cyclestates, check-dcx, localize-dcx
+  images/displaycluster-<built>-<commit>.sif    each image installed
+  images/displaycluster.sif       -> the one the wall runs
   python/                         DC.py
   wall.json                       the wall's layout
   site.sh                         optional: this site's settings
@@ -738,25 +758,30 @@ a test install beside the real one.
 `Content/talks/morning/`. Only the API token and the HTTPS certificate and key
 stay in the wall account's `~/.displaycluster/`, since they're private.
 
-To set it up from an image (the copy commands run inside it, since that's
-where the scripts are; `--bind` lets it see the directory):
+**Filling it.** `build-sif.sh -r` builds an image straight into the directory
+and installs it ([Container build](#container-build)), and a native build's
+`cmake --install` fills it too ([Native build](#native-build)). To install an
+image built elsewhere, use `install-displaycluster`, which is in every image:
 
 ```bash
-ROOT=/shared/DisplayCluster
-mkdir -p $ROOT/bin $ROOT/images $ROOT/python $ROOT/Content
-cp displaycluster.sif $ROOT/images/
-apptainer exec --bind $ROOT $ROOT/images/displaycluster.sif sh -c '
-    cd /usr/local/src/DisplayCluster || exit 1
-    cp scripts/startdisplaycluster scripts/killdc scripts/cyclestates scripts/check-dcx scripts/localize-dcx "$0/bin/"
-    cp python/*.py "$0/python/"
-    [ -e "$0/wall.json" ] || cp examples/configuration.json "$0/wall.json"' $ROOT
+apptainer exec displaycluster.sif cat /usr/local/src/DisplayCluster/scripts/install-displaycluster |
+    bash -s -- -r /shared/DisplayCluster displaycluster.sif
 ```
 
-An image built before November 2026 has no `killdc`; `cp` says so and copies
-the rest.
+It makes the directory if it isn't there, and:
+- copies the image into `images/`, named for when it was built and the commit
+  it was built from, and points `images/displaycluster.sif` at it, so the wall
+  runs it from its next start;
+- installs the scripts and `DC.py` that came with it in `bin/` and `python/`;
+- the first time only, writes an example `wall.json` and makes `Content/`.
+  It never changes `wall.json`, `site.sh` or `Content/` once they're there;
+- keeps the three newest images (`-k` changes how many) and deletes older ones.
+
+Once it's installed, `bin/install-displaycluster new.sif` does the same for
+the next image, and finds the directory itself.
 
 Then edit `wall.json` ([above](#describing-the-wall-configurationjson)), and
-put `$ROOT/bin` on the wall account's `PATH`.
+put the directory's `bin/` on the wall account's `PATH`.
 
 ## The launcher: startdisplaycluster
 
@@ -1257,6 +1282,17 @@ System Settings → Privacy & Security. Grant it and restart DesktopStreamer.
 If frames come back black and it never asked, find it in that list, remove
 it, and try again.
 
+**From the top of the checkout:** configuring with
+`-DDISPLAYCLUSTER_CLIENT_ONLY=ON` builds DesktopStreamer the same way, without
+the wall, and `cmake --install` installs it with the client tools: `python/`
+(`DC.py` and the examples), `bin/cyclestates`, and the Chrome extension in
+`extension/`, ready to load unpacked:
+
+```bash
+cmake -S . -B build-client -DDISPLAYCLUSTER_CLIENT_ONLY=ON -DCMAKE_INSTALL_PREFIX=$HOME/DisplayCluster
+cmake --build build-client -j8 && cmake --install build-client
+```
+
 **Windows:** see "Building DesktopStreamer" in the
 [README](../README.md#building-desktopstreamer). It's a vcpkg build, like the
 main program, but with no MPI, CUDA or FFmpeg.
@@ -1327,8 +1363,8 @@ directory.
 
 | What | Default place | Set by | Notes |
 |---|---|---|---|
-| the image | `images/displaycluster.sif` | `DISPLAYCLUSTER_SIF` | the one the launcher runs; see below |
-| the launcher, `killdc` | `bin/` | | copied from the image, unedited |
+| the image | `images/displaycluster.sif` | `DISPLAYCLUSTER_SIF` | a link to the one the launcher runs, among the installed `displaycluster-*.sif`; see below |
+| the launcher, `killdc`, `install-displaycluster` | `bin/` | | installed with the image, unedited |
 | the site's settings | `site.sh` | | optional; read by the launcher and `killdc` |
 | the wall's layout | `wall.json` | `DISPLAYCLUSTER_CONFIG` | [configuration.json](#describing-the-wall-configurationjson) |
 | content | `Content/` | `CONTENT_DIR`, `DISPLAYCLUSTER_MEDIA_DIRS` | readable from every node; see [content.md](content.md) |
@@ -1339,9 +1375,9 @@ directory.
 | HTTPS certificate and key | `~/.displaycluster/api_cert.pem`, `api_key.pem` | `DISPLAYCLUSTER_API_CERT`, `_KEY` | an RSA certificate, key mode 600; read only at startup |
 | starting and stopping | a systemd unit, or [a schedule](#on-a-schedule) | | [Running it unattended](#running-it-unattended) |
 
-**The launcher runs `images/displaycluster.sif`, whatever else is there.** To
-keep the previous image for going back, rename it in `images/`
-(`displaycluster.sif.old`) before putting the new one in its place.
+**The launcher runs `images/displaycluster.sif`, whatever else is there.**
+`install-displaycluster` points it at an image; `ls -l images` shows which.
+Copying an image into `images/` by hand doesn't change what runs.
 
 **After installing, confirm what's running.** Check the version, which is
 the git commit the image was built from, in any of these places:
@@ -1360,17 +1396,19 @@ displaycluster.sif` with the same on the build machine.
 
 **Container:**
 ```bash
-cd DisplayCluster && git pull && ./build-sif.sh
+cd DisplayCluster && git pull && ./build-sif.sh -r /shared/DisplayCluster
 ```
-Stop the wall, put the new `displaycluster.sif` in the DisplayCluster
-directory's `images/` (renaming the old one if you want to keep it), start the
-wall again, and [confirm the version](#a-wall-accounts-files-checklist).
+The new image and its scripts are installed as it finishes; the wall needn't
+be stopped for that. Restart the wall to run it (`killdc`, then
+`startdisplaycluster`), and [confirm the version](#a-wall-accounts-files-checklist).
+The site's settings are in `site.sh`, so the new scripts keep them.
 
-A new image can bring new scripts too, with new settings or fixes. Since the
-site's settings are in `site.sh`, not in the scripts, replace them with the
-image's: run the copy commands in [The DisplayCluster
-directory](#the-displaycluster-directory) again. They leave `wall.json`,
-`site.sh` and `Content/` alone.
+**Going back** to an earlier image: install it again from `images/`, and
+restart the wall:
+
+```bash
+install-displaycluster /shared/DisplayCluster/images/displaycluster-20261101-1934-35831b9.sif
+```
 
 **Moving from a launcher you edited.** Earlier versions had you edit a copy
 of the launcher, usually `~/bin/startdisplaycluster`, and kept the image,
@@ -1380,8 +1418,8 @@ DisplayCluster directory, move the image into `images/`, `wall.json` and
 `Content/`. Copy any settings you'd changed at the top of the old launcher
 into `site.sh`, then delete the old launcher so it isn't run by mistake.
 
-**Native:** `git pull`, rebuild, `cmake --install` on every node (or the
-shared prefix), and restart the wall.
+**Native:** `git pull`, rebuild, `cmake --install` into the directory, and
+restart the wall.
 
 To confirm you're running what you think you are, check the version in the
 control window, which is the git commit it was built from. With

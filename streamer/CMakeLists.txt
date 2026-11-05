@@ -5,7 +5,8 @@
 # none of the root project's MPI/CUDA/FFmpeg requirements - bundling them
 # together would mean anyone wanting to build just this small client tool
 # would first need to satisfy the full cluster-side dependency list, none
-# of which this code actually uses.
+# of which this code actually uses. The root project pulls it in only when
+# configured with -DDISPLAYCLUSTER_CLIENT_ONLY=ON, building nothing else.
 #
 # SimpleStreamer (streamer/apps/SimpleStreamer) isn't included here - it's
 # a GLUT-based teapot demo, not a real tool, and GLUT isn't otherwise a

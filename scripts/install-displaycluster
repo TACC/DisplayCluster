@@ -1,0 +1,159 @@
+#!/bin/bash
+# Installs an image in a DisplayCluster directory, makes it the one the wall
+# runs, and installs the scripts and DC.py that came with it:
+#
+#   DisplayCluster/
+#     images/displaycluster-<built>-<commit>.sif    each image installed
+#     images/displaycluster.sif                     -> the current one
+#     bin/        startdisplaycluster, killdc, cyclestates, check-dcx, localize-dcx,
+#                 install-displaycluster
+#     python/     DC.py
+#     wall.json   from examples/configuration.json, the first time only
+#     Content/    made empty the first time
+#
+#   install-displaycluster [-r root] [-k count] [image.sif]
+#
+# -r root    the DisplayCluster directory (default $DISPLAYCLUSTER_ROOT, or the
+#            folder above this script's bin/ when it's been installed there)
+# -k count   how many images to keep in images/, the current one included
+#            (default 3); older ones are deleted
+# image.sif  the image to install (default: the current one, which just
+#            reinstalls its scripts)
+#
+# wall.json, site.sh and Content/ are never changed once they're there, so it
+# can be run again for every new image. build-sif.sh runs it after a build.
+# The wall needn't be stopped: a running wall keeps the image it started with,
+# and uses the new one when it's next started. Going back is installing an
+# older image from images/ the same way.
+#
+# On a machine that has only an image, run the copy inside it:
+#
+#   apptainer exec displaycluster.sif cat /usr/local/src/DisplayCluster/scripts/install-displaycluster |
+#       bash -s -- -r /shared/DisplayCluster displaycluster.sif
+
+usage() {
+    sed -n '14,21s/^# \{0,1\}//p' "$0" >&2
+    exit 2
+}
+
+ROOT=${DISPLAYCLUSTER_ROOT:-}
+KEEP=3
+
+while getopts r:k:h opt; do
+    case $opt in
+        r) ROOT=$OPTARG ;;
+        k) KEEP=$OPTARG ;;
+        *) usage ;;
+    esac
+done
+shift $((OPTIND - 1))
+[ $# -le 1 ] || usage
+
+case $KEEP in
+    ''|*[!0-9]*|0) echo "install-displaycluster: -k takes a count of 1 or more" >&2; exit 2 ;;
+esac
+
+# installed in a DisplayCluster directory's bin/, it knows where it is
+if [ -z "$ROOT" ]; then
+    HERE=$(dirname "$(readlink -f "$0" 2> /dev/null)")
+    if [ "$(basename "$HERE")" = bin ] && [ -d "$HERE/../images" ]; then
+        ROOT=$(cd "$HERE/.." && pwd)
+    else
+        echo "install-displaycluster: which DisplayCluster directory? Give -r, or set DISPLAYCLUSTER_ROOT" >&2
+        exit 2
+    fi
+fi
+
+mkdir -p "$ROOT/bin" "$ROOT/images" "$ROOT/python" "$ROOT/Content" || exit 1
+ROOT=$(cd "$ROOT" && pwd -P)
+IMAGES=$ROOT/images
+CURRENT=$IMAGES/displaycluster.sif
+
+IMAGE=${1:-$CURRENT}
+if [ ! -r "$IMAGE" ]; then
+    echo "install-displaycluster: can't read $IMAGE" >&2
+    exit 1
+fi
+IMAGE=$(readlink -f "$IMAGE")
+
+# run a command in the image, with the DisplayCluster directory visible
+in_image() {
+    apptainer exec --bind "$ROOT" "$IMAGE" "$@"
+}
+
+if ! in_image true; then
+    echo "install-displaycluster: apptainer can't run $IMAGE" >&2
+    exit 1
+fi
+
+# --- the image ----------------------------------------------------------------
+
+# named for when it was built and the commit it was built from, so images/
+# lists them in order and says what each is
+case $IMAGE in
+    "$IMAGES"/displaycluster-*.sif)
+        NAME=$(basename "$IMAGE")
+        ;;
+    *)
+        COMMIT=$(in_image git -C /usr/local/src/DisplayCluster rev-parse --short HEAD 2> /dev/null) || COMMIT=unknown
+        if [ "$COMMIT" != unknown ] &&
+           [ -n "$(in_image git -C /usr/local/src/DisplayCluster status --porcelain --untracked-files=no 2> /dev/null)" ]; then
+            COMMIT=$COMMIT-modified
+        fi
+        NAME=displaycluster-$(date -r "$IMAGE" +%Y%m%d-%H%M)-$COMMIT.sif
+        if [ ! -e "$IMAGES/$NAME" ]; then
+            echo "copying the image to $IMAGES/$NAME"
+            # copy under a temporary name, so a half-copied image is never used
+            cp "$IMAGE" "$IMAGES/.$NAME.partial" && mv "$IMAGES/.$NAME.partial" "$IMAGES/$NAME" || {
+                rm -f "$IMAGES/.$NAME.partial"
+                echo "install-displaycluster: couldn't copy the image" >&2
+                exit 1
+            }
+        fi
+        ;;
+esac
+
+# a relative link, so the directory can be moved or reached by another path
+ln -sfn "$NAME" "$CURRENT.new" && mv -fT "$CURRENT.new" "$CURRENT" || exit 1
+echo "the wall now runs images/$NAME"
+
+# --- what came with it --------------------------------------------------------
+
+SCRIPTS="startdisplaycluster killdc cyclestates check-dcx localize-dcx install-displaycluster"
+
+in_image sh -c '
+    cd /usr/local/src/DisplayCluster || exit 1
+    for s in $2; do
+        # an older image may not have them all
+        if [ -e scripts/$s ]; then
+            cp -f scripts/$s "$1/bin/" && chmod +x "$1/bin/$s"
+        else
+            echo "(this image has no $s)"
+        fi
+    done
+    cp -f python/*.py "$1/python/"
+    if [ ! -e "$1/wall.json" ]; then
+        cp examples/configuration.json "$1/wall.json"
+        echo "wrote an example wall.json: edit it to describe your wall"
+    fi' sh "$ROOT" "$SCRIPTS" || exit 1
+
+echo "installed the scripts in bin/ and DC.py in python/"
+
+# --- old images ---------------------------------------------------------------
+
+# newest first, by name (which starts with the build time); the current one
+# is always kept
+ls "$IMAGES" | grep -E '^displaycluster-.*\.sif$' | sort -r | {
+    kept=1
+    while read -r old; do
+        [ "$old" = "$NAME" ] && continue
+        if [ $kept -lt $KEEP ]; then
+            kept=$((kept + 1))
+        else
+            echo "deleting the old image images/$old"
+            rm -f "$IMAGES/$old"
+        fi
+    done
+}
+
+echo "done: $ROOT"

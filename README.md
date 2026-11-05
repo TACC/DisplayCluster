@@ -258,7 +258,9 @@ section above apply.
 ## Building DesktopStreamer
 
 `streamer/` holds a separate, standalone build for the client-side
-desktop-sharing tool (`DesktopStreamer`, plus the `dcStream` library it's
+desktop-sharing tool (also reachable from the top of the checkout with
+`-DDISPLAYCLUSTER_CLIENT_ONLY=ON`, which installs it with `python/` and the
+Chrome extension) (`DesktopStreamer`, plus the `dcStream` library it's
 built alongside) — meant to run on a presenter's own machine, not a cluster
 node. It has its own `CMakeLists.txt` and doesn't use the root project's
 build at all: no MPI, CUDA, or FFmpeg required, since none of that code path
@@ -365,18 +367,20 @@ than cloning a fresh copy from GitHub, so the build context has to be the
 repo root):
 
 ```bash
-./build-sif.sh
+./build-sif.sh -r /shared/DisplayCluster
 ```
 
-It runs three steps: `docker build -f docker/Dockerfile -t displaycluster .`,
-then `docker save` of the image to an archive in a temporary directory, then
-`apptainer build displaycluster.sif docker-archive:<that archive>`. It
-deletes the archive (about 2.5 GB) when it's done, and the Docker images that
-earlier builds left behind.
+It runs `docker build -f docker/Dockerfile -t displaycluster .`, then
+`docker save` of the image to an archive in a temporary directory, then
+`apptainer build` of an image from that archive, straight into the
+DisplayCluster directory's `images/` (see below). Then
+`scripts/install-displaycluster` makes it the image the wall runs and installs
+the scripts that came with it. It deletes the archive (about 2.5 GB) when it's
+done, and the Docker images that earlier builds left behind. Without `-r` (or
+`DISPLAYCLUSTER_ROOT`), it writes `displaycluster.sif` in the checkout.
 
-This creates **displaycluster.sif**, with DisplayCluster installed under
-`/usr/local` in the image and its source, including `scripts/`, in
-`/usr/local/src/DisplayCluster`.
+The image has DisplayCluster installed under `/usr/local`, and its source,
+including `scripts/`, in `/usr/local/src/DisplayCluster`.
 
 Use `docker save` + `docker-archive:`, not
 `apptainer build ... docker-daemon:displaycluster:latest` directly — on at
@@ -400,15 +404,16 @@ shared home directory works):
 ```
 DisplayCluster/
   bin/            startdisplaycluster, killdc, cyclestates, check-dcx, localize-dcx
-  images/         displaycluster.sif
+  images/         displaycluster-*.sif, and displaycluster.sif linking to the current one
   python/         DC.py
   wall.json       the wall's configuration: its tiles, and which node draws each
   site.sh         optional: the site's settings
   Content/        media and saved states; the wall's working directory
 ```
 
-The scripts are copied out of the image, and find everything else from where
-they are, so they need no editing. The site's settings (extra `mpirun`
+`build-sif.sh -r` fills it, or `install-displaycluster` for an image built
+elsewhere. The scripts are copied out of the image, and find everything else
+from where they are, so they need no editing. The site's settings (extra `mpirun`
 arguments, the screensaver, the number of sensors, and so on) go in `site.sh`
 as environment variables; one already set in the environment wins. Every
 `DISPLAYCLUSTER_*` variable is passed on to all of the wall's processes, so

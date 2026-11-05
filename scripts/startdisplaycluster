@@ -1,12 +1,14 @@
 #!/bin/bash
-# Starts a DisplayCluster wall from its apptainer image.
+# Starts a DisplayCluster wall: from its apptainer image, or from a native
+# build installed in the same directory (cmake --install) when there's no image.
 #
 # It lives in the bin/ folder of a DisplayCluster directory, on a filesystem
 # every node of the wall can see, and finds everything else from there:
 #
 #   DisplayCluster/                     $DISPLAYCLUSTER_ROOT
 #     bin/startdisplaycluster           this script, killdc, cyclestates, ...
-#     images/displaycluster.sif         the image (or a symlink to the current one)
+#     images/displaycluster.sif         the image (a symlink to the current one)
+#     bin/displaycluster                or a native build, without an image
 #     wall.json                         the wall's layout
 #     Content/                          media and saved states; the working directory
 #     python/                           DC.py
@@ -24,7 +26,8 @@
 #
 # MPI runs rank 0 (the control process, which also serves the remote API) on
 # this machine and one rank per "processes" entry in the configuration, on
-# that entry's host. The host's Open MPI must match the image's (see README).
+# that entry's host. The host's Open MPI must match the image's (see README),
+# or for a native build, the one it was built with.
 
 # --- where everything is -----------------------------------------------------
 
@@ -42,10 +45,19 @@ if [ -r "$DISPLAYCLUSTER_ROOT/site.sh" ]; then
     eval "$SET"
 fi
 
+# a native build installed here runs when there's no image (and none named)
+NATIVE=0
+if [ -z "${DISPLAYCLUSTER_SIF:-}" ] && [ ! -e "$DISPLAYCLUSTER_ROOT/images/displaycluster.sif" ] &&
+   [ -x "$DISPLAYCLUSTER_ROOT/bin/displaycluster" ]; then
+    NATIVE=1
+fi
+
 # --- settings ----------------------------------------------------------------
 
 # the image, and the wall's layout
-export DISPLAYCLUSTER_SIF=${DISPLAYCLUSTER_SIF:-$DISPLAYCLUSTER_ROOT/images/displaycluster.sif}
+if [ $NATIVE = 0 ]; then
+    export DISPLAYCLUSTER_SIF=${DISPLAYCLUSTER_SIF:-$DISPLAYCLUSTER_ROOT/images/displaycluster.sif}
+fi
 export DISPLAYCLUSTER_CONFIG=${DISPLAYCLUSTER_CONFIG:-$DISPLAYCLUSTER_ROOT/wall.json}
 
 # the wall's working directory, where media and saved states live together
@@ -63,7 +75,6 @@ export DISPLAYCLUSTER_API_PORT=${DISPLAYCLUSTER_API_PORT:-1910}
 
 # screensaver: seconds without activity before it starts, and its image
 export DISPLAYCLUSTER_TIMEOUT=${DISPLAYCLUSTER_TIMEOUT:-10800}
-export DISPLAYCLUSTER_SCREENSAVER_IMAGE=${DISPLAYCLUSTER_SCREENSAVER_IMAGE:-/usr/local/src/DisplayCluster/examples/tacc-logo.png}
 
 # how many sensors the web UI offers for sensor control (0: none)
 export DISPLAYCLUSTER_SENSORS=${DISPLAYCLUSTER_SENSORS:-0}
@@ -74,16 +85,26 @@ export DISPLAYCLUSTER_MPIARGS=${DISPLAYCLUSTER_MPIARGS:-"-bind-to none"}
 
 export DISPLAYCLUSTER_LOG_THRESHOLD=${DISPLAYCLUSTER_LOG_THRESHOLD:-4}
 
-# --- paths inside the image; these rarely need changing ----------------------
+# --- where the program is: in the image, or installed here; rarely changed ---
 
-export DISPLAYCLUSTER_INSTALL=${DISPLAYCLUSTER_INSTALL:-/usr/local}
+if [ $NATIVE = 1 ]; then
+    INSTALLED=$DISPLAYCLUSTER_ROOT
+    SCRIPTS_DEFAULT=$DISPLAYCLUSTER_ROOT/bin
+    EXAMPLES=$DISPLAYCLUSTER_ROOT/examples
+else
+    INSTALLED=/usr/local
+    SCRIPTS_DEFAULT=/usr/local/src/DisplayCluster/scripts
+    EXAMPLES=/usr/local/src/DisplayCluster/examples
+fi
+export DISPLAYCLUSTER_INSTALL=${DISPLAYCLUSTER_INSTALL:-$INSTALLED}
 export DISPLAYCLUSTER_DIR=${DISPLAYCLUSTER_DIR:-$DISPLAYCLUSTER_INSTALL}
 export DISPLAYCLUSTER_EXEC=${DISPLAYCLUSTER_EXEC:-displaycluster}
-DISPLAYCLUSTER_SCRIPTS=${DISPLAYCLUSTER_SCRIPTS:-/usr/local/src/DisplayCluster/scripts}
+export DISPLAYCLUSTER_SCREENSAVER_IMAGE=${DISPLAYCLUSTER_SCREENSAVER_IMAGE:-$EXAMPLES/tacc-logo.png}
+DISPLAYCLUSTER_SCRIPTS=${DISPLAYCLUSTER_SCRIPTS:-$SCRIPTS_DEFAULT}
 
 # --- launch -------------------------------------------------------------------
 
-for f in "$DISPLAYCLUSTER_SIF" "$DISPLAYCLUSTER_CONFIG"; do
+for f in ${DISPLAYCLUSTER_SIF:+"$DISPLAYCLUSTER_SIF"} "$DISPLAYCLUSTER_CONFIG"; do
     if [ ! -r "$f" ]; then
         echo "startdisplaycluster: can't read $f" >&2
         exit 1
@@ -114,10 +135,12 @@ print(",".join(["localhost"] + [p["host"] for p in json.load(open(sys.argv[1]))[
 
 # the container sees the home directory by itself, but not a DisplayCluster
 # directory elsewhere, so bind that in too
-case $DISPLAYCLUSTER_ROOT in
-    "$HOME"|"$HOME"/*) ;;
-    *) export APPTAINER_BINDPATH=${APPTAINER_BINDPATH:+$APPTAINER_BINDPATH,}$DISPLAYCLUSTER_ROOT ;;
-esac
+if [ $NATIVE = 0 ]; then
+    case $DISPLAYCLUSTER_ROOT in
+        "$HOME"|"$HOME"/*) ;;
+        *) export APPTAINER_BINDPATH=${APPTAINER_BINDPATH:+$APPTAINER_BINDPATH,}$DISPLAYCLUSTER_ROOT ;;
+    esac
+fi
 
 # pass these on to every node; APPTAINER_BINDPATH names host folders (outside
 # home) that the container should see, e.g. /scratch,/corral
@@ -129,9 +152,11 @@ done
 cd "$CONTENT_DIR" || exit 1
 
 # DISPLAYCLUSTER_MPIARGS is split into words on purpose
-COMMAND=("$MPIRUN" -host "$HOSTS" $DISPLAYCLUSTER_MPIARGS "${FORWARD[@]}"
-         apptainer run --nv "$DISPLAYCLUSTER_SIF"
-         sh "$DISPLAYCLUSTER_SCRIPTS/displaycluster.sh" "$DISPLAYCLUSTER_SCRIPTS/displaycluster.py")
+COMMAND=("$MPIRUN" -host "$HOSTS" $DISPLAYCLUSTER_MPIARGS "${FORWARD[@]}")
+if [ $NATIVE = 0 ]; then
+    COMMAND+=(apptainer run --nv "$DISPLAYCLUSTER_SIF")
+fi
+COMMAND+=(sh "$DISPLAYCLUSTER_SCRIPTS/displaycluster.sh" "$DISPLAYCLUSTER_SCRIPTS/displaycluster.py")
 
 echo "launching: ${COMMAND[*]}"
 

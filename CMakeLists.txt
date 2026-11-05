@@ -1,6 +1,22 @@
+# DISPLAYCLUSTER_CLIENT_ONLY builds only what a presenter's own machine needs -
+# DesktopStreamer (streamer/), installed with the Python tools and the Chrome
+# extension - and none of the wall's dependencies (MPI, FFmpeg, CUDA). With
+# vcpkg it uses streamer/'s smaller manifest; it has to be chosen before
+# project(), which is when vcpkg installs.
+option(DISPLAYCLUSTER_CLIENT_ONLY "Build and install only the client tools: DesktopStreamer, python/, extension/" OFF)
+if(DISPLAYCLUSTER_CLIENT_ONLY AND NOT DEFINED VCPKG_MANIFEST_DIR)
+    set(VCPKG_MANIFEST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/streamer")
+endif()
+
 project(DisplayCluster)
 
 cmake_minimum_required(VERSION 3.16)
+
+# cmake --install installs into the DisplayCluster directory, $DISPLAYCLUSTER_ROOT,
+# when it's set and no prefix is given (-DCMAKE_INSTALL_PREFIX, or --prefix)
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT AND DEFINED ENV{DISPLAYCLUSTER_ROOT})
+    set(CMAKE_INSTALL_PREFIX "$ENV{DISPLAYCLUSTER_ROOT}" CACHE PATH "Install prefix: the DisplayCluster directory" FORCE)
+endif()
 
 # default to a build with debug symbols but still optimized
 # (RelWithDebInfo) if the caller didn't pick a build type explicitly -
@@ -13,6 +29,20 @@ cmake_minimum_required(VERSION 3.16)
 # being debugged. Override with -DCMAKE_BUILD_TYPE=... as usual.
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Build type" FORCE)
+endif()
+
+# the Python tools, without anything Python leaves behind when it runs them
+set(PYTHON_TOOLS_EXCLUDE PATTERN "__pycache__" EXCLUDE PATTERN "*.pyc" EXCLUDE PATTERN ".ipynb_checkpoints" EXCLUDE)
+
+if(DISPLAYCLUSTER_CLIENT_ONLY)
+    add_subdirectory(streamer)
+
+    install(DIRECTORY python DESTINATION . ${PYTHON_TOOLS_EXCLUDE})
+    install(PROGRAMS scripts/cyclestates DESTINATION bin)
+    install(DIRECTORY extension DESTINATION .)
+
+    # nothing else here is for a client
+    return()
 endif()
 
 # version information
@@ -292,8 +322,25 @@ INSTALL(TARGETS displaycluster RUNTIME DESTINATION bin)
 INSTALL(PROGRAMS scripts/displaycluster.py DESTINATION bin)
 INSTALL(PROGRAMS scripts/displaycluster.sh DESTINATION bin)
 
-# install state file tools
+# install the launcher, the tools for stopping it and for state files
+INSTALL(PROGRAMS scripts/startdisplaycluster scripts/killdc DESTINATION bin)
 INSTALL(PROGRAMS scripts/check-dcx scripts/localize-dcx scripts/cyclestates DESTINATION bin)
+
+# the wall's content folder (also its state directory and working directory),
+# and an example layout to edit - only the first time, so a reinstall keeps
+# the wall's own. Not wanted when the prefix isn't a DisplayCluster directory,
+# as in the container image (docker/cfg.dc).
+option(DISPLAYCLUSTER_WALL_DIRECTORY "Install as a DisplayCluster directory, with Content/ and an example wall.json" ON)
+if(DISPLAYCLUSTER_WALL_DIRECTORY)
+    INSTALL(DIRECTORY DESTINATION Content)
+    INSTALL(CODE "
+        if(NOT EXISTS \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/wall.json\")
+            file(READ \"${CMAKE_CURRENT_SOURCE_DIR}/examples/configuration.json\" WALL)
+            file(WRITE \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/wall.json\" \"\${WALL}\")
+            message(STATUS \"Installing: \${CMAKE_INSTALL_PREFIX}/wall.json (an example: edit it)\")
+        endif()
+    ")
+endif()
 
 # install remote controller
 INSTALL(DIRECTORY remote DESTINATION .)
@@ -310,5 +357,5 @@ INSTALL(DIRECTORY examples DESTINATION .)
 # install doc files
 INSTALL(DIRECTORY doc DESTINATION .)
 
-# install doc files
-INSTALL(DIRECTORY python DESTINATION .)
+# install the Python tools
+INSTALL(DIRECTORY python DESTINATION . ${PYTHON_TOOLS_EXCLUDE})
