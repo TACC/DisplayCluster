@@ -163,8 +163,8 @@ cmake --build build-client -j8 && cmake --install build-client
 ```
 
 On a Mac with Homebrew's Qt, add `-DCMAKE_PREFIX_PATH="$(brew --prefix qt)"`
-to the first line. On Windows, add vcpkg's toolchain file, as in the
-[README](../README.md#building-desktopstreamer).
+to the first line. On Windows, add vcpkg's toolchain file, as in
+[DesktopStreamer](setup.md#desktopstreamer).
 
 It installs DesktopStreamer (`DesktopStreamer.app` on a Mac), `python/` with
 `DC.py`, `bin/cyclestates`, and the Chrome extension in `extension/`. To hand

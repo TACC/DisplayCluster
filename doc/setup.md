@@ -234,6 +234,19 @@ stops at the first one that fails:
 Without a directory, it writes `displaycluster.sif` in the checkout instead,
 for you to install with `install-displaycluster`.
 
+It uses `docker save` and apptainer's `docker-archive:` rather than
+`apptainer build ... docker-daemon:displaycluster:latest`. On rattler-dev,
+`docker-daemon:` reached a different Docker daemon than the `docker` command
+did, and silently built an old image into the `.sif` however often it was
+rebuilt. An archive written by the same `docker` that built the image can't
+do that.
+
+The image is based on NVIDIA's `nvidia/opengl` image, for NVIDIA GPUs. The
+`FROM` line in `docker/Dockerfile` can name a plain Ubuntu 22.04 instead, but
+it then draws with Mesa, which can struggle at a wall's resolutions. Its Open
+MPI is Ubuntu's 4.1.2, which is why the hosts need a matching 4.1; the
+Dockerfile can install another version instead, untested.
+
 It cleans up after itself: the archive is deleted however the script ends,
 and so are the images earlier builds left behind. Those are labelled as
 DisplayCluster's, so it leaves other people's Docker images alone. Images
@@ -331,6 +344,10 @@ sudo apt install cuda-cudart-dev-13-3
 Use `ubuntu2404` in the URL on 24.04. Or skip this and configure with
 `-DDISPLAYCLUSTER_CUDA=OFF`, which decodes movies on the CPU.
 
+Whether Ubuntu's own FFmpeg libraries can decode on the GPU depends on the
+release: `ffmpeg -hwaccels` should list `cuda`. If it doesn't, a prebuilt
+FFmpeg with NVDEC is the fallback, as on [Windows](#windows).
+
 ### Rocky / RHEL 9
 
 This list hasn't been tested as a whole on a clean machine. The wall at TACC
@@ -391,29 +408,165 @@ windows instead. Its comments list the settings it uses.
 
 ### Windows
 
-See the Windows section of the [README](../README.md#windows-11) for the
-steps. It uses Visual Studio 2022 or just its Build Tools, vcpkg
-(`vcpkg.json` lists the packages), MS-MPI, a prebuilt FFmpeg, and optionally
-the CUDA Toolkit. What's been tested on Windows is a wall in windows on one
-machine's desktop, launched with `mpiexec -n <1 + display processes>`; the
-launcher scripts and the display-node preparation below are for Linux.
+What's been tested on Windows is a wall in windows on one machine's desktop,
+launched with `mpiexec -n <1 + display processes>`. The launcher scripts and
+the display-node preparation below are for Linux.
 
-What differs from Linux:
-- Keep vcpkg and the checkout on paths with no spaces (e.g. `C:\vcpkg`,
-  `C:\src\DisplayCluster`).
-- Build from the "x64 Native Tools Command Prompt for VS 2022", or a `.bat`
-  that calls `vcvars64.bat` first. Open a new prompt after installing the
-  MS-MPI SDK or the CUDA Toolkit, so their environment variables are set.
-- The first configure builds Qt and the rest from source (25 minutes to over
-  an hour); later ones reuse vcpkg's cache.
-- The build copies the DLLs it needs, FFmpeg's included, next to
-  `displaycluster.exe`. Set `QT_PLUGIN_PATH` to
-  `build\vcpkg_installed\x64-windows\Qt6\plugins` when running.
-- List separators in variables such as `DISPLAYCLUSTER_MEDIA_DIRS` are `;`,
-  not `:`.
-- On a laptop with two GPUs, give `displaycluster.exe` the NVIDIA GPU in
-  Windows' graphics settings, or hardware-decoded movie frames take a trip
-  through system memory (see the README).
+#### Toolchain
+
+- **Visual Studio 2022** (Community or higher, or just the Build Tools for
+  Visual Studio 2022) with the **Desktop development with C++** workload. It
+  provides MSVC, the Windows SDK, and the **x64 Native Tools Command Prompt
+  for VS 2022**. Build from that prompt, not a plain terminal: `cl.exe` needs
+  the environment (`INCLUDE`, `LIB`, `PATH`) it sets up, which `vcvars64.bat`
+  (under `VC\Auxiliary\Build` in the install) also does. In a `.bat` that
+  calls `vcvars64.bat` and logs to a file, send vcvars' own output to a
+  different file: a process it starts keeps that file open, so every later
+  `>> same.log` fails and its command silently doesn't run.
+- **Git for Windows.**
+- **CMake 3.16+**, from the workload's **C++ CMake tools for Windows**
+  component or installed on its own. If `cmake` isn't found in the Native
+  Tools prompt, add that component in the Visual Studio Installer.
+- **[vcpkg](https://github.com/microsoft/vcpkg)**, cloned to a path with **no
+  spaces** (`C:\vcpkg`, not under `C:\Users\Some User\...`): several of its
+  ports run MSYS2 build scripts that break on spaces. Clone DisplayCluster to
+  a space-free path too, such as `C:\src\DisplayCluster`.
+
+  ```
+  git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
+  C:\vcpkg\bootstrap-vcpkg.bat
+  ```
+
+#### Installed by hand
+
+- **MS-MPI:** both the SDK (`msmpisdk.msi`) and the runtime (`msmpisetup.exe`)
+  from Microsoft. CMake finds it through the `MSMPI_INC` and `MSMPI_LIB64`
+  variables the SDK's installer sets, so open a new prompt after installing
+  it.
+- **The NVIDIA driver**, whatever's current for the card.
+- **The NVIDIA CUDA Toolkit** (optional), for hardware movie decode (NVDEC):
+  the driver API's headers (`cuda.h`, `cudaGL.h`) and `cuda.lib`. Its
+  installer sets `CUDA_PATH`, which the build searches. Without it, configure
+  with `-DDISPLAYCLUSTER_CUDA=OFF`, and movies decode in software.
+- **FFmpeg, prebuilt, with NVDEC.** vcpkg's FFmpeg port fails to build on
+  Windows (a malformed `compat/windows/makedef` call making `libavcodec`'s
+  export file), so use a prebuilt one from
+  [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds/releases): a
+  `win64-*-shared` variant, such as `ffmpeg-master-latest-win64-gpl-shared.zip`
+  (`-shared` matters: it has the `.lib` and `.dll` files). Extract it, for
+  example to `C:\ffmpeg`, and check that `C:\ffmpeg\bin\ffmpeg.exe -hide_banner
+  -hwaccels` lists `cuda`.
+
+Everything else (Qt 6 with `qtsvg`, Boost, libjpeg-turbo and OpenSSL 3) is in
+`vcpkg.json`, and vcpkg installs it during CMake's configure.
+
+#### Configure and build
+
+From the x64 Native Tools Command Prompt:
+
+```
+set FFMPEG_DIR=C:\ffmpeg
+cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake
+cmake --build build --config Release
+```
+
+(add `-DDISPLAYCLUSTER_CUDA=OFF` to the first line without the CUDA Toolkit).
+
+The first configure builds the whole vcpkg set from source, about 94 packages,
+mostly Boost and Qt: 25 minutes on a fast many-core machine, well over an hour
+on others. vcpkg keeps what it built (`%LOCALAPPDATA%\vcpkg\archives`), so
+later configures, even in a fresh `build\` or another project using the same
+packages, are quick.
+
+Things to check in CMake's output:
+- `remote API: HTTPS supported (OpenSSL 3.x)`;
+- `Found MPI: TRUE` (if not, the prompt is older than the MS-MPI SDK);
+- `Building without CUDA: movies decode in software` appears only with CUDA
+  off.
+
+To turn CUDA on later, install the Toolkit, open a new prompt (so `CUDA_PATH`
+is set), and configure again with `-DDISPLAYCLUSTER_CUDA=ON`; with vcpkg's
+packages already built, that takes seconds. As of CUDA 13, `cuda.lib` is a
+small static loader that opens `nvcuda.dll` when CUDA is first used, so
+`dumpbin /dependents` doesn't list `nvcuda.dll`; that's expected.
+
+#### Running it on Windows
+
+The build copies the DLLs it needs (Qt, Boost, OpenSSL, FFmpeg, and the
+libraries Qt's plugins need) next to `displaycluster.exe`, so `C:\ffmpeg\bin`
+needn't be on `PATH`; `msmpi.dll` comes from the MS-MPI runtime. Qt's plugin
+folders aren't copied, so set `QT_PLUGIN_PATH`:
+
+```
+set DISPLAYCLUSTER_DIR=C:\src\DisplayCluster
+set DISPLAYCLUSTER_CONFIG=C:\src\DisplayCluster\configuration.json
+set DISPLAYCLUSTER_TIMEOUT=3600
+set QT_PLUGIN_PATH=C:\src\DisplayCluster\build\vcpkg_installed\x64-windows\Qt6\plugins
+mpiexec -n 2 C:\src\DisplayCluster\build\Release\displaycluster.exe
+```
+
+`DISPLAYCLUSTER_TIMEOUT` is the screensaver's idle time in seconds; without
+it, the screensaver starts after 5 and clears test content. For a first test,
+a configuration with one 800×600 tile in a window, with `mpiexec -n 2` (the
+control window and one display process):
+
+```json
+{
+    "dimensions": {
+        "numTilesWidth": 1, "numTilesHeight": 1,
+        "screenWidth": 800, "screenHeight": 600,
+        "mullionWidth": 0, "mullionHeight": 0,
+        "fullscreen": 0
+    },
+    "processes": [
+        { "host": "localhost", "screens": [ {"x": 0, "y": 0, "i": 0, "j": 0} ] }
+    ]
+}
+```
+
+The web UI is then at <http://localhost:1910/ui/>; the API listens only on
+`127.0.0.1` until the wall has a token. Its file browser starts in your home
+folder. To offer other folders, set `DISPLAYCLUSTER_MEDIA_DIRS`, with `;`
+between them on Windows: `set
+DISPLAYCLUSTER_MEDIA_DIRS=media=D:\wall-media;C:\src\DisplayCluster\examples`.
+
+#### Hardware movie decode, and laptops with two GPUs
+
+With CUDA on, NVDEC decodes each movie on the NVIDIA GPU, and CUDA copies the
+frames straight into the tile's OpenGL textures. That last step works only
+when the NVIDIA GPU also draws the window. Laptops with hybrid graphics (an
+integrated Intel or AMD GPU and an NVIDIA one) give new programs the
+integrated GPU, and the display process then logs:
+
+```
+Movie::render: can't share GL textures with CUDA (...; GL renderer AMD Radeon(TM) 610M), so hardware-decoded frames will be copied through host memory
+```
+
+Movies still play, but every frame goes through system memory to the other
+GPU. To fix it, give `displaycluster.exe` the NVIDIA GPU: **Settings → System
+→ Display → Graphics → Add an app → Desktop app**, choose
+`build\Release\displaycluster.exe`, then **Options → High performance** (or,
+in the NVIDIA Control Panel, **Manage 3D settings → Program Settings →
+High-performance NVIDIA processor**). A build at a different path needs the
+setting again. Desktops whose monitors are on the NVIDIA card don't need any
+of this.
+
+To check that a movie is decoding on the GPU, run `nvidia-smi dmon -s u`: the
+`dec` column should be above 0. `nvidia-smi` should list the display process
+with type `C+G` (CUDA and graphics on that GPU), and the "can't share GL
+textures" line shouldn't appear. Task Manager's GPU tab shows the decoder's
+load as "Video Decode".
+
+On a node with several GPUs, each with its own X screen and its own
+DisplayCluster process (as on Stallion), each process decodes on the GPU
+behind its own windows, and logs which:
+
+```
+movies decode on CUDA device 1, NVIDIA RTX PRO 6000 Blackwell Server Edition (0001:C5:00.0), the GPU showing this process's windows
+```
+
+There, `nvidia-smi dmon -s u` should show `dec` load on every GPU whose
+screens show a movie.
 
 ### Configure, build, install (Linux)
 
@@ -1109,8 +1262,8 @@ in. If the Mac is asleep at the set time, the job runs when it wakes; to keep
 it awake, use **System Settings → Energy** or `pmset`. To remove a job,
 use `launchctl bootout` with the same arguments.
 
-**Windows: Task Scheduler.** Put the commands from the README's
-["Running"](../README.md#running) section in a batch file, such as
+**Windows: Task Scheduler.** Put the commands from
+[Running it on Windows](#running-it-on-windows) in a batch file, such as
 `C:\src\start-wall.bat`:
 
 ```bat
@@ -1296,9 +1449,21 @@ cmake -S . -B build-client -DDISPLAYCLUSTER_CLIENT_ONLY=ON -DCMAKE_INSTALL_PREFI
 cmake --build build-client -j8 && cmake --install build-client
 ```
 
-**Windows:** see "Building DesktopStreamer" in the
-[README](../README.md#building-desktopstreamer). It's a vcpkg build, like the
-main program, but with no MPI, CUDA or FFmpeg.
+**Windows:** the same toolchain as the [main program's](#windows) (Visual
+Studio 2022, the x64 Native Tools prompt, vcpkg on a space-free path), but
+only vcpkg is needed: no MS-MPI, CUDA or FFmpeg. `streamer/vcpkg.json` lists
+the packages, and they install during the configure:
+
+```
+cd streamer
+cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake
+cmake --build build --config Release
+set QT_PLUGIN_PATH=%CD%\build\vcpkg_installed\x64-windows\Qt6\plugins
+build\Release\DesktopStreamer.exe
+```
+
+As with the main program, `QT_PLUGIN_PATH` is needed because vcpkg copies the
+DLLs next to the program but not Qt's plugin folders.
 
 **Handing it to presenters.** A build runs on the machine it was built on,
 using the Qt it was built against. To give it to someone without a build
